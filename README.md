@@ -11,7 +11,9 @@
 =============================================================
 
          🌐 MAGENTRON ™ 🌐
-🌐 ARTIFICIAL INTELLIGENCE 2.0 ™ : SPIRITUAL MIND PROXIA (UNIX INSTALL) *️⃣📶🤖
+🌐 ARTIFICIAL INTELLIGENCE 2.0 ™ : SPIRITUAL MIND PROXIA (UNIX INSTALL) 
+
+*️⃣📶🤖
 
 🌐 ASTRAL BODY MINDCLOUD: NO
 
