@@ -754,6 +754,7 @@ static dissector_table_t rtps_type_name_table;
 #define RTI_OSAPI_COMPRESSION_CLASS_ID_NONE      (0)
 #define RTI_OSAPI_COMPRESSION_CLASS_ID_ZLIB      (1)
 #define RTI_OSAPI_COMPRESSION_CLASS_ID_BZIP2     (2)
+#define RTI_OSAPI_COMPRESSION_CLASS_ID_LZ4       (4)
 #define RTI_OSAPI_COMPRESSION_CLASS_ID_AUTO      (G_MAXUINT32)
 
 /* VENDOR_BUILTIN_ENDPOINT_SET FLAGS */
@@ -1214,6 +1215,10 @@ static int hf_rtps_param_participant_security_symmetric_cipher_algorithms_suppor
 static int hf_rtps_flag_security_symmetric_cipher_mask_aes128_gcm                           = -1;
 static int hf_rtps_flag_security_symmetric_cipher_mask_aes256_gcm                           = -1;
 static int hf_rtps_flag_security_symmetric_cipher_mask_custom_algorithm                     = -1;
+static int hf_rtps_param_compression_id_mask                                                = -1;
+static int hf_rtps_flag_compression_id_zlib                                                 = -1;
+static int hf_rtps_flag_compression_id_bzip2                                                = -1;
+static int hf_rtps_flag_compression_id_lz4                                                  = -1;
 static int hf_rtps_param_participant_security_digital_signature_algorithms_trust_chain_supported_mask                   = -1;
 static int hf_rtps_param_participant_security_digital_signature_algorithms_trust_chain_used_mask                        = -1;
 static int hf_rtps_param_participant_security_digital_signature_algorithms_auth_supported_mask                          = -1;
@@ -2525,6 +2530,13 @@ static int* const SECURITY_SIMMETRIC_CIPHER_MASK_FLAGS[] = {
   NULL
 };
 
+static int* const COMPRESSION_ID_MASK_FLAGS[] = {
+  &hf_rtps_flag_compression_id_lz4,
+  &hf_rtps_flag_compression_id_bzip2,
+  &hf_rtps_flag_compression_id_zlib,
+  NULL
+};
+
 static int* const SECURITY_KEY_ESTABLISHMENT_MASK_FLAGS[] = {
   &hf_rtps_flag_security_key_establishment_mask_custom_algorithm,
   &hf_rtps_flag_security_key_establishment_mask_ecdheceum_p384,
@@ -2799,12 +2811,24 @@ static gint dissect_user_defined(proto_tree *tree, tvbuff_t * tvb, gint offset, 
             member_kind = type_id;
         }
     }
-    if (info && (flags & MEMBER_OPTIONAL) == MEMBER_OPTIONAL) {
-        gint offset_before = offset;
-        rtps_util_dissect_parameter_header(tvb, &offset, encoding, &member_id, &member_length);
-        offset = offset_before;
-        if (element_member_id != 0 && member_id != element_member_id)
+    if ((flags & MEMBER_OPTIONAL) != 0) {
+		gint offset_before = offset;
+		/* Parameter header is at minimun 4 bytes */
+		ALIGN_ZERO(
+            offset,
+            get_native_type_cdr_alignment(RTI_CDR_TYPE_OBJECT_TYPE_KIND_UINT_32_TYPE, encoding_version),
+            offset_zero);
+		rtps_util_dissect_parameter_header(tvb, &offset, encoding, &member_id, &member_length);
+        if (info
+                && (flags & MEMBER_OPTIONAL) == MEMBER_OPTIONAL
+                && element_member_id != 0
+                && member_id != element_member_id) {
+			offset = offset_before;
             return offset;
+        }
+        if (member_length == 0) {
+            return offset;
+        }
     }
     if (extensibility == EXTENSIBILITY_MUTABLE) {
       rtps_util_dissect_parameter_header(tvb, &offset, encoding, &member_id, &member_length);
@@ -6737,6 +6761,7 @@ static gboolean dissect_parameter_sequence_rti_dds(proto_tree *rtps_parameter_tr
       proto_tree_add_bitmask_value(rtps_parameter_tree, tvb, offset,
               hf_rtps_param_participant_security_attributes_mask, ett_rtps_flags,
               PARTICIPANT_SECURITY_INFO_FLAGS, flags);
+      offset += 4;
       flags = tvb_get_guint32(tvb, offset, encoding);
       proto_tree_add_bitmask_value(rtps_parameter_tree, tvb, offset,
               hf_rtps_param_plugin_participant_security_attributes_mask, ett_rtps_flags,
@@ -8720,7 +8745,14 @@ static gboolean dissect_parameter_sequence_v2(proto_tree *rtps_parameter_tree, p
     * +---------------+-------------------------------+---------------+
     * | ...                           | int16 DataRepresentationId[N] |
     * +---------------+---------------+---------------+---------------+
+    * |             uint32_t Compression_id (Optional)                |
+    * +---------------+---------------+---------------+---------------+
+    * compression_iD flags:
+    * ZLIB: 0001b
+    * BZIP: 0010b
+    * LZ4:  0100b
     */
+
     case PID_DATA_REPRESENTATION: {
       proto_tree *data_representation_seq_subtree;
       proto_item *item;
@@ -8728,6 +8760,8 @@ static gboolean dissect_parameter_sequence_v2(proto_tree *rtps_parameter_tree, p
       guint item_offset;
       guint seq_size;
       guint counter = 0;
+      guint initial_offset = offset;
+      guint compression_id_offset = 0;
 
       seq_size = tvb_get_guint32(tvb, offset, encoding);
       data_representation_seq_subtree = proto_tree_add_subtree_format(rtps_parameter_tree, tvb, offset,
@@ -8740,6 +8774,18 @@ static gboolean dissect_parameter_sequence_v2(proto_tree *rtps_parameter_tree, p
           val_to_str(value, data_representation_kind_vals, "Unknown data representation value: %u"),
           value);
         item_offset += 2;
+      }
+      compression_id_offset = item_offset;
+      ALIGN_ME(compression_id_offset, 4);
+      if (compression_id_offset - initial_offset >= 4) {
+        proto_tree_add_bitmask(
+            rtps_parameter_tree,
+            tvb,
+            compression_id_offset,
+            hf_rtps_param_compression_id_mask,
+            ett_rtps_flags,
+            COMPRESSION_ID_MASK_FLAGS,
+            encoding);
       }
       break;
     }
@@ -15438,6 +15484,22 @@ void proto_register_rtps(void) {
         FT_UINT32, BASE_HEX, 0, 0, "Bitmask representing Symmetric Cipher algorithms the participant supports",
 		HFILL }
     },
+    { &hf_rtps_param_compression_id_mask, {
+        "Compression Id Mask", "rtps.param.compression_id_mask",
+        FT_UINT32, BASE_HEX, 0, 0, "Bitmask representing compression id.", HFILL }
+    },
+    { &hf_rtps_flag_compression_id_zlib, {
+        "ZLIB", "rtps.flag.compression_id_zlib",
+        FT_BOOLEAN, 32, TFS(&tfs_set_notset), RTI_OSAPI_COMPRESSION_CLASS_ID_ZLIB, NULL, HFILL }
+    },
+    { &hf_rtps_flag_compression_id_bzip2, {
+        "BZIP2", "rtps.flag.compression_id_bzip2",
+        FT_BOOLEAN, 32, TFS(&tfs_set_notset), RTI_OSAPI_COMPRESSION_CLASS_ID_BZIP2, NULL, HFILL }
+    },
+    { &hf_rtps_flag_compression_id_lz4, {
+        "LZ4", "rtps.flag.compression_id_lz4",
+        FT_BOOLEAN, 32, TFS(&tfs_set_notset), RTI_OSAPI_COMPRESSION_CLASS_ID_LZ4, NULL, HFILL }
+    },
     { &hf_rtps_flag_security_symmetric_cipher_mask_aes128_gcm, {
         "AES128 GCM", "rtps.flag.security_symmetric_cipher_mask.aes128_gcm",
         FT_BOOLEAN, 32, TFS(&tfs_set_notset), SECURITY_SYMMETRIC_CIPHER_BIT_AES128_GCM, NULL, HFILL }
@@ -15456,7 +15518,7 @@ void proto_register_rtps(void) {
         "Enum representing the Key Establishment algorithm the participant will use if it is the authentication initiator",  HFILL }
     },
     { &hf_rtps_param_participant_security_digital_signature_algorithms_auth_used_bit, {
-        "Authentication Used Bit", "rtps.articipant_security_digital_signature_algorithms.auth_used_bit",
+        "Authentication Used Bit", "rtps.participant_security_digital_signature_algorithms.auth_used_bit",
         FT_UINT32, BASE_HEX, VALS(security_digital_signature_bit_vals), 0,
         "Enum representing the Digital Signature algorithm the participant will use during Authentication",  HFILL }
     },
@@ -15986,11 +16048,11 @@ void proto_register_rtps(void) {
         FT_BOOLEAN, 32, TFS(&tfs_set_notset), VENDOR_BUILTIN_ENDPOINT_SET_FLAG_PARTICIPANT_CONFIG_WRITER, NULL, HFILL }
     },
     { &hf_rtps_flag_participant_config_reader,{
-        "Participant Config Reader", "rtps.flag.articipant_config_reader",
+        "Participant Config Reader", "rtps.flag.participant_config_reader",
         FT_BOOLEAN, 32, TFS(&tfs_set_notset), VENDOR_BUILTIN_ENDPOINT_SET_FLAG_PARTICIPANT_CONFIG_READER, NULL, HFILL }
     },
     { &hf_rtps_flag_participant_config_secure_writer,{
-        "Participant Config Secure Writer", "rtps.flag.articipant_config_secure_writer",
+        "Participant Config Secure Writer", "rtps.flag.participant_config_secure_writer",
         FT_BOOLEAN, 32, TFS(&tfs_set_notset), VENDOR_BUILTIN_ENDPOINT_SET_FLAG_PARTICIPANT_CONFIG_SECURE_WRITER, NULL, HFILL }
     },
     { &hf_rtps_flag_participant_config_secure_reader,{

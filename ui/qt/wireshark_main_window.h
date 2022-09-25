@@ -152,17 +152,6 @@ private:
         MatchSelectedOrNot
     };
 
-    enum CopySelected {
-        CopyAllVisibleItems,
-        CopyAllVisibleSelectedTreeItems,
-        CopySelectedDescription,
-        CopySelectedFieldName,
-        CopySelectedValue,
-        CopyListAsText,
-        CopyListAsCSV,
-        CopyListAsYAML
-    };
-
     enum FileCloseContext {
         Default,
         Quit,
@@ -352,10 +341,10 @@ private slots:
     void mainStackChanged(int);
     void updateRecentCaptures();
     void recentActionTriggered();
-    void actionAddPacketComment();
-    void actionEditPacketComment();
-    void actionDeletePacketComment();
-    void actionDeleteCommentsFromPackets();
+    void addPacketComment();
+    void editPacketComment();
+    void deletePacketComment();
+    void deleteCommentsFromPackets();
     QString commentToMenuText(QString text, int max_len = 40);
     void setEditCommentsMenu();
     void setMenusForSelectedPacket();
@@ -422,64 +411,24 @@ private slots:
     // We might want move these to main_window_actions.cpp similar to
     // gtk/main_menubar.c
 
-    void on_actionFileOpen_triggered();
-    void on_actionFileMerge_triggered();
-    void on_actionFileImportFromHexDump_triggered();
-    void on_actionFileClose_triggered();
-    void on_actionFileSave_triggered();
-    void on_actionFileSaveAs_triggered();
-    void on_actionFileSetListFiles_triggered();
-    void on_actionFileSetNextFile_triggered();
-    void on_actionFileSetPreviousFile_triggered();
-    void on_actionFileExportPackets_triggered();
-    void on_actionFileExportAsPlainText_triggered();
-    // We're dropping PostScript exports
-    void on_actionFileExportAsCSV_triggered();
-    void on_actionFileExportAsCArrays_triggered();
-    void on_actionFileExportAsPSML_triggered();
-    void on_actionFileExportAsPDML_triggered();
-    void on_actionFileExportAsJSON_triggered();
-    void on_actionFileExportPacketBytes_triggered();
-    void on_actionFilePrint_triggered();
+    void connectFileMenuActions();
+    void exportPacketBytes();
+    void exportPDU();
+    void stripPacketHeaders();
+    void exportTLSSessionKeys();
+    void printFile();
 
-    void on_actionFileExportPDU_triggered();
-    void on_actionFileStripHeaders_triggered();
-    void on_actionFileExportTLSSessionKeys_triggered();
-
-    void actionEditCopyTriggered(WiresharkMainWindow::CopySelected selection_type);
-    void on_actionCopyAllVisibleItems_triggered();
-    void on_actionCopyAllVisibleSelectedTreeItems_triggered();
-    void on_actionCopyListAsText_triggered();
-    void on_actionCopyListAsCSV_triggered();
-    void on_actionCopyListAsYAML_triggered();
-    void on_actionEditCopyDescription_triggered();
-    void on_actionEditCopyFieldName_triggered();
-    void on_actionEditCopyValue_triggered();
-    void on_actionEditCopyAsFilter_triggered();
-    void on_actionEditFindPacket_triggered();
-    void on_actionEditFindNext_triggered();
-    void on_actionEditFindPrevious_triggered();
-    void on_actionEditMarkPacket_triggered();
-    void on_actionEditMarkAllDisplayed_triggered();
-    void on_actionEditUnmarkAllDisplayed_triggered();
-    void on_actionEditNextMark_triggered();
-    void on_actionEditPreviousMark_triggered();
-    void on_actionEditIgnorePacket_triggered();
-    void on_actionEditIgnoreAllDisplayed_triggered();
-    void on_actionEditUnignoreAllDisplayed_triggered();
-    void on_actionEditSetTimeReference_triggered();
-    void on_actionEditUnsetAllTimeReferences_triggered();
-    void on_actionEditNextTimeReference_triggered();
-    void on_actionEditPreviousTimeReference_triggered();
-    void on_actionEditTimeShift_triggered();
+    void connectEditMenuActions();
+    void copySelectedItems(WiresharkMainWindow::CopySelected selection_type);
+    void findPacket();
+    void editTimeShift();
+    void editConfigurationProfiles();
     void editTimeShiftFinished(int);
     void addPacketCommentFinished(PacketCommentDialog* pc_dialog, int result);
     void editPacketCommentFinished(PacketCommentDialog* pc_dialog, int result, guint nComment);
-    void on_actionDeleteAllPacketComments_triggered();
+    void deleteAllPacketComments();
     void deleteAllPacketCommentsFinished(int result);
-    void on_actionEditConfigurationProfiles_triggered();
     void showPreferencesDialog(QString module_name);
-    void on_actionEditPreferences_triggered();
 
     void showHideMainWidgets(QAction *action);
     void setTimestampFormat(QAction *action);
@@ -629,7 +578,6 @@ private slots:
     void on_actionStatisticsIOGraph_triggered();
     void on_actionStatisticsSametime_triggered();
     void on_actionStatisticsDNS_triggered();
-    void actionStatisticsPlugin_triggered();
     void on_actionStatisticsHpfeeds_triggered();
     void on_actionStatisticsHTTP2_triggered();
     void on_actionStatisticsSOMEIPmessages_triggered();
