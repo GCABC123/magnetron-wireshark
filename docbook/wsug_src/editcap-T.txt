@@ -1,4 +1,5 @@
 editcap: The available encapsulation types for the "-T" flag are:
+    alp - ATSC Link-Layer Protocol (A/330) packets
     ap1394 - Apple IP-over-IEEE 1394
     arcnet - ARCNET
     arcnet_linux - Linux ARCNET
@@ -6,6 +7,7 @@ editcap: The available encapsulation types for the "-T" flag are:
     atm-pdus - ATM PDUs
     atm-pdus-untruncated - ATM PDUs - untruncated
     atm-rfc1483 - RFC 1483 ATM
+    auerlog - Auerswald Log
     autosardlt - AUTOSAR DLT
     ax25 - Amateur Radio AX.25
     ax25-kiss - AX.25 with KISS header

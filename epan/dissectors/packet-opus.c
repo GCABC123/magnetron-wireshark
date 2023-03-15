@@ -57,16 +57,16 @@ static expert_field ei_opus_err_r7 = EI_INIT;
 static const value_string opus_codec_toc_config_request_vals[] = {
     {0, "NB, SILK-only ptime=10"},
     {1, "NB, SILK-only ptime=20"},
-    {2, "NB, SILK-only ptime=30"},
-    {3, "NB, SILK-only ptime=40"},
+    {2, "NB, SILK-only ptime=40"},
+    {3, "NB, SILK-only ptime=60"},
     {4, "MB, SILK-only ptime=10"},
     {5, "MB, SILK-only ptime=20"},
-    {6, "MB, SILK-only ptime=30"},
-    {7, "MB, SILK-only ptime=40"},
+    {6, "MB, SILK-only ptime=40"},
+    {7, "MB, SILK-only ptime=60"},
     {8, "WB, SILK-only ptime=10"},
     {9, "WB, SILK-only ptime=20"},
-    {10, "WB, SILK-only ptime=30"},
-    {11, "WB, SILK-only ptime=40"},
+    {10, "WB, SILK-only ptime=40"},
+    {11, "WB, SILK-only ptime=60"},
     {12, "SWB, Hybrid ptime=10"},
     {13, "SWB, Hybrid ptime=20"},
     {14, "FB, Hybrid ptime=10"},
@@ -126,7 +126,7 @@ parse_size_field(const unsigned char *ch, int32_t cn, int16_t *size)
 }
 
 static int16_t
-opus_packet_get_samples_per_frame(const unsigned char *data, int16_t Fs)
+opus_packet_get_samples_per_frame(const unsigned char *data, uint16_t Fs)
 {
     int audiosize;
     if (data[0] & 0x80) {

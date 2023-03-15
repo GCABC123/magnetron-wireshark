@@ -1,0 +1,32 @@
+name: Build MSYS2
+
+on: [push]
+
+jobs:
+  msys2-mingw64:
+    runs-on: windows-latest
+    defaults:
+      run:
+        shell: msys2 {0}
+    steps:
+      - name: Setup MSYS2
+        uses: msys2/setup-msys2@v2
+        with:
+          msystem: UCRT64
+          update: true
+          install: base-devel
+      - name: Build
+        env:
+          PKG_COMMIT: ${{ github.sha }}
+        run: |
+          mkdir build && cd build
+          wget "https://raw.githubusercontent.com/wireshark/wireshark/${PKG_COMMIT}/packaging/msys2/mingw-w64-wireshark-git/PKGBUILD"
+          makepkg-mingw --cleanbuild --syncdeps --force --install --noconfirm
+      - name: Show version
+        run: |
+          wireshark.exe --version
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: package
+          path: build/mingw-w64-*-wireshark*-any.pkg.tar.zst

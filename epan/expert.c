@@ -24,6 +24,7 @@
 #include <epan/wmem_scopes.h>
 #include "tap.h"
 
+#include <wsutil/str_util.h>
 #include <wsutil/wslog.h>
 
 /* proto_expert cannot be static because it's referenced in the
@@ -123,7 +124,7 @@ static gboolean uat_expert_update_cb(void *r, char **err)
 	expert_level_entry_t *rec = (expert_level_entry_t *)r;
 
 	if (expert_registrar_get_byname(rec->field) == NULL) {
-		*err = ws_strdup_printf("Expert Info field doesn't exist");
+		*err = ws_strdup_printf("Expert Info field doesn't exist: %s", rec->field);
 		return FALSE;
 	}
 	return TRUE;
@@ -534,6 +535,7 @@ expert_set_info_vformat(packet_info *pinfo, proto_item *pi, int group, int sever
 			const char *format, va_list ap)
 {
 	char           formatted[ITEM_LABEL_LENGTH];
+	int            pos;
 	int            tap;
 	expert_info_t *ei;
 	proto_tree    *tree;
@@ -563,9 +565,17 @@ expert_set_info_vformat(packet_info *pinfo, proto_item *pi, int group, int sever
 	}
 
 	if (use_vaformat) {
-		vsnprintf(formatted, ITEM_LABEL_LENGTH, format, ap);
+		pos = vsnprintf(formatted, ITEM_LABEL_LENGTH, format, ap);
 	} else {
-		(void) g_strlcpy(formatted, format, ITEM_LABEL_LENGTH);
+		pos = (int)g_strlcpy(formatted, format, ITEM_LABEL_LENGTH);
+	}
+
+	/* Both vsnprintf and g_strlcpy return the number of bytes attempted
+         * to write.
+         */
+        if (pos >= ITEM_LABEL_LENGTH) {
+		/* Truncation occured. It might have split a UTF-8 character. */
+		ws_utf8_truncate(formatted, ITEM_LABEL_LENGTH - 1);
 	}
 
 	tree = expert_create_tree(pi, group, severity, formatted);

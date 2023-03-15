@@ -5,9 +5,8 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Generated automatically from make-enums.py.
- *
- * It can be re-created using "make gen-enums".
+ * Generated automatically from make-enums.py. It can be re-created by running
+ * "tools/make-enums.py" from the top source directory.
  *
  * It is fine to edit this file by hand. Particularly if a symbol
  * disappears from the API it can just be removed here. There is no
@@ -18,6 +17,7 @@
 #include <epan/ipproto.h>
 #include <epan/proto.h>
 #include <epan/ftypes/ftypes.h>
+#include <epan/stat_groups.h>
 
 #define ENUM(arg) { #arg, arg }
 
@@ -36,6 +36,7 @@ static ws_enum_t all_enums[] = {
     ENUM(AT_IPX),
     ENUM(AT_IPv4),
     ENUM(AT_IPv6),
+    ENUM(AT_MCTP),
     ENUM(AT_NONE),
     ENUM(AT_NUMERIC),
     ENUM(AT_STRINGZ),
@@ -62,6 +63,7 @@ static ws_enum_t all_enums[] = {
     ENUM(BASE_SHOW_ASCII_PRINTABLE),
     ENUM(BASE_SHOW_UTF_8_PRINTABLE),
     ENUM(BASE_SPECIAL_VALS),
+    ENUM(BASE_STR_WSP),
     ENUM(BASE_UNIT_STRING),
     ENUM(BASE_VAL64_STRING),
     ENUM(BMT_NO_APPEND),
@@ -84,6 +86,8 @@ static ws_enum_t all_enums[] = {
     ENUM(ENC_CP437),
     ENUM(ENC_CP855),
     ENUM(ENC_CP866),
+    ENUM(ENC_DECT_STANDARD_4BITS_TBCD),
+    ENUM(ENC_DECT_STANDARD_8BITS),
     ENUM(ENC_EBCDIC),
     ENUM(ENC_EBCDIC_CP037),
     ENUM(ENC_ETSI_TS_102_221_ANNEX_A),
@@ -155,6 +159,7 @@ static ws_enum_t all_enums[] = {
     ENUM(ENC_VARINT_MASK),
     ENUM(ENC_VARINT_PROTOBUF),
     ENUM(ENC_VARINT_QUIC),
+    ENUM(ENC_VARINT_SDNV),
     ENUM(ENC_VARINT_ZIGZAG),
     ENUM(ENC_WINDOWS_1250),
     ENUM(ENC_WINDOWS_1251),
@@ -427,14 +432,36 @@ static ws_enum_t all_enums[] = {
     ENUM(PT_IDP),
     ENUM(PT_IPX),
     ENUM(PT_IWARP_MPA),
+    ENUM(PT_MCTP),
     ENUM(PT_NONE),
     ENUM(PT_SCTP),
     ENUM(PT_TCP),
     ENUM(PT_UDP),
     ENUM(PT_USB),
+    ENUM(REGISTER_ANALYZE_GROUP_CONVERSATION_FILTER),
+    ENUM(REGISTER_LOG_ANALYZE_GROUP_UNSORTED),
+    ENUM(REGISTER_LOG_STAT_GROUP_UNSORTED),
+    ENUM(REGISTER_PACKET_ANALYZE_GROUP_UNSORTED),
+    ENUM(REGISTER_PACKET_STAT_GROUP_UNSORTED),
+    ENUM(REGISTER_STAT_GROUP_CONVERSATION_LIST),
+    ENUM(REGISTER_STAT_GROUP_ENDPOINT_LIST),
+    ENUM(REGISTER_STAT_GROUP_GENERIC),
+    ENUM(REGISTER_STAT_GROUP_RESPONSE_TIME),
+    ENUM(REGISTER_STAT_GROUP_RSERPOOL),
+    ENUM(REGISTER_STAT_GROUP_TELEPHONY),
+    ENUM(REGISTER_STAT_GROUP_TELEPHONY_ANSI),
+    ENUM(REGISTER_STAT_GROUP_TELEPHONY_GSM),
+    ENUM(REGISTER_STAT_GROUP_TELEPHONY_LTE),
+    ENUM(REGISTER_STAT_GROUP_TELEPHONY_MTP3),
+    ENUM(REGISTER_STAT_GROUP_TELEPHONY_SCTP),
+    ENUM(REGISTER_TOOLS_GROUP_UNSORTED),
     ENUM(SEP_COLON),
     ENUM(SEP_DASH),
     ENUM(SEP_DOT),
     ENUM(SEP_SPACE),
+    ENUM(ST_FORMAT_CSV),
+    ENUM(ST_FORMAT_PLAIN),
+    ENUM(ST_FORMAT_XML),
+    ENUM(ST_FORMAT_YAML),
     { NULL, 0 },
 };

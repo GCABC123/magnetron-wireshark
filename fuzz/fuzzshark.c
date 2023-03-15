@@ -10,6 +10,7 @@
  */
 
 #include <config.h>
+#define WS_LOG_DOMAIN  LOG_DOMAIN_MAIN
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -20,13 +21,13 @@
 
 #include <epan/epan.h>
 
-#include <ui/cmdarg_err.h>
+#include <wsutil/cmdarg_err.h>
 #include <ui/failure_message.h>
 #include <wsutil/filesystem.h>
 #include <wsutil/privileges.h>
 #include <wsutil/report_message.h>
 #include <wsutil/wslog.h>
-#include <ui/version_info.h>
+#include <wsutil/version_info.h>
 
 #include <wiretap/wtap.h>
 
@@ -243,6 +244,8 @@ fuzz_init(int argc _U_, char **argv)
 
 	/* Early logging command-line initialization. */
 	ws_log_parse_args(&argc, argv, vcmdarg_err, LOG_ARGS_NOEXIT);
+
+	ws_noisy("Finished log init and parsing command line log arguments");
 
 	/*
 	 * Get credential information for later use, and drop privileges

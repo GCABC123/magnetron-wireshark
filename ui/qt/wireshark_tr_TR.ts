@@ -1677,11 +1677,11 @@ For example, use 1 hour to have a new file created every hour on the hour.</sour
     </message>
     <message>
         <source>Your coloring rules file contains unknown rules</source>
-        <translation>Boyama kuralları dosyanız bilinmeyen kurallar içeriyor</translation>
+        <translation type="vanished">Boyama kuralları dosyanız bilinmeyen kurallar içeriyor</translation>
     </message>
     <message>
         <source>Wireshark doesn&apos;t recognize one or more of your coloring rules. They have been disabled.</source>
-        <translation>Wireshark, renklendirme kurallarınızdan birini veya daha fazlasını tanımıyor. Devre dışı bırakıldılar.</translation>
+        <translation type="vanished">Wireshark, renklendirme kurallarınızdan birini veya daha fazlasını tanımıyor. Devre dışı bırakıldılar.</translation>
     </message>
 </context>
 <context>
@@ -1862,6 +1862,10 @@ For example, use 1 hour to have a new file created every hour on the hour.</sour
         <translation>Bayt A</translation>
     </message>
     <message>
+        <source>Packets B </source>
+        <translation>Paketler B</translation>
+    </message>
+    <message>
         <source>Bytes B </source>
         <translation>Bayt B</translation>
     </message>
@@ -2014,6 +2018,14 @@ For example, use 1 hour to have a new file created every hour on the hour.</sour
     <message>
         <source>Copy packet bytes as a stream of hex.</source>
         <translation>Paket baytlarını bir hex akışı olarak kopyalayın.</translation>
+    </message>
+    <message>
+        <source>…as a Base64 String</source>
+        <translation>…Base64 Dizesi olarak</translation>
+    </message>
+    <message>
+        <source>Copy packet bytes as a base64 encoded string.</source>
+        <translation>Paket baytlarını base64 kodlu bir dize olarak kopyalayın.</translation>
     </message>
     <message>
         <source>…as Raw Binary</source>
@@ -2176,6 +2188,10 @@ For example, use 1 hour to have a new file created every hour on the hour.</sour
         <translation>Geçerli filtre: %1</translation>
     </message>
     <message>
+        <source>Invalid filter: </source>
+        <translation>Geçersiz filtre: </translation>
+    </message>
+    <message>
         <source>Save this filter</source>
         <translation>Bu filtreyi kaydet</translation>
     </message>
@@ -2314,8 +2330,7 @@ For example, use 1 hour to have a new file created every hour on the hour.</sour
     </message>
     <message>
         <source>Dissector Description</source>
-        <oldsource>Dissector</oldsource>
-        <translation type="unfinished">Tespit edici</translation>
+        <translation>Tespit edici Tanımı</translation>
     </message>
     <message>
         <source>Integer</source>
@@ -2457,6 +2472,14 @@ For example, use 1 hour to have a new file created every hour on the hour.</sour
     <message>
         <source>City</source>
         <translation>Şehir</translation>
+    </message>
+    <message>
+        <source>Latitude</source>
+        <translation>Enlem</translation>
+    </message>
+    <message>
+        <source>Longitude</source>
+        <translation>Boylam</translation>
     </message>
     <message>
         <source>AS Number</source>
@@ -3208,20 +3231,20 @@ For example, use 1 hour to have a new file created every hour on the hour.</sour
         <translation>Kişisel Lua Eklentileri</translation>
     </message>
     <message>
-        <source>lua scripts</source>
-        <translation>lua betikleri</translation>
-    </message>
-    <message>
         <source>Global Lua Plugins</source>
         <translation>Genel Lua Eklentileri</translation>
     </message>
     <message>
-        <source>Extcap Plugins search path</source>
-        <translation>Extcap Eklentileri arama yolu</translation>
+        <source>Lua scripts</source>
+        <translation>Lua betikleri</translation>
     </message>
     <message>
         <source>Personal Extcap path</source>
         <translation>Kişisel Excap yolu</translation>
+    </message>
+    <message>
+        <source>external capture (extcap) plugins</source>
+        <translation>harici yakalama (extcap) eklentileri</translation>
     </message>
     <message>
         <source>Global Extcap path</source>
@@ -3262,6 +3285,13 @@ For example, use 1 hour to have a new file created every hour on the hour.</sour
     <message>
         <source>Typical Files</source>
         <translation>Tipik Dosyalar</translation>
+    </message>
+</context>
+<context>
+    <name>FollowStreamAction</name>
+    <message>
+        <source>%1 Stream</source>
+        <translation type="unfinished"></translation>
     </message>
 </context>
 <context>
@@ -3374,30 +3404,8 @@ For example, use 1 hour to have a new file created every hour on the hour.</sour
         <translation>Lütfen %1 paketinin seçili olduğundan emin olun.</translation>
     </message>
     <message>
-        <source>QUIC streams not found on the selected packet.</source>
-        <translation>QUIC akışları seçilen pakette bulunamadı.</translation>
-    </message>
-    <message numerus="yes">
-        <source>%Ln total sub stream(s).</source>
-        <translation>
-            <numerusform>%Ln toplam alt akış(lar).</numerusform>
-        </translation>
-    </message>
-    <message numerus="yes">
-        <source>Total number of QUIC connections: %Ln</source>
-        <translation>
-            <numerusform>Toplam QUIC bağlantı sayısı: %Ln</numerusform>
-        </translation>
-    </message>
-    <message numerus="yes">
-        <source>Max QUIC Stream ID for the selected connection: %Ln</source>
-        <translation>
-            <numerusform>Seçilen bağlantı için Azami. QUIC Akış Kimliği: %Ln</numerusform>
-        </translation>
-    </message>
-    <message>
-        <source>No streams</source>
-        <translation type="vanished">Akış yok</translation>
+        <source>%1 stream not found on the selected packet.</source>
+        <translation>Seçili pakette %1 akışı bulunamadı.</translation>
     </message>
     <message>
         <source>Entire conversation (%1)</source>
@@ -3419,14 +3427,16 @@ For example, use 1 hour to have a new file created every hour on the hour.</sour
         <source>[Stream output truncated]</source>
         <translation>[Akış çıkışı kesildi]</translation>
     </message>
-    <message>
-        <source>A transport or network layer header is needed.</source>
-        <translation>Bir aktarım veya ağ katmanı başlığı gereklidir.</translation>
-    </message>
     <message numerus="yes">
         <source>%Ln total stream(s).</source>
         <translation>
             <numerusform>%Ln toplam akış.</numerusform>
+        </translation>
+    </message>
+    <message numerus="yes">
+        <source>Max sub stream ID for the selected stream: %Ln</source>
+        <translation>
+            <numerusform>Seçilen akış için azami alt akış kimliği: %Ln</numerusform>
         </translation>
     </message>
     <message>
@@ -3791,6 +3801,14 @@ For example, use 1 hour to have a new file created every hour on the hour.</sour
     <message>
         <source>Clear all graphs.</source>
         <translation>Tüm grafikleri temizle.</translation>
+    </message>
+    <message>
+        <source>Move this graph upwards.</source>
+        <translation>Bu grafiği yukarı doğru götür.</translation>
+    </message>
+    <message>
+        <source>Move this graph downwards.</source>
+        <translation>Bu grafiği aşağı doğru götür.</translation>
     </message>
     <message>
         <source>Mouse</source>
@@ -5837,6 +5855,14 @@ For example, use 1 hour to have a new file created every hour on the hour.</sour
         <translation>Listenin sıralanmasına izin ver</translation>
     </message>
     <message>
+        <source>Maximum number of cached rows (affects sorting)</source>
+        <translation>Azami önbelleğe alınmış satır sayısı (sıralamayı etkiler)</translation>
+    </message>
+    <message>
+        <source>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;If more than this many rows are displayed, then sorting by columns that require packet dissection will be disabled. Increasing this number increases memory consumption by caching column values.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</source>
+        <translation>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Bu sayıdan daha fazla satır görüntülenirse, paket incelemesi gerektiren sütunlara göre sıralama devre dışı bırakılır. Bu sayıyı artırmak, sütun değerlerini önbelleğe alarak bellek tüketimini artırır.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</translation>
+    </message>
+    <message>
         <source>Enable mouse-over colorization</source>
         <translation>Fareyle üzerine gelindiğinde renklendirmeyi etkinleştir</translation>
     </message>
@@ -6323,14 +6349,6 @@ For example, use 1 hour to have a new file created every hour on the hour.</sour
         <translation>İçe Aktar</translation>
     </message>
     <message>
-        <source>from zip file</source>
-        <translation>zip dosyasından</translation>
-    </message>
-    <message>
-        <source>from directory</source>
-        <translation>dizinden</translation>
-    </message>
-    <message>
         <source>Export</source>
         <translation>Dışarı aktar</translation>
     </message>
@@ -6422,12 +6440,20 @@ For example, use 1 hour to have a new file created every hour on the hour.</sour
         <translation>Paket Yok</translation>
     </message>
     <message>
-        <source>selected personal profile</source>
-        <translation>seçilen kişisel profil</translation>
+        <source>From Zip File...</source>
+        <translation>Zip Dosyasından...</translation>
     </message>
     <message>
-        <source>all personal profiles</source>
-        <translation>tüm kişisel profiller</translation>
+        <source>From Directory...</source>
+        <translation>Dizinden...</translation>
+    </message>
+    <message>
+        <source>Selected Personal Profile...</source>
+        <translation>Seçilen Kişisel Profil...</translation>
+    </message>
+    <message>
+        <source>All Personal Profiles...</source>
+        <translation>Tüm Kişisel Profiller...</translation>
     </message>
     <message>
         <source>Packets: %1</source>
@@ -6534,6 +6560,14 @@ For example, use 1 hour to have a new file created every hour on the hour.</sour
     <message>
         <source>Use system setting</source>
         <translation>Sistem ayarını kullan</translation>
+    </message>
+    <message>
+        <source>Debounce Timer</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;How long to wait (in milliseconds) before processing user input&lt;br/&gt;If you type quickly, consider lowering the value for a &apos;snappier&apos; experience.&lt;br/&gt; If you type slowly, consider increasing the value to avoid performance issues.&lt;br/&gt;This is currently used to delay searches in View -&gt; Internals -&gt; Supported Protocols and Preferences -&gt; Advanced menu.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</source>
+        <translation type="unfinished"></translation>
     </message>
     <message>
         <source>Open Files In</source>
@@ -7063,8 +7097,20 @@ For example, use 1 hour to have a new file created every hour on the hour.</sour
 <context>
     <name>PacketListModel</name>
     <message>
+        <source>Column</source>
+        <translation>Sütun</translation>
+    </message>
+    <message>
+        <source>%1 can only be sorted with %2 or fewer visible rows; increase cache size in Layout preferences</source>
+        <translation>%1 yalnızca %2 veya daha az görünür satırla sıralanabilir; Düzen tercihlerinde önbellek boyutunu artırın</translation>
+    </message>
+    <message>
         <source>Sorting &quot;%1&quot;…</source>
         <translation>&quot;%1&quot; sıralanıyor…</translation>
+    </message>
+    <message>
+        <source>Sorting …</source>
+        <translation type="unfinished"></translation>
     </message>
 </context>
 <context>
@@ -7351,6 +7397,24 @@ For example, use 1 hour to have a new file created every hour on the hour.</sour
         <translation>Dışarı aktar</translation>
     </message>
     <message>
+        <source>From Zip File...</source>
+        <translation>Zip Dosyasından...</translation>
+    </message>
+    <message>
+        <source>From Directory...</source>
+        <translation>Dizinden...</translation>
+    </message>
+    <message numerus="yes">
+        <source>%Ln Selected Personal Profile(s)...</source>
+        <translation>
+            <numerusform>%Ln Seçilen Kişisel Profil(ler)...</numerusform>
+        </translation>
+    </message>
+    <message>
+        <source>All Personal Profiles...</source>
+        <translation>Tüm Kişisel Profiller...</translation>
+    </message>
+    <message>
         <source>New profile</source>
         <translation>Yeni profil</translation>
     </message>
@@ -7378,7 +7442,7 @@ For example, use 1 hour to have a new file created every hour on the hour.</sour
     </message>
     <message numerus="yes">
         <source>%Ln selected personal profile(s)</source>
-        <translation>
+        <translation type="vanished">
             <numerusform>%Ln seçilmiş kişisel profil</numerusform>
         </translation>
     </message>
@@ -7415,18 +7479,6 @@ For example, use 1 hour to have a new file created every hour on the hour.</sour
     <message>
         <source>Zip File (*.zip)</source>
         <translation>Zip Dosyası (*.zip)</translation>
-    </message>
-    <message>
-        <source>from zip file</source>
-        <translation>zip dosyasından</translation>
-    </message>
-    <message>
-        <source>from directory</source>
-        <translation>dizinden</translation>
-    </message>
-    <message>
-        <source>all personal profiles</source>
-        <translation>tüm kişisel profiller</translation>
     </message>
     <message>
         <source>Error</source>
@@ -12348,24 +12400,28 @@ a:hover {
 
 &lt;th&gt;&lt;a href=&quot;https://discord.com/invite/ts9GZCjGj5&quot;&gt;Wireshark Discord&lt;/a&gt;&lt;/th&gt;
 
+&lt;td style=&quot;padding-left: 8px; padding-right: 8px;&quot;&gt;·&lt;/td&gt;
+
+&lt;th&gt;&lt;a href=&quot;https://wiresharkfoundation.org/donate/&quot;&gt;Donate&lt;/a&gt;&lt;/th&gt;
+
 &lt;/tr&gt;&lt;/table&gt;
 &lt;/body&gt;&lt;/html&gt;</source>
         <translation>&lt;html&gt;&lt;head&gt;
 &lt;style&gt;
 a:bağlantı {
-  renk: palet(metin);
-  metin-süsleme: hiçbiri;
+  renk: paleti(metin);
+  metin süslemesi: yok;
 }
-a:hover {
-  renk: palet(metin);
-  metin-süsleme: altçizgili;
+a:üzerine gelin{
+  renk: paleti(metin);
+  metin süslemesi: altı çizili;
 }
 &lt;/style&gt;
 &lt;/head&gt;
 &lt;body&gt;
 
 &lt;table&gt;&lt;tr&gt;
-&lt;th&gt;&lt;a href=&quot;https://www.wireshark.org/docs/wsug_html_chunked/&quot;&gt;Kullanıcı Klavuzu&lt;/a&gt;&lt;/th&gt;
+&lt;th&gt;&lt;a href=&quot;https://www.wireshark.org/docs/wsug_html_chunked/&quot;&gt;Kullanıcı Kılavuzu&lt;/a&gt;&lt;/th&gt;
 
 &lt;td style=&quot;padding-left: 8px; padding-right: 8px;&quot;&gt;·&lt;/td&gt;
 
@@ -12373,11 +12429,11 @@ a:hover {
 
 &lt;td style=&quot;padding-left: 8px; padding-right: 8px;&quot;&gt;·&lt;/td&gt;
 
-&lt;th&gt;&lt;a href=&quot;https://ask.wireshark.org/&quot;&gt;Sorular ve Yanıtlar&lt;/a&gt;&lt;/th&gt;
+&lt;th&gt;&lt;a href=&quot;https://ask.wireshark.org/&quot;&gt;Sorular ve Cevaplar&lt;/a&gt;&lt;/th&gt;
 
 &lt;td style=&quot;padding-left: 8px; padding-right: 8px;&quot;&gt;·&lt;/td&gt;
 
-&lt;th&gt;&lt;a href=&quot;https://www.wireshark.org/lists/&quot;&gt;Mail Listesi&lt;/a&gt;&lt;/th&gt;
+&lt;th&gt;&lt;a href=&quot;https://www.wireshark.org/lists/&quot;&gt;Posta Listeleri&lt;/a&gt;&lt;/th&gt;
 
 &lt;td style=&quot;padding-left: 8px; padding-right: 8px;&quot;&gt;·&lt;/td&gt;
 
@@ -12386,6 +12442,10 @@ a:hover {
 &lt;td style=&quot;padding-left: 8px; padding-right: 8px;&quot;&gt;·&lt;/td&gt;
 
 &lt;th&gt;&lt;a href=&quot;https://discord.com/invite/ts9GZCjGj5&quot;&gt;Wireshark Discord&lt;/a&gt;&lt;/th&gt;
+
+&lt;td style=&quot;padding-left: 8px; padding-right: 8px;&quot;&gt;·&lt;/td&gt;
+
+&lt;th&gt;&lt;a href=&quot;https://wiresharkfoundation.org/donate/&quot;&gt;Bağış yap&lt;/a&gt;&lt;/th&gt;
 
 &lt;/tr&gt;&lt;/table&gt;
 &lt;/body&gt;&lt;/html&gt;</translation>
@@ -12953,6 +13013,10 @@ a:hover {
         <translation>BAZI/IP</translation>
     </message>
     <message>
+        <source>&amp;DTN</source>
+        <translation>&amp;DTN</translation>
+    </message>
+    <message>
         <source>Osmux</source>
         <translation>Osmux</translation>
     </message>
@@ -13249,15 +13313,15 @@ a:hover {
     </message>
     <message>
         <source>DCCP Stream</source>
-        <translation>DCCP Akışı</translation>
+        <translation type="vanished">DCCP Akışı</translation>
     </message>
     <message>
         <source>TLS Stream</source>
-        <translation>TLS Akışı</translation>
+        <translation type="vanished">TLS Akışı</translation>
     </message>
     <message>
         <source>HTTP Stream</source>
-        <translation>HTTP Akışı</translation>
+        <translation type="vanished">HTTP Akışı</translation>
     </message>
     <message>
         <source>HTTP/2 Stream</source>
@@ -13265,7 +13329,11 @@ a:hover {
     </message>
     <message>
         <source>QUIC Stream</source>
-        <translation>QUIC Akışı</translation>
+        <translation type="vanished">QUIC Akışı</translation>
+    </message>
+    <message>
+        <source>Websocket Stream</source>
+        <translation type="vanished">Websocket Akışı</translation>
     </message>
     <message>
         <source>SIP Call</source>
@@ -13432,6 +13500,14 @@ a:hover {
         <translation>BAZI/IP-SD Girdi istatistikleri</translation>
     </message>
     <message>
+        <source>&amp;LTP</source>
+        <translation>&amp;LTP</translation>
+    </message>
+    <message>
+        <source>LTP segment and block statistics</source>
+        <translation>LTP bölümü ve blok istatistikleri</translation>
+    </message>
+    <message>
         <source>&amp;ISUP Messages</source>
         <translation>&amp;ISUP Mesajları</translation>
     </message>
@@ -13582,6 +13658,10 @@ a:hover {
     <message>
         <source>Seconds Since First Captured Packet</source>
         <translation>İlk Yakalanan Paketten Beri Saniye</translation>
+    </message>
+    <message>
+        <source>Show packet times as the seconds since the first captured packet.</source>
+        <translation type="unfinished"></translation>
     </message>
     <message>
         <source>Packet &amp;Diagram</source>
@@ -13797,11 +13877,11 @@ a:hover {
     </message>
     <message>
         <source>TCP Stream</source>
-        <translation>TCP Akışı</translation>
+        <translation type="vanished">TCP Akışı</translation>
     </message>
     <message>
         <source>UDP Stream</source>
-        <translation>UDP Akışı</translation>
+        <translation type="vanished">UDP Akışı</translation>
     </message>
     <message>
         <source>Request Sequences</source>

@@ -218,12 +218,11 @@ ASCIIDOCTOR_VERSION=${ASCIIDOCTOR_VERSION-2.0.16}
 ASCIIDOCTORPDF_VERSION=${ASCIIDOCTORPDF_VERSION-1.6.1}
 
 #
-# GNU autotools; they're provided with releases up to Snow Leopard, but
-# not in later releases, and the Snow Leopard version is too old for
-# current Wireshark, so we install them unconditionally.
+# GNU autotools.  They're not supplied with the macOS versions we
+# support, and we currently use them for minizip.
 #
-AUTOCONF_VERSION=2.69
-AUTOMAKE_VERSION=1.15
+AUTOCONF_VERSION=2.71
+AUTOMAKE_VERSION=1.16.5
 LIBTOOL_VERSION=2.4.6
 
 install_curl() {
@@ -1615,7 +1614,7 @@ uninstall_snappy() {
         # just remove what we know it installs.
         #
         # $DO_MAKE_UNINSTALL || exit 1
-        if [ -s build_dir/install_manifest.txt] ; then
+        if [ -s build_dir/install_manifest.txt ] ; then
             while read -r ; do $DO_RM -v "$REPLY" ; done < <(cat build_dir/install_manifest.txt; echo)
         else
             $DO_RM -f /usr/local/lib/libsnappy.1.1.8.dylib \

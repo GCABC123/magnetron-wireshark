@@ -172,6 +172,7 @@ set(WIRESHARK_QT_HEADERS
 	filter_dialog.h
 	filter_expression_frame.h
 	firewall_rules_dialog.h
+	follow_stream_action.h
 	follow_stream_dialog.h
 	font_color_preferences_frame.h
 	funnel_statistics.h
@@ -418,6 +419,7 @@ set(WIRESHARK_QT_SRC
 	filter_dialog.cpp
 	filter_expression_frame.cpp
 	firewall_rules_dialog.cpp
+	follow_stream_action.cpp
 	follow_stream_dialog.cpp
 	font_color_preferences_frame.cpp
 	funnel_string_dialog.cpp
@@ -529,9 +531,14 @@ set(WIRESHARK_QT_TAP_SRC
 	${WIRESHARK_CUSTOM_TAP_SRC}
 )
 
-set(WIRESHARK_QT_FILES
+set(WIRESHARK_QT_NONGENERATED_SRC
 	${WIRESHARK_QT_SRC}
 	${WIRESHARK_QT_TAP_SRC}
+	${WIRESHARK_MODEL_SRCS}
+	${WIRESHARK_UTILS_SRCS}
+	${WIRESHARK_MANAGER_SRCS}
+	${WIRESHARK_3RD_PARTY_WIDGET_SRCS}
+	${WIRESHARK_WIDGET_SRCS}
 )
 
 set(WIRESHARK_QT_UI
@@ -650,6 +657,24 @@ foreach(_file ${WIRESHARK_QT_TS})
 endforeach()
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/i18n.qrc.in ${CMAKE_CURRENT_BINARY_DIR}/i18n.qrc)
 
+file(WRITE "${CMAKE_CURRENT_BINARY_DIR}/authors.qrc"
+"<RCC>\n"
+"    <qresource prefix=\"/about\">\n"
+"        <file compress-algo=\"zstd\">authors.csv</file>\n"
+"    </qresource>\n"
+"</RCC>\n"
+)
+
+add_custom_command(
+	OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/authors.csv
+	COMMAND ${PYTHON_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tools/make-authors-csv.py
+			< ${CMAKE_SOURCE_DIR}/AUTHORS
+			> ${CMAKE_CURRENT_BINARY_DIR}/authors.csv
+	DEPENDS
+		${CMAKE_SOURCE_DIR}/tools/make-authors-csv.py
+		${CMAKE_SOURCE_DIR}/AUTHORS
+)
+
 set(WIRESHARK_QT_QRC
 	../../resources/about.qrc
 	../../resources/languages/languages.qrc
@@ -657,6 +682,8 @@ set(WIRESHARK_QT_QRC
 	../../resources/stock_icons.qrc
 	../../resources/wsicon.qrc
 	${CMAKE_CURRENT_BINARY_DIR}/i18n.qrc
+	${CMAKE_CURRENT_BINARY_DIR}/authors.qrc
+	${CMAKE_CURRENT_BINARY_DIR}/authors.csv
 )
 
 if(NOT Qt${qtver}Widgets_VERSION VERSION_LESS "5.9")
@@ -691,7 +718,7 @@ add_custom_target(
 set_target_properties(translations PROPERTIES FOLDER "UI")
 
 set_source_files_properties(
-	${WIRESHARK_QT_FILES}
+	${WIRESHARK_QT_NONGENERATED_SRC}
 	PROPERTIES
 	COMPILE_FLAGS "${WERROR_COMMON_FLAGS}"
 )
@@ -729,12 +756,7 @@ add_library(qtui OBJECT
 	${WIRESHARK_UTILS_HEADERS}
 	${WIRESHARK_MODEL_HEADERS}
 
-	${WIRESHARK_QT_SRC}
-	${WIRESHARK_WIDGET_SRCS}
-	${WIRESHARK_3RD_PARTY_WIDGET_SRCS}
-	${WIRESHARK_MANAGER_SRCS}
-	${WIRESHARK_UTILS_SRCS}
-	${WIRESHARK_MODEL_SRCS}
+	${WIRESHARK_QT_NONGENERATED_SRC}
 
 	# For AUTOUIC and AUTORCC.
 	${WIRESHARK_QT_UI}

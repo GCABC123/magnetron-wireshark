@@ -1741,7 +1741,7 @@ unicode_to_str(tvbuff_t *tvb, int offset, int *us_lenp, gboolean exactlen,
 		 */
 		len = tvb_find_guint16(tvb, offset, bc, 0);
 		if (len == -1) {
-			if (bc % 1 == 1	&& tvb_get_guint8(tvb, offset + bc - 1) == 0) {
+			if (bc % 2 == 1	&& tvb_get_guint8(tvb, offset + bc - 1) == 0) {
 				*us_lenp = bc;
 				return tvb_get_string_enc(wmem_packet_scope(), tvb, offset, bc - 1, ENC_UTF_16|ENC_LITTLE_ENDIAN);
 			}
@@ -2794,7 +2794,15 @@ dissect_negprot_request(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, int
 
 		/* XXX - what if this runs past bc? */
 		tvb_ensure_bytes_exist(tvb, offset+1, 1);
-		str = tvb_get_const_stringz(tvb, offset+1, &len);
+
+		/* XXX: This is an OEM String according to MS-CIFS and
+                 * should use the local OEM (extended ASCII DOS) code page,
+                 * It doesn't appear than any known dialect strings use
+                 * anything outside ASCII, though.
+                 *
+                 * There could be a dissector preference for local code page.
+                 */
+		str = tvb_get_stringz_enc(pinfo->pool, tvb, offset+1, &len, ENC_ASCII);
 
 		if (tr) {
 			dit = proto_tree_add_string(tr, hf_smb_dialect, tvb, offset, len+1, str);
@@ -2809,8 +2817,8 @@ dissect_negprot_request(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, int
 
 		/*Dialect Name */
 		CHECK_BYTE_COUNT(len);
-		proto_tree_add_string(dtr, hf_smb_dialect_name, tvb, offset,
-			len, str);
+		proto_tree_add_item(dtr, hf_smb_dialect_name, tvb,
+			offset, len, ENC_ASCII);
 		COUNT_BYTES(len);
 
 		if (!pinfo->fd->visited && dialects && (dialects->num < MAX_DIALECTS)) {
@@ -5867,7 +5875,6 @@ dissect_search_resume_key(tvbuff_t *tvb, packet_info *pinfo _U_,
 	proto_tree *tree;
 	int         fn_len;
 	const char *fn;
-	char        fname[11+1];
 
 	DISSECTOR_ASSERT(si);
 
@@ -5884,10 +5891,7 @@ dissect_search_resume_key(tvbuff_t *tvb, packet_info *pinfo _U_,
 	fn = get_unicode_or_ascii_string(tvb, &offset, FALSE/*never Unicode*/, &fn_len,
 		TRUE, TRUE, bcp);
 	CHECK_STRING_SUBR(fn);
-	/* ensure that it's null-terminated */
-	(void) g_strlcpy(fname, fn, 11+1);
-	proto_tree_add_string(tree, hf_smb_file_name, tvb, offset, 11,
-		fname);
+	proto_tree_add_string(tree, hf_smb_file_name, tvb, offset, 11, fn);
 	COUNT_BYTES_SUBR(fn_len);
 
 	if (has_find_id) {
@@ -5923,7 +5927,6 @@ dissect_search_dir_info(tvbuff_t *tvb, packet_info *pinfo,
 	proto_tree *tree;
 	int         fn_len;
 	const char *fn;
-	char        fname[13+1];
 
 	DISSECTOR_ASSERT(si);
 
@@ -5962,10 +5965,7 @@ dissect_search_dir_info(tvbuff_t *tvb, packet_info *pinfo,
 	fn = get_unicode_or_ascii_string(tvb, &offset, FALSE/*Never Unicode*/, &fn_len,
 		TRUE, TRUE, bcp);
 	CHECK_STRING_SUBR(fn);
-	/* ensure that it's null-terminated */
-	(void) g_strlcpy(fname, fn, 13+1);
-	proto_tree_add_string(tree, hf_smb_file_name, tvb, offset, fn_len,
-		fname);
+	proto_tree_add_string(tree, hf_smb_file_name, tvb, offset, fn_len, fn);
 	COUNT_BYTES_SUBR(fn_len);
 
 	*trunc = FALSE;
@@ -19181,23 +19181,23 @@ proto_register_smb(void)
 
 	{ &hf_smb_mac_sup_access_ctrl,
 	  { "Mac Access Control", "smb.mac.access_control", FT_BOOLEAN, 32,
-	    TFS(&tfs_smb_mac_access_ctrl), 0x0010, "Are Mac Access Control Supported", HFILL }},
+	    TFS(&tfs_smb_mac_access_ctrl), 0x00000010, "Are Mac Access Control Supported", HFILL }},
 
 	{ &hf_smb_mac_sup_getset_comments,
 	  { "Get Set Comments", "smb.mac.get_set_comments", FT_BOOLEAN, 32,
-	    TFS(&tfs_smb_mac_getset_comments), 0x0020, "Are Mac Get Set Comments supported?", HFILL }},
+	    TFS(&tfs_smb_mac_getset_comments), 0x00000020, "Are Mac Get Set Comments supported?", HFILL }},
 
 	{ &hf_smb_mac_sup_desktopdb_calls,
 	  { "Desktop DB Calls", "smb.mac.desktop_db_calls", FT_BOOLEAN, 32,
-	    TFS(&tfs_smb_mac_desktopdb_calls), 0x0040, "Are Macintosh Desktop DB Calls Supported?", HFILL }},
+	    TFS(&tfs_smb_mac_desktopdb_calls), 0x00000040, "Are Macintosh Desktop DB Calls Supported?", HFILL }},
 
 	{ &hf_smb_mac_sup_unique_ids,
 	  { "Macintosh Unique IDs", "smb.mac.uids", FT_BOOLEAN, 32,
-	    TFS(&tfs_smb_mac_unique_ids), 0x0080, "Are Unique IDs supported", HFILL }},
+	    TFS(&tfs_smb_mac_unique_ids), 0x00000080, "Are Unique IDs supported", HFILL }},
 
 	{ &hf_smb_mac_sup_streams,
 	  { "Mac Streams", "smb.mac.streams_support", FT_BOOLEAN, 32,
-	    TFS(&tfs_smb_mac_streams), 0x0100, "Are Mac Extensions and streams supported?", HFILL }},
+	    TFS(&tfs_smb_mac_streams), 0x00000100, "Are Mac Extensions and streams supported?", HFILL }},
 
 	{ &hf_smb_create_dos_date,
 		{ "Create Date", "smb.create.smb.date", FT_UINT16, BASE_HEX,
@@ -20400,11 +20400,11 @@ proto_register_smb(void)
 
 	{ &hf_smb_get_dfs_server_hold_storage,
 		{ "Hold Storage", "smb.dfs.flags.server_hold_storage", FT_BOOLEAN, 16,
-		TFS(&tfs_get_dfs_server_hold_storage), 0x02, "The servers in referrals should hold storage for the file", HFILL }},
+	    TFS(&tfs_get_dfs_server_hold_storage), 0x0002, "The servers in referrals should hold storage for the file", HFILL }},
 
 	{ &hf_smb_get_dfs_fielding,
 		{ "Fielding", "smb.dfs.flags.fielding", FT_BOOLEAN, 16,
-		TFS(&tfs_get_dfs_fielding), 0x01, "The servers in referrals are capable of fielding", HFILL }},
+	    TFS(&tfs_get_dfs_fielding), 0x0001, "The servers in referrals are capable of fielding", HFILL }},
 
 	{ &hf_smb_dfs_referral_version,
 		{ "Version", "smb.dfs.referral.version", FT_UINT16, BASE_DEC,

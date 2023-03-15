@@ -16,6 +16,9 @@
 // (216 × 279mm).
 :pdf-page-size: 210mm x 280mm
 
+// Include glyphs for up/down arrows
+:pdf-theme: default-with-fallback-font
+
 //
 // URLs
 //
@@ -93,6 +96,7 @@
 :statusbar-attrs: scaledwidth="85%",height=22
 
 :multiplication: ×
+:underscore: _
 :cmd: ⌘
 
 :missing: Not yet written. If you would like to fix this, see https://gitlab.com/wireshark/wireshark/-/wikis/Development/SubmittingPatches.

@@ -204,7 +204,7 @@ typedef struct wtapng_section_mandatory_s {
                                          */
 } wtapng_section_mandatory_t;
 
-/** struct holding the information to build an WTAP_BLOCK_IF_ID_AND_INFO.
+/** struct holding the information to build a WTAP_BLOCK_IF_ID_AND_INFO.
  *  the interface_data array holds an array of wtap_block_t
  *  representing interfacs, one per interface.
  */
@@ -226,6 +226,14 @@ typedef struct wtapng_if_descr_mandatory_s {
     GArray                *interface_statistics;  /**< An array holding the interface statistics from
                                                    *     pcapng ISB:s or equivalent(?)*/
 } wtapng_if_descr_mandatory_t;
+
+/**
+ * Holds the required data from a WTAP_BLOCK_NAME_RESOLUTION.
+ */
+typedef struct wtapng_nrb_mandatory_s {
+    GList       *ipv4_addr_list;
+    GList       *ipv6_addr_list;
+}  wtapng_nrb_mandatory_t;
 
 /**
  * Holds the required data from a WTAP_BLOCK_IF_STATISTICS.
@@ -782,6 +790,17 @@ wtap_block_get_ipv6_option_value(wtap_block_t block, guint option_id, ws_in6_add
 WS_DLL_PUBLIC wtap_opttype_return_val
 wtap_block_add_string_option(wtap_block_t block, guint option_id, const char *value, gsize value_length);
 
+/** Add a string option to a block taking ownership of the null-terminated string.
+ *
+ * @param[in] block Block to which to add the option
+ * @param[in] option_id Identifier value for option
+ * @param[in] value Value of option
+ * @return wtap_opttype_return_val - WTAP_OPTTYPE_SUCCESS if successful,
+ * error code otherwise
+ */
+WS_DLL_PUBLIC wtap_opttype_return_val
+wtap_block_add_string_option_owned(wtap_block_t block, guint option_id, char *value);
+
 /** Add a string option to a block with a printf-formatted string as its value
  *
  * @param[in] block Block to which to add the option
@@ -968,7 +987,7 @@ wtap_block_add_nflx_custom_option(wtap_block_t block, guint32 nflx_type, const c
 WS_DLL_PUBLIC wtap_opttype_return_val
 wtap_block_get_nflx_custom_option(wtap_block_t block, guint32 nflx_type, char *nflx_custom_data, gsize nflx_custom_data_len);
 
-/** Add an custom option to a block
+/** Add a custom option to a block
  *
  * @param[in] block Block to which to add the option
  * @param[in] option_id Identifier value for option
@@ -1014,7 +1033,7 @@ wtap_block_set_if_filter_option_value(wtap_block_t block, guint option_id, if_fi
 WS_DLL_PUBLIC wtap_opttype_return_val
 wtap_block_get_if_filter_option_value(wtap_block_t block, guint option_id, if_filter_opt_t* value) G_GNUC_WARN_UNUSED_RESULT;
 
-/** Add an packet_verdict option value to a block
+/** Add a packet_verdict option value to a block
  *
  * @param[in] block Block to which to add the option
  * @param[in] option_id Identifier value for option
@@ -1054,7 +1073,7 @@ wtap_block_get_nth_packet_verdict_option_value(wtap_block_t block, guint option_
 WS_DLL_PUBLIC void
 wtap_packet_verdict_free(packet_verdict_opt_t* verdict);
 
-/** Add an packet_hash option value to a block
+/** Add a packet_hash option value to a block
  *
  * @param[in] block Block to which to add the option
  * @param[in] option_id Identifier value for option
@@ -1109,7 +1128,8 @@ WS_DLL_PUBLIC wtap_block_t
 wtap_block_make_copy(wtap_block_t block);
 
 typedef gboolean (*wtap_block_foreach_func)(wtap_block_t block, guint option_id, wtap_opttype_e option_type, wtap_optval_t *option, void *user_data);
-WS_DLL_PUBLIC gboolean wtap_block_foreach_option(wtap_block_t block, wtap_block_foreach_func func, void* user_data);
+WS_DLL_PUBLIC gboolean
+wtap_block_foreach_option(wtap_block_t block, wtap_block_foreach_func func, void* user_data);
 
 /** Cleanup the internal structures
  */

@@ -1421,14 +1421,19 @@ dissect_cookie_preservative_parameter(tvbuff_t *parameter_tvb, proto_tree *param
 #define HOSTNAME_OFFSET PARAMETER_VALUE_OFFSET
 
 static void
-dissect_hostname_parameter(tvbuff_t *parameter_tvb, proto_tree *parameter_tree, proto_item *parameter_item)
+dissect_hostname_parameter(tvbuff_t *parameter_tvb, proto_tree *parameter_tree, proto_item *parameter_item, proto_item *additional_item)
 {
+  gchar *hostname;
   guint16 hostname_length;
 
   hostname_length = tvb_get_ntohs(parameter_tvb, PARAMETER_LENGTH_OFFSET) - PARAMETER_HEADER_LENGTH;
-  proto_tree_add_item(parameter_tree, hf_hostname, parameter_tvb, HOSTNAME_OFFSET, hostname_length, ENC_ASCII);
-  proto_item_append_text(parameter_item, " (Hostname: %.*s)", hostname_length, tvb_format_text(wmem_packet_scope(), parameter_tvb, HOSTNAME_OFFSET, hostname_length));
-
+  proto_tree_add_item_ret_display_string(parameter_tree, hf_hostname, parameter_tvb, HOSTNAME_OFFSET, hostname_length, ENC_ASCII, wmem_packet_scope(), &hostname);
+  if (hostname_length > 1) {
+    proto_item_append_text(parameter_item, " (Hostname: %s)", hostname);
+    if (additional_item != NULL) {
+      proto_item_append_text(additional_item, " (Hostname: %s)", hostname);
+    }
+  }
 }
 
 #define IPv4_ADDRESS_TYPE      5
@@ -1436,10 +1441,10 @@ dissect_hostname_parameter(tvbuff_t *parameter_tvb, proto_tree *parameter_tree, 
 #define HOSTNAME_ADDRESS_TYPE 11
 
 static const value_string address_types_values[] = {
-  {  IPv4_ADDRESS_TYPE,    "IPv4 address"     },
-  {  IPv6_ADDRESS_TYPE,    "IPv6 address"     },
+  { IPv4_ADDRESS_TYPE,     "IPv4 address"     },
+  { IPv6_ADDRESS_TYPE,     "IPv6 address"     },
   { HOSTNAME_ADDRESS_TYPE, "Hostname address" },
-  {  0, NULL               }
+  { 0,                     NULL               }
 };
 
 #define SUPPORTED_ADDRESS_TYPE_PARAMETER_ADDRESS_TYPE_LENGTH 2
@@ -1610,6 +1615,11 @@ dissect_add_incoming_streams_parameter(tvbuff_t *parameter_tvb, proto_tree *para
 
 static void
 dissect_ecn_parameter(tvbuff_t *parameter_tvb _U_)
+{
+}
+
+static void
+dissect_zero_checksum_acceptable_parameter(tvbuff_t *parameter_tvb _U_)
 {
 }
 
@@ -1807,6 +1817,7 @@ dissect_unknown_parameter(tvbuff_t *parameter_tvb, proto_tree *parameter_tree, p
 #define ADD_OUTGOING_STREAMS_REQUEST_PARAMETER_ID 0x0011
 #define ADD_INCOMING_STREAMS_REQUEST_PARAMETER_ID 0x0012
 #define ECN_PARAMETER_ID                          0x8000
+#define ZERO_CHECKSUM_ACCEPTABLE_PARAMETER_ID     0x8001
 #define RANDOM_PARAMETER_ID                       0x8002
 #define CHUNKS_PARAMETER_ID                       0x8003
 #define HMAC_ALGO_PARAMETER_ID                    0x8004
@@ -1835,6 +1846,7 @@ static const value_string parameter_identifier_values[] = {
   { ADD_INCOMING_STREAMS_REQUEST_PARAMETER_ID, "Add incoming streams request" },
   { SUPPORTED_ADDRESS_TYPES_PARAMETER_ID,      "Supported address types"      },
   { ECN_PARAMETER_ID,                          "ECN"                          },
+  { ZERO_CHECKSUM_ACCEPTABLE_PARAMETER_ID,     "Zero checksum acceptable"     },
   { RANDOM_PARAMETER_ID,                       "Random"                       },
   { CHUNKS_PARAMETER_ID,                       "Authenticated Chunk list"     },
   { HMAC_ALGO_PARAMETER_ID,                    "Requested HMAC Algorithm"     },
@@ -1924,7 +1936,7 @@ dissect_parameter(tvbuff_t *parameter_tvb, packet_info *pinfo,
     dissect_cookie_preservative_parameter(parameter_tvb, parameter_tree, parameter_item);
     break;
   case HOSTNAME_ADDRESS_PARAMETER_ID:
-    dissect_hostname_parameter(parameter_tvb, parameter_tree, parameter_item);
+    dissect_hostname_parameter(parameter_tvb, parameter_tree, parameter_item, additional_item);
     break;
   case SUPPORTED_ADDRESS_TYPES_PARAMETER_ID:
     dissect_supported_address_types_parameter(parameter_tvb, parameter_tree, parameter_item);
@@ -1950,6 +1962,8 @@ dissect_parameter(tvbuff_t *parameter_tvb, packet_info *pinfo,
   case ECN_PARAMETER_ID:
     dissect_ecn_parameter(parameter_tvb);
     break;
+  case ZERO_CHECKSUM_ACCEPTABLE_PARAMETER_ID:
+    dissect_zero_checksum_acceptable_parameter(parameter_tvb);
     break;
   case RANDOM_PARAMETER_ID:
     dissect_random_parameter(parameter_tvb, parameter_tree);
@@ -2105,9 +2119,7 @@ dissect_unresolvable_address_cause(tvbuff_t *cause_tvb, packet_info *pinfo, prot
   parameter_tvb    = tvb_new_subset_length_caplen(cause_tvb, CAUSE_INFO_OFFSET,
                                     MIN(parameter_length, tvb_captured_length_remaining(cause_tvb, CAUSE_INFO_OFFSET)),
                                     MIN(parameter_length, tvb_reported_length_remaining(cause_tvb, CAUSE_INFO_OFFSET)));
-  proto_item_append_text(cause_item, " (Address: ");
-  dissect_parameter(parameter_tvb, pinfo, cause_tree, cause_item, FALSE, FALSE);
-  proto_item_append_text(cause_item, ")");
+  dissect_parameter(parameter_tvb, pinfo, cause_tree, cause_item, FALSE, TRUE);
 }
 
 static gboolean
@@ -2907,7 +2919,7 @@ fragment_reassembly(tvbuff_t *tvb, sctp_fragment *fragment,
                                      frag_i->frame_num, offset, offset + frag_i->len - 1, frag_i->len);
           offset += frag_i->len;
 
-          mark_frame_as_depended_upon(pinfo, frag_i->frame_num);
+          mark_frame_as_depended_upon(pinfo->fd, frag_i->frame_num);
         }
 
         for (frag_i = msg->fragments;
@@ -2919,7 +2931,7 @@ fragment_reassembly(tvbuff_t *tvb, sctp_fragment *fragment,
                                      frag_i->frame_num, offset, offset + frag_i->len - 1, frag_i->len);
           offset += frag_i->len;
 
-          mark_frame_as_depended_upon(pinfo, frag_i->frame_num);
+          mark_frame_as_depended_upon(pinfo->fd, frag_i->frame_num);
         }
       } else {
         for (frag_i = find_fragment(message->begin, stream_id, stream_seq_num, u_bit);
@@ -2931,7 +2943,7 @@ fragment_reassembly(tvbuff_t *tvb, sctp_fragment *fragment,
                                      frag_i->frame_num, offset, offset + frag_i->len - 1, frag_i->len);
           offset += frag_i->len;
 
-          mark_frame_as_depended_upon(pinfo, frag_i->frame_num);
+          mark_frame_as_depended_upon(pinfo->fd, frag_i->frame_num);
         }
       }
 
@@ -3146,7 +3158,7 @@ fragment_reassembly(tvbuff_t *tvb, sctp_fragment *fragment,
                                  frag_i->frame_num, offset, offset + frag_i->len - 1, frag_i->len);
       offset += frag_i->len;
 
-      mark_frame_as_depended_upon(pinfo, frag_i->frame_num);
+      mark_frame_as_depended_upon(pinfo->fd, frag_i->frame_num);
     }
 
     for (frag_i = msg->fragments;
@@ -3158,7 +3170,7 @@ fragment_reassembly(tvbuff_t *tvb, sctp_fragment *fragment,
                                  frag_i->frame_num, offset, offset + frag_i->len - 1, frag_i->len);
       offset += frag_i->len;
 
-      mark_frame_as_depended_upon(pinfo, frag_i->frame_num);
+      mark_frame_as_depended_upon(pinfo->fd, frag_i->frame_num);
     }
   } else {
     for (frag_i = find_fragment(message->begin, stream_id, stream_seq_num, u_bit);
@@ -3170,7 +3182,7 @@ fragment_reassembly(tvbuff_t *tvb, sctp_fragment *fragment,
                                  frag_i->frame_num, offset, offset + frag_i->len - 1, frag_i->len);
       offset += frag_i->len;
 
-      mark_frame_as_depended_upon(pinfo, frag_i->frame_num);
+      mark_frame_as_depended_upon(pinfo->fd, frag_i->frame_num);
     }
   }
 
@@ -4953,7 +4965,7 @@ proto_register_sctp(void)
     { &hf_heartbeat_info,                           { "Heartbeat information",                          "sctp.parameter_heartbeat_information",                 FT_BYTES,   BASE_NONE, NULL,                                           0x0,                                NULL, HFILL } },
     { &hf_state_cookie,                             { "State cookie",                                   "sctp.parameter_state_cookie",                          FT_BYTES,   BASE_NONE, NULL,                                           0x0,                                NULL, HFILL } },
     { &hf_cookie_preservative_increment,            { "Suggested Cookie life-span increment (msec)",    "sctp.parameter_cookie_preservative_incr",              FT_UINT32,  BASE_DEC,  NULL,                                           0x0,                                NULL, HFILL } },
-    { &hf_hostname,                                 { "Hostname",                                       "sctp.parameter_hostname",                              FT_STRING,  BASE_NONE, NULL,                                           0x0,                                NULL, HFILL } },
+    { &hf_hostname,                                 { "Hostname",                                       "sctp.parameter_hostname",                              FT_STRINGZ,  BASE_NONE, NULL,                                           0x0,                               NULL, HFILL } },
     { &hf_supported_address_type,                   { "Supported address type",                         "sctp.parameter_supported_address_type",                FT_UINT16,  BASE_DEC,  VALS(address_types_values),                     0x0,                                NULL, HFILL } },
     { &hf_stream_reset_req_seq_nr,                  { "Re-configuration request sequence number",       "sctp.parameter_reconfig_request_sequence_number",      FT_UINT32,  BASE_DEC,  NULL,                                           0x0,                                NULL, HFILL } },
     { &hf_stream_reset_rsp_seq_nr,                  { "Re-configuration response sequence number",      "sctp.parameter_reconfig_response_sequence_number",     FT_UINT32,  BASE_DEC,  NULL,                                           0x0,                                NULL, HFILL } },
@@ -5193,6 +5205,7 @@ proto_reg_handoff_sctp(void)
   dissector_add_uint("wtap_encap", WTAP_ENCAP_SCTP, sctp_handle);
   dissector_add_uint("ip.proto", IP_PROTO_SCTP, sctp_handle);
   dissector_add_uint_with_preference("udp.port", UDP_TUNNELING_PORT, sctp_handle);
+  dissector_add_uint_with_preference("dtls.port", UDP_TUNNELING_PORT, sctp_handle);
   sctp_cap_handle = create_capture_dissector_handle(capture_sctp, proto_sctp);
   capture_dissector_add_uint("ip.proto", IP_PROTO_SCTP, sctp_cap_handle);
 }

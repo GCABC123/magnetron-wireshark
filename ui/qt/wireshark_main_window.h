@@ -130,8 +130,6 @@ public:
     QString getMwFileName();
     void setMwFileName(QString fileName);
 
-    frame_data * frameDataForRow(int row) const;
-
 protected:
     virtual bool eventFilter(QObject *obj, QEvent *event);
     virtual bool event(QEvent *event);
@@ -189,8 +187,6 @@ private:
     CaptureOptionsDialog *capture_options_dialog_;
     info_data_t info_data_;
 #endif
-    FilterDialog *display_filter_dlg_;
-    FilterDialog *capture_filter_dlg_;
 
 #if defined(Q_OS_MAC)
     QMenu *dock_menu_;
@@ -249,7 +245,6 @@ private:
 
 signals:
     void setDissectedCaptureFile(capture_file *cf);
-    void displayFilterSuccess(bool success);
     void closePacketDialogs();
     void reloadFields();
     void packetInfoChanged(struct _packet_info *pinfo);
@@ -287,6 +282,8 @@ public slots:
     void setTitlebarForCaptureFile();
     void setWSWindowTitle(QString title = QString());
 
+    void showCaptureOptionsDialog();
+
 #ifdef HAVE_LIBPCAP
     void captureCapturePrepared(capture_session *);
     void captureCaptureUpdateStarted(capture_session *);
@@ -302,8 +299,6 @@ public slots:
 
     void launchRLCGraph(bool channelKnown, guint16 ueid, guint8 rlcMode,
                         guint16 channelType, guint16 channelId, guint8 direction);
-
-    void on_actionViewFullScreen_triggered(bool checked);
 
     void rtpPlayerDialogReplaceRtpStreams(QVector<rtpstream_id_t *> stream_ids);
     void rtpPlayerDialogAddRtpStreams(QVector<rtpstream_id_t *> stream_ids);
@@ -324,6 +319,8 @@ private slots:
     void initConversationMenus();
     static gboolean addExportObjectsMenuItem(const void *key, void *value, void *userdata);
     void initExportObjectsMenus();
+    static gboolean addFollowStreamMenuItem(const void *key, void *value, void *userdata);
+    void initFollowStreamMenus();
 
     // in main_window_slots.cpp
     /**
@@ -370,7 +367,6 @@ private slots:
     void applyGlobalCommandLineOptions();
     void setFeaturesEnabled(bool enabled = true);
 
-    void on_actionDisplayFilterExpression_triggered();
     void on_actionNewDisplayFilterExpression_triggered();
     void onFilterSelected(QString, bool);
     void onFilterPreferences();
@@ -430,71 +426,42 @@ private slots:
     void deleteAllPacketCommentsFinished(int result);
     void showPreferencesDialog(QString module_name);
 
+    void connectViewMenuActions();
     void showHideMainWidgets(QAction *action);
     void setTimestampFormat(QAction *action);
     void setTimestampPrecision(QAction *action);
-    void on_actionViewTimeDisplaySecondsWithHoursAndMinutes_triggered(bool checked);
-    void on_actionViewEditResolvedName_triggered();
+    void setTimeDisplaySecondsWithHoursAndMinutes(bool checked);
+    void editResolvedName();
     void setNameResolution();
-    void on_actionViewNameResolutionPhysical_triggered();
-    void on_actionViewNameResolutionNetwork_triggered();
-    void on_actionViewNameResolutionTransport_triggered();
-    // XXX We're not porting the concurrency action from GTK+ on purpose.
     void zoomText();
-    void on_actionViewZoomIn_triggered();
-    void on_actionViewZoomOut_triggered();
-    void on_actionViewNormalSize_triggered();
-    void on_actionViewColorizePacketList_triggered(bool checked);
-    void on_actionViewColoringRules_triggered();
+    void showColoringRulesDialog();
     void colorizeConversation(bool create_rule = false);
     void colorizeActionTriggered();
-    void on_actionViewColorizeResetColorization_triggered();
-    void on_actionViewColorizeNewColoringRule_triggered();
-    void on_actionViewResetLayout_triggered();
-    void on_actionViewResizeColumns_triggered();
-
-    void on_actionViewInternalsConversationHashTables_triggered();
-    void on_actionViewInternalsDissectorTables_triggered();
-    void on_actionViewInternalsSupportedProtocols_triggered();
-
     void openPacketDialog(bool from_reference = false);
-    void on_actionViewShowPacketInNewWindow_triggered();
-    void on_actionContextShowLinkedPacketInNewWindow_triggered();
-    void on_actionViewReload_triggered();
-    void on_actionViewReload_as_File_Format_or_Capture_triggered();
+    void reloadCaptureFileAsFormatOrCapture();
+    void reloadCaptureFile();
 
-    void on_actionGoGoToPacket_triggered();
-    void on_actionGoGoToLinkedPacket_triggered();
-    void on_actionGoNextConversationPacket_triggered();
-    void on_actionGoPreviousConversationPacket_triggered();
-    void on_actionGoAutoScroll_toggled(bool checked);
+    void connectGoMenuActions();
+
     void resetPreviousFocus();
 
-    void on_actionCaptureOptions_triggered();
-#ifdef HAVE_LIBPCAP
-    void on_actionCaptureRefreshInterfaces_triggered();
-#endif
-    void on_actionCaptureCaptureFilters_triggered();
+    void connectCaptureMenuActions();
+    void startCaptureTriggered();
 
-    void on_actionAnalyzeDisplayFilters_triggered();
-    void on_actionAnalyzeDisplayFilterMacros_triggered();
+    void connectAnalyzeMenuActions();
+
     void matchFieldFilter(FilterAction::Action action, FilterAction::ActionType filter_type);
-    void on_actionAnalyzeCreateAColumn_triggered();
+    void applyFieldAsColumn();
 
     void filterMenuAboutToShow();
 
     void applyConversationFilter();
     void applyExportObject();
 
-    void on_actionAnalyzeEnabledProtocols_triggered();
-    void on_actionAnalyzeDecodeAs_triggered();
-    void on_actionAnalyzeReloadLuaPlugins_triggered();
-
-    void openFollowStreamDialog(follow_type_t type, guint stream_num, guint sub_stream_num, bool use_stream_index = true);
-    void openFollowStreamDialogForType(follow_type_t type);
+    void openFollowStreamDialog(int proto_id, guint stream_num, guint sub_stream_num, bool use_stream_index = true);
+    void openFollowStreamDialog(int proto_id);
 
     void statCommandExpertInfo(const char *, void *);
-    void on_actionAnalyzeExpertInfo_triggered();
 
     void on_actionHelpContents_triggered();
     void on_actionHelpMPWireshark_triggered();
@@ -522,9 +489,6 @@ private slots:
     void on_goToCancel_clicked();
     void on_goToGo_clicked();
     void on_goToLineEdit_returnPressed();
-    void on_actionCaptureStart_triggered();
-    void on_actionCaptureStop_triggered();
-    void on_actionCaptureRestart_triggered();
 
     void on_actionStatisticsCaptureFileProperties_triggered();
     void on_actionStatisticsResolvedAddresses_triggered();
@@ -582,6 +546,7 @@ private slots:
     void on_actionStatisticsHTTP2_triggered();
     void on_actionStatisticsSOMEIPmessages_triggered();
     void on_actionStatisticsSOMEIPSDentries_triggered();
+    void on_actionStatisticsLTP_triggered();
 
     RtpStreamDialog *openTelephonyRtpStreamsDialog();
     RtpPlayerDialog *openTelephonyRtpPlayerDialog();
@@ -617,8 +582,6 @@ private slots:
     void on_actionToolsCredentials_triggered();
 
     void externalMenuItem_triggered();
-
-    void on_actionAnalyzeShowPacketBytes_triggered();
 
     void on_actionContextWikiProtocolPage_triggered();
     void on_actionContextFilterFieldReference_triggered();

@@ -44,6 +44,8 @@
 // 4. Dissector Table "cip.data_segment.iface" - Unknown. This may be removed in the future
 // 5. attribute_info_t: Use this to add handling for an attribute, using a 3 tuple key (Class, Instance, Attribute)
 //    See 'cip_attribute_vals' for an example.
+// 6. cip_service_info_t: Use this to add handling for a service, using a 2 tuple key (Class, Service)
+//    See 'cip_obj_spec_service_table' for an example.
 
 #include "config.h"
 
@@ -70,6 +72,7 @@ static dissector_handle_t cip_handle;
 static dissector_handle_t cip_class_generic_handle;
 static dissector_handle_t cip_class_cm_handle;
 static dissector_handle_t cip_class_pccc_handle;
+static dissector_handle_t cip_class_mb_handle;
 static dissector_handle_t modbus_handle;
 static dissector_handle_t cip_class_cco_handle;
 static heur_dissector_list_t  heur_subdissector_service;
@@ -536,6 +539,7 @@ static int hf_32bitheader_run_idle = -1;
 
 static int hf_cip_connection = -1;
 static int hf_cip_fwd_open_in = -1;
+static int hf_cip_fwd_close_in = -1;
 
 /* Initialize the subtree pointers */
 static gint ett_cip = -1;
@@ -670,6 +674,8 @@ static expert_field ei_mal_opt_attr_list = EI_INIT;
 static expert_field ei_mal_opt_service_list = EI_INIT;
 static expert_field ei_mal_padded_epath_size = EI_INIT;
 static expert_field ei_mal_missing_string_data = EI_INIT;
+
+static expert_field ei_cip_no_fwd_close = EI_INIT;
 
 static dissector_table_t   subdissector_class_table;
 static dissector_table_t   subdissector_symbol_table;
@@ -3719,6 +3725,28 @@ static int dissect_port_node_range(packet_info *pinfo _U_, proto_tree *tree, pro
    return 4;
 }
 
+
+/// Identity - Services
+static int dissect_identity_reset(packet_info *pinfo _U_, proto_tree *tree, proto_item *item _U_, tvbuff_t *tvb, int offset, gboolean request)
+{
+   int parsed_len = 0;
+
+   if (request)
+   {
+      if (tvb_reported_length_remaining(tvb, offset) > 0)
+      {
+         proto_tree_add_item(tree, hf_cip_sc_reset_param, tvb, offset, 1, ENC_LITTLE_ENDIAN);
+         parsed_len = 1;
+      }
+   }
+   else
+   {
+      parsed_len = 0;
+   }
+
+   return parsed_len;
+}
+
 static attribute_info_t cip_attribute_vals[] = {
     /* Identity Object (class attributes) */
    {0x01, TRUE, 1, 0, CLASS_ATTRIBUTE_1_NAME, cip_uint, &hf_attr_class_revision, NULL },
@@ -3856,6 +3884,20 @@ static attribute_info_t cip_attribute_vals[] = {
    { 0xF4, FALSE, 11, -1, "Associated Communication Objects", cip_dissector_func, NULL, dissect_port_associated_comm_objects },
 };
 
+// Table of CIP services defined by this dissector.
+static cip_service_info_t cip_obj_spec_service_table[] = {
+    { 0x1, SC_RESET, "Reset", dissect_identity_reset },
+};
+
+// Look up a given CIP service from this dissector.
+static cip_service_info_t* cip_get_service_cip(guint32 class_id, guint8 service_id)
+{
+   return cip_get_service_one_table(&cip_obj_spec_service_table[0],
+      sizeof(cip_obj_spec_service_table) / sizeof(cip_service_info_t),
+      class_id,
+      service_id);
+}
+
 typedef struct attribute_val_array {
    size_t size;
    attribute_info_t* attrs;
@@ -3918,6 +3960,45 @@ attribute_info_t* cip_get_attribute(guint class_id, guint instance, guint attrib
             return pattr;
          }
       }
+   }
+
+   return NULL;
+}
+
+// Look up a given CIP service from a table of cip_service_info_t.
+cip_service_info_t* cip_get_service_one_table(cip_service_info_t* services, size_t size, guint32 class_id, guint8 service_id)
+{
+   for (guint32 i = 0; i < size; i++)
+   {
+      cip_service_info_t* entry = &services[i];
+      if (entry->class_id == class_id && entry->service_id == (service_id & CIP_SC_MASK))
+      {
+         return entry;
+      }
+   }
+
+   return NULL;
+}
+
+// Look through all CIP Service tables from different dissectors, to find a definition for a given CIP service.
+static cip_service_info_t* cip_get_service(packet_info *pinfo, guint8 service_id)
+{
+   cip_req_info_t *cip_req_info = (cip_req_info_t*)p_get_proto_data(wmem_file_scope(), pinfo, proto_cip, 0);
+   if (!cip_req_info || !cip_req_info->ciaData)
+   {
+      return NULL;
+   }
+
+   cip_service_info_t* pService = cip_get_service_cip(cip_req_info->ciaData->iClass, service_id);
+   if (pService)
+   {
+      return pService;
+   }
+
+   pService = cip_get_service_enip(cip_req_info->ciaData->iClass, service_id);
+   if (pService)
+   {
+      return pService;
    }
 
    return NULL;
@@ -4136,11 +4217,11 @@ void
 dissect_deviceid(tvbuff_t *tvb, int offset, proto_tree *tree,
                  int hf_vendor, int hf_devtype, int hf_prodcode,
                  int hf_compatibility, int hf_comp_bit, int hf_majrev, int hf_minrev,
-                 gboolean generate)
+                 gboolean generate, guint encoding)
 {
-   proto_item* vendor_id_item = proto_tree_add_item(tree, hf_vendor, tvb, offset, 2, ENC_LITTLE_ENDIAN);
-   proto_item* device_type_item = proto_tree_add_item(tree, hf_devtype, tvb, offset + 2, 2, ENC_LITTLE_ENDIAN);
-   proto_item* product_code_item = proto_tree_add_item(tree, hf_prodcode, tvb, offset + 4, 2, ENC_LITTLE_ENDIAN);
+   proto_item* vendor_id_item = proto_tree_add_item(tree, hf_vendor, tvb, offset, 2, encoding);
+   proto_item* device_type_item = proto_tree_add_item(tree, hf_devtype, tvb, offset + 2, 2, encoding);
+   proto_item* product_code_item = proto_tree_add_item(tree, hf_prodcode, tvb, offset + 4, 2, encoding);
 
    /* Major revision/Compatibility */
    guint8 compatibility = tvb_get_guint8(tvb, offset + 6);
@@ -4152,9 +4233,9 @@ dissect_deviceid(tvbuff_t *tvb, int offset, proto_tree *tree,
       compatibility & 0x7F);
    proto_tree* compatibility_tree = proto_item_add_subtree(compatibility_item, ett_mcsc);
 
-   proto_item* comp_bit_item = proto_tree_add_item(compatibility_tree, hf_comp_bit, tvb, offset + 6, 1, ENC_LITTLE_ENDIAN);
-   proto_item* major_rev_item = proto_tree_add_item(compatibility_tree, hf_majrev, tvb, offset + 6, 1, ENC_LITTLE_ENDIAN);
-   proto_item* minor_rev_item = proto_tree_add_item(tree, hf_minrev, tvb, offset + 7, 1, ENC_LITTLE_ENDIAN);
+   proto_item* comp_bit_item = proto_tree_add_item(compatibility_tree, hf_comp_bit, tvb, offset + 6, 1, encoding);
+   proto_item* major_rev_item = proto_tree_add_item(compatibility_tree, hf_majrev, tvb, offset + 6, 1, encoding);
+   proto_item* minor_rev_item = proto_tree_add_item(tree, hf_minrev, tvb, offset + 7, 1, encoding);
 
    if (generate)
    {
@@ -4537,16 +4618,16 @@ static int dissect_segment_port(tvbuff_t* tvb, int offset, gboolean generate,
       if (generate)
       {
          /* Add size of extended link address */
-         proto_item* it = proto_tree_add_uint(path_seg_item, hf_cip_link_address_size, tvb, 0, 0, opt_link_size);
+         proto_item* it = proto_tree_add_uint(path_seg_tree, hf_cip_link_address_size, tvb, 0, 0, opt_link_size);
          proto_item_set_generated(it);
          /* Add extended link address */
-         it = proto_tree_add_string(path_seg_item, hf_cip_link_address_string, tvb, 0, 0, tvb_format_text(wmem_packet_scope(), tvb, offset + offset_link_address, opt_link_size));
+         it = proto_tree_add_string(path_seg_tree, hf_cip_link_address_string, tvb, 0, 0, tvb_format_text(wmem_packet_scope(), tvb, offset + offset_link_address, opt_link_size));
          proto_item_set_generated(it);
       }
       else
       {
-         proto_tree_add_item(path_seg_item, hf_cip_link_address_size, tvb, offset + 1, 1, ENC_LITTLE_ENDIAN);
-         proto_tree_add_item(path_seg_item, hf_cip_link_address_string, tvb, offset + offset_link_address, opt_link_size, ENC_ASCII | ENC_NA);
+         proto_tree_add_item(path_seg_tree, hf_cip_link_address_size, tvb, offset + 1, 1, ENC_LITTLE_ENDIAN);
+         proto_tree_add_item(path_seg_tree, hf_cip_link_address_string, tvb, offset + offset_link_address, opt_link_size, ENC_ASCII | ENC_NA);
       }
 
       proto_item_append_text(epath_item, ", Address: %s", tvb_format_text(wmem_packet_scope(), tvb, offset + offset_link_address, opt_link_size));
@@ -4578,12 +4659,12 @@ static int dissect_segment_port(tvbuff_t* tvb, int offset, gboolean generate,
       if (generate)
       {
          guint8 link_address_byte = tvb_get_guint8(tvb, offset + offset_link_address);
-         proto_item* it = proto_tree_add_uint(path_seg_item, hf_cip_link_address_byte, tvb, 0, 0, link_address_byte);
+         proto_item* it = proto_tree_add_uint(path_seg_tree, hf_cip_link_address_byte, tvb, 0, 0, link_address_byte);
          proto_item_set_generated(it);
       }
       else
       {
-         proto_tree_add_item(path_seg_item, hf_cip_link_address_byte, tvb, offset + offset_link_address, 1, ENC_LITTLE_ENDIAN);
+         proto_tree_add_item(path_seg_tree, hf_cip_link_address_byte, tvb, offset + offset_link_address, 1, ENC_LITTLE_ENDIAN);
       }
 
       proto_item_append_text(epath_item, ", Address: %d", tvb_get_guint8(tvb, offset + offset_link_address));
@@ -4594,12 +4675,12 @@ static int dissect_segment_port(tvbuff_t* tvb, int offset, gboolean generate,
       if (generate)
       {
          guint16 port_extended = tvb_get_letohs(tvb, extended_port_offset);
-         proto_item* it = proto_tree_add_uint(path_seg_item, hf_cip_port_extended, tvb, 0, 0, port_extended);
+         proto_item* it = proto_tree_add_uint(path_seg_tree, hf_cip_port_extended, tvb, 0, 0, port_extended);
          proto_item_set_generated(it);
       }
       else
       {
-         proto_tree_add_item(path_seg_item, hf_cip_port_extended, tvb, extended_port_offset, 2, ENC_LITTLE_ENDIAN);
+         proto_tree_add_item(path_seg_tree, hf_cip_port_extended, tvb, extended_port_offset, 2, ENC_LITTLE_ENDIAN);
       }
    }
 
@@ -4834,7 +4915,7 @@ static int dissect_segment_ansi_extended_symbol(packet_info* pinfo, tvbuff_t* tv
 }
 
 // offset - Starts with the 'Key Data' section of the Electronic Key Segment Format.
-int dissect_electronic_key_format(tvbuff_t* tvb, int offset, proto_tree* tree, gboolean generate, guint8 key_format)
+int dissect_electronic_key_format(tvbuff_t* tvb, int offset, proto_tree* tree, gboolean generate, guint8 key_format, guint encoding)
 {
    int key_len;
    if (key_format == CI_E_KEY_FORMAT_VAL)
@@ -4850,17 +4931,17 @@ int dissect_electronic_key_format(tvbuff_t* tvb, int offset, proto_tree* tree, g
    {
       dissect_deviceid(tvb, offset, tree,
          hf_cip_ekey_vendor, hf_cip_ekey_devtype, hf_cip_ekey_prodcode,
-         hf_cip_ekey_compatibility, hf_cip_ekey_comp_bit, hf_cip_ekey_majorrev, hf_cip_ekey_minorrev, TRUE);
+         hf_cip_ekey_compatibility, hf_cip_ekey_comp_bit, hf_cip_ekey_majorrev, hf_cip_ekey_minorrev, TRUE, encoding);
    }
    else
    {
       dissect_deviceid(tvb, offset, tree,
          hf_cip_ekey_vendor, hf_cip_ekey_devtype, hf_cip_ekey_prodcode,
-         hf_cip_ekey_compatibility, hf_cip_ekey_comp_bit, hf_cip_ekey_majorrev, hf_cip_ekey_minorrev, FALSE);
+         hf_cip_ekey_compatibility, hf_cip_ekey_comp_bit, hf_cip_ekey_majorrev, hf_cip_ekey_minorrev, FALSE, encoding);
 
       if (key_format == CI_E_SERIAL_NUMBER_KEY_FORMAT_VAL)
       {
-         proto_tree_add_item(tree, hf_cip_ekey_serial_number, tvb, offset + 8, 4, ENC_LITTLE_ENDIAN);
+         proto_tree_add_item(tree, hf_cip_ekey_serial_number, tvb, offset + 8, 4, encoding);
       }
    }
 
@@ -4892,7 +4973,7 @@ static int dissect_segment_logical_special(packet_info* pinfo, tvbuff_t* tvb, in
          }
          segment_len = 2;
 
-         segment_len += dissect_electronic_key_format(tvb, offset + 2, path_seg_tree, generate, key_format);
+         segment_len += dissect_electronic_key_format(tvb, offset + 2, path_seg_tree, generate, key_format, ENC_LITTLE_ENDIAN);
 
          proto_item_set_len(path_seg_item, segment_len);
 
@@ -5670,6 +5751,86 @@ int dissect_cip_attribute(packet_info *pinfo, proto_tree *tree, proto_item *item
    return consumed;
 }
 
+static int dissect_cip_service(packet_info *pinfo, tvbuff_t *tvb, int offset,
+   proto_item *ti, proto_tree *item_tree, cip_service_info_t *service_entry, guint8 service)
+{
+   int parsed_len = 0;
+
+   if (service_entry != NULL && service_entry->pdissect)
+   {
+      gboolean request = !(service & CIP_SC_RESPONSE_MASK);
+      parsed_len = service_entry->pdissect(pinfo, item_tree, ti, tvb, offset, request);
+   }
+
+   return parsed_len;
+}
+
+static int dissect_cip_object_specific_service(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, proto_item* msp_item, cip_service_info_t *service_entry)
+{
+   DISSECTOR_ASSERT(service_entry != NULL);
+
+   int offset = 0;
+   guint8 service = tvb_get_guint8(tvb, offset);
+   guint8 gen_status = 0;
+
+   // Skip over the Request/Response header to get to the actual data.
+   if (service & CIP_SC_RESPONSE_MASK)
+   {
+      gen_status = tvb_get_guint8(tvb, offset + 2);
+
+      guint16 add_stat_size = tvb_get_guint8(tvb, offset + 3) * 2;
+      offset = 4 + add_stat_size;
+   }
+   else
+   {
+      guint16 req_path_size = tvb_get_guint8(tvb, offset + 1) * 2;
+      offset = 2 + req_path_size;
+   }
+
+   // Display the service name, even if there is no payload data.
+   if (service_entry->service_name)
+   {
+      col_append_str(pinfo->cinfo, COL_INFO, service_entry->service_name);
+      col_set_fence(pinfo->cinfo, COL_INFO);
+
+      proto_item_append_text(msp_item, "%s", service_entry->service_name);
+   }
+
+   // Only dissect responses with specific response statuses.
+   if ((service & CIP_SC_RESPONSE_MASK)
+      && (should_dissect_cip_response(tvb, offset, gen_status) == FALSE))
+   {
+      return 0;
+   }
+
+   proto_item *payload_item;
+   proto_tree *payload_tree = proto_tree_add_subtree(tree, tvb, offset, tvb_reported_length_remaining(tvb, offset), ett_cmd_data, &payload_item, "");
+
+   // Add the service info to the tree item.
+   proto_item_append_text(payload_item, "%s", service_entry->service_name);
+
+   if (service & CIP_SC_RESPONSE_MASK)
+   {
+      proto_item_append_text(payload_item, " (Response)");
+   }
+   else
+   {
+      proto_item_append_text(payload_item, " (Request)");
+   }
+
+   // Process any known command-specific data.
+   offset += dissect_cip_service(pinfo, tvb, offset, payload_item, payload_tree, service_entry, service);
+
+   // Add any remaining data.
+   int len_remain = tvb_reported_length_remaining(tvb, offset);
+   if (len_remain > 0)
+   {
+      proto_tree_add_item(payload_tree, hf_cip_data, tvb, offset, len_remain, ENC_NA);
+   }
+
+   return tvb_reported_length(tvb);
+}
+
 /************************************************
  *
  * Dissector for generic CIP object
@@ -6006,14 +6167,6 @@ dissect_cip_generic_service_req(tvbuff_t *tvb, packet_info *pinfo, proto_tree *t
       break;
    case SC_SET_ATT_LIST:
       parsed_len = dissect_cip_set_attribute_list_req(tvb, pinfo, cmd_data_tree, cmd_data_item, offset, req_data);
-      break;
-   case SC_RESET:
-      // Parameter to reset is optional.
-      if (tvb_reported_length_remaining(tvb, offset) > 0)
-      {
-         proto_tree_add_item(cmd_data_tree, hf_cip_sc_reset_param, tvb, offset, 1, ENC_LITTLE_ENDIAN);
-         parsed_len = 1;
-      }
       break;
    case SC_MULT_SERV_PACK:
       parsed_len = dissect_cip_multiple_service_packet(tvb, pinfo, cmd_data_tree, cmd_data_item, offset, TRUE);
@@ -6547,8 +6700,54 @@ static int get_connection_timeout_multiplier(guint32 timeout_value)
    return timeout_multiplier;
 }
 
-static void display_connection_information_fwd_close_req(packet_info* pinfo, tvbuff_t* tvb, proto_tree* tree, cip_conn_info_t* conn_info)
+static void display_previous_route_connection_path(cip_req_info_t* preq_info, proto_tree* item_tree, tvbuff_t* tvb, packet_info* pinfo, int hf_path, int display_type);
+
+// Display all Connection Information and Analysis.
+static void display_connection_information_fwd_open_req(packet_info* pinfo, tvbuff_t* tvb, proto_tree* tree)
 {
+   cip_conn_info_t* conn_info = (cip_conn_info_t*)p_get_proto_data(wmem_file_scope(), pinfo, proto_enip, ENIP_CONNECTION_INFO);
+   if (!conn_info)
+   {
+      return;
+   }
+
+   proto_item* conn_info_item = NULL;
+   proto_tree* conn_info_tree = proto_tree_add_subtree(tree, tvb, 0, 0, ett_connection_info, &conn_info_item, "Connection Information");
+   proto_item_set_generated(conn_info_item);
+
+   mark_cip_connection(pinfo, tvb, conn_info_tree);
+
+   proto_item* pi = proto_tree_add_float(conn_info_tree, hf_cip_cm_ot_timeout, tvb, 0, 0, (conn_info->O2T.rpi / 1000.0f) * conn_info->timeout_multiplier);
+   proto_item_set_generated(pi);
+
+   pi = proto_tree_add_float(conn_info_tree, hf_cip_cm_to_timeout, tvb, 0, 0, (conn_info->T2O.rpi / 1000.0f) * conn_info->timeout_multiplier);
+   proto_item_set_generated(pi);
+
+   if (conn_info->close_frame != 0)
+   {
+      pi = proto_tree_add_uint(conn_info_tree, hf_cip_fwd_close_in, tvb, 0, 0, conn_info->close_frame);
+      proto_item_set_generated(pi);
+   }
+   else
+   {
+      expert_add_info(pinfo, conn_info_item, &ei_cip_no_fwd_close);
+   }
+}
+
+static void display_connection_information_fwd_open_rsp(packet_info* pinfo, tvbuff_t* tvb, proto_tree* tree, cip_req_info_t* preq_info)
+{
+   proto_item* conn_info_item = NULL;
+   proto_tree* conn_info_tree = proto_tree_add_subtree(tree, tvb, 0, 0, ett_connection_info, &conn_info_item, "Connection Information");
+   proto_item_set_generated(conn_info_item);
+
+   mark_cip_connection(pinfo, tvb, conn_info_tree);
+
+   display_previous_route_connection_path(preq_info, conn_info_tree, tvb, pinfo, hf_cip_cm_conn_path_size, DISPLAY_CONNECTION_PATH);
+}
+
+static void display_connection_information_fwd_close_req(packet_info* pinfo, tvbuff_t* tvb, proto_tree* tree)
+{
+   cip_conn_info_t* conn_info = (cip_conn_info_t*)p_get_proto_data(wmem_file_scope(), pinfo, proto_enip, ENIP_CONNECTION_INFO);
    if (!conn_info)
    {
       return;
@@ -6580,6 +6779,18 @@ static void display_connection_information_fwd_close_req(packet_info* pinfo, tvb
 
    proto_item* to_timeout_item = proto_tree_add_float(conn_info_tree, hf_cip_cm_to_timeout, tvb, 0, 0, to_timeout_ms);
    proto_item_set_generated(to_timeout_item);
+}
+
+static void display_connection_information_fwd_close_rsp(packet_info* pinfo, tvbuff_t* tvb, proto_tree* tree)
+{
+   proto_item* conn_info_item = NULL;
+   proto_tree* conn_info_tree = proto_tree_add_subtree(tree, tvb, 0, 0, ett_connection_info, &conn_info_item, "Connection Information");
+   proto_item_set_generated(conn_info_item);
+
+   mark_cip_connection(pinfo, tvb, conn_info_tree);
+
+   cip_req_info_t* preq_info = (cip_req_info_t*)p_get_proto_data(wmem_file_scope(), pinfo, proto_cip, 0);
+   display_previous_route_connection_path(preq_info, conn_info_tree, tvb, pinfo, hf_cip_cm_conn_path_size, DISPLAY_CONNECTION_PATH);
 }
 
 static void
@@ -6685,8 +6896,7 @@ dissect_cip_cm_fwd_open_req(cip_req_info_t *preq_info, proto_tree *cmd_tree, tvb
          preq_info->connInfo->TransportClass_trigger = TransportClass_trigger;
          preq_info->connInfo->timeout_multiplier = timeout_multiplier;
          preq_info->connInfo->safety = safety_fwdopen;
-         preq_info->connInfo->ClassID = connection_path.iClass;
-         preq_info->connInfo->ConnPoint = connection_path.iConnPoint;
+         preq_info->connInfo->connection_path = connection_path;
 
          preq_info->connInfo->FwdOpenPathLenBytes = conn_path_size;
          preq_info->connInfo->pFwdOpenPathData = wmem_alloc(wmem_file_scope(), conn_path_size);
@@ -6694,7 +6904,7 @@ dissect_cip_cm_fwd_open_req(cip_req_info_t *preq_info, proto_tree *cmd_tree, tvb
       }
    }
 
-   mark_cip_connection(pinfo, tvb, cmd_tree);
+   display_connection_information_fwd_open_req(pinfo, tvb, cmd_tree);
 }
 
 static void display_previous_route_connection_path(cip_req_info_t *preq_info, proto_tree *item_tree, tvbuff_t *tvb, packet_info *pinfo, int hf_path, int display_type)
@@ -6719,24 +6929,29 @@ static void display_previous_route_connection_path(cip_req_info_t *preq_info, pr
    }
 }
 
+gboolean cip_connection_triad_match(const cip_connection_triad_t* left, const cip_connection_triad_t* right)
+{
+   return (left->ConnSerialNumber == right->ConnSerialNumber) &&
+      (left->VendorID == right->VendorID) &&
+      (left->DeviceSerialNumber == right->DeviceSerialNumber);
+}
+
 static int
 dissect_cip_cm_fwd_open_rsp_success(cip_req_info_t *preq_info, proto_tree *tree, tvbuff_t *tvb, int offset, packet_info *pinfo)
 {
    int parsed_len = 26;
 
-   unsigned char app_rep_size;
-   guint32 O2TConnID, T2OConnID;
    guint16 init_rollover_value = 0, init_timestamp_value = 0;
    proto_tree *pid_tree, *safety_tree;
    cip_connection_triad_t target_triad = {0};
 
    /* Display originator to target connection ID */
-   O2TConnID = tvb_get_letohl( tvb, offset );
-   proto_tree_add_item( tree, hf_cip_cm_ot_connid, tvb, offset, 4, ENC_LITTLE_ENDIAN);
+   guint32 O2TConnID;
+   proto_tree_add_item_ret_uint(tree, hf_cip_cm_ot_connid, tvb, offset, 4, ENC_LITTLE_ENDIAN, &O2TConnID);
 
    /* Display target to originator connection ID */
-   T2OConnID = tvb_get_letohl( tvb, offset+4 );
-   proto_tree_add_item( tree, hf_cip_cm_to_connid, tvb, offset+4, 4, ENC_LITTLE_ENDIAN);
+   guint32 T2OConnID;
+   proto_tree_add_item_ret_uint(tree, hf_cip_cm_to_connid, tvb, offset+4, 4, ENC_LITTLE_ENDIAN, &T2OConnID);
 
    // Add Connection IDs as hidden items so that it's easy to find all Connection IDs in different fields.
    proto_item* pi = proto_tree_add_item(tree, hf_cip_connid, tvb, offset, 4, ENC_LITTLE_ENDIAN);
@@ -6750,15 +6965,15 @@ dissect_cip_cm_fwd_open_rsp_success(cip_req_info_t *preq_info, proto_tree *tree,
       &conn_triad);
 
    /* Display originator to target actual packet interval */
-   guint32 O2TAPI = tvb_get_letohl( tvb, offset+16 );
-   proto_tree_add_item(tree, hf_cip_cm_ot_api, tvb, offset + 16, 4, ENC_LITTLE_ENDIAN);
+   guint32 O2TAPI;
+   proto_tree_add_item_ret_uint(tree, hf_cip_cm_ot_api, tvb, offset + 16, 4, ENC_LITTLE_ENDIAN, &O2TAPI);
 
    /* Display originator to target actual packet interval */
-   guint32 T2OAPI = tvb_get_letohl( tvb, offset+20 );
-   proto_tree_add_item(tree, hf_cip_cm_to_api, tvb, offset + 20, 4, ENC_LITTLE_ENDIAN);
+   guint32 T2OAPI;
+   proto_tree_add_item_ret_uint(tree, hf_cip_cm_to_api, tvb, offset + 20, 4, ENC_LITTLE_ENDIAN, &T2OAPI);
 
    /* Display the application reply size */
-   app_rep_size = tvb_get_guint8( tvb, offset+24 ) * 2;
+   guint16 app_rep_size = tvb_get_guint8( tvb, offset+24 ) * 2;
    proto_tree_add_item(tree, hf_cip_cm_app_reply_size, tvb, offset+24, 1, ENC_LITTLE_ENDIAN);
 
    /* Display the Reserved byte */
@@ -6811,12 +7026,7 @@ dissect_cip_cm_fwd_open_rsp_success(cip_req_info_t *preq_info, proto_tree *tree,
       }
    }
 
-   proto_item* conn_info_item = NULL;
-   proto_tree* conn_info_tree = proto_tree_add_subtree(tree, tvb, 0, 0, ett_connection_info, &conn_info_item, "Connection Information");
-   proto_item_set_generated(conn_info_item);
-
-   mark_cip_connection(pinfo, tvb, conn_info_tree);
-   display_previous_route_connection_path(preq_info, conn_info_tree, tvb, pinfo, hf_cip_cm_conn_path_size, DISPLAY_CONNECTION_PATH);
+   display_connection_information_fwd_open_rsp(pinfo, tvb, tree, preq_info);
 
    /* See if we've captured the ForwardOpen request.  If so some of the conversation data has already been
       populated and we just need to update it. */
@@ -6826,9 +7036,7 @@ dissect_cip_cm_fwd_open_rsp_success(cip_req_info_t *preq_info, proto_tree *tree,
    if ((preq_info != NULL) && (preq_info->connInfo != NULL))
    {
       /* Ensure the connection triad matches before updating the connection IDs */
-      if ((preq_info->connInfo->triad.ConnSerialNumber == conn_triad.ConnSerialNumber) &&
-          (preq_info->connInfo->triad.VendorID == conn_triad.VendorID) &&
-          (preq_info->connInfo->triad.DeviceSerialNumber == conn_triad.DeviceSerialNumber))
+      if (cip_connection_triad_match(&(preq_info->connInfo->triad), &conn_triad))
       {
          /* Update the connection IDs as ForwardOpen reply is allowed to update them from
             the ForwardOpen request */
@@ -6842,6 +7050,7 @@ dissect_cip_cm_fwd_open_rsp_success(cip_req_info_t *preq_info, proto_tree *tree,
              preq_info->connInfo->safety.running_rollover_value = init_rollover_value;
              preq_info->connInfo->safety.running_timestamp_value = init_timestamp_value;
              preq_info->connInfo->safety.target_triad = target_triad;
+             preq_info->connInfo->safety.seen_non_zero_timestamp = FALSE;
          }
       }
    }
@@ -6918,9 +7127,6 @@ static void dissect_cip_cm_fwd_close_req(proto_tree* cmd_data_tree, tvbuff_t* tv
       hf_cip_cm_conn_serial_num, hf_cip_cm_vendor, hf_cip_cm_orig_serial_num,
       &conn_triad);
 
-   if (!pinfo->fd->visited)
-      enip_mark_connection_triad(pinfo, &conn_triad);
-
    /* Add the path size */
    guint16 conn_path_size = tvb_get_guint8(tvb, offset + 10) * 2;
    proto_tree_add_item(cmd_data_tree, hf_cip_cm_conn_path_size, tvb, offset + 10, 1, ENC_LITTLE_ENDIAN);
@@ -6934,9 +7140,8 @@ static void dissect_cip_cm_fwd_close_req(proto_tree* cmd_data_tree, tvbuff_t* tv
    dissect_epath(tvb, pinfo, epath_tree, pi, offset + 12, conn_path_size, FALSE, FALSE, &conn_path, NULL, DISPLAY_CONNECTION_PATH, NULL, FALSE);
    save_route_connection_path(pinfo, tvb, offset + 12, conn_path_size);
 
-
-   cip_conn_info_t* conn_val = (cip_conn_info_t*)p_get_proto_data(wmem_file_scope(), pinfo, proto_enip, ENIP_CONNECTION_INFO);
-   display_connection_information_fwd_close_req(pinfo, tvb, cmd_data_tree, conn_val);
+   enip_close_cip_connection(pinfo, &conn_triad);
+   display_connection_information_fwd_close_req(pinfo, tvb, cmd_data_tree);
 }
 
 static int dissect_cip_cm_fwd_close_rsp_success(proto_tree* cmd_data_tree, tvbuff_t* tvb, int offset, packet_info* pinfo, proto_item* cmd_item)
@@ -6962,16 +7167,10 @@ static int dissect_cip_cm_fwd_close_rsp_success(proto_tree* cmd_data_tree, tvbuf
       proto_tree_add_item(cmd_data_tree, hf_cip_cm_app_reply_data, tvb, offset + 10, app_rep_size, ENC_NA);
    }
 
-   enip_close_cip_connection(pinfo, &conn_triad);
+   if (!pinfo->fd->visited)
+      enip_mark_connection_triad(pinfo, &conn_triad);
 
-   proto_item* conn_info_item = NULL;
-   proto_tree* conn_info_tree = proto_tree_add_subtree(cmd_data_tree, tvb, 0, 0, ett_connection_info, &conn_info_item, "Connection Information");
-   proto_item_set_generated(conn_info_item);
-
-   mark_cip_connection(pinfo, tvb, conn_info_tree);
-
-   cip_req_info_t* preq_info = (cip_req_info_t*)p_get_proto_data(wmem_file_scope(), pinfo, proto_cip, 0);
-   display_previous_route_connection_path(preq_info, conn_info_tree, tvb, pinfo, hf_cip_cm_conn_path_size, DISPLAY_CONNECTION_PATH);
+   display_connection_information_fwd_close_rsp(pinfo, tvb, cmd_data_tree);
 
    return 10 + app_rep_size;
 }
@@ -7066,17 +7265,22 @@ dissect_cip_cm_data( proto_tree *item_tree, tvbuff_t *tvb, int offset, int item_
             /* Check to see if service is 'generic' */
             try_val_to_str_idx((service & CIP_SC_MASK), cip_sc_vals, &service_index);
 
+            cip_service_info_t* service_entry = cip_get_service(pinfo, service);
             if ( pembedded_req_info && pembedded_req_info->dissector )
             {
                call_dissector(pembedded_req_info->dissector, next_tvb, pinfo, item_tree );
             }
-            else if (service_index >= 0)
+            else if (service_index >= 0 && !service_entry)
             {
                /* See if object dissector wants to override generic service handling */
                if (!dissector_try_heuristic(heur_subdissector_service, tvb, pinfo, item_tree, &hdtbl_entry, NULL))
                {
                    dissect_cip_generic_service_rsp(tvb, pinfo, item_tree);
                }
+            }
+            else if (service_entry)
+            {
+               dissect_cip_object_specific_service(tvb, pinfo, item_tree, NULL, service_entry);
             }
             else
             {
@@ -7798,7 +8002,7 @@ dissect_cip_cco_all_attribute_common( proto_tree *cmd_tree, proto_item *ti,
 
    dissect_deviceid(tvb, offset+2, tdi_tree,
       hf_cip_cco_tdi_vendor, hf_cip_cco_tdi_devtype, hf_cip_cco_tdi_prodcode,
-      hf_cip_cco_tdi_compatibility, hf_cip_cco_tdi_comp_bit, hf_cip_cco_tdi_majorrev, hf_cip_cco_tdi_minorrev, FALSE);
+      hf_cip_cco_tdi_compatibility, hf_cip_cco_tdi_comp_bit, hf_cip_cco_tdi_majorrev, hf_cip_cco_tdi_minorrev, FALSE, ENC_LITTLE_ENDIAN);
 
    /* CS Data Index Number */
    proto_tree_add_item(cmd_tree, hf_cip_cco_cs_data_index, tvb, offset+10, 4, ENC_LITTLE_ENDIAN );
@@ -7878,7 +8082,7 @@ dissect_cip_cco_all_attribute_common( proto_tree *cmd_tree, proto_item *ti,
 
    dissect_deviceid(tvb, offset+variable_data_size, tdi_tree,
       hf_cip_cco_pdi_vendor, hf_cip_cco_pdi_devtype, hf_cip_cco_pdi_prodcode,
-      hf_cip_cco_pdi_compatibility, hf_cip_cco_pdi_comp_bit, hf_cip_cco_pdi_majorrev, hf_cip_cco_pdi_minorrev, FALSE);
+      hf_cip_cco_pdi_compatibility, hf_cip_cco_pdi_comp_bit, hf_cip_cco_pdi_majorrev, hf_cip_cco_pdi_minorrev, FALSE, ENC_LITTLE_ENDIAN);
 
    /* Add in proxy device id size */
    variable_data_size += 8;
@@ -8243,6 +8447,8 @@ void dissect_cip_data( proto_tree *item_tree, tvbuff_t *tvb, int offset, packet_
       /* Check to see if service is 'generic' */
       try_val_to_str_idx((service & CIP_SC_MASK), cip_sc_vals, &service_index);
 
+      cip_service_info_t* service_entry = cip_get_service(pinfo, service);
+
       /* If the request set a dissector, then check that first. This ensures
          that Unconnected Send responses are properly parsed based on the
          embedded request. */
@@ -8250,13 +8456,17 @@ void dissect_cip_data( proto_tree *item_tree, tvbuff_t *tvb, int offset, packet_
       {
          call_dissector(preq_info->dissector, tvb, pinfo, item_tree);
       }
-      else if (service_index >= 0)
+      else if (service_index >= 0 && !service_entry)
       {
          /* See if object dissector wants to override generic service handling */
          if(!dissector_try_heuristic(heur_subdissector_service, tvb, pinfo, item_tree, &hdtbl_entry, NULL))
          {
            dissect_cip_generic_service_rsp(tvb, pinfo, cip_tree);
          }
+      }
+      else if (service_entry)
+      {
+         dissect_cip_object_specific_service(tvb, pinfo, cip_tree, msp_item, service_entry);
       }
       else
       {
@@ -8321,7 +8531,9 @@ void dissect_cip_data( proto_tree *item_tree, tvbuff_t *tvb, int offset, packet_
 
       /* Check to see if service is 'generic' */
       try_val_to_str_idx(service, cip_sc_vals, &service_index);
-      if (service_index >= 0)
+
+      cip_service_info_t* service_entry = cip_get_service(pinfo, service);
+      if (service_index >= 0 && !service_entry)
       {
           /* See if object dissector wants to override generic service handling */
           if(!dissector_try_heuristic(heur_subdissector_service, tvb, pinfo, item_tree, &hdtbl_entry, NULL))
@@ -8338,6 +8550,10 @@ void dissect_cip_data( proto_tree *item_tree, tvbuff_t *tvb, int offset, packet_
       else if ( dissector )
       {
          call_dissector( dissector, tvb, pinfo, item_tree );
+      }
+      else if (service_entry)
+      {
+         dissect_cip_object_specific_service(tvb, pinfo, cip_tree, msp_item, service_entry);
       }
       else
       {
@@ -8624,12 +8840,12 @@ proto_register_cip(void)
       { &hf_time_sync_gm_clock_offset_scaled_log_variance, { "Offset Scaled Log Variance", "cip.time_sync.gm_clock.offset_scaled_log_variance", FT_UINT16, BASE_DEC, NULL, 0, NULL, HFILL }},
       { &hf_time_sync_gm_clock_current_utc_offset, { "Current UTC Offset", "cip.time_sync.gm_clock.current_utc_offset", FT_UINT16, BASE_DEC, NULL, 0, NULL, HFILL }},
       { &hf_time_sync_gm_clock_time_property_flags, { "Time Property Flags", "cip.time_sync.gm_clock.time_property_flags", FT_UINT16, BASE_HEX, NULL, 0, NULL, HFILL }},
-      { &hf_time_sync_gm_clock_time_property_flags_leap61, { "Leap indicator 61", "cip.time_sync.gm_clock.time_property_flags.leap61", FT_BOOLEAN, 16, TFS(&tfs_set_notset), 0x01, NULL, HFILL }},
-      { &hf_time_sync_gm_clock_time_property_flags_leap59, { "Leap indicator 59", "cip.time_sync.gm_clock.time_property_flags.leap59", FT_BOOLEAN, 16, TFS(&tfs_set_notset), 0x02, NULL, HFILL }},
-      { &hf_time_sync_gm_clock_time_property_flags_current_utc_valid, { "Current UTC Offset Valid", "cip.time_sync.gm_clock.time_property_flags.current_utc_valid", FT_BOOLEAN, 16, TFS(&tfs_set_notset), 0x04, NULL, HFILL }},
-      { &hf_time_sync_gm_clock_time_property_flags_ptp_timescale, { "PTP Timescale", "cip.time_sync.gm_clock.time_property_flags.ptp_timescale", FT_BOOLEAN, 16, TFS(&tfs_set_notset), 0x08, NULL, HFILL }},
-      { &hf_time_sync_gm_clock_time_property_flags_time_traceable, { "Time traceable", "cip.time_sync.gm_clock.time_property_flags.time_traceable", FT_BOOLEAN, 16, TFS(&tfs_set_notset), 0x10, NULL, HFILL }},
-      { &hf_time_sync_gm_clock_time_property_flags_freq_traceable, { "Frequency traceable", "cip.time_sync.gm_clock.time_property_flags.freq_traceable", FT_BOOLEAN, 16, TFS(&tfs_set_notset), 0x20, NULL, HFILL }},
+      { &hf_time_sync_gm_clock_time_property_flags_leap61, { "Leap indicator 61", "cip.time_sync.gm_clock.time_property_flags.leap61", FT_BOOLEAN, 16, TFS(&tfs_set_notset), 0x0001, NULL, HFILL }},
+      { &hf_time_sync_gm_clock_time_property_flags_leap59, { "Leap indicator 59", "cip.time_sync.gm_clock.time_property_flags.leap59", FT_BOOLEAN, 16, TFS(&tfs_set_notset), 0x0002, NULL, HFILL }},
+      { &hf_time_sync_gm_clock_time_property_flags_current_utc_valid, { "Current UTC Offset Valid", "cip.time_sync.gm_clock.time_property_flags.current_utc_valid", FT_BOOLEAN, 16, TFS(&tfs_set_notset), 0x0004, NULL, HFILL }},
+      { &hf_time_sync_gm_clock_time_property_flags_ptp_timescale, { "PTP Timescale", "cip.time_sync.gm_clock.time_property_flags.ptp_timescale", FT_BOOLEAN, 16, TFS(&tfs_set_notset), 0x0008, NULL, HFILL }},
+      { &hf_time_sync_gm_clock_time_property_flags_time_traceable, { "Time traceable", "cip.time_sync.gm_clock.time_property_flags.time_traceable", FT_BOOLEAN, 16, TFS(&tfs_set_notset), 0x0010, NULL, HFILL }},
+      { &hf_time_sync_gm_clock_time_property_flags_freq_traceable, { "Frequency traceable", "cip.time_sync.gm_clock.time_property_flags.freq_traceable", FT_BOOLEAN, 16, TFS(&tfs_set_notset), 0x0020, NULL, HFILL }},
       { &hf_time_sync_gm_clock_time_source, { "Time Source", "cip.time_sync.gm_clock.time_source", FT_UINT16, BASE_DEC, VALS(cip_time_sync_time_source_vals), 0, NULL, HFILL }},
       { &hf_time_sync_gm_clock_priority1, { "Priority1", "cip.time_sync.gm_clock.priority1", FT_UINT16, BASE_DEC, NULL, 0, NULL, HFILL }},
       { &hf_time_sync_gm_clock_priority2, { "Priority2", "cip.time_sync.gm_clock.priority2", FT_UINT16, BASE_DEC, NULL, 0, NULL, HFILL }},
@@ -8643,12 +8859,12 @@ proto_register_cip(void)
       { &hf_time_sync_local_clock_offset_scaled_log_variance, { "Offset Scaled Log Variance", "cip.time_sync.local_clock.offset_scaled_log_variance", FT_UINT16, BASE_DEC, NULL, 0, NULL, HFILL }},
       { &hf_time_sync_local_clock_current_utc_offset, { "Current UTC Offset", "cip.time_sync.local_clock.current_utc_offset", FT_UINT16, BASE_DEC, NULL, 0, NULL, HFILL }},
       { &hf_time_sync_local_clock_time_property_flags, { "Time Property Flags", "cip.time_sync.local_clock.time_property_flags", FT_UINT16, BASE_HEX, NULL, 0, NULL, HFILL }},
-      { &hf_time_sync_local_clock_time_property_flags_leap61, { "Leap indicator 61", "cip.time_sync.local_clock.time_property_flags.leap61", FT_BOOLEAN, 16, TFS(&tfs_set_notset), 0x01, NULL, HFILL }},
-      { &hf_time_sync_local_clock_time_property_flags_leap59, { "Leap indicator 59", "cip.time_sync.local_clock.time_property_flags.leap59", FT_BOOLEAN, 16, TFS(&tfs_set_notset), 0x02, NULL, HFILL }},
-      { &hf_time_sync_local_clock_time_property_flags_current_utc_valid, { "Current UTC Offset Valid", "cip.time_sync.local_clock.time_property_flags.current_utc_valid", FT_BOOLEAN, 16, TFS(&tfs_set_notset), 0x04, NULL, HFILL }},
-      { &hf_time_sync_local_clock_time_property_flags_ptp_timescale, { "PTP Timescale", "cip.time_sync.local_clock.time_property_flags.ptp_timescale", FT_BOOLEAN, 16, TFS(&tfs_set_notset), 0x08, NULL, HFILL }},
-      { &hf_time_sync_local_clock_time_property_flags_time_traceable, { "Time traceable", "cip.time_sync.local_clock.time_property_flags.time_traceable", FT_BOOLEAN, 16, TFS(&tfs_set_notset), 0x10, NULL, HFILL }},
-      { &hf_time_sync_local_clock_time_property_flags_freq_traceable, { "Frequency traceable", "cip.time_sync.local_clock.time_property_flags.freq_traceable", FT_BOOLEAN, 16, TFS(&tfs_set_notset), 0x20, NULL, HFILL }},
+      { &hf_time_sync_local_clock_time_property_flags_leap61, { "Leap indicator 61", "cip.time_sync.local_clock.time_property_flags.leap61", FT_BOOLEAN, 16, TFS(&tfs_set_notset), 0x0001, NULL, HFILL }},
+      { &hf_time_sync_local_clock_time_property_flags_leap59, { "Leap indicator 59", "cip.time_sync.local_clock.time_property_flags.leap59", FT_BOOLEAN, 16, TFS(&tfs_set_notset), 0x0002, NULL, HFILL }},
+      { &hf_time_sync_local_clock_time_property_flags_current_utc_valid, { "Current UTC Offset Valid", "cip.time_sync.local_clock.time_property_flags.current_utc_valid", FT_BOOLEAN, 16, TFS(&tfs_set_notset), 0x0004, NULL, HFILL }},
+      { &hf_time_sync_local_clock_time_property_flags_ptp_timescale, { "PTP Timescale", "cip.time_sync.local_clock.time_property_flags.ptp_timescale", FT_BOOLEAN, 16, TFS(&tfs_set_notset), 0x0008, NULL, HFILL }},
+      { &hf_time_sync_local_clock_time_property_flags_time_traceable, { "Time traceable", "cip.time_sync.local_clock.time_property_flags.time_traceable", FT_BOOLEAN, 16, TFS(&tfs_set_notset), 0x0010, NULL, HFILL }},
+      { &hf_time_sync_local_clock_time_property_flags_freq_traceable, { "Frequency traceable", "cip.time_sync.local_clock.time_property_flags.freq_traceable", FT_BOOLEAN, 16, TFS(&tfs_set_notset), 0x0020, NULL, HFILL }},
       { &hf_time_sync_local_clock_time_source, { "Time Source", "cip.time_sync.local_clock.time_source", FT_UINT16, BASE_DEC, VALS(cip_time_sync_time_source_vals), 0, NULL, HFILL }},
       { &hf_time_sync_num_ports, { "Port Number", "cip.time_sync.port_number", FT_UINT16, BASE_DEC, NULL, 0, NULL, HFILL }},
       { &hf_time_sync_port_state_info_num_ports, { "Number of Ports", "cip.time_sync.port_state_info.num_ports", FT_UINT16, BASE_DEC, NULL, 0, NULL, HFILL }},
@@ -8713,6 +8929,7 @@ proto_register_cip(void)
 
       { &hf_cip_connection, { "CIP Connection Index", "cip.connection", FT_UINT32, BASE_DEC, NULL, 0x0, NULL, HFILL } },
       { &hf_cip_fwd_open_in, { "Forward Open Request In", "cip.fwd_open_in", FT_FRAMENUM, BASE_NONE, NULL, 0, NULL, HFILL } },
+      { &hf_cip_fwd_close_in, { "Forward Close Request In", "cip.fwd_close_in", FT_FRAMENUM, BASE_NONE, NULL, 0, NULL, HFILL } },
    };
 
    static hf_register_info hf_cm[] = {
@@ -9034,6 +9251,8 @@ proto_register_cip(void)
       { &ei_mal_opt_service_list, { "cip.malformed.opt_service_list", PI_MALFORMED, PI_ERROR, "Optional service list missing data", EXPFILL }},
       { &ei_mal_padded_epath_size, { "cip.malformed.epath.size", PI_MALFORMED, PI_ERROR, "Malformed EPATH vs Size", EXPFILL } },
       { &ei_mal_missing_string_data, { "cip.malformed.missing_str_data", PI_MALFORMED, PI_ERROR, "Missing string data", EXPFILL } },
+
+      { &ei_cip_no_fwd_close, { "cip.analysis.no_fwd_close", PI_PROTOCOL, PI_NOTE, "No Forward Close seen for this CIP Connection", EXPFILL } },
    };
 
    module_t *cip_module;
@@ -9067,25 +9286,35 @@ proto_register_cip(void)
    /* Register the protocol name and description */
    proto_cip_class_generic = proto_register_protocol("CIP Class Generic",
        "CIPCLS", "cipcls");
+   cip_class_generic_handle = register_dissector("cipcls",
+       dissect_cip_class_generic, proto_cip_class_generic);
 
    /* Register the protocol name and description */
    proto_cip_class_cm = proto_register_protocol("CIP Connection Manager",
        "CIPCM", "cipcm");
+   cip_class_cm_handle = register_dissector("cipcm",
+       dissect_cip_class_cm, proto_cip_class_cm);
    proto_register_field_array(proto_cip_class_cm, hf_cm, array_length(hf_cm));
    proto_register_subtree_array(ett_cm, array_length(ett_cm));
 
    proto_cip_class_pccc = proto_register_protocol("CIP PCCC Object",
        "CIPPCCC", "cippccc");
+   cip_class_pccc_handle = register_dissector("cippccc",
+       dissect_cip_class_pccc, proto_cip_class_pccc);
    proto_register_field_array(proto_cip_class_pccc, hf_pccc, array_length(hf_pccc));
    proto_register_subtree_array(ett_pccc, array_length(ett_pccc));
 
    proto_cip_class_mb = proto_register_protocol("CIP Modbus Object",
        "CIPMB", "cipmb");
+   cip_class_mb_handle = register_dissector("cipmb",
+       dissect_cip_class_mb, proto_cip_class_mb);
    proto_register_field_array(proto_cip_class_mb, hf_mb, array_length(hf_mb));
    proto_register_subtree_array(ett_mb, array_length(ett_mb));
 
    proto_cip_class_cco = proto_register_protocol("CIP Connection Configuration Object",
        "CIPCCO", "cipcco");
+   cip_class_cco_handle = register_dissector("cipcco",
+       dissect_cip_class_cco, proto_cip_class_cco);
    proto_register_field_array(proto_cip_class_cco, hf_cco, array_length(hf_cco));
    proto_register_subtree_array(ett_cco, array_length(ett_cco));
 
@@ -9099,33 +9328,25 @@ proto_register_cip(void)
 void
 proto_reg_handoff_cip(void)
 {
-   dissector_handle_t cip_class_mb_handle;
-
-   /* Create dissector handles */
    /* Register for UCMM CIP data, using EtherNet/IP SendRRData service*/
    dissector_add_uint( "enip.srrd.iface", ENIP_CIP_INTERFACE, cip_handle );
 
    dissector_add_uint("cip.connection.class", CI_CLS_MR, cip_handle);
 
-   /* Create and register dissector handle for generic class */
-   cip_class_generic_handle = create_dissector_handle( dissect_cip_class_generic, proto_cip_class_generic );
+   /* Register dissector handle for generic class */
    dissector_add_uint( "cip.class.iface", 0, cip_class_generic_handle );
 
-   /* Create and register dissector handle for Connection Manager */
-   cip_class_cm_handle = create_dissector_handle( dissect_cip_class_cm, proto_cip_class_cm );
+   /* Register dissector handle for Connection Manager */
    dissector_add_uint( "cip.class.iface", CI_CLS_CM, cip_class_cm_handle );
 
-   /* Create and register dissector handle for the PCCC class */
-   cip_class_pccc_handle = create_dissector_handle( dissect_cip_class_pccc, proto_cip_class_pccc );
+   /* Register dissector handle for the PCCC class */
    dissector_add_uint( "cip.class.iface", CI_CLS_PCCC, cip_class_pccc_handle );
 
-   /* Create and register dissector handle for Modbus Object */
-   cip_class_mb_handle = create_dissector_handle( dissect_cip_class_mb, proto_cip_class_mb );
+   /* Register dissector handle for Modbus Object */
    dissector_add_uint( "cip.class.iface", CI_CLS_MB, cip_class_mb_handle );
    modbus_handle = find_dissector_add_dependency("modbus", proto_cip_class_mb);
 
-   /* Create and register dissector handle for Connection Configuration Object */
-   cip_class_cco_handle = create_dissector_handle( dissect_cip_class_cco, proto_cip_class_cco );
+   /* Register dissector handle for Connection Configuration Object */
    dissector_add_uint( "cip.class.iface", CI_CLS_CCO, cip_class_cco_handle );
    heur_dissector_add("cip.sc", dissect_class_cco_heur, "CIP Connection Configuration Object", "cco_cip", proto_cip_class_cco, HEURISTIC_ENABLE);
 

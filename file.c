@@ -24,7 +24,7 @@
 #include <wsutil/json_dumper.h>
 #include <wsutil/wslog.h>
 #include <wsutil/ws_assert.h>
-#include <ui/version_info.h>
+#include <wsutil/version_info.h>
 
 #include <wiretap/merge.h>
 
@@ -569,8 +569,6 @@ cf_read(capture_file *cf, gboolean reloading)
     ws_buffer_init(&buf, 1514);
 
     TRY {
-        guint32 count             = 0;
-
         gint64  file_pos;
         gint64  data_offset;
 
@@ -588,7 +586,6 @@ cf_read(capture_file *cf, gboolean reloading)
                     too_many_records = TRUE;
                     break;
                 }
-                count++;
                 file_pos = wtap_read_so_far(cf->provider.wth);
 
                 /* Create the progress bar if necessary. */
@@ -692,6 +689,11 @@ cf_read(capture_file *cf, gboolean reloading)
     cf->current_frame = frame_data_sequence_find(cf->provider.frames, cf->first_displayed);
 
     packet_list_thaw();
+
+    /* It is safe again to execute redissections or sort. */
+    ws_assert(cf->read_lock);
+    cf->read_lock = FALSE;
+
     if (reloading)
         cf_callback_invoke(cf_cb_file_reload_finished, cf);
     else
@@ -702,10 +704,6 @@ cf_read(capture_file *cf, gboolean reloading)
     if (cf->first_displayed != 0) {
         packet_list_select_row_from_data(NULL);
     }
-
-    /* It is safe again to execute redissections. */
-    ws_assert(cf->read_lock);
-    cf->read_lock = FALSE;
 
     if (is_read_aborted) {
         /*
@@ -1197,12 +1195,12 @@ add_packet_to_packet_list(frame_data *fdata, capture_file *cf,
     if (dfcode != NULL) {
         fdata->passed_dfilter = dfilter_apply_edt(dfcode, edt) ? 1 : 0;
 
-        if (fdata->passed_dfilter) {
+        if (fdata->passed_dfilter && edt->pi.fd->dependent_frames) {
             /* This frame passed the display filter but it may depend on other
              * (potentially not displayed) frames.  Find those frames and mark them
              * as depended upon.
              */
-            g_slist_foreach(edt->pi.dependent_frames, find_and_mark_frame_depended_upon, cf->provider.frames);
+            g_hash_table_foreach(edt->pi.fd->dependent_frames, find_and_mark_frame_depended_upon, cf->provider.frames);
         }
     } else
         fdata->passed_dfilter = 1;
@@ -1478,7 +1476,7 @@ cf_filter_packets(capture_file *cf, gchar *dftext, gboolean force)
     const char *filter_new = dftext ? dftext : "";
     const char *filter_old = cf->dfilter ? cf->dfilter : "";
     dfilter_t  *dfcode;
-    gchar      *err_msg;
+    df_error_t *df_err;
 
     /* if new filter equals old one, do nothing unless told to do so */
     if (!force && strcmp(filter_new, filter_old) == 0) {
@@ -1497,13 +1495,13 @@ cf_filter_packets(capture_file *cf, gchar *dftext, gboolean force)
          * and try to compile it.
          */
         dftext = g_strdup(dftext);
-        if (!dfilter_compile(dftext, &dfcode, &err_msg)) {
+        if (!dfilter_compile(dftext, &dfcode, &df_err)) {
             /* The attempt failed; report an error. */
             simple_message_box(ESD_TYPE_ERROR, NULL,
                     "See the help for a description of the display filter syntax.",
                     "\"%s\" isn't a valid display filter: %s",
-                    dftext, err_msg);
-            g_free(err_msg);
+                    dftext, df_err->msg);
+            dfilter_error_free(df_err);
             g_free(dftext);
             return CF_ERROR;
         }
@@ -1659,7 +1657,7 @@ rescan_packets(capture_file *cf, const char *action, const char *action_item, gb
         dfilter_load_field_references(dfcode, cf->edt->tree);
 
     if (dfcode != NULL) {
-        dfilter_log_full(LOG_DOMAIN_DFILTER, LOG_LEVEL_DEBUG, NULL, -1, NULL,
+        dfilter_log_full(LOG_DOMAIN_DFILTER, LOG_LEVEL_NOISY, NULL, -1, NULL,
                         dfcode, "Rescanning packets with display filter");
     }
 
@@ -1777,13 +1775,16 @@ rescan_packets(capture_file *cf, const char *action, const char *action_item, gb
 
     if (redissect) {
         /*
-         * Decryption secrets are read while sequentially processing records and
-         * then passed to the dissector. During redissection, the previous secrets
-         * are lost (see epan_free above), but they are not read again from the
-         * file as only packet records are re-read. Therefore reset the wtap secrets
-         * callback such that wtap resupplies the secrets callback with previously
-         * read secrets.
+         * Decryption secrets and name resolution blocks are read while
+         * sequentially processing records and then passed to the dissector.
+         * During redissection, the previous information is lost (see epan_free
+         * above), but they are not read again from the file as only packet
+         * records are re-read. Therefore reset the wtap secrets and name
+         * resolution callbacks such that wtap resupplies the callbacks with
+         * previously read information.
          */
+        wtap_set_cb_new_ipv4(cf->provider.wth, add_ipv4_name);
+        wtap_set_cb_new_ipv6(cf->provider.wth, (wtap_new_ipv6_callback_t) add_ipv6_name);
         wtap_set_cb_new_secrets(cf->provider.wth, secrets_wtap_callback);
     }
 
@@ -1934,6 +1935,10 @@ rescan_packets(capture_file *cf, const char *action, const char *action_item, gb
 
     packet_list_thaw();
 
+    /* It is safe again to execute redissections or sort. */
+    ws_assert(cf->read_lock);
+    cf->read_lock = FALSE;
+
     cf_callback_invoke(cf_cb_file_rescan_finished, cf);
 
     if (selected_frame_num == -1) {
@@ -1996,10 +2001,6 @@ rescan_packets(capture_file *cf, const char *action, const char *action_item, gb
 
     /* Cleanup and release all dfilter resources */
     dfilter_free(dfcode);
-
-    /* It is safe again to execute redissections. */
-    ws_assert(cf->read_lock);
-    cf->read_lock = FALSE;
 
     /* If another rescan (due to dfilter change) or redissection (due to profile
      * change) was requested, the rescan above is aborted and restarted here. */
@@ -2693,7 +2694,7 @@ write_pdml_packet(capture_file *cf, frame_data *fdata, wtap_rec *rec,
             fdata, NULL);
 
     /* Write out the information in that tree. */
-    write_pdml_proto_tree(NULL, NULL, PF_NONE, &args->edt, &cf->cinfo, args->fh, FALSE);
+    write_pdml_proto_tree(NULL, NULL, &args->edt, &cf->cinfo, args->fh, FALSE);
 
     epan_dissect_reset(&args->edt);
 
@@ -2992,7 +2993,7 @@ write_json_packet(capture_file *cf, frame_data *fdata, wtap_rec *rec,
 
     /* Write out the information in that tree. */
     write_json_proto_tree(NULL, args->print_args->print_dissections,
-            args->print_args->print_hex, NULL, PF_NONE,
+            args->print_args->print_hex, NULL,
             &args->edt, &cf->cinfo, proto_node_group_children_by_unique,
             &args->jdumper);
 
@@ -4288,9 +4289,11 @@ cf_set_modified_block(capture_file *cf, frame_data *fd, const wtap_block_t new_b
     if (pkt_block == new_block) {
         /* No need to save anything here, the caller changes went right
          * onto the block.
-         * Unfortunately we don't have a way to know how many comments were in the block
-         * before the caller modified it.
+         * Unfortunately we don't have a way to know how many comments were
+         * in the block before the caller modified it, so tell the caller
+         * it is its responsibility to update the comment count.
          */
+        return FALSE;
     }
     else {
         if (pkt_block)
@@ -4533,7 +4536,6 @@ rescan_file(capture_file *cf, const char *fname, gboolean is_tempfile)
     gchar                status_str[100];
     guint32              framenum;
     frame_data          *fdata;
-    int                  count          = 0;
 
     /* Close the old handle. */
     wtap_close(cf->provider.wth);
@@ -4597,7 +4599,6 @@ rescan_file(capture_file *cf, const char *fname, gboolean is_tempfile)
             fdata->file_off = data_offset;
         }
         if (size >= 0) {
-            count++;
             cf->f_datalen = wtap_read_so_far(cf->provider.wth);
 
             /* Create the progress bar if necessary. */

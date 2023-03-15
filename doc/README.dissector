@@ -463,20 +463,6 @@ the string, including the terminating null.
 The buffer is allocated in the given wmem scope (see README.wmem for more
 information).
 
-const guint8 *tvb_get_const_stringz(tvbuff_t *tvb, const gint offset, gint *lengthp);
-
-Returns a null-terminated const buffer containing data from the
-specified tvbuff, starting at the specified offset, and containing all
-bytes from the tvbuff up to and including a terminating null character
-in the tvbuff. "*lengthp" will be set to the length of the string,
-including the terminating null.
-
-You do not need to free() this buffer; it will happen automatically once
-the next packet is dissected. This function is slightly more efficient
-than the others because it does not allocate memory and copy the string,
-but it does not do any mapping to UTF-8 or checks for valid octet
-sequences.
-
 gint tvb_get_nstringz(tvbuff_t *tvb, const gint offset, const guint bufsize, guint8* buffer);
 gint tvb_get_nstringz0(tvbuff_t *tvb, const gint offset, const guint bufsize, guint8* buffer);
 
@@ -1261,6 +1247,22 @@ in tfs.h, included via packet.h.
 Custom fields (BASE_CUSTOM) should use CF_FUNC(&custom_format_func) for the
 'strings' field.
 
+-- Frame numbers
+FT_FRAMENUMs can use the 'strings' field to indicate their purpose by
+setting the field to 'FRAMENUM_TYPE(x)', where x is one of the values of
+the ft_framenum_type enum:
+
+    FT_FRAMENUM_NONE
+    FT_FRAMENUM_REQUEST
+    FT_FRAMENUM_RESPONSE
+    FT_FRAMENUM_ACK
+    FT_FRAMENUM_DUP_ACK
+    FT_FRAMENUM_RETRANS_PREV
+    FT_FRAMENUM_RETRANS_NEXT
+
+The packet list uses the value to determine the related packet symbol to draw.
+Note that 'strings' field NULL is equal to FRAMENUM_TYPE(FT_FRAMENUM_NONE).
+
 -- Note to plugin authors
 Data cannot get exported from DLLs. For this reason plugin authors cannot use
 existing fieldconvert strings (e.g. from existing dissectors or those from
@@ -1548,6 +1550,10 @@ currently supported are:
     ENC_KEYPAD_BC_TBCD - keypad-with-B/C "telephony packed BCD" = 0-9, B, C, *, #
     ENC_GB18030 - GB 18030
     ENC_EUC_KR - EUC-KR
+    ENC_DECT_STANDARD_8BITS - DECT standard 8 bit character set as defined in
+        ETSI EN 300 175-5
+    ENC_DECT_STANDARD_4BITS_TBCD - DECT standard 4 bit character set "telephony
+        packet BCD" = 0-9, 0xb = SPACE
 
 Other encodings will be added in the future.
 
@@ -2515,7 +2521,7 @@ integers, or unsigned 64-bit integers. Unlike conversation_new, element
 lists are matched strictly; wildcards aren't (yet) supported.
 
 The conversation_new_full prototype:
-    conversation_t *conversation_new(const guint32 setup_frame,
+    conversation_t *conversation_new_full(const guint32 setup_frame,
         conversation_element_t *elements);
 
 Where:
@@ -2606,7 +2612,7 @@ Where:
 
 The frame number and the addresses necessary for find_conversation() are
 taken from the addresses and ports in the pinfo structure,
-pinfo->conv_endpoint if pinfo->use_endpoint is set, or
+pinfo->conv_addr_port_endpoints if pinfo->use_conv_addr_port_endpoints is set, or
 pinfo->conv_elements if it is set.
 
 2.2.1.7 The find_or_create_conversation function.
@@ -3453,7 +3459,7 @@ The arguments to udp_dissect_pdus are:
 
 2.9 PINOs (Protocols in name only)
 
-For the typical dissector there is a 1-1 relationship between it and it's
+For the typical dissector there is a 1-1 relationship between it and its
 protocol. However, there are times when a protocol needs multiple "names"
 because it has multiple dissection functions going into the same dissector
 table. The multiple names removes confusion when picking dissection through

@@ -1,4 +1,4 @@
--- 3GPP TS 38.423 V17.1.0 (2022-06)
+-- 3GPP TS 38.423 V17.3.0 (2022-12)
 -- 9.3.5	Information Element definitions
 -- **************************************************************
 --
@@ -129,6 +129,12 @@ IMPORTS
 	id-UESliceMaximumBitRateList,
 	id-PositioningInformation,
 	id-ServedCellSpecificInfoReq-NR,
+	id-TAINSAGSupportList,
+	id-earlyMeasurement,
+	id-BeamMeasurementsReportConfiguration,
+	id-CoverageModificationCause,
+	id-UERLFReportContainerLTEExtension,
+	id-ExcessPacketDelayThresholdConfiguration,
 	maxEARFCN,
 	maxnoofAllowedAreas,
 	maxnoofAMFRegions,
@@ -234,7 +240,11 @@ IMPORTS
 	maxnoofCSIRSneighbourCellsInMTC,
 	maxnoofNeighbour-NG-RAN-Nodes,
 	maxnoofSRBs,
-	maxnoofSMBR
+	maxnoofSMBR,
+	maxnoofNSAGs,
+	maxnoofRBsetsPerCell1,
+	maxnoofTargetSNsMinusOne,
+	maxnoofThresholdsForExcessPacketDelay
 
 FROM XnAP-Constants
 
@@ -253,6 +263,18 @@ FROM XnAP-Containers;
 
 
 -- A
+
+AdditionalListofPDUSessionResourceChangeConfirmInfo-SNterminated ::= SEQUENCE (SIZE(1..maxnoofTargetSNsMinusOne)) OF AdditionalListofPDUSessionResourceChangeConfirmInfo-SNterminated-Item
+
+AdditionalListofPDUSessionResourceChangeConfirmInfo-SNterminated-Item ::= SEQUENCE {
+	pDUSessionResourceChangeConfirmInfo-SNterminated				PDUSessionResourceChangeConfirmInfo-SNterminated,
+	iE-Extensions		ProtocolExtensionContainer { { AdditionalListofPDUSessionResourceChangeConfirmInfo-SNterminated-Item-ExtIEs} } OPTIONAL,
+	...
+}
+
+AdditionalListofPDUSessionResourceChangeConfirmInfo-SNterminated-Item-ExtIEs XNAP-PROTOCOL-EXTENSION ::= {
+	...
+}
 
 AdditionLocationInformation ::= ENUMERATED {
 	includePSCell,
@@ -510,6 +532,30 @@ BAPRoutingID-ExtIEs	XNAP-PROTOCOL-EXTENSION ::= {
 
 BeamMeasurementIndicationM1 ::= ENUMERATED {true, ...}
 
+BeamMeasurementsReportConfiguration ::= SEQUENCE {
+	beamMeasurementsReportQuantity			BeamMeasurementsReportQuantity			OPTIONAL,
+	maxNrofRS-IndexesToReport				MaxNrofRS-IndexesToReport		OPTIONAL,
+	iE-Extensions							ProtocolExtensionContainer { { BeamMeasurementsReportConfiguration-ExtIEs} } OPTIONAL,
+	...
+}
+
+BeamMeasurementsReportConfiguration-ExtIEs XNAP-PROTOCOL-EXTENSION ::= {
+	...
+}
+
+
+BeamMeasurementsReportQuantity ::= SEQUENCE {
+	rSRP						ENUMERATED {true, ...},
+	rSRQ						ENUMERATED {true, ...},
+	sINR						ENUMERATED {true, ...},
+	iE-Extensions			ProtocolExtensionContainer { { BeamMeasurementsReportQuantity-ExtIEs} } OPTIONAL,
+	...
+}
+
+BeamMeasurementsReportQuantity-ExtIEs XNAP-PROTOCOL-EXTENSION ::= {
+	...
+}
+
 
 BHInfoIndex ::= INTEGER (1.. maxnoofBHInfo)
 
@@ -637,7 +683,8 @@ BroadcastPLMNinTAISupport-Item ::= SEQUENCE {
 
 BroadcastPLMNinTAISupport-Item-ExtIEs XNAP-PROTOCOL-EXTENSION ::= {
 	{ ID id-NPN-Support						CRITICALITY reject	EXTENSION NPN-Support						PRESENCE optional}|
-	{ ID id-ExtendedTAISliceSupportList		CRITICALITY reject	EXTENSION ExtendedSliceSupportList		PRESENCE optional},
+	{ ID id-ExtendedTAISliceSupportList		CRITICALITY reject	EXTENSION ExtendedSliceSupportList		PRESENCE optional}|
+	{ ID id-TAINSAGSupportList				CRITICALITY ignore	EXTENSION TAINSAGSupportList				PRESENCE optional	},
 	...
 }
 
@@ -685,7 +732,7 @@ CapacityValue ::= INTEGER (0..100)
 CapacityValueInfo ::= SEQUENCE {
 	capacityValue				CapacityValue,
 	ssbAreaCapacityValueList 	SSBAreaCapacityValue-List 	OPTIONAL,
-     iE-Extension 				ProtocolExtensionContainer { {CapacityValueInfo-ExtIEs} } OPTIONAL,
+iE-Extension 				ProtocolExtensionContainer { {CapacityValueInfo-ExtIEs} } OPTIONAL,
 	...
 }
 
@@ -872,7 +919,7 @@ CellBasedQMC-ExtIEs XNAP-PROTOCOL-EXTENSION ::= {
 	...
 }
 
-CellIdListforQMC ::= SEQUENCE (SIZE(1..maxnoofCellIDforQMC)) OF NR-CGI
+CellIdListforQMC ::= SEQUENCE (SIZE(1..maxnoofCellIDforQMC)) OF GlobalNG-RANCell-ID
 
 
 CellBasedMDT-EUTRA::= SEQUENCE {
@@ -898,12 +945,12 @@ CellMeasurementResult ::= SEQUENCE (SIZE(1..maxnoofCellsinNG-RANnode)) OF CellMe
 
 CellMeasurementResult-Item	::= SEQUENCE {
 	cell-ID								GlobalNG-RANCell-ID,
-     radioResourceStatus					RadioResourceStatus				OPTIONAL,
-     tNLCapacityIndicator				TNLCapacityIndicator			OPTIONAL,
-     compositeAvailableCapacityGroup		CompositeAvailableCapacityGroup	OPTIONAL,
-     sliceAvailableCapacity				SliceAvailableCapacity			OPTIONAL,
-     numberofActiveUEs					NumberofActiveUEs				OPTIONAL,
-     rRCConnections						RRCConnections					OPTIONAL,
+radioResourceStatus					RadioResourceStatus				OPTIONAL,
+tNLCapacityIndicator				TNLCapacityIndicator			OPTIONAL,
+compositeAvailableCapacityGroup		CompositeAvailableCapacityGroup	OPTIONAL,
+sliceAvailableCapacity				SliceAvailableCapacity			OPTIONAL,
+numberofActiveUEs					NumberofActiveUEs				OPTIONAL,
+rRCConnections						RRCConnections					OPTIONAL,
 	iE-Extensions						ProtocolExtensionContainer { { CellMeasurementResult-Item-ExtIEs} }	OPTIONAL,
 	...
 }
@@ -930,8 +977,8 @@ CellToReport ::= SEQUENCE (SIZE(1..maxnoofCellsinNG-RANnode)) OF CellToReport-It
 
 CellToReport-Item	::= SEQUENCE {
 	cell-ID									GlobalNG-RANCell-ID,
-     sSBToReport-List                        SSBToReport-List			OPTIONAL,
-     sliceToReport-List                      SliceToReport-List			OPTIONAL,
+sSBToReport-List                        SSBToReport-List			OPTIONAL,
+sliceToReport-List                      SliceToReport-List			OPTIONAL,
 	iE-Extensions						ProtocolExtensionContainer { { CellToReport-Item-ExtIEs} }	OPTIONAL,
 	...
 }
@@ -1004,7 +1051,7 @@ CompositeAvailableCapacityGroup-ExtIEs XNAP-PROTOCOL-EXTENSION ::= {
 
 CompositeAvailableCapacity ::= SEQUENCE {
 	cellCapacityClassValue		CellCapacityClassValue				OPTIONAL,
-	capacityValueInfo			CapacityValueInfo, -- this IE represents the IE "CapacityValue" in 9.2.2.a, it�s used to distinguish the "CapacityValue"  in 9.2.2.c
+	capacityValueInfo			CapacityValueInfo, -- this IE represents the IE "CapacityValue" in 9.2.2.a, it’s used to distinguish the "CapacityValue"  in 9.2.2.c
 	iE-Extensions				ProtocolExtensionContainer { { CompositeAvailableCapacity-ExtIEs} }OPTIONAL,
 	...
 }
@@ -1017,7 +1064,7 @@ ControlPlaneTrafficType ::= INTEGER (1..3, ...)
 
 CHO-MRDC-EarlyDataForwarding ::= ENUMERATED {stop, ...}
 
-CHO-MRDC-Indicator ::= ENUMERATED {true, ...}
+CHO-MRDC-Indicator ::= ENUMERATED {true, ..., coordination-only }
 
 
 
@@ -1125,6 +1172,11 @@ COUNT-PDCP-SN18-ExtIEs XNAP-PROTOCOL-EXTENSION ::= {
 	...
 }
 
+CoverageModificationCause ::=	ENUMERATED {
+	coverage,
+	cell-edge-capacity,
+	...}
+
 Coverage-Modification-List ::= SEQUENCE (SIZE (0..maxnoofCellsinNG-RANnode)) OF Coverage-Modification-List-Item
 
 Coverage-Modification-List-Item ::= SEQUENCE {
@@ -1133,11 +1185,12 @@ Coverage-Modification-List-Item ::= SEQUENCE {
 	cellDeploymentStatusIndicator	CellDeploymentStatusIndicator			OPTIONAL,
 	cellReplacingInfo				CellReplacingInfo						OPTIONAL,
 -- Included in case the Cell Deployment Status Indicator IE is present
-	sSB-Coverage-Modification-List  SSB-Coverage-Modification-List,
-	iE-Extension			ProtocolExtensionContainer { { Coverage-Modification-Item-ExtIEs} } OPTIONAL,
+	sSB-Coverage-Modification-List	SSB-Coverage-Modification-List,
+	iE-Extension			ProtocolExtensionContainer { { Coverage-Modification-List-Item-ExtIEs} } OPTIONAL,
 	...
 }
-Coverage-Modification-Item-ExtIEs XNAP-PROTOCOL-EXTENSION ::= {
+Coverage-Modification-List-Item-ExtIEs XNAP-PROTOCOL-EXTENSION ::= {
+{ ID id-CoverageModificationCause		CRITICALITY ignore	EXTENSION CoverageModificationCause 		PRESENCE optional},
 	...
 }
 
@@ -1259,7 +1312,7 @@ CPAInformationModReqAck-ExtIEs XNAP-PROTOCOL-EXTENSION ::= {
 	...
 }
 
-CPC-DataForwarding-Indicator ::= ENUMERATED {triggered, early-data-transmission-stop, ...}
+CPC-DataForwarding-Indicator ::= ENUMERATED {triggered, early-data-transmission-stop, ..., coordination-only}
 
 
 CPACInformationModRequired ::= SEQUENCE {
@@ -1805,6 +1858,8 @@ Dynamic5QIDescriptor-ExtIEs XNAP-PROTOCOL-EXTENSION ::= {
 
 -- E
 
+EarlyMeasurement ::= ENUMERATED {true, ...}
+
 
 E-RAB-ID		::= INTEGER (0..15, ...)
 
@@ -1934,6 +1989,24 @@ EventL1-ExtIEs XNAP-PROTOCOL-EXTENSION ::= {
 MeasurementThresholdL1LoggedMDT ::= CHOICE {
 	threshold-RSRP				Threshold-RSRP,
 	threshold-RSRQ				Threshold-RSRQ,
+	...
+}
+
+ExcessPacketDelayThresholdConfiguration ::= SEQUENCE (SIZE(1..maxnoofThresholdsForExcessPacketDelay)) OF ExcessPacketDelayThresholdItem
+
+ExcessPacketDelayThresholdItem ::= SEQUENCE {
+	fiveQI									FiveQI,
+	excessPacketDelayThresholdValue			ExcessPacketDelayThresholdValue,
+	iE-Extensions		ProtocolExtensionContainer { { ExcessPacketDelayThresholdItem-ExtIEs } }	OPTIONAL,
+	...
+}
+
+ExcessPacketDelayThresholdItem-ExtIEs XNAP-PROTOCOL-EXTENSION ::= {
+	...
+}
+
+ExcessPacketDelayThresholdValue ::= ENUMERATED {
+	ms0dot25, ms0dot5, ms1, ms2, ms4, ms5, ms10, ms20, ms30, ms40, ms50, ms60, ms70, ms80, ms90, ms100, ms150, ms300, ms500,
 	...
 }
 
@@ -2187,7 +2260,7 @@ Flows-Mapped-To-DRB-Item-ExtIEs 	XNAP-PROTOCOL-EXTENSION ::= {
 FreqDomainHSNAconfiguration-List ::=  SEQUENCE (SIZE(1.. maxnoofHSNASlots)) OF FreqDomainHSNAconfiguration-List-Item
 
 FreqDomainHSNAconfiguration-List-Item ::= SEQUENCE {
-	rBsetIndex 									INTEGER(1.. maxnoofRBsetsPerCell),
+	rBsetIndex 									INTEGER(0.. maxnoofRBsetsPerCell1, ...),
 	freqDomainSlotHSNAconfiguration-List 		FreqDomainSlotHSNAconfiguration-List,
 	iE-Extensions		ProtocolExtensionContainer { { FreqDomainHSNAconfiguration-List-Item-ExtIEs} }	OPTIONAL,
 	...
@@ -2884,7 +2957,7 @@ LoggedMDT-NR ::= SEQUENCE {
 	loggingDuration						LoggingDuration,
 	reportType							ReportType,
 	bluetoothMeasurementConfiguration	BluetoothMeasurementConfiguration			OPTIONAL,
-	wLANMeasurementConfiguration		WLANMeasurementConfiguration				OPTIONAL,
+	wLANMeasurementConfiguration			WLANMeasurementConfiguration				OPTIONAL,
 	sensorMeasurementConfiguration		SensorMeasurementConfiguration				OPTIONAL,
 	areaScopeOfNeighCellsList			AreaScopeOfNeighCellsList					OPTIONAL,
 	iE-Extensions						ProtocolExtensionContainer { {LoggedMDT-NR-ExtIEs} } OPTIONAL,
@@ -2892,6 +2965,7 @@ LoggedMDT-NR ::= SEQUENCE {
 }
 
 LoggedMDT-NR-ExtIEs	XNAP-PROTOCOL-EXTENSION ::= {
+	{ID id-earlyMeasurement		CRITICALITY ignore	EXTENSION EarlyMeasurement		PRESENCE optional		},
 ...
 }
 
@@ -2932,6 +3006,8 @@ LTEUESidelinkAggregateMaximumBitRate-ExtIEs XNAP-PROTOCOL-EXTENSION ::= {
 
 -- M
 
+MaxNrofRS-IndexesToReport::= INTEGER (1..64, ...)
+
 
 MDTAlignmentInfo ::= CHOICE {
 	s-BasedMDT						S-BasedMDT,
@@ -2957,7 +3033,9 @@ M1Configuration ::= SEQUENCE {
 }
 
 M1Configuration-ExtIEs XNAP-PROTOCOL-EXTENSION ::= {
-	{ID id-BeamMeasurementIndicationM1		CRITICALITY ignore	EXTENSION BeamMeasurementIndicationM1		PRESENCE optional		},
+	{ID id-BeamMeasurementIndicationM1				CRITICALITY ignore	EXTENSION BeamMeasurementIndicationM1					PRESENCE optional		}|
+	{ID id-BeamMeasurementsReportConfiguration		CRITICALITY ignore	EXTENSION BeamMeasurementsReportConfiguration		PRESENCE conditional		},
+-- The above IE shall be present if the BeamMeasurementIndicationM1 IE is set to “true”
 	...
 }
 
@@ -3034,7 +3112,8 @@ M6Configuration ::= SEQUENCE {
 }
 
 M6Configuration-ExtIEs XNAP-PROTOCOL-EXTENSION ::= {
-	{ ID id-M6ReportAmount		CRITICALITY ignore	EXTENSION M6ReportAmountMDT 		PRESENCE optional		},
+	{ ID id-M6ReportAmount							CRITICALITY ignore	EXTENSION M6ReportAmountMDT 									PRESENCE optional}|
+	{ ID id-ExcessPacketDelayThresholdConfiguration	CRITICALITY ignore	EXTENSION ExcessPacketDelayThresholdConfiguration		PRESENCE optional},
 	...
 }
 
@@ -3267,7 +3346,7 @@ MBS-SessionInformationResponse-Item-ExtIEs XNAP-PROTOCOL-EXTENSION ::= {
 	...
 }
 
-MRB-ID ::= INTEGER (1..32)
+MRB-ID ::= INTEGER (1..512, ...)
 
 MRB-ProgressInformation ::= CHOICE {
 	pdcp-SN12			INTEGER (0..4095),
@@ -4126,7 +4205,7 @@ NRModeInfoTDD-ExtIEs XNAP-PROTOCOL-EXTENSION ::= {
 }
 
 
-NRNRB ::= ENUMERATED { nrb11, nrb18, nrb24, nrb25, nrb31, nrb32, nrb38, nrb51, nrb52, nrb65, nrb66, nrb78, nrb79, nrb93, nrb106, nrb107, nrb121, nrb132, nrb133, nrb135, nrb160, nrb162, nrb189, nrb216, nrb217, nrb245, nrb264, nrb270, nrb273, ...}
+NRNRB ::= ENUMERATED { nrb11, nrb18, nrb24, nrb25, nrb31, nrb32, nrb38, nrb51, nrb52, nrb65, nrb66, nrb78, nrb79, nrb93, nrb106, nrb107, nrb121, nrb132, nrb133, nrb135, nrb160, nrb162, nrb189, nrb216, nrb217, nrb245, nrb264, nrb270, nrb273, ..., nrb33, nrb62, nrb124, nrb148, nrb248}
 
 
 NRPagingeDRXInformation ::= SEQUENCE {
@@ -4153,7 +4232,9 @@ NRPaging-Time-Window ::= ENUMERATED {
 	s1, s2, s3, s4, s5,
 	s6, s7, s8, s9, s10,
 	s11, s12, s13, s14, s15, s16,
-	...
+	...,s17, s18, s19, s20, s21, s22,
+	s23, s24, s25, s26, s27, s28, s29,
+	s30, s31, s32
 }
 
 NRPagingeDRXInformationforRRCINACTIVE ::= SEQUENCE {
@@ -4173,7 +4254,7 @@ NRPaging-eDRX-Cycle-Inactive ::= ENUMERATED {
 
 NRPCI ::= INTEGER (0..1007, ...)
 
-NRSCS ::= ENUMERATED { scs15, scs30, scs60, scs120, ...}
+NRSCS ::= ENUMERATED { scs15, scs30, scs60, scs120, ..., scs480, scs960}
 
 
 NRTransmissionBandwidth	::= SEQUENCE {
@@ -4196,7 +4277,7 @@ NonGBRResources-Offered ::= ENUMERATED {true, ...}
 
 NRV2XServicesAuthorized ::= SEQUENCE {
 	vehicleUE			VehicleUE											OPTIONAL,
-     pedestrianUE 		PedestrianUE						OPTIONAL,
+pedestrianUE 		PedestrianUE						OPTIONAL,
 	iE-Extensions		ProtocolExtensionContainer { {NRV2XServicesAuthorized-ExtIEs} }	OPTIONAL,
 	...
 }
@@ -4215,6 +4296,8 @@ NRUESidelinkAggregateMaximumBitRate ::= SEQUENCE {
 NRUESidelinkAggregateMaximumBitRate-ExtIEs XNAP-PROTOCOL-EXTENSION ::= {
 	...
 }
+
+NSAG-ID ::= INTEGER (0..255, ...)
 
 
 -- O
@@ -5502,10 +5585,10 @@ QoSFlowwithCause-Item-ExtIEs XNAP-PROTOCOL-EXTENSION ::= {
 }
 
 QoS-Mapping-Information ::= SEQUENCE {
-     dscp							BIT STRING (SIZE(6))			OPTIONAL,
-     flow-label						BIT STRING (SIZE(20))		OPTIONAL,
-     iE-Extensions					ProtocolExtensionContainer { {QoS-Mapping-Information-ExtIEs} }	OPTIONAL,
-     ...
+dscp							BIT STRING (SIZE(6))			OPTIONAL,
+flow-label						BIT STRING (SIZE(20))		OPTIONAL,
+iE-Extensions					ProtocolExtensionContainer { {QoS-Mapping-Information-ExtIEs} }	OPTIONAL,
+...
 }
 
 QoS-Mapping-Information-ExtIEs XNAP-PROTOCOL-EXTENSION ::= {
@@ -5736,7 +5819,7 @@ ReportCharacteristics ::=  BIT STRING(SIZE(32))
 
 ReportingPeriodicity ::= ENUMERATED {
 	half-thousand-ms,
-     one-thousand-ms,
+one-thousand-ms,
 	two-thousand-ms,
 	five-thousand-ms,
 	ten-thousand-ms,
@@ -6002,6 +6085,7 @@ RRCResumeCause ::= ENUMERATED {
 
 -- S
 
+SCGreconfigNotification ::= ENUMERATED {executed, ...}
 
 S-NSSAIListQoE ::= SEQUENCE (SIZE(1..maxnoofSNSSAIforQMC)) OF S-NSSAI
 
@@ -6618,8 +6702,8 @@ SNMobilityInformation ::= BIT STRING (SIZE(32))
 
 
 SNTriggered ::=ENUMERATED{
-     true,
-     ...
+true,
+...
 }
 
 SpecialSubframeInfo-E-UTRA ::= SEQUENCE {
@@ -6663,8 +6747,8 @@ SplitSRBsTypes ::= ENUMERATED {srb1, srb2, srb1and2, ...}
 SSBAreaCapacityValue-List ::= SEQUENCE (SIZE(1..maxnoofSSBAreas)) OF SSBAreaCapacityValue-List-Item
 
 SSBAreaCapacityValue-List-Item	::= SEQUENCE {
-     sSBIndex				INTEGER(0..63),
-     ssbAreaCapacityValue	INTEGER (0..100),
+sSBIndex				INTEGER(0..63),
+ssbAreaCapacityValue	INTEGER (0..100),
 	iE-Extensions						ProtocolExtensionContainer { { SSBAreaCapacityValue-List-Item-ExtIEs} }	OPTIONAL,
 	...
 }
@@ -6679,9 +6763,9 @@ SSBAreaRadioResourceStatus-List ::= SEQUENCE (SIZE(1..maxnoofSSBAreas)) OF SSBAr
 
 SSBAreaRadioResourceStatus-List-Item	::= SEQUENCE {
 	sSBIndex								INTEGER(0..63),
-     ssb-Area-DL-GBR-PRB-usage	DL-GBR-PRB-usage,
-     ssb-Area-UL-GBR-PRB-usage	UL-GBR-PRB-usage,
-     ssb-Area-dL-non-GBR-PRB-usage		DL-non-GBR-PRB-usage,
+ssb-Area-DL-GBR-PRB-usage	DL-GBR-PRB-usage,
+ssb-Area-UL-GBR-PRB-usage	UL-GBR-PRB-usage,
+ssb-Area-dL-non-GBR-PRB-usage		DL-non-GBR-PRB-usage,
 	ssb-Area-uL-non-GBR-PRB-usage		UL-non-GBR-PRB-usage,
 	ssb-Area-dL-Total-PRB-usage			DL-Total-PRB-usage,
 	ssb-Area-uL-Total-PRB-usage			UL-Total-PRB-usage,
@@ -6701,13 +6785,13 @@ SSB-Coverage-Modification-List ::= SEQUENCE (SIZE (0..maxnoofSSBAreas)) OF SSB-C
 SSB-Coverage-Modification-List-Item ::= SEQUENCE {
 	sSBIndex						INTEGER(0..63),
 	sSBCoverageState				INTEGER (0..15, ...),
-	iE-Extension			ProtocolExtensionContainer { { SSB-Coverage-Modification-Item-ExtIEs} } OPTIONAL,
+	iE-Extension			ProtocolExtensionContainer { { SSB-Coverage-Modification-List-Item-ExtIEs} } OPTIONAL,
 
 	...
 }
 
 
-SSB-Coverage-Modification-Item-ExtIEs XNAP-PROTOCOL-EXTENSION ::= {
+SSB-Coverage-Modification-List-Item-ExtIEs XNAP-PROTOCOL-EXTENSION ::= {
 	...
 }
 
@@ -6925,6 +7009,18 @@ TAIforMDT-Item-ExtIEs XNAP-PROTOCOL-EXTENSION ::= {
 
 TAC ::= OCTET STRING (SIZE (3))
 
+TAINSAGSupportList ::= SEQUENCE (SIZE(1..maxnoofNSAGs)) OF TAINSAGSupportItem
+
+TAINSAGSupportItem ::= SEQUENCE {
+	nSAG-ID								NSAG-ID,
+	nSAGSliceSupportList			ExtendedSliceSupportList,
+	iE-Extensions		ProtocolExtensionContainer { {TAINSAGSupportItem-ExtIEs} } OPTIONAL,
+	...
+}
+
+TAINSAGSupportItem-ExtIEs XNAP-PROTOCOL-EXTENSION ::= {
+	...
+}
 
 TAISupport-List	::= SEQUENCE (SIZE(1..maxnoofsupportedTACs)) OF TAISupport-Item
 
@@ -7016,7 +7112,7 @@ Threshold-SINR ::= INTEGER(0..127)
 TimeSynchronizationAssistanceInformation ::= SEQUENCE {
 	timeDistributionIndication					ENUMERATED {enabled, disabled, ...},
 	uuTimeSynchronizationErrorBudget			INTEGER (0..1000000, ...)				OPTIONAL,
-	-- The above IE shall be present if the Time Distribution Indication IE is set to the value �enabled�
+	-- The above IE shall be present if the Time Distribution Indication IE is set to the value “enabled”
 	ie-Extension								ProtocolExtensionContainer { { TimeSynchronizationAssistanceInformation-ExtIEs} } OPTIONAL,
 	...
 }
@@ -7412,11 +7508,30 @@ UERLFReportContainer ::= CHOICE {
 	choice-Extension		ProtocolIE-Single-Container { {UERLFReportContainer-ExtIEs} }
 }
 UERLFReportContainer-ExtIEs XNAP-PROTOCOL-IES ::= {
+	{ID id-UERLFReportContainerLTEExtension  CRITICALITY ignore  TYPE UERLFReportContainerLTEExtension		PRESENCE mandatory},
 	...
 }
 
 UERLFReportContainerLTE ::= OCTET STRING
 -- This IE is a transparent container and shall be encoded as the RLF-Report-r9 IE contained in the UEInformationResponse message (TS 36.331 [14])
+
+
+UERLFReportContainerLTEExtension ::= SEQUENCE {
+	ueRLFReportContainerLTE					UERLFReportContainerLTE,
+	ueRLFReportContainerLTEExtendBand		UERLFReportContainerLTEExtendBand,
+	iE-Extensions					ProtocolExtensionContainer { { UERLFReportContainerLTEExtension-ExtIEs} } OPTIONAL,
+	...
+}
+
+
+UERLFReportContainerLTEExtendBand ::= OCTET STRING
+-- This IE is a transparent container and includes the rLF-Report-v9e0 contained in the UEInformationResponse message (TS 36.331 [14])
+
+
+UERLFReportContainerLTEExtension-ExtIEs XNAP-PROTOCOL-EXTENSION ::= {
+	...
+}
+
 
 UERLFReportContainerNR ::= OCTET STRING
 -- This IE is a transparent container and shall be encoded as the nr-RLF-Report-r16 IE contained in the UEInformationResponse message (TS 38.331 [10])

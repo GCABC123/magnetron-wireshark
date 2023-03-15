@@ -47,95 +47,6 @@ WS_DLL_PUBLIC
 int        get_token_len(const guchar *linep, const guchar *lineend,
     const guchar **next_token);
 
-/** Given a wmem scope, a not-necessarily-null-terminated string,
- *  expected to be in UTF-8 but possibly containing invalid sequences
- *  (as it may have come from packet data), and the length of the string,
- *  generate a valid UTF-8 string from it, allocated in the specified
- *  wmem scope, that:
- *
- *   shows printable Unicode characters as themselves;
- *
- *   shows non-printable ASCII characters as C-style escapes (octal
- *   if not one of the standard ones such as LF -> '\n');
- *
- *   shows non-printable Unicode-but-not-ASCII characters as
- *   their universal character names;
- *
- *   shows illegal UTF-8 sequences as a sequence of bytes represented
- *   as C-style hex escapes;
- *
- *  and return a pointer to it.
- *
- * @param allocator The wmem scope
- * @param string A pointer to the input string
- * @param len The length of the input string
- * @return A pointer to the formatted string
- *
- * @see tvb_format_text()
- */
-WS_DLL_PUBLIC
-gchar*     format_text(wmem_allocator_t* allocator, const guchar *string, size_t len);
-
-/** Given a wmem scope and a null-terminated string, expected to be in
- *  UTF-8 but possibly containing invalid sequences (as it may have come
- *  from packet data), and the length of the string, generate a valid
- *  UTF-8 string from it, allocated in the specified wmem scope, that:
- *
- *   shows printable Unicode characters as themselves;
- *
- *   shows non-printable ASCII characters as C-style escapes (octal
- *   if not one of the standard ones such as LF -> '\n');
- *
- *   shows non-printable Unicode-but-not-ASCII characters as
- *   their universal character names;
- *
- *   shows illegal UTF-8 sequences as a sequence of bytes represented
- *   as C-style hex escapes;
- *
- *  and return a pointer to it.
- *
- * @param allocator The wmem scope
- * @param string A pointer to the input string
- * @return A pointer to the formatted string
- *
- * @see tvb_format_text()
- */
-WS_DLL_PUBLIC
-gchar*     format_text_string(wmem_allocator_t* allocator, const guchar *string);
-
-/**
- * Given a string, generate a string from it that shows non-printable
- * characters as C-style escapes except a whitespace character
- * (space, tab, carriage return, new line, vertical tab, or formfeed)
- * which will be replaced by a space, and return a pointer to it.
- *
- * @param allocator The wmem scope
- * @param line A pointer to the input string
- * @param len The length of the input string
- * @return A pointer to the formatted string
- *
- */
-WS_DLL_PUBLIC
-gchar*     format_text_wsp(wmem_allocator_t* allocator, const guchar *line, size_t len);
-
-/**
- * Given a string, generate a string from it that shows non-printable
- * characters as the chr parameter passed, except a whitespace character
- * (space, tab, carriage return, new line, vertical tab, or formfeed)
- * which will be replaced by a space, and return a pointer to it.
- *
- * @param allocator The wmem scope
- * @param string A pointer to the input string
- * @param len The length of the input string
- * @param chr The character to use to replace non-printable characters
- * @return A pointer to the formatted string
- *
- */
-WS_DLL_PUBLIC
-char *format_text_chr(wmem_allocator_t *allocator,
-                        const char *string, size_t len, char chr);
-
-
 /** Turn a string of hex digits with optional separators (defined by
  *  is_byte_sep() into a byte array.
  *
@@ -278,6 +189,14 @@ char * convert_string_case(const char *string, gboolean case_insensitive);
 
 WS_DLL_PUBLIC
 void IA5_7BIT_decode(unsigned char * dest, const unsigned char* src, int len);
+
+#define FORMAT_LABEL_REPLACE_SPACE      (0x1 << 0)
+
+WS_DLL_PUBLIC
+size_t ws_label_strcpy(char *label_str, size_t bufsize, gsize pos, const uint8_t *str, int flags);
+
+WS_DLL_PUBLIC
+size_t ws_label_strcat(char *label_str, size_t bufsize, const uint8_t *str, int flags);
 
 /*
  * Check name is valid. This covers names for display filter fields, dissector

@@ -8,6 +8,7 @@
  */
 
 #include <config.h>
+#define WS_LOG_DOMAIN  LOG_DOMAIN_MAIN
 
 #include <glib.h>
 
@@ -18,12 +19,12 @@
 #include <tchar.h>
 #include <wchar.h>
 #include <shellapi.h>
-#include "ui/win32/console_win32.h"
+#include <wsutil/console_win32.h>
 #endif
 
-#include <ui/clopts_common.h>
-#include <ui/cmdarg_err.h>
-#include <ui/exit_codes.h>
+#include <ws_exit_codes.h>
+#include <wsutil/clopts_common.h>
+#include <wsutil/cmdarg_err.h>
 #include <ui/urls.h>
 #include <wsutil/filesystem.h>
 #include <wsutil/privileges.h>
@@ -35,7 +36,7 @@
 #include <wsutil/report_message.h>
 #include <wsutil/please_report_bug.h>
 #include <wsutil/unicode-utils.h>
-#include <ui/version_info.h>
+#include <wsutil/version_info.h>
 
 #include <epan/addr_resolv.h>
 #include <epan/ex-opt.h>
@@ -63,7 +64,6 @@
 #include "epan/srt_table.h"
 
 #include "ui/alert_box.h"
-#include "ui/console.h"
 #include "ui/iface_lists.h"
 #include "ui/language.h"
 #include "ui/persfilepath_opt.h"
@@ -225,11 +225,6 @@ gather_wireshark_qt_compiled_info(feature_list l)
     without_feature(l, "AirPcap");
 #endif
 #endif /* _WIN32 */
-#ifdef HAVE_SPEEXDSP
-    with_feature(l, "SpeexDSP (using system library)");
-#else
-    with_feature(l, "SpeexDSP (using bundled resampler)");
-#endif
 
 #ifdef HAVE_MINIZIP
     with_feature(l, "Minizip");
@@ -428,6 +423,7 @@ int main(int argc, char *qt_argv[])
 #endif
 #endif
     gchar               *err_msg = NULL;
+    df_error_t          *df_err = NULL;
 
     QString              dfilter, read_filter;
 #ifdef HAVE_LIBPCAP
@@ -483,7 +479,7 @@ int main(int argc, char *qt_argv[])
     cmdarg_err_init(logray_cmdarg_err, logray_cmdarg_err_cont);
 
     /* Initialize log handler early so we can have proper logging during startup. */
-    ws_log_init_with_writer("logray", console_log_writer, vcmdarg_err);
+    ws_log_init("logray", vcmdarg_err);
     /* For backward compatibility with GLib logging and Wireshark 3.4. */
     ws_log_console_writer_set_use_stdout(TRUE);
 
@@ -535,7 +531,8 @@ int main(int argc, char *qt_argv[])
 #endif /* _WIN32 */
 
     /* Early logging command-line initialization. */
-    ws_log_parse_args(&argc, argv, vcmdarg_err, INVALID_OPTION);
+    ws_log_parse_args(&argc, argv, vcmdarg_err, WS_EXIT_INVALID_OPTION);
+    ws_noisy("Finished log init and parsing command line log arguments");
 
     /*
      * Get credential information for later use, and drop privileges
@@ -663,7 +660,7 @@ int main(int argc, char *qt_argv[])
         cmdarg_err("%s", err_msg);
         g_free(err_msg);
         cmdarg_err_cont("%s", please_report_bug());
-        ret_val = INIT_FAILED;
+        ret_val = WS_EXIT_INIT_FAILED;
         goto clean_exit;
     }
 
@@ -694,8 +691,8 @@ int main(int argc, char *qt_argv[])
     // to force the issue.
     main_w->connect(&ls_app, SIGNAL(openCaptureFile(QString,QString,unsigned int)),
             main_w, SLOT(openCaptureFile(QString,QString,unsigned int)));
-    main_w->connect(&ls_app, SIGNAL(openCaptureOptions()),
-            main_w, SLOT(on_actionCaptureOptions_triggered()));
+    main_w->connect(&ls_app, &LograyApplication::openCaptureOptions,
+            main_w, &LograyMainWindow::showCaptureOptionsDialog);
 
     /* Init the "Open file" dialog directory */
     /* (do this after the path settings are processed) */
@@ -735,7 +732,7 @@ int main(int argc, char *qt_argv[])
        case any dissectors register preferences. */
     if (!epan_init(splash_update, NULL, TRUE)) {
         SimpleDialog::displayQueuedMessages(main_w);
-        ret_val = INIT_FAILED;
+        ret_val = WS_EXIT_INIT_FAILED;
         goto clean_exit;
     }
 #ifdef DEBUG_STARTUP_TIME
@@ -864,7 +861,7 @@ int main(int argc, char *qt_argv[])
                 cmdarg_err("%s%s%s", err_str, err_str_secondary ? "\n" : "", err_str_secondary ? err_str_secondary : "");
                 g_free(err_str);
                 g_free(err_str_secondary);
-                ret_val = INVALID_CAPABILITY;
+                ret_val = WS_EXIT_INVALID_CAPABILITY;
                 break;
             }
             ret_val = capture_opts_print_if_capabilities(caps, interface_opts,
@@ -915,7 +912,7 @@ int main(int argc, char *qt_argv[])
      * command-line options.
      */
     if (!setup_enabled_and_disabled_protocols()) {
-        ret_val = INVALID_OPTION;
+        ret_val = WS_EXIT_INVALID_OPTION;
         goto clean_exit;
     }
 
@@ -959,13 +956,13 @@ int main(int argc, char *qt_argv[])
             } else if (global_commandline_info.jfilter != NULL) {
                 dfilter_t *jump_to_filter = NULL;
                 /* try to compile given filter */
-                if (!dfilter_compile(global_commandline_info.jfilter, &jump_to_filter, &err_msg)) {
+                if (!dfilter_compile(global_commandline_info.jfilter, &jump_to_filter, &df_err)) {
                     // Similar code in MainWindow::mergeCaptureFile().
                     QMessageBox::warning(main_w, QObject::tr("Invalid Display Filter"),
                                          QObject::tr("The filter expression %1 isn't a valid display filter. (%2).")
-                                                 .arg(global_commandline_info.jfilter, err_msg),
+                                                 .arg(global_commandline_info.jfilter, df_err->msg),
                                          QMessageBox::Ok);
-                    g_free(err_msg);
+                    dfilter_error_free(df_err);
                 } else {
                     /* Filter ok, jump to the first packet matching the filter
                        conditions. Default search direction is forward, but if

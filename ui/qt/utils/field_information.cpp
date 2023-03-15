@@ -18,12 +18,12 @@ FieldInformation::FieldInformation(field_info *fi, QObject * parent)
     parent_fi_ = NULL;
 }
 
-FieldInformation::FieldInformation(proto_node *node, QObject * parent)
+FieldInformation::FieldInformation(ProtoNode *node, QObject * parent)
 :QObject(parent)
 {
     fi_ = NULL;
-    if (node) {
-        fi_ = node->finfo;
+    if (node && node->isValid()) {
+        fi_ = node->protoNode()->finfo;
     }
     parent_fi_ = NULL;
 }
@@ -141,7 +141,8 @@ QString FieldInformation::toString()
     QByteArray display_label;
 
     display_label.resize(80); // Arbitrary.
-    proto_item_fill_display_label(fi_, display_label.data(), static_cast<int>(display_label.size()));
+    int label_len = proto_item_fill_display_label(fi_, display_label.data(), static_cast<int>(display_label.size())-1);
+    display_label.resize(label_len);
 
     if (display_label.isEmpty()) {
         return "[no value for field]";

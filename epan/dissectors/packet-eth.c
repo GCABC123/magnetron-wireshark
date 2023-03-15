@@ -35,6 +35,7 @@
 #include "packet-vxlan.h"
 #include "packet-nsh.h"
 #include "packet-acdr.h"
+#include "packet-mctp.h"
 #include <epan/crc32-tvb.h>
 #include <wiretap/erf_record.h>
 
@@ -334,14 +335,14 @@ dissect_address_data(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, gboole
   proto_item_set_hidden(addr_item);
 
   addr_item = proto_tree_add_item(addr_tree, hf_eth_dst_oui, tvb, 0, 3, ENC_NA);
-  PROTO_ITEM_SET_GENERATED(addr_item);
-  PROTO_ITEM_SET_HIDDEN(addr_item);
+  proto_item_set_generated(addr_item);
+  proto_item_set_hidden(addr_item);
 
   dst_oui_name = tvb_get_manuf_name_if_known(tvb, 0);
   if (dst_oui_name != NULL) {
     addr_item = proto_tree_add_string(addr_tree, hf_eth_dst_oui_resolved, tvb, 0, 6, dst_oui_name);
-    PROTO_ITEM_SET_GENERATED(addr_item);
-    PROTO_ITEM_SET_HIDDEN(addr_item);
+    proto_item_set_generated(addr_item);
+    proto_item_set_hidden(addr_item);
   }
 
   proto_tree_add_ether(addr_tree, hf_eth_addr, tvb, 0, 6, dst_addr);
@@ -351,13 +352,13 @@ dissect_address_data(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, gboole
   proto_item_set_hidden(addr_item);
 
   addr_item = proto_tree_add_item(addr_tree, hf_eth_addr_oui, tvb, 0, 3, ENC_NA);
-  PROTO_ITEM_SET_GENERATED(addr_item);
-  PROTO_ITEM_SET_HIDDEN(addr_item);
+  proto_item_set_generated(addr_item);
+  proto_item_set_hidden(addr_item);
 
   if (dst_oui_name != NULL) {
     addr_item = proto_tree_add_string(addr_tree, hf_eth_addr_oui_resolved, tvb, 0, 6, dst_oui_name);
-    PROTO_ITEM_SET_GENERATED(addr_item);
-    PROTO_ITEM_SET_HIDDEN(addr_item);
+    proto_item_set_generated(addr_item);
+    proto_item_set_hidden(addr_item);
   }
 
   proto_tree_add_item(addr_tree, hf_eth_dst_lg, tvb, 0, 3, ENC_BIG_ENDIAN);
@@ -380,14 +381,14 @@ dissect_address_data(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, gboole
   proto_item_set_hidden(addr_item);
 
   addr_item = proto_tree_add_item(addr_tree, hf_eth_src_oui, tvb, 6, 3, ENC_NA);
-  PROTO_ITEM_SET_GENERATED(addr_item);
-  PROTO_ITEM_SET_HIDDEN(addr_item);
+  proto_item_set_generated(addr_item);
+  proto_item_set_hidden(addr_item);
 
   src_oui_name = tvb_get_manuf_name_if_known(tvb, 6);
   if (src_oui_name != NULL) {
     addr_item = proto_tree_add_string(addr_tree, hf_eth_src_oui_resolved, tvb, 6, 6, src_oui_name);
-    PROTO_ITEM_SET_GENERATED(addr_item);
-    PROTO_ITEM_SET_HIDDEN(addr_item);
+    proto_item_set_generated(addr_item);
+    proto_item_set_hidden(addr_item);
   }
 
   proto_tree_add_ether(addr_tree, hf_eth_addr, tvb, 6, 6, src_addr);
@@ -397,13 +398,13 @@ dissect_address_data(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, gboole
   proto_item_set_hidden(addr_item);
 
   addr_item = proto_tree_add_item(addr_tree, hf_eth_addr_oui, tvb, 6, 3, ENC_NA);
-  PROTO_ITEM_SET_GENERATED(addr_item);
-  PROTO_ITEM_SET_HIDDEN(addr_item);
+  proto_item_set_generated(addr_item);
+  proto_item_set_hidden(addr_item);
 
   if (src_oui_name != NULL) {
     addr_item = proto_tree_add_string(addr_tree, hf_eth_addr_oui_resolved, tvb, 6, 6, src_oui_name);
-    PROTO_ITEM_SET_GENERATED(addr_item);
-    PROTO_ITEM_SET_HIDDEN(addr_item);
+    proto_item_set_generated(addr_item);
+    proto_item_set_hidden(addr_item);
   }
 
   proto_tree_add_item(addr_tree, hf_eth_src_lg, tvb, 6, 3, ENC_BIG_ENDIAN);
@@ -1197,6 +1198,7 @@ proto_reg_handoff_eth(void)
 
   dissector_add_uint("acdr.media_type", ACDR_Control, eth_withoutfcs_handle);
   dissector_add_uint("acdr.media_type", ACDR_DSP_SNIFFER, eth_withoutfcs_handle);
+  dissector_add_uint("mctp.encap-type", MCTP_TYPE_ETHERNET, eth_withoutfcs_handle);
 
   /*
    * This is to handle the output for the Cisco CMTS "cable intercept"

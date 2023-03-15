@@ -9,7 +9,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * References: 3GPP TS 24.301 V17.7.0 (2022-06)
+ * References: 3GPP TS 24.301 V17.9.0 (2022-12)
  */
 
 #include "config.h"
@@ -4583,7 +4583,7 @@ nas_emm_attach_acc(tvbuff_t *tvb, proto_tree *tree, packet_info *pinfo, guint32 
     ELEM_OPT_TLV(0x5E, GSM_A_PDU_TYPE_GM, DE_GPRS_TIMER_3, " - T3412 extended value");
     /* 6A   T3324 value GPRS timer 2 9.9.3.16A O   TLV  3 */
     ELEM_OPT_TLV(0x6A, GSM_A_PDU_TYPE_GM, DE_GPRS_TIMER_2, " - T3324 value");
-    /* 6E   Extended DRX parameters Extended DRX parameters 9.9.3.46 O   TLV  3 */
+    /* 6E   Extended DRX parameters Extended DRX parameters 9.9.3.46 O   TLV  3-4 */
     ELEM_OPT_TLV(0x6E, GSM_A_PDU_TYPE_GM, DE_EXT_DRX_PARAMS, NULL);
     /* 65   DCN-ID DCN-ID 9.9.3.48 O   TLV  4 */
     ELEM_OPT_TLV(0x65, GSM_A_PDU_TYPE_GM, DE_DCN_ID, NULL);
@@ -4665,6 +4665,8 @@ nas_emm_attach_rej(tvbuff_t *tvb, proto_tree *tree, packet_info *pinfo, guint32 
     ELEM_OPT_TLV(0x16, GSM_A_PDU_TYPE_GM, DE_GPRS_TIMER_2, " - T3402 value");
     /* A-   Extended EMM cause   Extended EMM cause 9.9.3.26A  O   TV  1 */
     ELEM_OPT_TV_SHORT( 0xA0, NAS_PDU_TYPE_EMM, DE_EMM_EXT_CAUSE, NULL );
+    /* 1C   Lower bound timer value GPRS timer 3 9.9.3.16B O TLV 3 */
+    ELEM_OPT_TLV(0x1C, GSM_A_PDU_TYPE_GM, DE_GPRS_TIMER_3, " - Lower bound timer value");
     /* 1D   Forbidden TAI(s) for the list of "forbidden tracking areas for roaming" Tracking area identity list 9.9.3.33 O TLV 8-98 */
     ELEM_OPT_TLV(0x1D, NAS_PDU_TYPE_EMM, DE_EMM_TRAC_AREA_ID_LST, " - Forbidden TAI(s) for the list of \"forbidden tracking areas for roaming\"");
     /* 1E   Forbidden TAI(s) for the list of "forbidden tracking areas for regional provision of service" Tracking area identity list 9.9.3.33 O TLV 8-98 */
@@ -4747,7 +4749,7 @@ nas_emm_attach_req(tvbuff_t *tvb, proto_tree *tree, packet_info *pinfo, guint32 
     ELEM_OPT_TLV(0x6A, GSM_A_PDU_TYPE_GM, DE_GPRS_TIMER_2, " - T3324 value");
     /* 5E   T3412 extended value  GPRS timer 3 9.9.3.16B O  TLV 3 */
     ELEM_OPT_TLV(0x5E, GSM_A_PDU_TYPE_GM, DE_GPRS_TIMER_3, " - T3412 extended value");
-    /* 6E   Extended DRX parameters Extended DRX parameters 9.9.3.46 O   TLV  3 */
+    /* 6E   Extended DRX parameters Extended DRX parameters 9.9.3.46 O   TLV  3-4 */
     ELEM_OPT_TLV(0x6E, GSM_A_PDU_TYPE_GM, DE_EXT_DRX_PARAMS, NULL);
     /* 6F   UE additional security capability UE additional security capability 9.9.3.53 O TLV 6 */
     ELEM_OPT_TLV(0x6F, NAS_PDU_TYPE_EMM, DE_EMM_UE_ADD_SEC_CAP, NULL);
@@ -4972,6 +4974,8 @@ nas_emm_detach_req_DL(tvbuff_t *tvb, proto_tree *tree, packet_info *pinfo, guint
 
     /* EMM cause    EMM cause 9.9.3.9   O   TV  2 */
     ELEM_OPT_TV(0x53, NAS_PDU_TYPE_EMM, DE_EMM_CAUSE, NULL);
+    /* Lower bound timer value GPRS timer 3 9.9.3.16B O TLV 3 */
+    ELEM_OPT_TLV(0x1C, GSM_A_PDU_TYPE_GM, DE_GPRS_TIMER_3, " - Lower bound timer value");
     /* Forbidden TAI(s) for the list of "forbidden tracking areas for roaming" Tracking area identity list 9.9.3.33 O TLV 8-98 */
     ELEM_OPT_TLV(0x1D, NAS_PDU_TYPE_EMM, DE_EMM_TRAC_AREA_ID_LST, " - Forbidden TAI(s) for the list of \"forbidden tracking areas for roaming\"");
     /* Forbidden TAI(s) for the list of "forbidden tracking areas for regional provision of service" Tracking area identity list 9.9.3.33 O TLV 8-98 */
@@ -5410,7 +5414,7 @@ nas_emm_trac_area_upd_acc(tvbuff_t *tvb, proto_tree *tree, packet_info *pinfo, g
     ELEM_OPT_TLV(0x5E, GSM_A_PDU_TYPE_GM, DE_GPRS_TIMER_3, " - T3412 extended value");
     /* 6A   T3324 value GPRS timer 2 9.9.3.16A O   TLV  3 */
     ELEM_OPT_TLV(0x6A, GSM_A_PDU_TYPE_GM, DE_GPRS_TIMER_2, " - T3324 value");
-    /* 6E   Extended DRX parameters Extended DRX parameters 9.9.3.46 O   TLV  3 */
+    /* 6E   Extended DRX parameters Extended DRX parameters 9.9.3.46 O   TLV  3-4 */
     ELEM_OPT_TLV(0x6E, GSM_A_PDU_TYPE_GM, DE_EXT_DRX_PARAMS, NULL);
     /* 68   Header compression configuration status Header compression configuration status 9.9.4.27 O  TLV  5-257 */
     ELEM_OPT_TLV(0x68, NAS_PDU_TYPE_ESM, DE_ESM_HDR_COMPR_CONFIG_STATUS, NULL);
@@ -5474,6 +5478,12 @@ nas_emm_trac_area_upd_rej(tvbuff_t *tvb, proto_tree *tree, packet_info *pinfo, g
     ELEM_OPT_TLV(0x5F, GSM_A_PDU_TYPE_GM, DE_GPRS_TIMER_2, " - T3346 value");
     /* A-   Extended EMM cause   Extended EMM cause 9.9.3.26A  O   TV  1 */
     ELEM_OPT_TV_SHORT( 0xA0, NAS_PDU_TYPE_EMM, DE_EMM_EXT_CAUSE, NULL );
+    /* 1C   Lower bound timer value GPRS timer 3 9.9.3.16B O TLV 3 */
+    ELEM_OPT_TLV(0x1C, GSM_A_PDU_TYPE_GM, DE_GPRS_TIMER_3, " - Lower bound timer value");
+    /* 1D   Forbidden TAI(s) for the list of "forbidden tracking areas for roaming" Tracking area identity list 9.9.3.33 O TLV 8-98 */
+    ELEM_OPT_TLV(0x1D, NAS_PDU_TYPE_EMM, DE_EMM_TRAC_AREA_ID_LST, " - Forbidden TAI(s) for the list of \"forbidden tracking areas for roaming\"");
+    /* 1E   Forbidden TAI(s) for the list of "forbidden tracking areas for regional provision of service" Tracking area identity list 9.9.3.33 O TLV 8-98 */
+    ELEM_OPT_TLV(0x1E, NAS_PDU_TYPE_EMM, DE_EMM_TRAC_AREA_ID_LST, " - Forbidden TAI(s) for the list of \"forbidden tracking areas for regional provision of service\"");
 
     EXTRANEOUS_DATA_CHECK(curr_len, 0, pinfo, &ei_nas_eps_extraneous_data);
 }
@@ -5560,7 +5570,7 @@ nas_emm_trac_area_upd_req(tvbuff_t *tvb, proto_tree *tree, packet_info *pinfo, g
     ELEM_OPT_TLV(0x6A, GSM_A_PDU_TYPE_GM, DE_GPRS_TIMER_2, " - T3324 value");
     /* 5E   T3412 extended value  GPRS timer 3 9.9.3.16B O  TLV 3 */
     ELEM_OPT_TLV(0x5E, GSM_A_PDU_TYPE_GM, DE_GPRS_TIMER_3, " - T3412 extended value");
-    /* 6E   Extended DRX parameters Extended DRX parameters 9.9.3.46 O   TLV  3 */
+    /* 6E   Extended DRX parameters Extended DRX parameters 9.9.3.46 O   TLV  3-4 */
     ELEM_OPT_TLV(0x6E, GSM_A_PDU_TYPE_GM, DE_EXT_DRX_PARAMS, NULL);
     /* 6F   UE additional security capability UE additional security capability 9.9.3.53 O TLV 6 */
     ELEM_OPT_TLV(0x6F, NAS_PDU_TYPE_EMM, DE_EMM_UE_ADD_SEC_CAP, NULL);
@@ -5718,6 +5728,10 @@ nas_emm_serv_accept(tvbuff_t *tvb, proto_tree *tree, packet_info *pinfo, guint32
     ELEM_OPT_TLV(0x6B, GSM_A_PDU_TYPE_GM, DE_GPRS_TIMER_2, " - T3448 value");
     /* 37   EPS additional request result EPS additional request result 9.9.3.67 O TLV 3 */
     ELEM_OPT_TLV(0x37, NAS_PDU_TYPE_EMM, DE_EMM_EPS_ADD_REQ_RESULT, NULL);
+    /* 1D   Forbidden TAI(s) for the list of "forbidden tracking areas for roaming" Tracking area identity list 9.9.3.33 O TLV 8-98 */
+    ELEM_OPT_TLV(0x1D, NAS_PDU_TYPE_EMM, DE_EMM_TRAC_AREA_ID_LST, " - Forbidden TAI(s) for the list of \"forbidden tracking areas for roaming\"");
+    /* 1E   Forbidden TAI(s) for the list of "forbidden tracking areas for regional provision of service" Tracking area identity list 9.9.3.33 O TLV 8-98 */
+    ELEM_OPT_TLV(0x1E, NAS_PDU_TYPE_EMM, DE_EMM_TRAC_AREA_ID_LST, " - Forbidden TAI(s) for the list of \"forbidden tracking areas for regional provision of service\"");
 
     EXTRANEOUS_DATA_CHECK(curr_len, 0, pinfo, &ei_nas_eps_extraneous_data);
 }
@@ -8289,7 +8303,7 @@ proto_register_nas_eps(void)
     },
     { &hf_nas_eps_esm_qci,
         { "Quality of Service Class Identifier (QCI)","nas_eps.esm.qci",
-        FT_UINT8,(BASE_DEC|BASE_RANGE_STRING), RVALS(nas_eps_qci_vals), 0x0,
+        FT_UINT8, BASE_DEC|BASE_RANGE_STRING, RVALS(nas_eps_qci_vals), 0x0,
         NULL, HFILL }
     },
     { &hf_nas_eps_esm_mbr_ul,

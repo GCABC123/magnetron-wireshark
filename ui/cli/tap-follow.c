@@ -20,7 +20,7 @@
 
 #include <glib.h>
 #include <epan/addr_resolv.h>
-#include <epan/charsets.h>
+#include <wsutil/str_util.h>
 #include <epan/follow.h>
 #include <epan/stat_tap_ui.h>
 #include <epan/tap.h>
@@ -513,9 +513,9 @@ static void follow_stream(const char *opt_argp, void *userdata)
 
   cli_follow_info = g_new0(cli_follow_info_t, 1);
   cli_follow_info->stream_index = -1;
-  /* use second parameter only for HTTP2 or QUIC substream */
-  if (g_str_equal(proto_filter_name, "http2") ||
-      g_str_equal(proto_filter_name, "quic")) {
+  /* use second parameter only for followers that have sub streams
+   * (currently HTTP2 or QUIC) */
+  if (get_follow_sub_stream_id_func(follower)) {
       cli_follow_info->sub_stream_index = -1;
   } else {
       cli_follow_info->sub_stream_index = 0;

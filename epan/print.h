@@ -82,17 +82,6 @@ WS_DLL_PUBLIC gboolean proto_tree_print(print_dissections_e print_dissections,
                                         print_stream_t *stream);
 
 /*
- * Hexdump options for ASCII:
- */
-
-#define HEXDUMP_ASCII_MASK            (0x0003U)
-#define HEXDUMP_ASCII_OPTION(option)  ((option) & HEXDUMP_ASCII_MASK)
-
-#define HEXDUMP_ASCII_INCLUDE         (0x0000U) /* include ASCII section no delimiters (legacy tshark behavior) */
-#define HEXDUMP_ASCII_DELIMIT         (0x0001U) /* include ASCII section with delimiters, useful for reliable detection of last hexdata */
-#define HEXDUMP_ASCII_EXCLUDE         (0x0002U) /* exclude ASCII section from hexdump reports, if we really don't want or need it */
-
-/*
  * Hexdump option for displaying data sources:
  */
 
@@ -105,7 +94,7 @@ WS_DLL_PUBLIC gboolean proto_tree_print(print_dissections_e print_dissections,
 WS_DLL_PUBLIC gboolean print_hex_data(print_stream_t *stream, epan_dissect_t *edt, guint hexdump_options);
 
 WS_DLL_PUBLIC void write_pdml_preamble(FILE *fh, const gchar* filename);
-WS_DLL_PUBLIC void write_pdml_proto_tree(output_fields_t* fields, gchar **protocolfilter, pf_flags protocolfilter_flags, epan_dissect_t *edt, column_info *cinfo, FILE *fh, gboolean use_color);
+WS_DLL_PUBLIC void write_pdml_proto_tree(output_fields_t* fields, wmem_map_t *protocolfilter, epan_dissect_t *edt, column_info *cinfo, FILE *fh, gboolean use_color);
 WS_DLL_PUBLIC void write_pdml_finale(FILE *fh);
 
 // Implementations of proto_node_children_grouper_func
@@ -118,8 +107,7 @@ WS_DLL_PUBLIC json_dumper write_json_preamble(FILE *fh);
 WS_DLL_PUBLIC void write_json_proto_tree(output_fields_t* fields,
                                          print_dissections_e print_dissections,
                                          gboolean print_hex_data,
-                                         gchar **protocolfilter,
-                                         pf_flags protocolfilter_flags,
+                                         wmem_map_t *protocolfilter,
                                          epan_dissect_t *edt,
                                          column_info *cinfo,
                                          proto_node_children_grouper_func node_children_grouper,
@@ -129,8 +117,7 @@ WS_DLL_PUBLIC void write_json_finale(json_dumper *dumper);
 WS_DLL_PUBLIC void write_ek_proto_tree(output_fields_t* fields,
                                        gboolean print_summary,
                                        gboolean print_hex_data,
-                                       gchar **protocolfilter,
-                                       pf_flags protocolfilter_flags,
+                                       wmem_map_t *protocolfilter,
                                        epan_dissect_t *edt,
                                        column_info *cinfo, FILE *fh);
 

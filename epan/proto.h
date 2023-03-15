@@ -261,7 +261,7 @@ void proto_report_dissector_bug(const char *format, ...)
                                            IS_FT_UINT((hfinfo)->type))
 
 #define __DISSECTOR_ASSERT_FIELD_TYPE_IS_STRING(hfinfo) \
-  (REPORT_DISSECTOR_BUG("%s:%u: field %s is not of type FT_STRING, FT_STRINGZ, FT_STRINGZPAD, or FT_STRINGZTRUNC", \
+  (REPORT_DISSECTOR_BUG("%s:%u: field %s is not of type FT_STRING, FT_STRINGZ, FT_STRINGZPAD, FT_STRINGZTRUNC, or FT_UINT_STRING", \
         __FILE__, __LINE__, (hfinfo)->abbrev))
 
 #define DISSECTOR_ASSERT_FIELD_TYPE_IS_STRING(hfinfo)  \
@@ -363,9 +363,7 @@ void proto_report_dissector_bug(const char *format, ...)
  * values are encoded in all but the top bit (which is the byte-order
  * bit, required for FT_UINT_STRING and for UCS-2 and UTF-16 strings)
  * and the bottom bit (which we ignore for now so that programs that
- * pass TRUE for the encoding just do ASCII).  (The encodings are given
- * directly as even numbers in hex, so that make-init-lua.py can just
- * turn them into numbers for use in init.lua.)
+ * pass TRUE for the encoding just do ASCII).
  *
  * We don't yet process ASCII and UTF-8 differently.  Ultimately, for
  * ASCII, all bytes with the 8th bit set should be mapped to some "this
@@ -428,6 +426,8 @@ void proto_report_dissector_bug(const char *format, ...)
 #define ENC_GB18030                       0x00000050
 #define ENC_EUC_KR                        0x00000052
 #define ENC_APN_STR                       0x00000054 /* The encoding the APN/DNN field follows 3GPP TS 23.003 [2] clause 9.1.*/
+#define ENC_DECT_STANDARD_8BITS           0x00000056 /* DECT standard character set as defined in ETSI EN 300 175-5 Annex D */
+#define ENC_DECT_STANDARD_4BITS_TBCD      0x00000058 /* DECT standard 4bits character set as defined in ETSI EN 300 175-5 Annex D (BCD with 0xb = SPACE)*/
 /*
  * TODO:
  *
@@ -588,10 +588,6 @@ void proto_report_dissector_bug(const char *format, ...)
  *
  *  ENC_TIME_CLASSIC_MAC_OS_SECS - 4-8 bytes, representing a count of seconds
  *  since January 1, 1904, 00:00:00 UTC.
- *
- * The backwards-compatibility names are defined as hex numbers so that
- * the script to generate init.lua will add them as global variables,
- * along with the new names.
  */
 #define ENC_TIME_SECS_NSECS          0x00000000
 #define ENC_TIME_TIMESPEC            0x00000000 /* for backwards source compatibility */
@@ -645,8 +641,13 @@ void proto_report_dissector_bug(const char *format, ...)
  * See https://developers.google.com/protocol-buffers/docs/encoding?csw=1#types
  */
 #define ENC_VARINT_ZIGZAG        0x00000008
+/*
+ * Decodes a variable-length integer used in DTN protocols
+ * See https://www.rfc-editor.org/rfc/rfc6256.html
+ */
+#define ENC_VARINT_SDNV          0x00000010
 
-#define ENC_VARINT_MASK          (ENC_VARINT_PROTOBUF|ENC_VARINT_QUIC|ENC_VARINT_ZIGZAG)
+#define ENC_VARINT_MASK          (ENC_VARINT_PROTOBUF|ENC_VARINT_QUIC|ENC_VARINT_ZIGZAG|ENC_VARINT_SDNV)
 
 /* Values for header_field_info.display */
 
@@ -656,46 +657,44 @@ void proto_report_dissector_bug(const char *format, ...)
 /** FIELD_DISPLAY_E_MASK selects the field_display_e value. */
 #define FIELD_DISPLAY_E_MASK 0xFF
 
-/*
- * Note that this enum values are parsed in make-init-lua.py so make sure
- * any changes here still makes valid entries in init.lua.
- * XXX The script requires the equals sign.
- */
 typedef enum {
     BASE_NONE    = 0,   /**< none */
 
 /* Integral and float types */
-    BASE_DEC     = 1,   /**< decimal [integer, float] */
-    BASE_HEX     = 2,   /**< hexadecimal [integer, float] */
-    BASE_OCT     = 3,   /**< octal [integer] */
-    BASE_DEC_HEX = 4,   /**< decimal (hexadecimal) [integer] */
-    BASE_HEX_DEC = 5,   /**< hexadecimal (decimal) [integer] */
-    BASE_CUSTOM  = 6,   /**< call custom routine to format [integer, float] */
-    BASE_EXP     = 7,   /**< exponential [float] */
+    BASE_DEC,           /**< decimal [integer, float] */
+    BASE_HEX,           /**< hexadecimal [integer, float] */
+    BASE_OCT,           /**< octal [integer] */
+    BASE_DEC_HEX,       /**< decimal (hexadecimal) [integer] */
+    BASE_HEX_DEC,       /**< hexadecimal (decimal) [integer] */
+    BASE_CUSTOM,        /**< call custom routine to format [integer, float] */
+    BASE_EXP,           /**< exponential [float] */
 
 /* Byte separators */
-    SEP_DOT      = 8,   /**< hexadecimal bytes with a period (.) between each byte */
-    SEP_DASH     = 9,   /**< hexadecimal bytes with a dash (-) between each byte */
-    SEP_COLON    = 10,  /**< hexadecimal bytes with a colon (:) between each byte */
-    SEP_SPACE    = 11,  /**< hexadecimal bytes with a space between each byte */
+    SEP_DOT,            /**< hexadecimal bytes with a period (.) between each byte */
+    SEP_DASH,           /**< hexadecimal bytes with a dash (-) between each byte */
+    SEP_COLON,          /**< hexadecimal bytes with a colon (:) between each byte */
+    SEP_SPACE,          /**< hexadecimal bytes with a space between each byte */
 
 /* Address types */
-    BASE_NETMASK = 12,  /**< Used for IPv4 address that shouldn't be resolved (like for netmasks) */
+    BASE_NETMASK,       /**< Used for IPv4 address that shouldn't be resolved (like for netmasks) */
 
 /* Port types */
-    BASE_PT_UDP  = 13,  /**< UDP port */
-    BASE_PT_TCP  = 14,  /**< TCP port */
-    BASE_PT_DCCP = 15,  /**< DCCP port */
-    BASE_PT_SCTP = 16,  /**< SCTP port */
+    BASE_PT_UDP,        /**< UDP port */
+    BASE_PT_TCP,        /**< TCP port */
+    BASE_PT_DCCP,       /**< DCCP port */
+    BASE_PT_SCTP,       /**< SCTP port */
 
 /* OUI types */
-    BASE_OUI     = 17,  /**< OUI resolution */
+    BASE_OUI,           /**< OUI resolution */
 
 /* Time types */
-    ABSOLUTE_TIME_LOCAL   = 18,     /**< local time in our time zone, with month and day */
-    ABSOLUTE_TIME_UTC     = 19,     /**< UTC, with month and day */
-    ABSOLUTE_TIME_DOY_UTC = 20,     /**< UTC, with 1-origin day-of-year */
-    ABSOLUTE_TIME_NTP_UTC = 21,     /**< UTC, with "NULL" when timestamp is all zeros */
+    ABSOLUTE_TIME_LOCAL,        /**< local time in our time zone, with month and day */
+    ABSOLUTE_TIME_UTC,          /**< UTC, with month and day */
+    ABSOLUTE_TIME_DOY_UTC,      /**< UTC, with 1-origin day-of-year */
+    ABSOLUTE_TIME_NTP_UTC,      /**< UTC, with "NULL" when timestamp is all zeros */
+
+/* String types */
+    BASE_STR_WSP,       /**< Replace all whitespace characters (newline, formfeed, etc) with "space". */
 } field_display_e;
 
 #define FIELD_DISPLAY(d) ((d) & FIELD_DISPLAY_E_MASK)
@@ -896,7 +895,6 @@ typedef proto_node proto_item;
  * the bottom up.
  */
 
-/* do not modify the PI_SEVERITY_MASK name - it's used by make-init-lua.py */
 /* expert severities */
 #define PI_SEVERITY_MASK        0x00F00000  /**< mask usually for internal use only! */
 /** Packet comment */
@@ -910,7 +908,6 @@ typedef proto_node proto_item;
 /** Serious problems, e.g. a malformed packet */
 #define PI_ERROR                0x00800000
 
-/* do not modify the PI_GROUP_MASK name - it's used by make-init-lua.py */
 /* expert "event groups" */
 #define PI_GROUP_MASK           0xFF000000  /**< mask usually for internal use only! */
 /** The protocol field has a bad checksum, usually uses PI_WARN severity */
@@ -1991,6 +1988,14 @@ proto_tree_add_oid_format(proto_tree *tree, int hfindex, tvbuff_t *tvb, gint sta
     proto_tree. The value passed in should be a UTF-8 encoded null terminated
     string, such as produced by tvb_get_string_enc(), regardless of the original
     packet data.
+
+    This function is used to add a custom string *value* to the protocol tree.
+    Do not format the string value for display, for example by using format_text().
+    The input string represents packet data, not a display label. Formatting
+    labels is a concern of the UI. Doing that here would change the meaning of the packet
+    data, restrict the options for formatting later and make display filtering unintuitive
+    for whitespace and other special characters.
+
  @param tree the tree to append this item to
  @param hfindex field index
  @param tvb the tv buffer of the current data
@@ -3347,9 +3352,9 @@ WS_DLL_PUBLIC guchar
 proto_check_field_name_lower(const gchar *field_name);
 
 
-/** Check if given string is a valid field name
+/** Set the column text for a custom column
  @param tree the tree to append this item to
- @param field_id the field id used for custom column
+ @param field_id the field ids used for custom column
  @param occurrence the occurrence of the field used for custom column
  @param result the buffer to fill with the field string
  @param expr the filter expression
@@ -3360,7 +3365,18 @@ proto_custom_set(proto_tree* tree, GSList *field_id,
                              gchar *result,
                              gchar *expr, const int size );
 
+/** Construct a display filter string for a custom column
+ @param edt epan dissecting
+ @param field_id the field ids used for custom column
+ @param occurrence the occurrence of the field used for custom column
+ @return allocated display filter string.  Needs to be freed with g_free(...) */
+gchar *
+proto_custom_get_filter(struct epan_dissect *edt, GSList *field_id, gint occurrence);
+
 /** @} */
+
+const char *
+hfinfo_char_value_format_display(int display, char buf[7], guint32 value);
 
 #ifdef __cplusplus
 }

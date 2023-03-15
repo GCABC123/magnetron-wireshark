@@ -14,6 +14,8 @@
 
 #include <strutil.h>
 #include <wsutil/ws_assert.h>
+#include <wsutil/unicode-utils.h>
+
 
 static void
 string_fvalue_new(fvalue_t *fv)
@@ -73,20 +75,18 @@ val_from_string(fvalue_t *fv, const char *s, size_t len, gchar **err_msg _U_)
 		fv->value.strbuf = wmem_strbuf_new_len(NULL, s, len);
 	else
 		fv->value.strbuf = wmem_strbuf_new(NULL, s);
+
 	return TRUE;
 }
 
 static gboolean
-val_from_literal(fvalue_t *fv, const char *s, gboolean allow_partial_value _U_, gchar **err_msg _U_)
+val_from_literal(fvalue_t *fv, const char *s, gboolean allow_partial_value _U_, gchar **err_msg)
 {
 	/* Just turn it into a string */
 	/* XXX Should probably be a syntax error instead. It's more user-friendly to ask the
 	 * user to be explicit about the meaning of an unquoted literal than them trying to figure out
 	 * why a valid filter expression is giving wrong results. */
-	string_fvalue_free(fv);
-
-	fv->value.strbuf = wmem_strbuf_new(NULL, s);
-	return TRUE;
+	return val_from_string(fv, s, 0, err_msg);
 }
 
 static gboolean

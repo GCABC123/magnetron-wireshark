@@ -13,6 +13,8 @@
 #pragma warning(disable : 4267)
 #endif
 
+#define WS_LOG_DOMAIN  LOG_DOMAIN_MAIN
+
 #include "main_application.h"
 
 #include <algorithm>
@@ -50,7 +52,7 @@
 #include <capture/iface_monitor.h>
 #endif
 
-#include "ui/filter_files.h"
+#include "wsutil/filter_files.h"
 #include "ui/capture_globals.h"
 #include "ui/software_update.h"
 #include "ui/last_open_dir.h"
@@ -63,7 +65,6 @@
 #include "wsutil/utf8_entities.h"
 
 #ifdef _WIN32
-#  include "ui/win32/console_win32.h"
 #  include "wsutil/file_util.h"
 #  include <QMessageBox>
 #  include <QSettings>
@@ -311,12 +312,39 @@ const QFont MainApplication::monospaceFont(bool zoomed) const
 void MainApplication::setMonospaceFont(const char *font_string) {
 
     if (font_string && strlen(font_string) > 0) {
-        mono_font_.fromString(font_string);
-
-        // Only accept the font name if it actually exists.
-        if (mono_font_.family() == QFontInfo(mono_font_).family()) {
-            return;
+#if (QT_VERSION < QT_VERSION_CHECK(6, 0, 0))
+        // Qt 6's QFont::toString returns a value with 16 or 17 fields, e.g.
+        // Consolas,11,-1,5,400,0,0,0,0,0,0,0,0,0,0,1
+        // Corbel,10,-1,5,400,0,0,0,0,0,0,0,0,0,0,1,Regular
+        // Qt 5's QFont::fromString expects a value with 10 or 11 fields, e.g.
+        // Consolas,10,-1,5,50,0,0,0,0,0
+        // Corbel,10,-1,5,50,0,0,0,0,0,Regular
+        // It looks like Qt6's QFont::fromString can read both forms:
+        // https://github.com/qt/qtbase/blob/6.0/src/gui/text/qfont.cpp#L2146
+        // but Qt5's cannot:
+        // https://github.com/qt/qtbase/blob/5.15/src/gui/text/qfont.cpp#L2151
+        const char *fs_ptr = font_string;
+        int field_count = 1;
+        while ((fs_ptr = strchr(fs_ptr, ',')) != NULL) {
+            fs_ptr++;
+            field_count++;
         }
+        if (field_count <= 11) {
+#endif
+            mono_font_.fromString(font_string);
+
+            // Only accept the font name if it actually exists.
+            if (mono_font_.family() == QFontInfo(mono_font_).family()) {
+                return;
+            } else {
+                ws_warning("Monospace font family %s differs from its fontinfo: %s",
+                    qUtf8Printable(mono_font_.family()), qUtf8Printable(QFontInfo(mono_font_).family()));
+            }
+#if (QT_VERSION < QT_VERSION_CHECK(6, 0, 0))
+        } else {
+            ws_warning("Monospace font %s appears to be from Qt6 and we're running Qt5.", font_string);
+        }
+#endif
     }
 
     // https://en.wikipedia.org/wiki/Category:Monospaced_typefaces
@@ -341,14 +369,18 @@ void MainApplication::setMonospaceFont(const char *font_string) {
 #if defined(Q_OS_WIN)
     const char *default_font = win_default_font;
     substitutes << win_alt_font << osx_default_font << osx_alt_fonts << x11_default_font << x11_alt_fonts << fallback_fonts;
+# if (QT_VERSION >= QT_VERSION_CHECK(6, 0, 0))
+    font_size_adjust = 1;
+# else // QT_VERSION
     font_size_adjust = 2;
+# endif // QT_VERSION
 #elif defined(Q_OS_MAC)
     const char *default_font = osx_default_font;
     substitutes << osx_alt_fonts << win_default_font << win_alt_font << x11_default_font << x11_alt_fonts << fallback_fonts;
-#else
+#else // Q_OS
     const char *default_font = x11_default_font;
     substitutes << x11_alt_fonts << win_default_font << win_alt_font << osx_default_font << osx_alt_fonts << fallback_fonts;
-#endif
+#endif // Q_OS
 
     mono_font_.setFamily(default_font);
     mono_font_.insertSubstitutions(default_font, substitutes);
@@ -1072,13 +1104,6 @@ _e_prefs *MainApplication::readConfigurationFiles(bool reset)
 
     /* Load libwireshark settings from the current profile. */
     prefs_p = epan_load_settings();
-
-#ifdef _WIN32
-    /* if the user wants a console to be always there, well, we should open one for him */
-    if (prefs_p->gui_console_open == console_open_always) {
-        create_console();
-    }
-#endif
 
     /* Read the capture filter file. */
     read_filter_list(CFILTER_LIST);

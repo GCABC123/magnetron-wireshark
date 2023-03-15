@@ -455,7 +455,6 @@ File "${STAGING_DIR}\COPYING.txt"
 File "${STAGING_DIR}\NEWS.txt"
 File "${STAGING_DIR}\README.txt"
 File "${STAGING_DIR}\README.windows.txt"
-File "${STAGING_DIR}\AUTHORS-SHORT"
 File "${STAGING_DIR}\manuf"
 File "${STAGING_DIR}\wka"
 File "${STAGING_DIR}\services"
@@ -467,8 +466,6 @@ File "${STAGING_DIR}\dumpcap.exe"
 File "${STAGING_DIR}\dumpcap.html"
 File "${STAGING_DIR}\extcap.html"
 File "${STAGING_DIR}\ipmap.html"
-File "${STAGING_DIR}\gpl-2.0-standalone.html"
-File "${STAGING_DIR}\Acknowledgements.md"
 
 ; C-runtime redistributable
 ; vc_redist.x64.exe or vc_redist.x86.exe - copy and execute the redistributable installer
@@ -572,6 +569,7 @@ File "${STAGING_DIR}\radius\dictionary"
 File "${STAGING_DIR}\radius\dictionary.3com"
 File "${STAGING_DIR}\radius\dictionary.3gpp"
 File "${STAGING_DIR}\radius\dictionary.3gpp2"
+File "${STAGING_DIR}\radius\dictionary.5x9"
 File "${STAGING_DIR}\radius\dictionary.acc"
 File "${STAGING_DIR}\radius\dictionary.acme"
 File "${STAGING_DIR}\radius\dictionary.actelis"
@@ -976,13 +974,6 @@ File "${STAGING_DIR}\reordercap.exe"
 File "${STAGING_DIR}\reordercap.html"
 SectionEnd
 
-Section "DFTest" SecDFTest
-;-------------------------------------------
-SetOutPath $INSTDIR
-File "${STAGING_DIR}\dftest.exe"
-File "${STAGING_DIR}\dftest.html"
-SectionEnd
-
 Section "Capinfos" SecCapinfos
 ;-------------------------------------------
 SetOutPath $INSTDIR
@@ -1069,7 +1060,6 @@ SectionEnd
   !insertmacro MUI_DESCRIPTION_TEXT ${SecText2Pcap} "Read an ASCII hex dump and write the data into a libpcap-style capture file."
   !insertmacro MUI_DESCRIPTION_TEXT ${SecMergecap} "Combine multiple saved capture files into a single output file"
   !insertmacro MUI_DESCRIPTION_TEXT ${SecReordercap} "Copy packets to a new file, sorted by time."
-  !insertmacro MUI_DESCRIPTION_TEXT ${SecDFTest} "Shows display filter byte-code, for debugging dfilter routines"
   !insertmacro MUI_DESCRIPTION_TEXT ${SecCapinfos} "Print information about capture files."
   !insertmacro MUI_DESCRIPTION_TEXT ${SecCaptype} "Print the types capture files."
   !insertmacro MUI_DESCRIPTION_TEXT ${SecRandpkt} "Random packet generator."

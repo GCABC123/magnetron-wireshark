@@ -282,7 +282,7 @@ static hf_register_info hf_tcpcl[] = {
     {&hf_tcpclv3_xfer_id, {"Implied Transfer ID", "tcpcl.xfer_id", FT_UINT64, BASE_HEX, NULL, 0x0, NULL, HFILL}},
     {&hf_tcpclv3_data_segment_length,
      {"Segment Length", "tcpcl.data.length",
-      FT_INT32, BASE_DEC, NULL, 0x0, NULL, HFILL}
+      FT_UINT64, BASE_DEC, NULL, 0x0, NULL, HFILL}
     },
     {&hf_tcpclv3_data_segment_data,
      {"Segment Data", "tcpcl.data",
@@ -310,7 +310,7 @@ static hf_register_info hf_tcpcl[] = {
     },
     {&hf_tcpclv3_ack_length,
      {"Ack Length", "tcpcl.ack.length",
-      FT_INT32, BASE_DEC, NULL, 0x0, NULL, HFILL}
+      FT_UINT64, BASE_DEC, NULL, 0x0, NULL, HFILL}
     },
     {&hf_tcpclv3_chdr_flags,
      {"Flags", "tcpcl.contact_hdr.flags",
@@ -338,7 +338,7 @@ static hf_register_info hf_tcpcl[] = {
     },
     {&hf_tcpclv3_chdr_local_eid_length,
      {"Local EID Length", "tcpcl.contact_hdr.local_eid_length",
-      FT_INT32, BASE_DEC, NULL, 0x0, NULL, HFILL}
+      FT_UINT64, BASE_DEC, NULL, 0x0, NULL, HFILL}
     },
 
     {&hf_tcpclv4_chdr_flags, {"Contact Flags", "tcpcl.v4.chdr.flags", FT_UINT8, BASE_HEX, NULL, 0x0, NULL, HFILL}},
@@ -531,7 +531,9 @@ static expert_field ei_invalid_magic = EI_INIT;
 static expert_field ei_invalid_version = EI_INIT;
 static expert_field ei_mismatch_version = EI_INIT;
 static expert_field ei_chdr_duplicate = EI_INIT;
+static expert_field ei_length_clamped = EI_INIT;
 
+static expert_field ei_tcpclv3_eid_length = EI_INIT;
 static expert_field ei_tcpclv3_invalid_msg_type = EI_INIT;
 static expert_field ei_tcpclv3_data_flags = EI_INIT;
 static expert_field ei_tcpclv3_segment_length = EI_INIT;
@@ -563,7 +565,9 @@ static ei_register_info ei_tcpcl[] = {
     {&ei_invalid_version, { "tcpcl.invalid_contact_version", PI_PROTOCOL, PI_ERROR, "Protocol version not handled", EXPFILL}},
     {&ei_mismatch_version, { "tcpcl.mismatch_contact_version", PI_PROTOCOL, PI_ERROR, "Protocol version mismatch", EXPFILL}},
     {&ei_chdr_duplicate, { "tcpcl.contact_duplicate", PI_SEQUENCE, PI_ERROR, "Duplicate Contact Header", EXPFILL}},
+    {&ei_length_clamped, { "tcpcl.length_clamped", PI_UNDECODED, PI_ERROR, "Length too large for Wireshark to handle", EXPFILL}},
 
+    {&ei_tcpclv3_eid_length, { "tcpcl.eid_length_invalid", PI_PROTOCOL, PI_ERROR, "Invalid EID Length", EXPFILL }},
     {&ei_tcpclv3_invalid_msg_type, { "tcpcl.unknown_message_type", PI_UNDECODED, PI_ERROR, "Message type is unknown", EXPFILL}},
     {&ei_tcpclv3_data_flags, { "tcpcl.data.flags.invalid", PI_PROTOCOL, PI_WARN, "Invalid TCP CL Data Segment Flags", EXPFILL }},
     {&ei_tcpclv3_segment_length, { "tcpcl.data.length.invalid", PI_PROTOCOL, PI_ERROR, "Invalid Data Length", EXPFILL }},
@@ -613,6 +617,10 @@ static const fragment_items xfer_frag_items = {
     /*Tag*/
     "Transfer fragments"
 };
+
+static guint tvb_get_sdnv(tvbuff_t *tvb, guint offset, guint64 *value) {
+    return tvb_get_varint(tvb, offset, FT_VARINT_MAX_LEN, value, ENC_VARINT_SDNV);
+}
 
 static void tcpcl_frame_loc_init(tcpcl_frame_loc_t *loc, const packet_info *pinfo, tvbuff_t *tvb, const gint offset) {
     loc->frame_num = pinfo->num;
@@ -1015,7 +1023,7 @@ static void transfer_add_segment(tcpcl_dissect_ctx_t *ctx, guint64 xfer_id, guin
     seg_meta->seen_len = prev_seen_len + data_len;
 
     proto_item *item_seen = proto_tree_add_uint64(tree_msg, hf_tcpclv4_xfer_segment_seen_len, tvb, 0, 0, seg_meta->seen_len);
-    PROTO_ITEM_SET_GENERATED(item_seen);
+    proto_item_set_generated(item_seen);
     if (seg_meta->seen_len > ctx->rx_peer->transfer_mru) {
         expert_add_info(pinfo, item_seen, &ei_tcpclv4_xferload_over_xfer_mru);
     }
@@ -1028,17 +1036,17 @@ static void transfer_add_segment(tcpcl_dissect_ctx_t *ctx, guint64 xfer_id, guin
             expert_add_info(pinfo, item_seen, &ei_xfer_mismatch_total_len);
         }
         proto_item *item_total = proto_tree_add_uint64(tree_msg, hf_tcpclv4_xfer_total_len, tvb, 0, 0, *(xfer->total_length));
-        PROTO_ITEM_SET_GENERATED(item_total);
+        proto_item_set_generated(item_total);
     }
 
     if (seg_meta->related_ack) {
         proto_item *item_rel = proto_tree_add_uint(tree_msg, hf_tcpclv4_xfer_segment_related_ack, tvb, 0, 0, seg_meta->related_ack->frame_loc.frame_num);
-        PROTO_ITEM_SET_GENERATED(item_rel);
+        proto_item_set_generated(item_rel);
 
         nstime_t td;
         nstime_delta(&td, &(seg_meta->related_ack->frame_time), &(seg_meta->frame_time));
         proto_item *item_td = proto_tree_add_time(tree_msg, hf_tcpclv4_xfer_segment_time_diff, tvb, 0, 0, &td);
-        PROTO_ITEM_SET_GENERATED(item_td);
+        proto_item_set_generated(item_td);
 
     }
     else {
@@ -1046,12 +1054,12 @@ static void transfer_add_segment(tcpcl_dissect_ctx_t *ctx, guint64 xfer_id, guin
     }
     if (seg_meta->related_start && (seg_meta->related_start != seg_meta)) {
         proto_item *item_rel = proto_tree_add_uint(tree_msg, hf_tcpclv4_xfer_segment_related_start, tvb, 0, 0, seg_meta->related_start->frame_loc.frame_num);
-        PROTO_ITEM_SET_GENERATED(item_rel);
+        proto_item_set_generated(item_rel);
 
         nstime_t td;
         nstime_delta(&td, &(seg_meta->frame_time), &(seg_meta->related_start->frame_time));
         proto_item *item_td = proto_tree_add_time(tree_msg, hf_tcpclv4_xfer_segment_time_start, tvb, 0, 0, &td);
-        PROTO_ITEM_SET_GENERATED(item_td);
+        proto_item_set_generated(item_td);
     }
 }
 
@@ -1099,16 +1107,16 @@ static void transfer_add_ack(tcpcl_dissect_ctx_t *ctx, guint64 xfer_id, guint8 f
 
     if (xfer->total_length) {
         proto_item *item_total = proto_tree_add_uint64(tree_msg, hf_tcpclv4_xfer_total_len, tvb, 0, 0, *(xfer->total_length));
-        PROTO_ITEM_SET_GENERATED(item_total);
+        proto_item_set_generated(item_total);
     }
     if (ack_meta->related_seg) {
         proto_item *item_rel = proto_tree_add_uint(tree_msg, hf_tcpclv4_xfer_ack_related_seg, tvb, 0, 0, ack_meta->related_seg->frame_loc.frame_num);
-        PROTO_ITEM_SET_GENERATED(item_rel);
+        proto_item_set_generated(item_rel);
 
         nstime_t td;
         nstime_delta(&td, &(ack_meta->frame_time), &(ack_meta->related_seg->frame_time));
         proto_item *item_td = proto_tree_add_time(tree_msg, hf_tcpclv4_xfer_ack_time_diff, tvb, 0, 0, &td);
-        PROTO_ITEM_SET_GENERATED(item_td);
+        proto_item_set_generated(item_td);
 
         if (item_flags && (ack_meta->flags != ack_meta->related_seg->flags)) {
             expert_add_info(pinfo, item_flags, &ei_xfer_ack_mismatch_flags);
@@ -1119,12 +1127,12 @@ static void transfer_add_ack(tcpcl_dissect_ctx_t *ctx, guint64 xfer_id, guint8 f
     }
     if (ack_meta->related_start) {
         proto_item *item_rel = proto_tree_add_uint(tree_msg, hf_tcpclv4_xfer_ack_related_start, tvb, 0, 0, ack_meta->related_start->frame_loc.frame_num);
-        PROTO_ITEM_SET_GENERATED(item_rel);
+        proto_item_set_generated(item_rel);
 
         nstime_t td;
         nstime_delta(&td, &(ack_meta->frame_time), &(ack_meta->related_start->frame_time));
         proto_item *item_td = proto_tree_add_time(tree_msg, hf_tcpclv4_xfer_ack_time_start, tvb, 0, 0, &td);
-        PROTO_ITEM_SET_GENERATED(item_td);
+        proto_item_set_generated(item_td);
     }
 }
 
@@ -1141,17 +1149,20 @@ static void transfer_add_refuse(tcpcl_dissect_ctx_t *ctx, guint64 xfer_id,
 
     if (seg_last) {
         proto_item *item_rel = proto_tree_add_uint(tree_msg, hf_tcpclv4_xfer_refuse_related_seg, tvb, 0, 0, seg_last->frame_loc.frame_num);
-        PROTO_ITEM_SET_GENERATED(item_rel);
+        proto_item_set_generated(item_rel);
     }
     else {
         expert_add_info(pinfo, item_msg, &ei_tcpclv4_xfer_refuse_no_transfer);
     }
 }
 
-static gint get_clamped_length(guint64 orig) {
+static gint get_clamped_length(guint64 orig, packet_info *pinfo, proto_item *item) {
     gint clamped;
     if (orig > G_MAXINT) {
         clamped = G_MAXINT;
+        if (pinfo && item) {
+            expert_add_info(pinfo, item, &ei_length_clamped);
+        }
     }
     else {
         clamped = (gint) orig;
@@ -1164,27 +1175,29 @@ get_v3_msg_len(packet_info *pinfo _U_, tvbuff_t *tvb, int offset,
                tcpcl_dissect_ctx_t *ctx _U_)
 {
     const int orig_offset = offset;
-    int    len, bytecount;
+    guint64 len;
+    guint bytecount;
     guint8 conv_hdr = tvb_get_guint8(tvb, offset);
     offset += 1;
 
     switch (conv_hdr & TCPCLV3_TYPE_MASK)
     {
-    case TCPCLV3_DATA_SEGMENT:
+    case TCPCLV3_DATA_SEGMENT: {
         /* get length from sdnv */
-        len = evaluate_sdnv(tvb, offset, &bytecount);
-        if (len < 0)
+        bytecount = tvb_get_sdnv(tvb, offset, &len);
+        if (bytecount == 0) {
             return 0;
-
-        offset += bytecount+len;
+        }
+        const gint len_clamp = get_clamped_length(len, NULL, NULL);
+        offset += bytecount + len_clamp;
         break;
-
+    }
     case TCPCLV3_ACK_SEGMENT:
         /* get length from sdnv */
-        len = evaluate_sdnv(tvb, offset, &bytecount);
-        if (len < 0)
+        bytecount = tvb_get_sdnv(tvb, offset, &len);
+        if (bytecount == 0) {
             return 0;
-
+        }
         offset += bytecount;
         break;
 
@@ -1203,9 +1216,10 @@ get_v3_msg_len(packet_info *pinfo _U_, tvbuff_t *tvb, int offset,
 
     case TCPCLV3_LENGTH:
         /* get length from sdnv */
-        len = evaluate_sdnv(tvb, offset, &bytecount);
-        if (len < 0)
+        bytecount = tvb_get_sdnv(tvb, offset, &len);
+        if (bytecount == 0) {
             return 0;
+        }
         offset += bytecount;
         break;
     }
@@ -1222,7 +1236,8 @@ dissect_v3_msg(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree,
     const char *msgtype_name;
     guint8         refuse_bundle_hdr;
     int            offset = 0;
-    int            sdnv_length, segment_length;
+    gint sdnv_length;
+    guint64 segment_length;
     proto_item    *conv_item, *sub_item;
     proto_tree    *conv_tree, *sub_tree;
     guint64 *xfer_id = NULL;
@@ -1248,19 +1263,20 @@ dissect_v3_msg(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree,
             ett_tcpclv3_data_procflags, v3_data_procflags,
             ENC_BIG_ENDIAN
         );
+        offset += 1;
 
         /* Only Start and End flags (bits 0 & 1) are valid in Data Segment */
         if ((conv_hdr & ~(TCPCLV3_TYPE_MASK | TCPCLV3_DATA_FLAGS)) != 0) {
             expert_add_info(pinfo, item_flags, &ei_tcpclv3_data_flags);
         }
 
-        segment_length = evaluate_sdnv(tvb, 1, &sdnv_length);
-        sub_item = proto_tree_add_int(conv_tree, hf_tcpclv3_data_segment_length, tvb, 1, sdnv_length, segment_length);
-        if (segment_length < 0) {
+        sub_item = proto_tree_add_item_ret_varint(conv_tree, hf_tcpclv3_data_segment_length, tvb, offset, -1, ENC_VARINT_SDNV, &segment_length, &sdnv_length);
+        if (sdnv_length == 0) {
             expert_add_info(pinfo, sub_item, &ei_tcpclv3_segment_length);
-            return 1;
+            return 0;
         }
-        offset += 1 + sdnv_length;
+        offset += sdnv_length;
+        const gint data_len_clamp = get_clamped_length(segment_length, pinfo, sub_item);
 
         // implied transfer ID
         xfer_id = wmem_map_lookup(ctx->tx_peer->frame_loc_to_transfer, ctx->cur_loc);
@@ -1275,9 +1291,9 @@ dissect_v3_msg(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree,
             tcpcl_peer_associate_transfer(ctx->tx_peer, ctx->cur_loc, *xfer_id);
         }
         item_xfer_id = proto_tree_add_uint64(conv_tree, hf_tcpclv3_xfer_id, tvb, 0, 0, *xfer_id);
-        PROTO_ITEM_SET_GENERATED(item_xfer_id);
+        proto_item_set_generated(item_xfer_id);
 
-        proto_tree_add_item(conv_tree, hf_tcpclv3_data_segment_data, tvb, offset, segment_length, ENC_NA);
+        proto_tree_add_item(conv_tree, hf_tcpclv3_data_segment_data, tvb, offset, data_len_clamp, ENC_NA);
 
         if (tcpcl_analyze_sequence) {
             transfer_add_segment(ctx, *xfer_id, (conv_hdr & TCPCLV3_DATA_FLAGS), segment_length, pinfo, tvb, conv_tree, conv_item, item_flags);
@@ -1290,7 +1306,7 @@ dissect_v3_msg(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree,
                 &xfer_reassembly_table,
                 tvb, offset,
                 pinfo, 0, xfer_id,
-                segment_length,
+                data_len_clamp,
                 !(conv_hdr & TCPCLV3_DATA_END_FLAG)
             );
             ctx->xferload = process_reassembled_data(
@@ -1302,7 +1318,7 @@ dissect_v3_msg(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree,
                 proto_tree_get_parent_tree(tree)
             );
         }
-        offset += segment_length;
+        offset += data_len_clamp;
 
         break;
     }
@@ -1310,9 +1326,8 @@ dissect_v3_msg(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree,
         /*No valid flags*/
         offset += 1;
 
-        segment_length = evaluate_sdnv(tvb, offset, &sdnv_length);
-        sub_item = proto_tree_add_int(conv_tree, hf_tcpclv3_ack_length, tvb, offset, sdnv_length, segment_length);
-        if (segment_length < 0) {
+        sub_item = proto_tree_add_item_ret_varint(conv_tree, hf_tcpclv3_ack_length, tvb, offset, -1, ENC_VARINT_SDNV, &segment_length, &sdnv_length);
+        if (sdnv_length == 0) {
             expert_add_info(pinfo, sub_item, &ei_tcpclv3_ack_length);
         } else {
             offset += sdnv_length;
@@ -1327,7 +1342,7 @@ dissect_v3_msg(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree,
             tcpcl_peer_associate_transfer(ctx->rx_peer, ctx->cur_loc, *xfer_id);
         }
         item_xfer_id = proto_tree_add_uint64(conv_tree, hf_tcpclv3_xfer_id, tvb, 0, 0, *xfer_id);
-        PROTO_ITEM_SET_GENERATED(item_xfer_id);
+        proto_item_set_generated(item_xfer_id);
 
         if (tcpcl_analyze_sequence) {
             transfer_add_ack(ctx, *xfer_id, 0, segment_length, pinfo, tvb, conv_tree, conv_item, NULL);
@@ -1383,7 +1398,7 @@ dissect_v3_msg(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree,
             tcpcl_peer_associate_transfer(ctx->rx_peer, ctx->cur_loc, *xfer_id);
         }
         item_xfer_id = proto_tree_add_uint64(conv_tree, hf_tcpclv3_xfer_id, tvb, 0, 0, *xfer_id);
-        PROTO_ITEM_SET_GENERATED(item_xfer_id);
+        proto_item_set_generated(item_xfer_id);
 
         if (tcpcl_analyze_sequence) {
             transfer_add_refuse(ctx, *xfer_id, pinfo, tvb, conv_tree, conv_item);
@@ -1447,7 +1462,7 @@ static guint get_v4_msg_len(packet_info *pinfo _U_, tvbuff_t *tvb, int offset,
             }
             guint64 data_len = tvb_get_guint64(tvb, offset, ENC_BIG_ENDIAN);
             offset += 8;
-            const gint data_len_clamp = get_clamped_length(data_len);
+            const gint data_len_clamp = get_clamped_length(data_len, NULL, NULL);
             offset += data_len_clamp;
             break;
         }
@@ -1618,7 +1633,7 @@ dissect_v4_msg(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree,
             if (tcpcl_analyze_sequence) {
                 if (ctx->rx_peer->sess_term_seen) {
                     proto_item *item_rel = proto_tree_add_uint(tree_msg, hf_tcpclv4_sess_term_related, tvb, 0, 0, ctx->rx_peer->sess_term_seen->frame_num);
-                    PROTO_ITEM_SET_GENERATED(item_rel);
+                    proto_item_set_generated(item_rel);
 
                     // Is this message after the other SESS_TERM?
                     if (tcpcl_frame_loc_compare(ctx->tx_peer->sess_term_seen, ctx->rx_peer->sess_term_seen, NULL) > 0) {
@@ -1714,7 +1729,7 @@ dissect_v4_msg(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree,
             if (data_len > ctx->rx_peer->segment_mru) {
                 expert_add_info(pinfo, item_len, &ei_tcpclv4_xfer_seg_over_seg_mru);
             }
-            const gint data_len_clamp = get_clamped_length(data_len);
+            const gint data_len_clamp = get_clamped_length(data_len, pinfo, item_len);
 
             // Treat data as payload layer
             const gint data_offset = offset;
@@ -1864,11 +1879,11 @@ dissect_v4_msg(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree,
         if (ctx->convo->sess_negotiated) {
             if (ctx->rx_peer->sess_init_seen){
                 proto_item *item_nego = proto_tree_add_uint(tree_msg, hf_tcpclv4_sess_init_related, tvb, 0, 0, ctx->rx_peer->sess_init_seen->frame_num);
-                PROTO_ITEM_SET_GENERATED(item_nego);
+                proto_item_set_generated(item_nego);
             }
             {
                 proto_item *item_nego = proto_tree_add_uint(tree_msg, hf_tcpclv4_negotiate_keepalive, tvb, 0, 0, ctx->convo->sess_keepalive);
-                PROTO_ITEM_SET_GENERATED(item_nego);
+                proto_item_set_generated(item_nego);
             }
         }
     }
@@ -1885,17 +1900,18 @@ static guint get_message_len(packet_info *pinfo, tvbuff_t *tvb, int ext_offset, 
     guint offset = ext_offset;
 
     if (ctx->is_contact) {
-        offset += 4;
+        offset += sizeof(magic);
         guint8 version = tvb_get_guint8(tvb, offset);
         offset += 1;
         if (version == 3) {
-            offset += 3;
-            int bytecount;
-            int len = evaluate_sdnv(tvb, offset, &bytecount);
-            offset += len + 1;
+            offset += 3; // flags + keepalive
+            guint64 eid_len;
+            const guint bytecount = tvb_get_sdnv(tvb, offset, &eid_len);
+            const gint len_clamp = get_clamped_length(eid_len, NULL, NULL);
+            offset += bytecount + len_clamp;
         }
         else if (version == 4) {
-            offset += 1;
+            offset += 1; // flags
         }
         else {
             return 0;
@@ -1993,20 +2009,20 @@ static gint dissect_message(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree,
             offset += 2;
 
             /*
-             * New format Contact header has length field followed by Bundle Header.
+             * New format Contact header has length field followed by EID.
              */
+            guint64 eid_length;
             int sdnv_length;
-            expert_field *ei_bundle_sdnv_length;
-            int eid_length = evaluate_sdnv_ei(tvb, offset, &sdnv_length, &ei_bundle_sdnv_length);
-            proto_item *item_len = proto_tree_add_int(tree_chdr, hf_tcpclv3_chdr_local_eid_length, tvb, offset, sdnv_length, eid_length);
-            offset += sdnv_length;
-            if (ei_bundle_sdnv_length) {
-                expert_add_info(pinfo, item_len, ei_bundle_sdnv_length);
-                return offset;
+            proto_item *sub_item = proto_tree_add_item_ret_varint(tree_chdr, hf_tcpclv3_chdr_local_eid_length, tvb, offset, -1, ENC_VARINT_SDNV, &eid_length, &sdnv_length);
+            if (sdnv_length == 0) {
+                expert_add_info(pinfo, sub_item, &ei_tcpclv3_eid_length);
+                return 0;
             }
+            offset += sdnv_length;
+            const gint eid_len_clamp = get_clamped_length(eid_length, pinfo, sub_item);
 
-            proto_tree_add_item(tree_chdr, hf_tcpclv3_chdr_local_eid, tvb, offset, eid_length, ENC_NA|ENC_ASCII);
-            offset += eid_length;
+            proto_tree_add_item(tree_chdr, hf_tcpclv3_chdr_local_eid, tvb, offset, eid_len_clamp, ENC_NA|ENC_ASCII);
+            offset += eid_len_clamp;
 
             // assumed parameters
             ctx->tx_peer->segment_mru = G_MAXUINT64;
@@ -2038,11 +2054,11 @@ static gint dissect_message(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree,
         if (ctx->convo->contact_negotiated) {
             if (ctx->rx_peer->chdr_seen) {
                 proto_item *item_nego = proto_tree_add_uint(tree_chdr, hf_chdr_related, tvb, 0, 0, ctx->rx_peer->chdr_seen->frame_num);
-                PROTO_ITEM_SET_GENERATED(item_nego);
+                proto_item_set_generated(item_nego);
             }
             if (ctx->tx_peer->version == 4) {
                 proto_item *item_nego = proto_tree_add_boolean(tree_chdr, hf_tcpclv4_negotiate_use_tls, tvb, 0, 0, ctx->convo->session_use_tls);
-                PROTO_ITEM_SET_GENERATED(item_nego);
+                proto_item_set_generated(item_nego);
             }
         }
     }

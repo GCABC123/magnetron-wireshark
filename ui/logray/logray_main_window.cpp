@@ -24,7 +24,7 @@ DIAG_ON(frame-larger-than=)
 #include <wsutil/filesystem.h>
 #include <wsutil/wslog.h>
 #include <wsutil/ws_assert.h>
-#include <ui/version_info.h>
+#include <wsutil/version_info.h>
 #include <epan/prefs.h>
 #include <epan/stats_tree_priv.h>
 #include <epan/plugin_if.h>
@@ -327,8 +327,6 @@ LograyMainWindow::LograyMainWindow(QWidget *parent) :
     , capture_options_dialog_(NULL)
     , info_data_()
 #endif
-    , display_filter_dlg_(NULL)
-    , capture_filter_dlg_(NULL)
 #if defined(Q_OS_MAC)
     , dock_menu_(NULL)
 #endif
@@ -494,6 +492,9 @@ main_ui_->goToLineEdit->setValidator(goToLineQiv);
     connect(packet_list_, SIGNAL(framesSelected(QList<int>)), this, SLOT(setMenusForSelectedPacket()));
     connect(packet_list_, SIGNAL(framesSelected(QList<int>)), this, SIGNAL(framesSelected(QList<int>)));
 
+    QAction *action = main_ui_->menuPacketComment->addAction(tr("Add New Comment…"));
+    connect(action, &QAction::triggered, this, &LograyMainWindow::addPacketComment);
+    action->setShortcut(QKeySequence(Qt::CTRL | Qt::ALT | Qt::Key_C));
     connect(main_ui_->menuPacketComment, SIGNAL(aboutToShow()), this, SLOT(setEditCommentsMenu()));
 
     proto_tree_ = new ProtoTree(&master_split_);
@@ -600,28 +601,10 @@ main_ui_->goToLineEdit->setValidator(goToLineQiv);
 
     connectFileMenuActions();
     connectEditMenuActions();
-
-    connect(main_ui_->actionGoNextPacket, SIGNAL(triggered()),
-            packet_list_, SLOT(goNextPacket()));
-    connect(main_ui_->actionGoPreviousPacket, SIGNAL(triggered()),
-            packet_list_, SLOT(goPreviousPacket()));
-    connect(main_ui_->actionGoFirstPacket, SIGNAL(triggered()),
-            packet_list_, SLOT(goFirstPacket()));
-    connect(main_ui_->actionGoLastPacket, SIGNAL(triggered()),
-            packet_list_, SLOT(goLastPacket()));
-    connect(main_ui_->actionGoNextHistoryPacket, SIGNAL(triggered()),
-            packet_list_, SLOT(goNextHistoryPacket()));
-    connect(main_ui_->actionGoPreviousHistoryPacket, SIGNAL(triggered()),
-            packet_list_, SLOT(goPreviousHistoryPacket()));
-
-    connect(main_ui_->actionViewExpandSubtrees, SIGNAL(triggered()),
-            proto_tree_, SLOT(expandSubtrees()));
-    connect(main_ui_->actionViewCollapseSubtrees, SIGNAL(triggered()),
-            proto_tree_, SLOT(collapseSubtrees()));
-    connect(main_ui_->actionViewExpandAll, SIGNAL(triggered()),
-            proto_tree_, SLOT(expandAll()));
-    connect(main_ui_->actionViewCollapseAll, SIGNAL(triggered()),
-            proto_tree_, SLOT(collapseAll()));
+    connectViewMenuActions();
+    connectGoMenuActions();
+    connectCaptureMenuActions();
+    connectAnalyzeMenuActions();
 
     connect(packet_list_, SIGNAL(packetDissectionChanged()),
             this, SLOT(redissectPackets()));
@@ -646,14 +629,15 @@ main_ui_->goToLineEdit->setValidator(goToLineQiv);
     connect(proto_tree_, SIGNAL(editProtocolPreference(preference*, pref_module*)),
             main_ui_->preferenceEditorFrame, SLOT(editPreference(preference*, pref_module*)));
 
-    connect(main_ui_->statusBar, SIGNAL(showExpertInfo()),
-            this, SLOT(on_actionAnalyzeExpertInfo_triggered()));
+    connect(main_ui_->statusBar, &MainStatusBar::showExpertInfo, this, [=]() {
+        statCommandExpertInfo(NULL, NULL);
+    });
 
-    connect(main_ui_->statusBar, SIGNAL(stopLoading()),
-            &capture_file_, SLOT(stopLoading()));
+    connect(main_ui_->statusBar, &MainStatusBar::stopLoading,
+            &capture_file_, &CaptureFile::stopLoading);
 
-    connect(main_ui_->statusBar, SIGNAL(editCaptureComment()),
-            this, SLOT(on_actionStatisticsCaptureFileProperties_triggered()));
+    connect(main_ui_->statusBar, &MainStatusBar::editCaptureComment,
+            this, &LograyMainWindow::on_actionStatisticsCaptureFileProperties_triggered);
 
     connect(main_ui_->menuApplyAsFilter, &QMenu::aboutToShow,
             this, &LograyMainWindow::filterMenuAboutToShow);
@@ -725,8 +709,6 @@ LograyMainWindow::~LograyMainWindow()
     // freed by its parent. Free then here explicitly to avoid leak and numerous
     // Valgrind complaints.
     delete file_set_dialog_;
-    delete capture_filter_dlg_;
-    delete display_filter_dlg_;
 #ifdef HAVE_LIBPCAP
     delete capture_options_dialog_;
 #endif
@@ -1187,16 +1169,16 @@ void LograyMainWindow::mergeCaptureFile()
         char        *tmpname;
 
         if (merge_dlg.merge(file_name, read_filter)) {
-            gchar *err_msg;
+            df_error_t *df_err = NULL;
 
-            if (!dfilter_compile(qUtf8Printable(read_filter), &rfcode, &err_msg)) {
+            if (!dfilter_compile(qUtf8Printable(read_filter), &rfcode, &df_err)) {
                 /* Not valid. Tell the user, and go back and run the file
                    selection box again once they dismiss the alert. */
                 // Similar to commandline_info.jfilter section in main().
                 QMessageBox::warning(this, tr("Invalid Read Filter"),
-                                     QString(tr("The filter expression %1 isn't a valid read filter. (%2).").arg(read_filter, err_msg)),
+                                     QString(tr("The filter expression %1 isn't a valid read filter. (%2).").arg(read_filter, df_err->msg)),
                                      QMessageBox::Ok);
-                g_free(err_msg);
+                dfilter_error_free(df_err);
                 continue;
             }
         } else {
@@ -2049,9 +2031,9 @@ void LograyMainWindow::initMainToolbarIcons()
     // Toolbar actions. The GNOME HIG says that we should have a menu icon for each
     // toolbar item but that clutters up our menu. Set menu icons sparingly.
 
-    main_ui_->actionCaptureStart->setIcon(StockIcon("x-capture-start"));
+    main_ui_->actionCaptureStart->setIcon(StockIcon("x-capture-start-circle"));
     main_ui_->actionCaptureStop->setIcon(StockIcon("x-capture-stop"));
-    main_ui_->actionCaptureRestart->setIcon(StockIcon("x-capture-restart"));
+    main_ui_->actionCaptureRestart->setIcon(StockIcon("x-capture-restart-circle"));
     main_ui_->actionCaptureOptions->setIcon(StockIcon("x-capture-options"));
 
     // Menu icons are disabled in main_window.ui for these items.
@@ -2878,12 +2860,4 @@ void LograyMainWindow::setMwFileName(QString fileName)
 {
     mwFileName_ = fileName;
     return;
-}
-
-frame_data * LograyMainWindow::frameDataForRow(int row) const
-{
-    if (packet_list_)
-        return packet_list_->getFDataForRow(row);
-
-    return Q_NULLPTR;
 }

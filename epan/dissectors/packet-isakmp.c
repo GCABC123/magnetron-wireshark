@@ -153,6 +153,7 @@ static int hf_isakmp_notify_data = -1;
 static int hf_isakmp_notify_data_dpd_are_you_there = -1;
 static int hf_isakmp_notify_data_dpd_are_you_there_ack = -1;
 static int hf_isakmp_notify_data_unity_load_balance = -1;
+static int hf_isakmp_notify_data_fortinet_network_overlay_id = -1;
 static int hf_isakmp_notify_data_accepted_dh_group = -1;
 static int hf_isakmp_notify_data_ipcomp_cpi = -1;
 static int hf_isakmp_notify_data_ipcomp_transform_id = -1;
@@ -1514,8 +1515,12 @@ static const range_string notifmsg_v2_3gpp_type[] = {
   { 55505,55505,      "UP_IP6_ADDRESS" },                           /* TS 24.502 */
   { 55506,55506,      "NAS_TCP_PORT" },                             /* TS 24.502 */
   { 55507,55507,      "N3GPP_BACKOFF_TIMER" },                      /* TS 24.502 */
-  { 55508,65535,      "Private Use - STATUS TYPES" },
-
+  { 55508,61471,      "Private Use - STATUS TYPES" },
+  { 61472,61472,      "Auto-Discovery Sender (Fortinet)" },
+  { 61473,61473,      "Auto-Discovery Receiver (Fortinet)" },
+  { 61474,61519,      "Private Use - STATUS TYPES" },
+  { 61520,61520,      "Network Overlay ID (Fortinet" },
+  { 61521,65535,      "Private Use - STATUS TYPES" },
   { 0,0,        NULL },
 };
 
@@ -2988,6 +2993,11 @@ static const guint8 VID_FORTINET_AUTODISCOVERY_RECEIVER[] = { /* Auto-Discovery 
         0x8C, 0x57, 0x06, 0x7C, 0x2E, 0x65, 0x37, 0x86
 };
 
+static const guint8 VID_FORTINET_AUTODISCOVERY_SENDER[] = { /* Auto-Discovery Sender (Fortinet) */
+        0x9B, 0x15, 0xE6, 0x5A, 0x87, 0x1A, 0xFF, 0x34,
+        0x26, 0x66, 0x62, 0x3B, 0xA5, 0x02, 0x2E, 0x60
+};
+
 static const guint8 VID_FORTINET_EXCHANGE_INTERFACE_IP[] = { /* Exchange Interface IP (Fortinet) */
         0xA5, 0x8F, 0xEC, 0x50, 0x36, 0xF5, 0x7B, 0x21,
         0xE8, 0xB4, 0x99, 0xE3, 0x36, 0xC7, 0x6E, 0xE6
@@ -3106,6 +3116,7 @@ static const bytes_string vendor_id[] = {
   { VID_FORTINET_FORTICLIENT_CONNECT, sizeof(VID_FORTINET_FORTICLIENT_CONNECT), "Forticlient connect license (Fortinet)" },
   { VID_FORTINET_ENDPOINT_CONTROL, sizeof(VID_FORTINET_ENDPOINT_CONTROL), "Endpoint Control (Fortinet)" },
   { VID_FORTINET_AUTODISCOVERY_RECEIVER, sizeof(VID_FORTINET_AUTODISCOVERY_RECEIVER), "Auto-Discovery Receiver (Fortinet)" },
+  { VID_FORTINET_AUTODISCOVERY_SENDER, sizeof(VID_FORTINET_AUTODISCOVERY_SENDER), "Auto-Discovery Sender (Fortinet)" },
   { VID_FORTINET_EXCHANGE_INTERFACE_IP, sizeof(VID_FORTINET_EXCHANGE_INTERFACE_IP), "Exchange Interface IP (Fortinet)" },
   { 0, 0, NULL }
 };
@@ -5049,6 +5060,9 @@ dissect_notif(tvbuff_t *tvb, packet_info *pinfo, int offset, int length, proto_t
           }
         }
         break;
+      case 61520: /* Network Overlay ID (Fortinet) */
+        proto_tree_add_item(tree, hf_isakmp_notify_data_fortinet_network_overlay_id, tvb, offset, length, ENC_BIG_ENDIAN);
+        break;
       default:
         /* No Default Action */
         break;
@@ -6775,6 +6789,10 @@ proto_register_isakmp(void)
     { &hf_isakmp_notify_data_unity_load_balance,
       { "UNITY LOAD BALANCE", "isakmp.notify.data.unity.load_balance",
         FT_IPv4, BASE_NONE, NULL, 0x0,
+        NULL, HFILL }},
+    { &hf_isakmp_notify_data_fortinet_network_overlay_id,
+      { "Network Overlay ID", "isakmp.notify.data.fortinet.network_overlay_id",
+        FT_UINT8, BASE_DEC_HEX, NULL, 0x0,
         NULL, HFILL }},
     { &hf_isakmp_notify_data_accepted_dh_group,
       { "Accepted DH group number", "isakmp.notify.data.accepted_dh_group",

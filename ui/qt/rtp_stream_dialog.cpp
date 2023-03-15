@@ -132,9 +132,11 @@ public:
             for (int i = 0; i < columnCount(); i++) {
                 QBrush bgBrush = background(i);
                 bgBrush.setColor(bgColor);
+                bgBrush.setStyle(Qt::SolidPattern);
                 setBackground(i, bgBrush);
                 QBrush fgBrush = foreground(i);
                 fgBrush.setColor(textColor);
+                fgBrush.setStyle(Qt::SolidPattern);
                 setForeground(i, fgBrush);
             }
         }
@@ -227,7 +229,13 @@ public:
         case packets_col_:
             return stream_info_->packet_count < other_rstwi.stream_info_->packet_count;
         case lost_col_:
-            return lost_ < other_rstwi.lost_;
+            rtpstream_info_calculate(stream_info_, &calc1);
+            rtpstream_info_calculate(other_rstwi.stream_info_, &calc2);
+            /* XXX: Should this sort on the total number or the percentage?
+             * lost_num is displayed first and lost_perc in parenthesis,
+             * so let's use the total number.
+             */
+            return calc1.lost_num < calc2.lost_num;
         case min_delta_col_:
             return stream_info_->rtp_stats.min_delta < other_rstwi.stream_info_->rtp_stats.min_delta;
         case mean_delta_col_:
@@ -255,7 +263,6 @@ public:
 
 private:
     rtpstream_info_t *stream_info_;
-    guint32 lost_;
     gboolean tod_;
 };
 
@@ -308,7 +315,7 @@ RtpStreamDialog::RtpStreamDialog(QWidget &parent, CaptureFile &cf) :
     find_reverse_button_->setToolButtonStyle(Qt::ToolButtonTextBesideIcon);
     find_reverse_button_->setPopupMode(QToolButton::MenuButtonPopup);
 
-    connect(ui->actionFindReverse, SIGNAL(triggered()), this, SLOT(on_actionFindReverseNormal_triggered()));
+    connect(ui->actionFindReverse, &QAction::triggered, this, &RtpStreamDialog::on_actionFindReverseNormal_triggered);
     find_reverse_button_->setDefaultAction(ui->actionFindReverse);
     // Overrides text striping of shortcut undercode in QAction
     find_reverse_button_->setText(ui->actionFindReverseNormal->text());
@@ -317,22 +324,22 @@ RtpStreamDialog::RtpStreamDialog(QWidget &parent, CaptureFile &cf) :
     analyze_button_ = RtpAnalysisDialog::addAnalyzeButton(ui->buttonBox, this);
     prepare_button_ = ui->buttonBox->addButton(ui->actionPrepareFilter->text(), QDialogButtonBox::ActionRole);
     prepare_button_->setToolTip(ui->actionPrepareFilter->toolTip());
-    connect(prepare_button_, SIGNAL(pressed()), this, SLOT(on_actionPrepareFilter_triggered()));
+    connect(prepare_button_, &QPushButton::pressed, this, &RtpStreamDialog::on_actionPrepareFilter_triggered);
     player_button_ = RtpPlayerDialog::addPlayerButton(ui->buttonBox, this);
     copy_button_ = ui->buttonBox->addButton(ui->actionCopyButton->text(), QDialogButtonBox::ActionRole);
     copy_button_->setToolTip(ui->actionCopyButton->toolTip());
     export_button_ = ui->buttonBox->addButton(ui->actionExportAsRtpDump->text(), QDialogButtonBox::ActionRole);
     export_button_->setToolTip(ui->actionExportAsRtpDump->toolTip());
-    connect(export_button_, SIGNAL(pressed()), this, SLOT(on_actionExportAsRtpDump_triggered()));
+    connect(export_button_, &QPushButton::pressed, this, &RtpStreamDialog::on_actionExportAsRtpDump_triggered);
 
     QMenu *copy_menu = new QMenu(copy_button_);
     QAction *ca;
     ca = copy_menu->addAction(tr("as CSV"));
     ca->setToolTip(ui->actionCopyAsCsv->toolTip());
-    connect(ca, SIGNAL(triggered()), this, SLOT(on_actionCopyAsCsv_triggered()));
+    connect(ca, &QAction::triggered, this, &RtpStreamDialog::on_actionCopyAsCsv_triggered);
     ca = copy_menu->addAction(tr("as YAML"));
     ca->setToolTip(ui->actionCopyAsYaml->toolTip());
-    connect(ca, SIGNAL(triggered()), this, SLOT(on_actionCopyAsYaml_triggered()));
+    connect(ca, &QAction::triggered, this, &RtpStreamDialog::on_actionCopyAsYaml_triggered);
     copy_button_->setMenu(copy_menu);
     connect(&cap_file_, SIGNAL(captureEvent(CaptureEvent)),
             this, SLOT(captureEvent(CaptureEvent)));
@@ -491,13 +498,16 @@ void RtpStreamDialog::tapReset(rtpstream_tapinfo_t *tapinfo)
         rtp_stream_dialog->freeLastSelected();
         /* Copy currently selected rtpstream_ids */
         QTreeWidgetItemIterator iter(rtp_stream_dialog->ui->streamTreeWidget);
+        rtpstream_id_t selected_id;
         while (*iter) {
             RtpStreamTreeWidgetItem *rsti = static_cast<RtpStreamTreeWidgetItem*>(*iter);
             rtpstream_info_t *stream_info = rsti->streamInfo();
             if ((*iter)->isSelected()) {
-                rtpstream_id_t *i = (rtpstream_id_t *)g_malloc0(sizeof(rtpstream_id_t));
-                rtpstream_id_copy(&stream_info->id, i);
-                rtp_stream_dialog->last_selected_.append(*i);
+                /* QList.append() does a member by member copy, so allocate new
+                 * addresses. rtpstream_id_copy() overwrites all struct members.
+                 */
+                rtpstream_id_copy(&stream_info->id, &selected_id);
+                rtp_stream_dialog->last_selected_.append(selected_id);
             }
             ++iter;
         }

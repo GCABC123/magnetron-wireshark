@@ -178,7 +178,8 @@ WS_DLL_PUBLIC dissector_table_t register_dissector_table(const char *name,
  * to store subdissectors.
  */
 WS_DLL_PUBLIC dissector_table_t register_custom_dissector_table(const char *name,
-    const char *ui_name, const int proto, GHashFunc hash_func, GEqualFunc key_equal_func);
+    const char *ui_name, const int proto, GHashFunc hash_func, GEqualFunc key_equal_func,
+    GDestroyNotify key_destroy_func);
 
 /** Register a dissector table alias.
  * This is for dissectors whose original name has changed, e.g. SSL to TLS.
@@ -597,6 +598,8 @@ WS_DLL_PUBLIC dissector_handle_t create_dissector_handle_with_name(dissector_t d
     const int proto, const char* name);
 WS_DLL_PUBLIC dissector_handle_t create_dissector_handle_with_name_and_description(dissector_t dissector,
     const int proto, const char* name, const char* description);
+WS_DLL_PUBLIC dissector_handle_t create_dissector_handle_with_data(dissector_cb_t dissector,
+    const int proto, void* cb_data);
 
 /** Call a dissector through a handle and if no dissector was found
  * pass it over to the "data" dissector instead.
@@ -771,7 +774,7 @@ extern void free_data_sources(packet_info *pinfo);
  * if the user does a File->Save-As of only the Displayed packets and the
  * current frame passed the display filter.
  */
-WS_DLL_PUBLIC void mark_frame_as_depended_upon(packet_info *pinfo, guint32 frame_num);
+WS_DLL_PUBLIC void mark_frame_as_depended_upon(frame_data *fd, guint32 frame_num);
 
 /* Structure passed to the frame dissector */
 typedef struct frame_data_s
