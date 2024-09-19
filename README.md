@@ -70,7 +70,7 @@ The official home of Wireshark is https://www.wireshark.org.
 
 The latest distribution can be found in the subdirectory https://www.wireshark.org/download
 
-Fileds/Filters: https://www.wireshark.org/docs/dfref/
+-T fileds/Filters: https://www.wireshark.org/docs/dfref/
 
 
 Installation
