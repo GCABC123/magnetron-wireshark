@@ -14,7 +14,12 @@
 #include <epan/packet.h>
 #include "packet-usb.h"
 
-static int proto_usb_ms = -1;
+static int proto_usb_ms;
+
+static dissector_handle_t usb_ms_bulk_handle;
+static dissector_handle_t usb_ms_control_handle;
+static dissector_handle_t usb_ms_interrupt_handle;
+static dissector_handle_t usb_ms_descriptor_handle;
 
 static dissector_table_t usb_ms_bulk_dissector_table;
 static dissector_table_t usb_ms_control_dissector_table;
@@ -71,47 +76,52 @@ value_string_ext usb_massstorage_protocol_vals_ext = VALUE_STRING_EXT_INIT(usb_m
 static int
 dissect_usb_ms_bulk(tvbuff_t *tvb, packet_info *pinfo, proto_tree *parent_tree, void *data)
 {
-    usb_conv_info_t *usb_conv_info;
+    urb_info_t *urb;
 
-    usb_conv_info = (usb_conv_info_t *)data;
+    urb = (urb_info_t *)data;
 
-    return dissector_try_uint_new(usb_ms_bulk_dissector_table, usb_conv_info->interfaceProtocol, tvb, pinfo, parent_tree, TRUE, usb_conv_info);
+    return dissector_try_uint_new(usb_ms_bulk_dissector_table, urb->conv->interfaceProtocol, tvb, pinfo, parent_tree, true, urb);
 }
 
 static int
 dissect_usb_ms_control(tvbuff_t *tvb, packet_info *pinfo, proto_tree *parent_tree, void *data)
 {
-    usb_conv_info_t *usb_conv_info;
+    urb_info_t *urb;
 
-    usb_conv_info = (usb_conv_info_t *)data;
+    urb = (urb_info_t *)data;
 
-    return dissector_try_uint_new(usb_ms_control_dissector_table, usb_conv_info->interfaceProtocol, tvb, pinfo, parent_tree, TRUE, usb_conv_info);
+    return dissector_try_uint_new(usb_ms_control_dissector_table, urb->conv->interfaceProtocol, tvb, pinfo, parent_tree, true, urb);
 }
 
 static int
 dissect_usb_ms_interrupt(tvbuff_t *tvb, packet_info *pinfo, proto_tree *parent_tree, void *data)
 {
-    usb_conv_info_t *usb_conv_info;
+    urb_info_t *urb;
 
-    usb_conv_info = (usb_conv_info_t *)data;
+    urb = (urb_info_t *)data;
 
-    return dissector_try_uint_new(usb_ms_interrupt_dissector_table, usb_conv_info->interfaceProtocol, tvb, pinfo, parent_tree, TRUE, usb_conv_info);
+    return dissector_try_uint_new(usb_ms_interrupt_dissector_table, urb->conv->interfaceProtocol, tvb, pinfo, parent_tree, true, urb);
 }
 
 static int
 dissect_usb_ms_descriptor(tvbuff_t *tvb, packet_info *pinfo, proto_tree *parent_tree, void *data)
 {
-    usb_conv_info_t *usb_conv_info;
+    urb_info_t *urb;
 
-    usb_conv_info = (usb_conv_info_t *)data;
+    urb = (urb_info_t *)data;
 
-    return dissector_try_uint_new(usb_ms_descriptor_dissector_table, usb_conv_info->interfaceProtocol, tvb, pinfo, parent_tree, TRUE, usb_conv_info);
+    return dissector_try_uint_new(usb_ms_descriptor_dissector_table, urb->conv->interfaceProtocol, tvb, pinfo, parent_tree, true, urb);
 }
 
 void
 proto_register_usb_ms(void)
 {
     proto_usb_ms = proto_register_protocol("USB Mass Storage Class", "USBMSClass", "usbmsclass");
+
+    usb_ms_bulk_handle = register_dissector("usbmsclass.bulk", dissect_usb_ms_bulk, proto_usb_ms);
+    usb_ms_control_handle = register_dissector("usbmsclass.control", dissect_usb_ms_control, proto_usb_ms);
+    usb_ms_interrupt_handle = register_dissector("usbmsclass.interrupt", dissect_usb_ms_interrupt, proto_usb_ms);
+    usb_ms_descriptor_handle = register_dissector("usbmsclass.descriptor", dissect_usb_ms_descriptor, proto_usb_ms);
 
     usb_ms_bulk_dissector_table = register_dissector_table("usbms.bulk",
         "USBMS bulk endpoint", proto_usb_ms, FT_UINT8, BASE_HEX);
@@ -126,16 +136,6 @@ proto_register_usb_ms(void)
 void
 proto_reg_handoff_usb_ms(void)
 {
-    dissector_handle_t usb_ms_bulk_handle;
-    dissector_handle_t usb_ms_control_handle;
-    dissector_handle_t usb_ms_interrupt_handle;
-    dissector_handle_t usb_ms_descriptor_handle;
-
-    usb_ms_bulk_handle = create_dissector_handle(dissect_usb_ms_bulk, proto_usb_ms);
-    usb_ms_control_handle = create_dissector_handle(dissect_usb_ms_control, proto_usb_ms);
-    usb_ms_interrupt_handle = create_dissector_handle(dissect_usb_ms_interrupt, proto_usb_ms);
-    usb_ms_descriptor_handle = create_dissector_handle(dissect_usb_ms_descriptor, proto_usb_ms);
-
     dissector_add_uint("usb.bulk", IF_CLASS_MASS_STORAGE, usb_ms_bulk_handle);
     dissector_add_uint("usb.control", IF_CLASS_MASS_STORAGE, usb_ms_control_handle);
     dissector_add_uint("usb.interrupt", IF_CLASS_MASS_STORAGE, usb_ms_interrupt_handle);

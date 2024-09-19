@@ -95,7 +95,7 @@ void CaptureFilterCombo::updateStyleSheet()
                 "QComboBox::drop-down {"
                 "  subcontrol-origin: padding;"
                 "  subcontrol-position: top right;"
-                "  width: 16px;"
+                "  width: 14px;"
                 "  border-left-width: 0px;"
                 " }"
 
@@ -126,7 +126,7 @@ void CaptureFilterCombo::rebuildFilterList()
     QString cur_filter = currentText();
     clear();
     for (GList *li = g_list_first(cfilter_list); li != NULL; li = gxx_list_next(li)) {
-        insertItem(0, gxx_list_data(const gchar *, li));
+        addItem(gxx_list_data(const char *, li));
     }
     lineEdit()->setText(cur_filter);
     lineEdit()->blockSignals(false);

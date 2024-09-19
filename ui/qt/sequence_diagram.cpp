@@ -11,9 +11,11 @@
 
 #include "epan/addr_resolv.h"
 #include "epan/sequence_analysis.h"
+#include "epan/column.h"
 
 #include <ui/qt/utils/color_utils.h>
 #include <ui/qt/utils/qt_ui_utils.h>
+#include <ui/qt/widgets/qcp_axis_ticker_elided.h>
 #include "ui/recent.h"
 
 #include <QFont>
@@ -66,8 +68,11 @@ SequenceDiagram::SequenceDiagram(QCPAxis *keyAxis, QCPAxis *valueAxis, QCPAxis *
         axis->setTicker(ticker);
         axis->setSubTickPen(no_pen);
         axis->setTickPen(no_pen);
-        axis->setBasePen(no_pen);
+        axis->setSelectedTickPen(no_pen);
     }
+
+    QSharedPointer<QCPAxisTicker> ticker(new QCPAxisTickerElided(comment_axis_));
+    comment_axis_->setTicker(ticker);
 
     value_axis_->grid()->setVisible(false);
 
@@ -82,6 +87,14 @@ SequenceDiagram::SequenceDiagram(QCPAxis *keyAxis, QCPAxis *valueAxis, QCPAxis *
     smooth_font_size(comment_font);
     comment_axis_->setTickLabelFont(comment_font);
     comment_axis_->setSelectedTickLabelFont(QFont(comment_font.family(), comment_font.pointSizeF(), QFont::Bold));
+
+    // By default QCPAxisRect auto resizes, which creates some slight but
+    // noticeable horizontal movement when scrolling vertically. Prevent that.
+    key_axis_->axisRect()->setAutoMargins(QCP::msTop | QCP::msBottom);
+    int time_margin = QFontMetrics(key_axis_->tickLabelFont()).horizontalAdvance(get_column_longest_string(COL_CLS_TIME));
+    int comment_margin = QFontMetrics(comment_font).height() * (max_comment_em_width_ + 1); // Add 1 as using the exact elided width is slightly too narrow
+    key_axis_->axisRect()->setMargins(QMargins(time_margin, 0, comment_margin, 0));
+
     //             frame_label
     // port_src -----------------> port_dst
 
@@ -127,7 +140,7 @@ int SequenceDiagram::adjacentPacket(bool next)
         it = data_->constEnd();
         --it;
         while (it != data_->constBegin()) {
-            guint32 prev_frame = it.value().value->frame_number;
+            uint32_t prev_frame = it.value().value->frame_number;
             --it;
             if (prev_frame == selected_packet_) {
                 adjacent_packet = it.value().value->frame_number;
@@ -149,8 +162,6 @@ void SequenceDiagram::setData(_seq_analysis_info *sainfo)
     double cur_key = 0.0;
     QVector<double> key_ticks, val_ticks;
     QVector<QString> key_labels, val_labels, com_labels;
-    QFontMetrics com_fm(comment_axis_->tickLabelFont());
-    int elide_w = com_fm.height() * max_comment_em_width_;
     char* addr_str;
 
     for (GList *cur = g_queue_peek_nth_link(sainfo->items, 0); cur; cur = gxx_list_next(cur)) {
@@ -165,7 +176,7 @@ void SequenceDiagram::setData(_seq_analysis_info *sainfo)
             key_ticks.append(cur_key);
             key_labels.append(sai->time_str);
 
-            com_labels.append(com_fm.elidedText(sai->comment, Qt::ElideRight, elide_w));
+            com_labels.append(sai->comment);
 
             cur_key++;
         }
@@ -209,6 +220,20 @@ _seq_analysis_item *SequenceDiagram::itemForPosY(int ypos)
         return data_->value(key_pos).value;
     }
     return NULL;
+}
+
+bool SequenceDiagram::inComment(QPoint pos) const
+{
+    return pos.x() >= (comment_axis_->axisRect()->right()
+                        + comment_axis_->padding()
+                        + comment_axis_->tickLabelPadding()
+                        + comment_axis_->offset());
+}
+
+QString SequenceDiagram::elidedComment(const QString &text) const
+{
+    QSharedPointer<QCPAxisTickerElided> comment_ticker = qSharedPointerCast<QCPAxisTickerElided>(comment_axis_->ticker());
+    return comment_ticker->elidedText(text);
 }
 
 double SequenceDiagram::selectTest(const QPointF &pos, bool, QVariant *) const
@@ -327,11 +352,7 @@ void SequenceDiagram::draw(QCPPainter *painter)
             double arrow_width = (arrow_end.x() - arrow_start.x()) * dir_mul;
             QString arrow_label = cfm.elidedText(sai->frame_label, Qt::ElideRight, arrow_width);
             int arrow_label_width = 0;
-#if (QT_VERSION >= QT_VERSION_CHECK(5, 11, 0))
             arrow_label_width = cfm.horizontalAdvance(arrow_label);
-#else
-            arrow_label_width = cfm.width(arrow_label);
-#endif
             QPoint text_pt(comment_start + ((arrow_width - arrow_label_width) / 2),
                           arrow_start.y() - (en_w / 2));
 
@@ -344,11 +365,7 @@ void SequenceDiagram::draw(QCPPainter *painter)
                 QString port_left = QString::number(dir_mul > 0 ? sai->port_src : sai->port_dst);
                 QString port_right = QString::number(dir_mul > 0 ? sai->port_dst : sai->port_src);
                 int port_left_width = 0;
-#if (QT_VERSION >= QT_VERSION_CHECK(5, 11, 0))
                 port_left_width = cfm.horizontalAdvance(port_left);
-#else
-                port_left_width = cfm.width(port_left);
-#endif
                 text_pt = QPoint(left_x - en_w - port_left_width, arrow_start.y() + (en_w / 2));
                 painter->drawText(text_pt, port_left);
 

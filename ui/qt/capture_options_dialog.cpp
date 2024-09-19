@@ -9,7 +9,7 @@
 
 #include "config.h"
 
-#include <glib.h>
+#include <wireshark.h>
 
 #include "capture_options_dialog.h"
 #include <ui/qt/widgets/capture_filter_combo.h>
@@ -31,12 +31,13 @@
 #include "ui/capture_ui_utils.h"
 #include "ui/capture_globals.h"
 #include "ui/iface_lists.h"
-#include "ui/last_open_dir.h"
+#include "ui/file_dialog.h"
 
 #include "ui/ws_ui_util.h"
 #include "ui/util.h"
 #include <wsutil/utf8_entities.h>
 #include "ui/preference_utils.h"
+#include "ui/recent.h"
 
 #include <cstdio>
 #include <epan/prefs.h>
@@ -57,6 +58,11 @@
 // - Fix InterfaceTreeDelegate method names.
 // - You can edit filters via the main CaptureFilterCombo and via each
 //   individual interface row. We should probably do one or the other.
+// - There might be a point in having the separate combo boxes in the
+//   individual interface row, if their CaptureFilterCombos actually
+//   called recent_get_cfilter_list with the interface name to get the
+//   separate list of recent capture filters for that interface, but
+//   they don't.
 
 const int stat_update_interval_ = 1000; // ms
 
@@ -88,10 +94,10 @@ enum
 static interface_t *find_device_by_if_name(const QString &interface_name)
 {
     interface_t *device;
-    guint i;
+    unsigned i;
     for (i = 0; i < global_capture_opts.all_ifaces->len; i++) {
         device = &g_array_index(global_capture_opts.all_ifaces, interface_t, i);
-        if (!interface_name.compare(device->display_name) && !device->hidden && device->type != IF_PIPE) {
+        if (!interface_name.compare(device->display_name) && !device->hidden && device->if_info.type != IF_PIPE) {
             return device;
         }
     }
@@ -111,6 +117,9 @@ public:
     {
         if (!device) return;
 
+        // Prevent infinite recursive signal loop
+        // itemChanged->interfaceItemChanged->updateInterfaceColumns
+        treeWidget()->blockSignals(true);
         QString default_str = QObject::tr("default");
 
         // XXX - this is duplicated in InterfaceTreeModel::data;
@@ -158,6 +167,7 @@ public:
             setApplicable(col_monitor_, false);
         }
 #endif
+        treeWidget()->blockSignals(false);
     }
 
     void setApplicable(int column, bool applicable = false) {
@@ -204,6 +214,7 @@ CaptureOptionsDialog::CaptureOptionsDialog(QWidget *parent) :
 #endif
 #ifndef SHOW_MONITOR_COLUMN
     ui->interfaceTree->setColumnHidden(col_monitor_, true);
+    ui->captureMonitorModeCheckBox->setVisible(false);
 #endif
     ui->interfaceTree->setItemDelegateForColumn(col_filter_, &interface_item_delegate_);
 
@@ -212,6 +223,7 @@ CaptureOptionsDialog::CaptureOptionsDialog(QWidget *parent) :
     ui->filenameLineEdit->setPlaceholderText(tr("Leave blank to use a temporary file"));
 
     ui->rbCompressionNone->setChecked(true);
+    ui->rbTimeNum->setChecked(true);
 
     ui->tempDirLineEdit->setPlaceholderText(g_get_tmp_dir());
     ui->tempDirLineEdit->setText(global_capture_opts.temp_dir);
@@ -236,6 +248,31 @@ CaptureOptionsDialog::CaptureOptionsDialog(QWidget *parent) :
     connect(ui->interfaceTree, SIGNAL(itemDoubleClicked(QTreeWidgetItem*,int)), this, SLOT(itemDoubleClicked(QTreeWidgetItem*,int)));
     connect(ui->tempDirBrowseButton, SIGNAL(clicked()), this, SLOT(tempDirBrowseButtonClicked()));
 
+    // Ring buffer minimums (all 1 except # of files)
+    ui->PktSpinBox->setMinimum(1);
+    ui->MBSpinBox->setMinimum(1);
+    ui->SecsSpinBox->setMinimum(1);
+    ui->IntervalSecsSpinBox->setMinimum(1);
+    ui->RbSpinBox->setMinimum(2);
+
+    // Autostop minimums
+    ui->stopPktSpinBox->setMinimum(1);
+    ui->stopFilesSpinBox->setMinimum(1);
+    ui->stopMBSpinBox->setMinimum(1);
+    ui->stopSecsSpinBox->setMinimum(1);
+
+    // Capture size maximum depends on units. Initial unit is kB.
+    ui->MBSpinBox->setMaximum(2000000000);
+    ui->stopMBSpinBox->setMaximum(2000000000);
+
+#if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
+    connect(ui->MBComboBox, QOverload<int>::of(&QComboBox::currentIndexChanged), this, &CaptureOptionsDialog::MBComboBoxIndexChanged);
+    connect(ui->stopMBComboBox, QOverload<int>::of(&QComboBox::currentIndexChanged), this, &CaptureOptionsDialog::stopMBComboBoxIndexChanged);
+#else
+    connect(ui->MBComboBox, &QComboBox::currentIndexChanged, this, &CaptureOptionsDialog::MBComboBoxIndexChanged);
+    connect(ui->stopMBComboBox, &QComboBox::currentIndexChanged, this, &CaptureOptionsDialog::stopMBComboBoxIndexChanged);
+#endif
+
     ui->tabWidget->setCurrentIndex(0);
 
     updateWidgets();
@@ -256,14 +293,14 @@ void CaptureOptionsDialog::updateGlobalDeviceSelections()
 
     while (*iter) {
         QString device_name = (*iter)->data(col_interface_, Qt::UserRole).value<QString>();
-        for (guint i = 0; i < global_capture_opts.all_ifaces->len; i++) {
+        for (unsigned i = 0; i < global_capture_opts.all_ifaces->len; i++) {
             interface_t *device = &g_array_index(global_capture_opts.all_ifaces, interface_t, i);
             if (device_name.compare(QString().fromUtf8(device->name)) == 0) {
                 if ((*iter)->isSelected()) {
-                    device->selected = TRUE;
+                    device->selected = true;
                     global_capture_opts.num_selected++;
                 } else {
-                    device->selected = FALSE;
+                    device->selected = false;
                 }
                 break;
             }
@@ -284,7 +321,7 @@ void CaptureOptionsDialog::updateFromGlobalDeviceSelections()
 
     while (*iter) {
         QString device_name = (*iter)->data(col_interface_, Qt::UserRole).value<QString>();
-        for (guint i = 0; i < global_capture_opts.all_ifaces->len; i++) {
+        for (unsigned i = 0; i < global_capture_opts.all_ifaces->len; i++) {
             interface_t *device = &g_array_index(global_capture_opts.all_ifaces, interface_t, i);
             if (device_name.compare(QString().fromUtf8(device->name)) == 0) {
                 if ((bool)device->selected != (*iter)->isSelected()) {
@@ -363,22 +400,27 @@ void CaptureOptionsDialog::on_capturePromModeCheckBox_toggled(bool checked)
     }
 }
 
+void CaptureOptionsDialog::on_captureMonitorModeCheckBox_toggled(bool checked)
+{
+    interface_t *device;
+    prefs.capture_monitor_mode = checked;
+    for (int row = 0; row < ui->interfaceTree->topLevelItemCount(); row++) {
+        InterfaceTreeWidgetItem *ti = dynamic_cast<InterfaceTreeWidgetItem *>(ui->interfaceTree->topLevelItem(row));
+        if (!ti) continue;
+
+        QString device_name = ti->data(col_interface_, Qt::UserRole).toString();
+        device = getDeviceByName(device_name);
+        if (!device) continue;
+        if (device->monitor_mode_supported) {
+            device->monitor_mode_enabled = checked;
+            ti->updateInterfaceColumns(device);
+        }
+    }
+}
+
 void CaptureOptionsDialog::browseButtonClicked()
 {
-    char *open_dir = NULL;
-
-    switch (prefs.gui_fileopen_style) {
-
-    case FO_STYLE_LAST_OPENED:
-        open_dir = get_last_open_dir();
-        break;
-
-    case FO_STYLE_SPECIFIED:
-        if (prefs.gui_fileopen_dir[0] != '\0')
-            open_dir = prefs.gui_fileopen_dir;
-        break;
-    }
-    QString file_name = WiresharkFileDialog::getSaveFileName(this, tr("Specify a Capture File"), open_dir);
+    QString file_name = WiresharkFileDialog::getSaveFileName(this, tr("Specify a Capture File"), get_open_dialog_initial_dir());
     ui->filenameLineEdit->setText(file_name);
 }
 
@@ -406,15 +448,15 @@ void CaptureOptionsDialog::interfaceItemChanged(QTreeWidgetItem *item, int colum
     switch(column) {
 
     case col_pmode_:
-        device->pmode = item->checkState(col_pmode_) == Qt::Checked ? TRUE : FALSE;
+        device->pmode = item->checkState(col_pmode_) == Qt::Checked ? true : false;
         ti->updateInterfaceColumns(device);
         break;
 
 #ifdef SHOW_MONITOR_COLUMN
     case col_monitor_:
     {
-        gboolean monitor_mode = FALSE;
-        if (ti->checkState(col_monitor_) == Qt::Checked) monitor_mode = TRUE;
+        bool monitor_mode = false;
+        if (ti->checkState(col_monitor_) == Qt::Checked) monitor_mode = true;
 
         if_capabilities_t *caps;
         char *auth_str = NULL;
@@ -434,15 +476,16 @@ void CaptureOptionsDialog::interfaceItemChanged(QTreeWidgetItem *item, int colum
         if (caps != Q_NULLPTR) {
 
             for (int i = static_cast<int>(g_list_length(device->links)) - 1; i >= 0; i--) {
-                GList* rem = g_list_nth(device->links, static_cast<guint>(i));
+                GList* rem = g_list_nth(device->links, static_cast<unsigned>(i));
                 device->links = g_list_remove_link(device->links, rem);
                 g_list_free_1(rem);
             }
             device->active_dlt = -1;
             device->monitor_mode_supported = caps->can_set_rfmon;
-            device->monitor_mode_enabled = monitor_mode;
+            device->monitor_mode_enabled = monitor_mode && caps->can_set_rfmon;
+            GList *lt_list = device->monitor_mode_enabled ? caps->data_link_types_rfmon : caps->data_link_types;
 
-            for (GList *lt_entry = caps->data_link_types; lt_entry != Q_NULLPTR; lt_entry = gxx_list_next(lt_entry)) {
+            for (GList *lt_entry = lt_list; lt_entry != Q_NULLPTR; lt_entry = gxx_list_next(lt_entry)) {
                 link_row *linkr = new link_row();
                 data_link_info_t *data_link_info = gxx_list_data(data_link_info_t *, lt_entry);
                 /*
@@ -460,7 +503,7 @@ void CaptureOptionsDialog::interfaceItemChanged(QTreeWidgetItem *item, int colum
                     }
                     linkr->name = g_strdup(data_link_info->description);
                 } else {
-                    gchar *str;
+                    char *str;
                     /* XXX - should we just omit them? */
                     str = ws_strdup_printf("%s (not supported)", data_link_info->name);
                     linkr->dlt = -1;
@@ -473,8 +516,8 @@ void CaptureOptionsDialog::interfaceItemChanged(QTreeWidgetItem *item, int colum
         } else {
             /* We don't know whether this supports monitor mode or not;
                don't ask for monitor mode. */
-            device->monitor_mode_enabled = FALSE;
-            device->monitor_mode_supported = FALSE;
+            device->monitor_mode_enabled = false;
+            device->monitor_mode_supported = false;
         }
 
         ti->updateInterfaceColumns(device);
@@ -555,6 +598,36 @@ void CaptureOptionsDialog::itemDoubleClicked(QTreeWidgetItem *item, int column)
     }
 }
 
+void CaptureOptionsDialog::MBComboBoxIndexChanged(int index)
+{
+    switch (index) {
+    case 0: // kilobytes
+        ui->MBSpinBox->setMaximum(2000000000);
+        break;
+    case 1: // megabytes
+        ui->MBSpinBox->setMaximum(2000000);
+        break;
+    case 2: // gigabytes
+        ui->MBSpinBox->setMaximum(2000);
+        break;
+    }
+}
+
+void CaptureOptionsDialog::stopMBComboBoxIndexChanged(int index)
+{
+    switch (index) {
+    case 0: // kilobytes
+        ui->stopMBSpinBox->setMaximum(2000000000);
+        break;
+    case 1: // megabytes
+        ui->stopMBSpinBox->setMaximum(2000000);
+        break;
+    case 2: // gigabytes
+        ui->stopMBSpinBox->setMaximum(2000);
+        break;
+    }
+}
+
 void CaptureOptionsDialog::on_gbStopCaptureAuto_toggled(bool checked)
 {
     global_capture_opts.has_file_interval = checked;
@@ -568,7 +641,7 @@ void CaptureOptionsDialog::on_gbNewFileAuto_toggled(bool checked)
     ui->stopMBComboBox->setEnabled(checked?false:true);
     ui->gbCompression->setEnabled(checked);
     ui->rbCompressionNone->setEnabled(checked);
-#ifdef HAVE_ZLIB
+#if defined(HAVE_ZLIB) || defined(HAVE_ZLIBNG)
     ui->rbCompressionGzip->setEnabled(checked);
 #else
     ui->rbCompressionGzip->setEnabled(false);
@@ -582,7 +655,7 @@ void CaptureOptionsDialog::on_cbUpdatePacketsRT_toggled(bool checked)
 
 void CaptureOptionsDialog::on_cbAutoScroll_toggled(bool checked)
 {
-    auto_scroll_live = checked;
+    recent.capture_auto_scroll = checked;
 }
 
 void CaptureOptionsDialog::on_cbExtraCaptureInfo_toggled(bool checked)
@@ -655,6 +728,8 @@ void CaptureOptionsDialog::updateInterfaces()
         ui->rbPcap->setChecked(true);
     }
     ui->capturePromModeCheckBox->setChecked(prefs.capture_prom_mode);
+    ui->captureMonitorModeCheckBox->setChecked(prefs.capture_monitor_mode);
+    ui->captureMonitorModeCheckBox->setEnabled(false);
 
     if (global_capture_opts.saving_to_file) {
         ui->filenameLineEdit->setText(QString(global_capture_opts.orig_save_file));
@@ -759,7 +834,7 @@ void CaptureOptionsDialog::updateInterfaces()
     }
 
     ui->cbUpdatePacketsRT->setChecked(global_capture_opts.real_time_mode);
-    ui->cbAutoScroll->setChecked(true);
+    ui->cbAutoScroll->setChecked(recent.capture_auto_scroll);
     ui->cbExtraCaptureInfo->setChecked(global_capture_opts.show_info);
 
     ui->cbResolveMacAddresses->setChecked(gbl_resolv_flags.mac_name);
@@ -771,10 +846,10 @@ void CaptureOptionsDialog::updateInterfaces()
     ui->interfaceTree->clear();
 
 #ifdef SHOW_BUFFER_COLUMN
-    gint          buffer;
+    int           buffer;
 #endif
-    gint          snaplen;
-    gboolean      hassnap, pmode;
+    int           snaplen;
+    bool          hassnap, pmode;
     QList<QTreeWidgetItem *> selected_interfaces;
 
     disconnect(ui->interfaceTree, SIGNAL(itemChanged(QTreeWidgetItem*,int)), this, SLOT(interfaceItemChanged(QTreeWidgetItem*,int)));
@@ -782,7 +857,7 @@ void CaptureOptionsDialog::updateInterfaces()
     if (global_capture_opts.all_ifaces->len > 0) {
         interface_t *device;
 
-        for (guint device_idx = 0; device_idx < global_capture_opts.all_ifaces->len; device_idx++) {
+        for (unsigned device_idx = 0; device_idx < global_capture_opts.all_ifaces->len; device_idx++) {
             device = &g_array_index(global_capture_opts.all_ifaces, interface_t, device_idx);
 
             /* Continue if capture device is hidden */
@@ -825,11 +900,11 @@ void CaptureOptionsDialog::updateInterfaces()
             if (capture_dev_user_snaplen_find(device->name, &hassnap, &snaplen)) {
                 /* Default snap length set in preferences */
                 device->snaplen = snaplen;
-                device->has_snaplen = snaplen == WTAP_MAX_PACKET_SIZE_STANDARD ? FALSE : hassnap;
+                device->has_snaplen = snaplen == WTAP_MAX_PACKET_SIZE_STANDARD ? false : hassnap;
             } else {
                 /* No preferences set yet, use default values */
                 device->snaplen = WTAP_MAX_PACKET_SIZE_STANDARD;
-                device->has_snaplen = FALSE;
+                device->has_snaplen = false;
             }
 
 #ifdef SHOW_BUFFER_COLUMN
@@ -838,6 +913,11 @@ void CaptureOptionsDialog::updateInterfaces()
                 device->buffer = buffer;
             } else {
                 device->buffer = DEFAULT_CAPTURE_BUFFER_SIZE;
+            }
+#endif
+#ifdef SHOW_MONITOR_COLUMN
+            if (device->monitor_mode_supported) {
+                ui->captureMonitorModeCheckBox->setEnabled(true);
             }
 #endif
             ti->updateInterfaceColumns(device);
@@ -911,14 +991,14 @@ void CaptureOptionsDialog::updateStatistics(void)
     disconnect(ui->interfaceTree, SIGNAL(itemChanged(QTreeWidgetItem*,int)), this, SLOT(interfaceItemChanged(QTreeWidgetItem*,int)));
     for (int row = 0; row < ui->interfaceTree->topLevelItemCount(); row++) {
 
-        for (guint if_idx = 0; if_idx < global_capture_opts.all_ifaces->len; if_idx++) {
+        for (unsigned if_idx = 0; if_idx < global_capture_opts.all_ifaces->len; if_idx++) {
             QTreeWidgetItem *ti = ui->interfaceTree->topLevelItem(row);
             if (!ti) {
                 continue;
             }
             device = &g_array_index(global_capture_opts.all_ifaces, interface_t, if_idx);
             QString device_name = ti->text(col_interface_);
-            if (device_name.compare(device->display_name) || device->hidden || device->type == IF_PIPE) {
+            if (device_name.compare(device->display_name) || device->hidden || device->if_info.type == IF_PIPE) {
                 continue;
             }
             QList<int> points = ti->data(col_traffic_, Qt::UserRole).value<QList<int> >();
@@ -932,13 +1012,17 @@ void CaptureOptionsDialog::updateStatistics(void)
 
 void CaptureOptionsDialog::on_compileBPF_clicked()
 {
-    QStringList interfaces;
+    QList<InterfaceFilter> interfaces;
     foreach (QTreeWidgetItem *ti, ui->interfaceTree->selectedItems()) {
-        interfaces.append(ti->text(col_interface_));
+#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
+        interfaces.emplaceBack(ti->text(col_interface_), ti->text(col_filter_));
+#else
+        interfaces.append(InterfaceFilter(ti->text(col_interface_), ti->text(col_filter_)));
+#endif
     }
 
     QString filter = ui->captureFilterComboBox->currentText();
-    CompiledFilterOutput *cfo = new CompiledFilterOutput(this, interfaces, filter);
+    CompiledFilterOutput *cfo = new CompiledFilterOutput(this, interfaces);
 
     cfo->show();
 }
@@ -1023,17 +1107,17 @@ bool CaptureOptionsDialog::saveOptionsToPreferences()
              global_capture_opts.autostop_filesize = ui->MBSpinBox->value();
              int index = ui->MBComboBox->currentIndex();
              switch (index) {
-             case 1: if (global_capture_opts.autostop_filesize > 2000) {
+             case 1: if (global_capture_opts.autostop_filesize > 2000000) {
                  QMessageBox::warning(this, tr("Error"),
-                                          tr("Multiple files: Requested filesize too large. The filesize cannot be greater than 2 GiB."));
+                                          tr("Multiple files: Requested filesize too large. The filesize cannot be greater than 2 TB."));
                  return false;
                  } else {
                      global_capture_opts.autostop_filesize *= 1000;
                  }
                  break;
-             case 2: if (global_capture_opts.autostop_filesize > 2) {
+             case 2: if (global_capture_opts.autostop_filesize > 2000) {
                      QMessageBox::warning(this, tr("Error"),
-                                              tr("Multiple files: Requested filesize too large. The filesize cannot be greater than 2 GiB."));
+                                              tr("Multiple files: Requested filesize too large. The filesize cannot be greater than 2 TB."));
                      return false;
                      } else {
                          global_capture_opts.autostop_filesize *= 1000000;
@@ -1062,17 +1146,17 @@ bool CaptureOptionsDialog::saveOptionsToPreferences()
             global_capture_opts.autostop_filesize = ui->stopMBSpinBox->value();
             int index = ui->stopMBComboBox->currentIndex();
             switch (index) {
-            case 1: if (global_capture_opts.autostop_filesize > 2000) {
+            case 1: if (global_capture_opts.autostop_filesize > 2000000) {
                 QMessageBox::warning(this, tr("Error"),
-                                         tr("Multiple files: Requested filesize too large. The filesize cannot be greater than 2 GiB."));
+                                         tr("Multiple files: Requested filesize too large. The filesize cannot be greater than 2 TB."));
                 return false;
                 } else {
                     global_capture_opts.autostop_filesize *= 1000;
                 }
                 break;
-            case 2: if (global_capture_opts.autostop_filesize > 2) {
+            case 2: if (global_capture_opts.autostop_filesize > 2000) {
                     QMessageBox::warning(this, tr("Error"),
-                                             tr("Multiple files: Requested filesize too large. The filesize cannot be greater than 2 GiB."));
+                                             tr("Multiple files: Requested filesize too large. The filesize cannot be greater than 2 TB."));
                     return false;
                     } else {
                         global_capture_opts.autostop_filesize *= 1000000;
@@ -1175,7 +1259,7 @@ bool CaptureOptionsDialog::saveOptionsToPreferences()
                 QTreeWidgetItem *ti = ui->interfaceTree->topLevelItem(row);
                 QString device_name = ti->data(col_interface_, Qt::UserRole).toString();
                 device = getDeviceByName(device_name);
-                if (!device || device->pmode == -1) {
+                if (!device || !device->pmode) {
                     continue;
                 }
                 pmode_list << QString("%1(%2)").arg(device->name).arg(device->pmode);
@@ -1238,6 +1322,14 @@ bool CaptureOptionsDialog::saveOptionsToPreferences()
         global_capture_opts.compress_type = NULL;
     }
 
+    if (ui->rbTimeNum->isChecked() )  {
+        global_capture_opts.has_nametimenum = true;
+    } else if (ui->rbNumTime->isChecked() )  {
+        global_capture_opts.has_nametimenum = false;
+    }  else {
+        global_capture_opts.has_nametimenum = false;
+    }
+
     prefs_main_write();
     return true;
 }
@@ -1283,7 +1375,7 @@ void CaptureOptionsDialog::changeEvent(QEvent* event)
 
 interface_t *CaptureOptionsDialog::getDeviceByName(const QString device_name)
 {
-    for (guint i = 0; i < global_capture_opts.all_ifaces->len; i++) {
+    for (unsigned i = 0; i < global_capture_opts.all_ifaces->len; i++) {
         interface_t *device = &g_array_index(global_capture_opts.all_ifaces, interface_t, i);
         if (device_name.compare(QString().fromUtf8(device->name)) == 0) {
             return device;
@@ -1318,6 +1410,13 @@ QVariant InterfaceTreeWidgetItem::data(int column, int role) const
         return QVariant::fromValue(points);
     }
 
+    if (column == col_snaplen_ && role == Qt::DisplayRole) {
+        QVariant data = QTreeWidgetItem::data(column, role);
+        if (data.toInt() == WTAP_MAX_PACKET_SIZE_STANDARD || data.toInt() == 0) {
+            return InterfaceTreeDelegate::tr("default");
+        }
+        return data;
+    }
     return QTreeWidgetItem::data(column, role);
 }
 
@@ -1356,9 +1455,9 @@ QWidget* InterfaceTreeDelegate::createEditor(QWidget *parent, const QStyleOption
 {
     QWidget *w = NULL;
 #ifdef SHOW_BUFFER_COLUMN
-    gint buffer = DEFAULT_CAPTURE_BUFFER_SIZE;
+    int buffer = DEFAULT_CAPTURE_BUFFER_SIZE;
 #endif
-    guint snap = WTAP_MAX_PACKET_SIZE_STANDARD;
+    unsigned snap = WTAP_MAX_PACKET_SIZE_STANDARD;
     GList *links = NULL;
 
     if (idx.column() > 1 && idx.data().toString().compare(UTF8_EM_DASH)) {
@@ -1409,9 +1508,10 @@ QWidget* InterfaceTreeDelegate::createEditor(QWidget *parent, const QStyleOption
         case col_snaplen_:
         {
             QSpinBox *sb = new QSpinBox(parent);
-            sb->setRange(1, WTAP_MAX_PACKET_SIZE_STANDARD);
+            sb->setRange(0, WTAP_MAX_PACKET_SIZE_STANDARD);
             sb->setValue(snap);
             sb->setWrapping(true);
+            sb->setSpecialValueText(tr("default"));
             connect(sb, SIGNAL(valueChanged(int)), this, SLOT(snapshotLengthChanged(int)));
             w = (QWidget*) sb;
             break;
@@ -1430,6 +1530,8 @@ QWidget* InterfaceTreeDelegate::createEditor(QWidget *parent, const QStyleOption
 #endif
         case col_filter_:
         {
+            // XXX: Should this take the interface name, so that the history
+            // list is taken from the interface-specific recent cfilter list?
             CaptureFilterCombo *cf = new CaptureFilterCombo(parent, true);
             connect(cf->lineEdit(), SIGNAL(textEdited(QString)), this, SIGNAL(filterChanged(QString)));
             w = (QWidget*) cf;
@@ -1493,7 +1595,7 @@ void InterfaceTreeDelegate::snapshotLengthChanged(int value)
     if (!device) {
         return;
     }
-    if (value != WTAP_MAX_PACKET_SIZE_STANDARD) {
+    if (value != WTAP_MAX_PACKET_SIZE_STANDARD && value != 0) {
         device->has_snaplen = true;
         device->snaplen = value;
     } else {

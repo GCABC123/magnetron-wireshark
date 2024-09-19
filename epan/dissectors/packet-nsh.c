@@ -23,6 +23,7 @@
 #include <epan/packet.h>
 #include <epan/etypes.h>
 #include <epan/expert.h>
+#include <epan/ipproto.h>
 #include "packet-nsh.h"
 #include "packet-vxlan.h"
 
@@ -32,6 +33,8 @@
 /* Prototypes */
 void proto_reg_handoff_nsh(void);
 void proto_register_nsh(void);
+
+static dissector_handle_t nsh_handle;
 
 static const value_string nsh_next_protocols[] = {
 	{ NSH_NONE, "None" },
@@ -46,26 +49,26 @@ static const value_string nsh_next_protocols[] = {
 };
 
 
-static int proto_nsh = -1;
-static int hf_nsh_version = -1;
-static int hf_nsh_oam = -1;
-static int hf_nsh_critical_metadata = -1;
-static int hf_nsh_ttl = -1;
-static int hf_nsh_length = -1;
-static int hf_nsh_md_type = -1;
-static int hf_nsh_next_proto = -1;
-static int hf_nsh_service_pathID = -1;
-static int hf_nsh_service_index = -1;
-static int hf_nsh_context_header = -1;
-static int hf_nsh_metadata_class = -1;
-static int hf_nsh_metadata_type = -1;
-static int hf_nsh_metadata_unassignedbit = -1;
-static int hf_nsh_metadata_length = -1;
-static int hf_nsh_metadata = -1;
+static int proto_nsh;
+static int hf_nsh_version;
+static int hf_nsh_oam;
+static int hf_nsh_critical_metadata;
+static int hf_nsh_ttl;
+static int hf_nsh_length;
+static int hf_nsh_md_type;
+static int hf_nsh_next_proto;
+static int hf_nsh_service_pathID;
+static int hf_nsh_service_index;
+static int hf_nsh_context_header;
+static int hf_nsh_metadata_class;
+static int hf_nsh_metadata_type;
+static int hf_nsh_metadata_unassignedbit;
+static int hf_nsh_metadata_length;
+static int hf_nsh_metadata;
 
-static expert_field ei_nsh_length_invalid = EI_INIT;
+static expert_field ei_nsh_length_invalid;
 
-static gint ett_nsh = -1;
+static int ett_nsh;
 
 static dissector_table_t subdissector_table;
 
@@ -76,13 +79,10 @@ static dissector_table_t subdissector_table;
 static void
 dissect_nsh_md_type_1(tvbuff_t *tvb, proto_tree *nsh_tree, int offset)
 {
-
 	proto_tree_add_item(nsh_tree, hf_nsh_context_header, tvb, offset, 4, ENC_NA);
 	proto_tree_add_item(nsh_tree, hf_nsh_context_header, tvb, offset + 4, 4, ENC_NA);
 	proto_tree_add_item(nsh_tree, hf_nsh_context_header, tvb, offset + 8, 4, ENC_NA);
 	proto_tree_add_item(nsh_tree, hf_nsh_context_header, tvb, offset + 12, 4, ENC_NA);
-
-
 }
 
 /*
@@ -94,7 +94,7 @@ static void
 dissect_nsh_md_type_2(tvbuff_t *tvb, proto_tree *nsh_tree, int offset, int nsh_bytes_len)
 {
 
-	guint32 type2_metadata_len = 0;
+	uint32_t type2_metadata_len = 0;
 	int pad_len;
 
 	while (offset < nsh_bytes_len) {
@@ -131,7 +131,7 @@ dissect_nsh(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, void *data _U_)
 
 	int offset = 0;
 	int md_type = -1;
-	guint32 nsh_bytes_len;
+	uint32_t nsh_bytes_len;
 	int nsh_next_proto = -1;
 	proto_item *length_pi;
 	tvbuff_t *next_tvb;
@@ -159,10 +159,10 @@ dissect_nsh(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, void *data _U_)
 	proto_item_set_len(ti, nsh_bytes_len);
 
 
-	md_type = tvb_get_guint8(tvb, offset + 2);
+	md_type = tvb_get_uint8(tvb, offset + 2);
 	proto_tree_add_item(nsh_tree, hf_nsh_md_type, tvb, offset + 2, 1, ENC_BIG_ENDIAN);
 
-	nsh_next_proto = tvb_get_guint8(tvb, offset + 3);
+	nsh_next_proto = tvb_get_uint8(tvb, offset + 3);
 	proto_tree_add_item(nsh_tree, hf_nsh_next_proto, tvb, offset + 3, 1, ENC_BIG_ENDIAN);
 
 	/*NSH Service Path Header */
@@ -339,7 +339,7 @@ proto_register_nsh(void)
 	};
 
 
-	static gint *ett[] = {
+	static int *ett[] = {
 		&ett_nsh,
 	};
 
@@ -356,19 +356,17 @@ proto_register_nsh(void)
 
 	subdissector_table = register_dissector_table("nsh.next_proto", "NSH Next Protocol", proto_nsh, FT_UINT32, BASE_DEC);
 
+	nsh_handle = register_dissector("nsh", dissect_nsh, proto_nsh);
 }
 
 void
 proto_reg_handoff_nsh(void)
 {
-	static dissector_handle_t nsh_handle;
-
-	nsh_handle = create_dissector_handle(dissect_nsh, proto_nsh);
 	dissector_add_uint("ethertype", ETHERTYPE_NSH, nsh_handle);
 	dissector_add_uint("gre.proto", ETHERTYPE_NSH, nsh_handle);
 	dissector_add_uint("vxlan.next_proto", VXLAN_NSH, nsh_handle);
 	dissector_add_uint("nsh.next_proto", NSH_NSH, nsh_handle);
-
+	dissector_add_uint("ip.proto", IP_PROTO_NSH, nsh_handle);
 }
 
 /*

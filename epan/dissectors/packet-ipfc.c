@@ -16,7 +16,6 @@
 
 #include <epan/packet.h>
 #include <epan/capture_dissectors.h>
-#include <wiretap/wtap.h>
 #include <epan/to_str.h>
 
 #include "packet-llc.h"
@@ -24,21 +23,24 @@
 void proto_register_ipfc(void);
 void proto_reg_handoff_ipfc(void);
 
+static dissector_handle_t ipfc_handle;
+static capture_dissector_handle_t ipfc_cap_handle;
+
 /* Initialize the protocol and registered fields */
-static int proto_ipfc              = -1;
-static int hf_ipfc_network_da = -1;
-static int hf_ipfc_network_sa = -1;
+static int proto_ipfc;
+static int hf_ipfc_network_da;
+static int hf_ipfc_network_sa;
 
 /* Initialize the subtree pointers */
-static gint ett_ipfc = -1;
+static int ett_ipfc;
 static dissector_handle_t llc_handle;
 static capture_dissector_handle_t llc_cap_handle;
 
-static gboolean
-capture_ipfc (const guchar *pd, int offset _U_, int len, capture_packet_info_t *cpinfo, const union wtap_pseudo_header *pseudo_header _U_)
+static bool
+capture_ipfc (const unsigned char *pd, int offset _U_, int len, capture_packet_info_t *cpinfo, const union wtap_pseudo_header *pseudo_header _U_)
 {
   if (!BYTES_ARE_IN_FRAME(0, len, 16))
-    return FALSE;
+    return false;
 
   return call_capture_dissector(llc_cap_handle, pd, 16, len, cpinfo, pseudo_header);
 }
@@ -91,7 +93,7 @@ proto_register_ipfc (void)
     };
 
     /* Setup protocol subtree array */
-    static gint *ett[] = {
+    static int *ett[] = {
         &ett_ipfc,
     };
 
@@ -101,6 +103,9 @@ proto_register_ipfc (void)
     /* Required function calls to register the header fields and subtrees used */
     proto_register_field_array(proto_ipfc, hf, array_length(hf));
     proto_register_subtree_array(ett, array_length(ett));
+
+    ipfc_handle = register_dissector("ipfc", dissect_ipfc, proto_ipfc);
+    ipfc_cap_handle = register_capture_dissector("ipfc", capture_ipfc, proto_ipfc);
 }
 
 /* If this dissector uses sub-dissector registration add a registration routine.
@@ -110,18 +115,12 @@ proto_register_ipfc (void)
 void
 proto_reg_handoff_ipfc (void)
 {
-    dissector_handle_t ipfc_handle;
-    capture_dissector_handle_t ipfc_cap_handle;
-
-    ipfc_handle = create_dissector_handle (dissect_ipfc, proto_ipfc);
     dissector_add_uint("wtap_encap", WTAP_ENCAP_IP_OVER_FC, ipfc_handle);
 
     llc_handle = find_dissector_add_dependency("llc", proto_ipfc);
-
-    ipfc_cap_handle = create_capture_dissector_handle(capture_ipfc, proto_ipfc);
-    capture_dissector_add_uint("wtap_encap", WTAP_ENCAP_IP_OVER_FC, ipfc_cap_handle);
-
     llc_cap_handle = find_capture_dissector("llc");
+
+    capture_dissector_add_uint("wtap_encap", WTAP_ENCAP_IP_OVER_FC, ipfc_cap_handle);
 }
 
 /*

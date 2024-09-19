@@ -37,26 +37,28 @@ void proto_register_rudp(void);
 
 void proto_reg_handoff_rudp(void);
 
-static int proto_rudp = -1;
+static dissector_handle_t rudp_handle;
 
-static int hf_rudp_flags = -1;
-static int hf_rudp_flags_syn = -1;
-static int hf_rudp_flags_ack = -1;
-static int hf_rudp_flags_eak = -1;
-static int hf_rudp_flags_rst = -1;
-static int hf_rudp_flags_nul = -1;
-static int hf_rudp_flags_chk = -1;
-static int hf_rudp_flags_tcs = -1;
-static int hf_rudp_flags_0 = -1;
-static int hf_rudp_hlen = -1;
-static int hf_rudp_seq = -1;
-static int hf_rudp_ack = -1;
-static int hf_rudp_cksum = -1;
+static int proto_rudp;
 
-static gint ett_rudp = -1;
-static gint ett_rudp_flags = -1;
+static int hf_rudp_flags;
+static int hf_rudp_flags_syn;
+static int hf_rudp_flags_ack;
+static int hf_rudp_flags_eak;
+static int hf_rudp_flags_rst;
+static int hf_rudp_flags_nul;
+static int hf_rudp_flags_chk;
+static int hf_rudp_flags_tcs;
+static int hf_rudp_flags_0;
+static int hf_rudp_hlen;
+static int hf_rudp_seq;
+static int hf_rudp_ack;
+static int hf_rudp_cksum;
 
-static dissector_handle_t sm_handle = NULL;
+static int ett_rudp;
+static int ett_rudp_flags;
+
+static dissector_handle_t sm_handle;
 
 static int
 dissect_rudp(tvbuff_t *tvb, packet_info *pinfo _U_ , proto_tree *tree, void* data _U_)
@@ -64,7 +66,7 @@ dissect_rudp(tvbuff_t *tvb, packet_info *pinfo _U_ , proto_tree *tree, void* dat
 	tvbuff_t * next_tvb;
 	proto_tree *rudp_tree;
 	proto_item *ti;
-	guint8 hlen;
+	uint8_t hlen;
 	static int * const flags[] = {
 		&hf_rudp_flags_syn,
 		&hf_rudp_flags_ack,
@@ -77,7 +79,7 @@ dissect_rudp(tvbuff_t *tvb, packet_info *pinfo _U_ , proto_tree *tree, void* dat
 		NULL
 	};
 
-	hlen = tvb_get_guint8(tvb, 1);
+	hlen = tvb_get_uint8(tvb, 1);
 
 	col_set_str(pinfo->cinfo, COL_PROTOCOL, "RUDP");
 	col_clear(pinfo->cinfo, COL_INFO);
@@ -184,7 +186,7 @@ proto_register_rudp(void)
 
 
 /* Setup protocol subtree array */
-	static gint *ett[] = {
+	static int *ett[] = {
 		&ett_rudp,
 		&ett_rudp_flags,
 	};
@@ -194,12 +196,12 @@ proto_register_rudp(void)
 
 	proto_register_field_array(proto_rudp, hf, array_length(hf));
 	proto_register_subtree_array(ett, array_length(ett));
+
+	rudp_handle = register_dissector("rudp", dissect_rudp, proto_rudp);
 }
 
 void
 proto_reg_handoff_rudp(void) {
-
-	dissector_handle_t rudp_handle;
 
 /* Disable rudp by default. The previously hardcoded value of
  * 7000 (used by Cisco) collides with afs and as the draft states:
@@ -210,7 +212,6 @@ proto_reg_handoff_rudp(void) {
  *        heuristic dissector, but it isn't complete anyway.
  */
 
-	rudp_handle = create_dissector_handle(dissect_rudp, proto_rudp);
 	dissector_add_for_decode_as_with_preference("udp.port", rudp_handle);
 	sm_handle = find_dissector_add_dependency("sm", proto_rudp);
 }

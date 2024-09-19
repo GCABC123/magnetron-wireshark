@@ -32,26 +32,24 @@
 #include <epan/tap.h>
 #include <epan/to_str.h>
 
-#include "ui/alert_box.h"
 #include "ui/mcast_stream.h"
-#include "ui/simple_dialog.h"
 
-gint32  mcast_stream_trigger         =     50; /* limit for triggering the burst alarm (in packets per second) */
-gint32  mcast_stream_bufferalarm     =  10000; /* limit for triggering the buffer alarm (in bytes) */
-guint16 mcast_stream_burstint        =    100; /* burst interval in ms */
-gint32  mcast_stream_emptyspeed      =   5000; /* outgoing speed for single stream (kbps)*/
-gint32  mcast_stream_cumulemptyspeed = 100000; /* outgoiong speed for all streams (kbps)*/
+int32_t mcast_stream_trigger         =     50; /* limit for triggering the burst alarm (in packets per second) */
+int32_t mcast_stream_bufferalarm     =  10000; /* limit for triggering the buffer alarm (in bytes) */
+uint16_t mcast_stream_burstint       =    100; /* burst interval in ms */
+int32_t mcast_stream_emptyspeed      =   5000; /* outgoing speed for single stream (kbps)*/
+int32_t mcast_stream_cumulemptyspeed = 100000; /* outgoing speed for all streams (kbps)*/
 
 /* sliding window and buffer usage */
-static gint32  buffsize = (int)((double)MAX_SPEED * 100 / 1000) * 2;
-static guint16 comparetimes(nstime_t *t1, nstime_t *t2, guint16 burstint_lcl);
+static int32_t buffsize = (int)((double)MAX_SPEED * 100 / 1000) * 2;
+static uint16_t comparetimes(nstime_t *t1, nstime_t *t2, uint16_t burstint_lcl);
 static void    buffusagecalc(mcast_stream_info_t *strinfo, packet_info *pinfo, double emptyspeed_lcl);
 static void    slidingwindow(mcast_stream_info_t *strinfo, packet_info *pinfo);
 
 /****************************************************************************/
 /* GCompareFunc style comparison function for _mcast_stream_info */
-static gint
-mcast_stream_info_cmp(gconstpointer aa, gconstpointer bb)
+static int
+mcast_stream_info_cmp(const void *aa, const void *bb)
 {
     const struct _mcast_stream_info* a = (const struct _mcast_stream_info *)aa;
     const struct _mcast_stream_info* b = (const struct _mcast_stream_info *)bb;
@@ -90,7 +88,7 @@ mcaststream_reset(mcaststream_tapinfo_t *tapinfo)
     g_list_free(tapinfo->strinfo_list);
     tapinfo->strinfo_list = NULL;
 
-    /* XYZ and why does the line below causes a crach? */
+    /* XYZ and why does the line below causes a crash? */
     /*g_free(tapinfo->allstreams->element.buff);*/
     g_free(tapinfo->allstreams);
     tapinfo->allstreams = NULL;
@@ -131,7 +129,7 @@ mcaststream_draw(void *ti_ptr)
 
 /****************************************************************************/
 /* whenever a udp packet is seen by the tap listener */
-static tap_packet_status
+tap_packet_status
 mcaststream_packet(void *arg, packet_info *pinfo, epan_dissect_t *edt _U_, const void *arg2 _U_, tap_flags_t flags _U_)
 {
     mcaststream_tapinfo_t *tapinfo = (mcaststream_tapinfo_t *)arg;
@@ -149,13 +147,13 @@ mcaststream_packet(void *arg, packet_info *pinfo, epan_dissect_t *edt _U_, const
     switch (pinfo->net_dst.type) {
         case AT_IPv4:
             /* 224.0.0.0/4 */
-            if (pinfo->net_dst.len == 0 || (((const guint8*)pinfo->net_dst.data)[0] & 0xf0) != 0xe0)
+            if (pinfo->net_dst.len == 0 || (((const uint8_t*)pinfo->net_dst.data)[0] & 0xf0) != 0xe0)
                 return TAP_PACKET_DONT_REDRAW;
             break;
         case AT_IPv6:
             /* ff00::/8 */
             /* XXX This includes DHCPv6. */
-            if (pinfo->net_dst.len == 0 || ((const guint8*)pinfo->net_dst.data)[0] != 0xff)
+            if (pinfo->net_dst.len == 0 || ((const uint8_t*)pinfo->net_dst.data)[0] != 0xff)
                 return TAP_PACKET_DONT_REDRAW;
             break;
         default:
@@ -281,27 +279,6 @@ mcaststream_packet(void *arg, packet_info *pinfo, epan_dissect_t *edt _U_, const
 }
 
 /****************************************************************************/
-/* scan for Mcast streams */
-void
-mcaststream_scan(mcaststream_tapinfo_t *tapinfo, capture_file *cap_file)
-{
-    gboolean was_registered;
-
-    if (!tapinfo || !cap_file) {
-        return;
-    }
-
-    was_registered = tapinfo->is_registered;
-    if (!tapinfo->is_registered)
-        register_tap_listener_mcast_stream(tapinfo);
-
-    cf_retap_packets(cap_file);
-
-    if (!was_registered)
-        remove_tap_listener_mcast_stream(tapinfo);
-}
-
-/****************************************************************************/
 /* TAP INTERFACE */
 /****************************************************************************/
 
@@ -311,43 +288,40 @@ remove_tap_listener_mcast_stream(mcaststream_tapinfo_t *tapinfo)
 {
     if (tapinfo && tapinfo->is_registered) {
         remove_tap_listener(tapinfo);
-        tapinfo->is_registered = FALSE;
+        tapinfo->is_registered = false;
     }
 }
 
 
 /****************************************************************************/
-void
+GString *
 register_tap_listener_mcast_stream(mcaststream_tapinfo_t *tapinfo)
 {
     GString *error_string;
-
     if (!tapinfo) {
-        return;
+        return NULL;
     }
 
-    if (!tapinfo->is_registered) {
-        error_string = register_tap_listener("udp", tapinfo,
-            NULL, 0, mcaststream_reset_cb, mcaststream_packet,
-            mcaststream_draw, NULL);
-
-        if (error_string != NULL) {
-            simple_dialog(ESD_TYPE_ERROR, ESD_BTN_OK,
-                          "%s", error_string->str);
-            g_string_free(error_string, TRUE);
-            exit(1);
-        }
-
-        tapinfo->is_registered = TRUE;
+    if (tapinfo->is_registered) {
+        return NULL;
     }
+
+    error_string = register_tap_listener("udp", tapinfo,
+        NULL, 0, mcaststream_reset_cb, mcaststream_packet,
+        mcaststream_draw, NULL);
+
+    if (NULL == error_string) {
+        tapinfo->is_registered = true;
+    }
+    return error_string;
 }
 
 /*******************************************************************************/
 /* sliding window and buffer calculations */
 
 /* compare two times */
-static guint16
-comparetimes(nstime_t *t1, nstime_t *t2, guint16 burstint_lcl)
+static uint16_t
+comparetimes(nstime_t *t1, nstime_t *t2, uint16_t burstint_lcl)
 {
     if(((t2->secs - t1->secs)*1000 + (t2->nsecs - t1->nsecs)/1000000) > burstint_lcl){
         return 1;
@@ -360,7 +334,7 @@ comparetimes(nstime_t *t1, nstime_t *t2, guint16 burstint_lcl)
 static void
 buffusagecalc(mcast_stream_info_t *strinfo, packet_info *pinfo, double emptyspeed_lcl)
 {
-    gint32 cur, prev;
+    int32_t cur, prev;
     nstime_t *buffer;
     nstime_t delta;
     double timeelapsed;
@@ -385,7 +359,7 @@ buffusagecalc(mcast_stream_info_t *strinfo, packet_info *pinfo, double emptyspee
     strinfo->element.buffusage+=pinfo->fd->pkt_len;
 
     /* bytes cleared from buffer */
-    strinfo->element.buffusage-= (guint32) (timeelapsed * emptyspeed_lcl / 8);
+    strinfo->element.buffusage-= (uint32_t) (timeelapsed * emptyspeed_lcl / 8);
 
     if(strinfo->element.buffusage < 0) strinfo->element.buffusage=0;
     if(strinfo->element.buffusage > strinfo->element.topbuffusage)
@@ -406,7 +380,7 @@ static void
 slidingwindow(mcast_stream_info_t *strinfo, packet_info *pinfo)
 {
     nstime_t *buffer;
-    gint32 diff;
+    int32_t diff;
 
     buffer = strinfo->element.buff;
 

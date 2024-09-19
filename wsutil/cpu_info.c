@@ -9,12 +9,11 @@
  */
 
 #include "config.h"
+#include <wsutil/cpu_info.h>
 
 #include <string.h>
-#include <glib.h>
 
 #include <wsutil/ws_cpuid.h>
-#include <wsutil/cpu_info.h>
 #include <wsutil/file_util.h>
 
 #if defined(__FreeBSD__) || defined(__NetBSD__) || defined(__OpenBSD__) || defined(__DragonFly__) || defined(__APPLE__)
@@ -36,8 +35,8 @@
  * Functions used for the GTree we use to keep a list of *unique*
  * model strings.
  */
-static gint
-compare_model_names(gconstpointer a, gconstpointer b, gpointer user_data _U_)
+static int
+compare_model_names(const void *a, const void *b, void * user_data _U_)
 {
     return strcmp((const char *)a, (const char *)b);
 }
@@ -48,8 +47,8 @@ struct string_info {
 };
 
 static gboolean
-add_model_name_to_string(gpointer key, gpointer value _U_,
-                         gpointer data)
+add_model_name_to_string(void * key, void * value _U_,
+                         void * data)
 {
     struct string_info *info = (struct string_info *)data;
 
@@ -67,7 +66,7 @@ add_model_name_to_string(gpointer key, gpointer value _U_,
     info->sep = ", ";
 
     /* Keep going. */
-    return FALSE;
+    return false;
 }
 
 /*
@@ -202,7 +201,7 @@ get_cpu_info(GString *str)
     /*
      * Allocate a buffer for the subkey.
      */
-    subkey_buf = (wchar_t *)g_malloc(max_subkey_len * sizeof (wchar_t));
+    subkey_buf = g_new(wchar_t, max_subkey_len);
     if (subkey_buf == NULL) {
         /* Just give up. */
         g_tree_destroy(model_names);
@@ -382,8 +381,9 @@ get_cpu_info(GString *str)
      * use ws_cpuid(), which uses CPUID on x86 and doesn't get any
      * information for other instruction sets.
      */
-    guint32 CPUInfo[4];
+    uint32_t CPUInfo[4];
     char CPUBrandString[0x40];
+    char *model_name;
     unsigned nExIds;
 
     /*
@@ -417,7 +417,7 @@ get_cpu_info(GString *str)
     g_tree_insert(model_names, model_name, NULL);
 #endif
 
-    gint num_model_names = g_tree_nnodes(model_names);
+    int num_model_names = g_tree_nnodes(model_names);
 
     if (num_model_names > 0) {
         /*

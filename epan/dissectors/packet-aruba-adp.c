@@ -22,14 +22,16 @@
 void proto_register_aruba_adp(void);
 void proto_reg_handoff_aruba_adp(void);
 
-static int proto_aruba_adp = -1;
-static gint ett_aruba_adp  = -1;
+static dissector_handle_t adp_handle;
 
-static int hf_adp_version  = -1;
-static int hf_adp_type     = -1;
-static int hf_adp_id       = -1;
-static int hf_adp_mac      = -1;
-static int hf_adp_switchip = -1;
+static int proto_aruba_adp;
+static int ett_aruba_adp;
+
+static int hf_adp_version;
+static int hf_adp_type;
+static int hf_adp_id;
+static int hf_adp_mac;
+static int hf_adp_switchip;
 
 static const value_string adp_type_val[] =
 {
@@ -43,9 +45,9 @@ dissect_aruba_adp(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, void* dat
 {
     proto_tree *ti = NULL;
     proto_tree *aruba_adp_tree = NULL;
-    guint16 type;
-    const gchar *mac_str;
-    const gchar *switchip;
+    uint16_t type;
+    const char *mac_str;
+    const char *switchip;
 
 
     col_set_str(pinfo->cinfo, COL_PROTOCOL, "ADP");
@@ -119,7 +121,7 @@ proto_register_aruba_adp(void)
 
         };
 
-    static gint *ett[] = {
+    static int *ett[] = {
         &ett_aruba_adp,
     };
 
@@ -127,15 +129,14 @@ proto_register_aruba_adp(void)
                                         "ADP", "adp");
     proto_register_field_array(proto_aruba_adp, hf, array_length(hf));
     proto_register_subtree_array(ett, array_length(ett));
+
+    adp_handle = register_dissector("adp", dissect_aruba_adp, proto_aruba_adp);
 }
 
 
 void
 proto_reg_handoff_aruba_adp(void)
 {
-    dissector_handle_t adp_handle;
-
-    adp_handle = create_dissector_handle(dissect_aruba_adp, proto_aruba_adp);
     dissector_add_uint_with_preference("udp.port", UDP_PORT_ADP, adp_handle);
 }
 

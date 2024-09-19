@@ -50,7 +50,7 @@
 # define SHARKD_UNIX_SUPPORT
 #endif
 
-static int mode = 0;
+static int mode;
 static socket_handle_t _server_fd = INVALID_SOCKET;
 
 static socket_handle_t
@@ -106,7 +106,7 @@ socket_init(char *path)
         struct sockaddr_in s_in;
         int one = 1;
         char *port_sep;
-        guint16 port;
+        uint16_t port;
 
         path += 4;
 
@@ -116,7 +116,7 @@ socket_init(char *path)
 
         *port_sep = '\0';
 
-        if (ws_strtou16(port_sep + 1, NULL, &port) == FALSE)
+        if (ws_strtou16(port_sep + 1, NULL, &port) == false)
             return INVALID_SOCKET;
 
 #ifdef _WIN32
@@ -274,7 +274,7 @@ sharkd_init(int argc, char **argv)
            In Daemon Mode, we will come through here twice; once when we start the Daemon and
            once again after we have forked the session process.  The second time through, the
            session process has already had its stdin and stdout wired up to the TCP or UNIX
-           socket and so in the orignal version of sharkd the session process is invoked with
+           socket and so in the original version of sharkd the session process is invoked with
            the command line: sharkd -
 
            When not using the classic command line, we want to spawn the session process with
@@ -291,7 +291,7 @@ sharkd_init(int argc, char **argv)
 
             switch (opt) {
                 case 'C':        /* Configuration Profile */
-                    if (profile_exists(ws_optarg, FALSE)) {
+                    if (profile_exists(ws_optarg, false)) {
                         set_profile_name(ws_optarg);  // In Daemon Mode, we may need to do this again in the child process
                     }
                     else {
@@ -312,6 +312,7 @@ sharkd_init(int argc, char **argv)
                     break;
 
                 case 'h':
+                    show_help_header("Daemon variant of Wireshark");
                     print_usage(stderr);
                     exit(0);
                     break;
@@ -442,8 +443,8 @@ sharkd_loop(int argc _U_, char* argv[])
             for (int i = 1; i < argc; i++)
             {
                 if (
-                        !g_ascii_strncasecmp(argv[i], "-a", (guint)strlen(argv[i]))
-                        || !g_ascii_strncasecmp(argv[i], "--api", (guint)strlen(argv[i]))
+                        !g_ascii_strncasecmp(argv[i], "-a", strlen(argv[i]))
+                        || !g_ascii_strncasecmp(argv[i], "--api", strlen(argv[i]))
                    )
                 {
                     i++;  // skip the socket details

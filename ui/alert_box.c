@@ -58,9 +58,9 @@ vwarning_alert_box(const char *msg_format, va_list ap)
  * typical Wireshark user is, but....
  */
 void
-cfile_open_failure_alert_box(const char *filename, int err, gchar *err_info)
+cfile_open_failure_alert_box(const char *filename, int err, char *err_info)
 {
-    gchar *display_basename;
+    char *display_basename;
 
     if (err < 0) {
         /* Wiretap error. */
@@ -157,7 +157,7 @@ cfile_open_failure_alert_box(const char *filename, int err, gchar *err_info)
         g_free(display_basename);
     } else {
         /* OS error. */
-        open_failure_alert_box(filename, err, FALSE);
+        open_failure_alert_box(filename, err, false);
     }
 }
 
@@ -177,9 +177,9 @@ cfile_open_failure_alert_box(const char *filename, int err, gchar *err_info)
  */
 void
 cfile_dump_open_failure_alert_box(const char *filename, int err,
-                                  gchar *err_info, int file_type_subtype)
+                                  char *err_info, int file_type_subtype)
 {
-    gchar *display_basename;
+    char *display_basename;
 
     if (err < 0) {
         /* Wiretap error. */
@@ -249,7 +249,7 @@ cfile_dump_open_failure_alert_box(const char *filename, int err,
         g_free(display_basename);
     } else {
         /* OS error. */
-        open_failure_alert_box(filename, err, TRUE);
+        open_failure_alert_box(filename, err, true);
     }
 }
 
@@ -260,14 +260,14 @@ cfile_dump_open_failure_alert_box(const char *filename, int err,
  * some WTAP_ERR_ values.
  */
 void
-cfile_read_failure_alert_box(const char *filename, int err, gchar *err_info)
+cfile_read_failure_alert_box(const char *filename, int err, char *err_info)
 {
-    gchar *display_name;
+    char *display_name;
 
     if (filename == NULL)
         display_name = g_strdup("capture file");
     else {
-        gchar *display_basename;
+        char *display_basename;
 
         display_basename = g_filename_display_basename(filename);
         display_name = ws_strdup_printf("capture file \"%s\"", display_basename);
@@ -349,7 +349,7 @@ cfile_read_failure_alert_box(const char *filename, int err, gchar *err_info)
  */
 void
 cfile_write_failure_alert_box(const char *in_filename, const char *out_filename,
-                              int err, gchar *err_info, guint32 framenum,
+                              int err, char *err_info, uint64_t framenum,
                               int file_type_subtype)
 {
     char *in_file_string;
@@ -371,7 +371,7 @@ cfile_write_failure_alert_box(const char *in_filename, const char *out_filename,
              * the frame number and file type/subtype.
              */
             simple_error_message_box(
-                        "Frame %u%s has a network type that can't be saved in a \"%s\" file.",
+                        "Frame %" PRIu64 "%s has a network type that can't be saved in a \"%s\" file.",
                         framenum, in_file_string,
                         wtap_file_type_subtype_description(file_type_subtype));
             break;
@@ -383,7 +383,7 @@ cfile_write_failure_alert_box(const char *in_filename, const char *out_filename,
              * the frame number and file type/subtype.
              */
             simple_error_message_box(
-                        "Frame %u%s has a network type that differs from the network type of earlier packets, which isn't supported in a \"%s\" file.",
+                        "Frame %" PRIu64 "%s has a network type that differs from the network type of earlier packets, which isn't supported in a \"%s\" file.",
                         framenum, in_file_string,
                         wtap_file_type_subtype_description(file_type_subtype));
             break;
@@ -405,7 +405,7 @@ cfile_write_failure_alert_box(const char *in_filename, const char *out_filename,
              * the frame number and file type/subtype.
              */
             simple_error_message_box(
-                        "Frame %u%s is larger than Wireshark supports in a \"%s\" file.",
+                        "Frame %" PRIu64 "%s is larger than Wireshark supports in a \"%s\" file.",
                         framenum, in_file_string,
                         wtap_file_type_subtype_description(file_type_subtype));
             break;
@@ -417,7 +417,7 @@ cfile_write_failure_alert_box(const char *in_filename, const char *out_filename,
              * the record number and file type/subtype.
              */
             simple_error_message_box(
-                        "Record %u%s has a record type that can't be saved in a \"%s\" file.",
+                        "Record %" PRIu64 "%s has a record type that can't be saved in a \"%s\" file.",
                         framenum, in_file_string,
                         wtap_file_type_subtype_description(file_type_subtype));
             break;
@@ -429,7 +429,7 @@ cfile_write_failure_alert_box(const char *in_filename, const char *out_filename,
              * the record number and file type/subtype.
              */
             simple_error_message_box(
-                        "Record %u%s has data that can't be saved in a \"%s\" file.\n"
+                        "Record %" PRIu64 "%s has data that can't be saved in a \"%s\" file.\n"
                         "(%s)",
                         framenum, in_file_string,
                         wtap_file_type_subtype_description(file_type_subtype),
@@ -491,9 +491,9 @@ cfile_write_failure_alert_box(const char *in_filename, const char *out_filename,
  * typical Wireshark user is, but....
  */
 void
-cfile_close_failure_alert_box(const char *filename, int err, gchar *err_info)
+cfile_close_failure_alert_box(const char *filename, int err, char *err_info)
 {
-    gchar *display_basename;
+    char *display_basename;
 
     if (err < 0) {
         /* Wiretap error. */
@@ -537,8 +537,8 @@ cfile_close_failure_alert_box(const char *filename, int err, gchar *err_info)
 
 /*
  * Alert box for a failed attempt to open or create a file.
- * "err" is assumed to be a UNIX-style errno; "for_writing" is TRUE if
- * the file is being opened for writing and FALSE if it's being opened
+ * "err" is assumed to be a UNIX-style errno; "for_writing" is true if
+ * the file is being opened for writing and false if it's being opened
  * for reading.
  *
  * XXX - add explanatory secondary text for at least some of the errors;
@@ -548,9 +548,9 @@ cfile_close_failure_alert_box(const char *filename, int err, gchar *err_info)
  * typical Wireshark user is, but....
  */
 void
-open_failure_alert_box(const char *filename, int err, gboolean for_writing)
+open_failure_alert_box(const char *filename, int err, bool for_writing)
 {
-    gchar *display_basename;
+    char *display_basename;
 
     display_basename = g_filename_display_basename(filename);
     simple_message_box(ESD_TYPE_ERROR, NULL, NULL,
@@ -566,7 +566,7 @@ open_failure_alert_box(const char *filename, int err, gboolean for_writing)
 void
 read_failure_alert_box(const char *filename, int err)
 {
-    gchar *display_basename;
+    char *display_basename;
 
     display_basename = g_filename_display_basename(filename);
     simple_message_box(ESD_TYPE_ERROR, NULL, NULL,
@@ -588,7 +588,7 @@ read_failure_alert_box(const char *filename, int err)
 void
 write_failure_alert_box(const char *filename, int err)
 {
-    gchar *display_basename;
+    char *display_basename;
 
     display_basename = g_filename_display_basename(filename);
     simple_message_box(ESD_TYPE_ERROR, NULL, NULL,

@@ -12,8 +12,6 @@
 
 #include "config.h"
 
-#include <glib.h>
-
 #include "file.h"
 
 #include "epan/addr_resolv.h"
@@ -42,6 +40,11 @@ ResolvedAddressesDialog::ResolvedAddressesDialog(QWidget *parent, QString captur
     setAttribute(Qt::WA_DeleteOnClose, true);
 
     QStringList title_parts = QStringList() << tr("Resolved Addresses");
+
+    copy_bt_ = ui->buttonBox->addButton(tr("Copy"), QDialogButtonBox::ActionRole);
+
+    save_bt_ = ui->buttonBox->addButton(tr("Save as…"), QDialogButtonBox::ActionRole);
+    connect(save_bt_, &QPushButton::clicked, this, &ResolvedAddressesDialog::saveAs);
 
     if (!captureFile.isEmpty()) {
         file_name_ = captureFile;
@@ -86,7 +89,6 @@ ResolvedAddressesDialog::ResolvedAddressesDialog(QWidget *parent, QString captur
     ethTypeModel->setColumnToHide(0);
     ui->tblAddresses->setModel(ethTypeModel);
     ui->tblAddresses->resizeColumnsToContents();
-    ui->tblAddresses->horizontalHeader()->setStretchLastSection(true);
     ui->tblAddresses->sortByColumn(1, Qt::AscendingOrder);
     ui->cmbDataType->addItems(ethModel->filterValues());
 
@@ -94,22 +96,45 @@ ResolvedAddressesDialog::ResolvedAddressesDialog(QWidget *parent, QString captur
     portTypeModel = new AStringListListSortFilterProxyModel(this);
     PortsModel * portModel = new PortsModel(this);
     portSortModel->setSourceModel(portModel);
-    portSortModel->setColumnAsNumeric(1);
-    portSortModel->setColumnsToFilter(QList<int>() << 0 << 1);
+    portSortModel->setColumnAsNumeric(PORTS_COL_PORT);
+    portSortModel->setColumnsToFilter(QList<int>() << PORTS_COL_NAME << PORTS_COL_PROTOCOL);
     portSortModel->setFilterCaseSensitivity(Qt::CaseInsensitive);
     portTypeModel->setSourceModel(portSortModel);
-    portTypeModel->setColumnToFilter(2);
-    portTypeModel->setColumnAsNumeric(1);
+    portTypeModel->setColumnToFilter(PORTS_COL_PROTOCOL);
+    portTypeModel->setColumnAsNumeric(PORTS_COL_PORT);
     ui->tblPorts->setModel(portTypeModel);
     ui->tblPorts->resizeColumnsToContents();
-    ui->tblPorts->horizontalHeader()->setStretchLastSection(true);
-    ui->tblPorts->sortByColumn(1, Qt::AscendingOrder);
+    ui->tblPorts->sortByColumn(PORTS_COL_PORT, Qt::AscendingOrder);
     ui->cmbPortFilterType->addItems(portModel->filterValues());
+
+    tabChanged(ui->tabWidget->currentIndex());
+    connect(ui->tabWidget, &QTabWidget::currentChanged, this, &ResolvedAddressesDialog::tabChanged);
 }
 
 ResolvedAddressesDialog::~ResolvedAddressesDialog()
 {
     delete ui;
+}
+
+void ResolvedAddressesDialog::tabChanged(int index)
+{
+    QWidget *currentTab = ui->tabWidget->widget(index);
+    ResolvedAddressesView *addressView = nullptr;
+    if (currentTab != nullptr) {
+        addressView = currentTab->findChild<ResolvedAddressesView*>();
+        if (addressView != nullptr) {
+            QMenu* oldMenu = copy_bt_->menu();
+            copy_bt_->setMenu(addressView->createCopyMenu(false, copy_bt_));
+            if (oldMenu != nullptr) {
+                delete oldMenu;
+            }
+        }
+    }
+    foreach (QAbstractButton *button, ui->buttonBox->buttons()) {
+        if (ui->buttonBox->buttonRole(button) == QDialogButtonBox::ActionRole) {
+            button->setEnabled(addressView != nullptr);
+        }
+    }
 }
 
 void ResolvedAddressesDialog::on_cmbDataType_currentIndexChanged(int index)
@@ -146,10 +171,10 @@ void ResolvedAddressesDialog::on_cmbPortFilterType_currentIndexChanged(int index
     if (index == 0)
     {
         filter.clear();
-        portTypeModel->setFilterType(AStringListListSortFilterProxyModel::FilterNone, 2);
+        portTypeModel->setFilterType(AStringListListSortFilterProxyModel::FilterNone, PORTS_COL_PROTOCOL);
     }
     else
-        portTypeModel->setFilterType(AStringListListSortFilterProxyModel::FilterByEquivalent, 2);
+        portTypeModel->setFilterType(AStringListListSortFilterProxyModel::FilterByEquivalent, PORTS_COL_PROTOCOL);
     portTypeModel->setFilter(filter);
 }
 
@@ -201,4 +226,19 @@ void ResolvedAddressesDialog::fillBlocks()
 
     ui->plainTextEdit->moveCursor(QTextCursor::Start);
     setUpdatesEnabled(true);
+}
+
+void ResolvedAddressesDialog::saveAs()
+{
+    QWidget *currentTab = ui->tabWidget->currentWidget();
+    if (currentTab == nullptr) {
+        return;
+    }
+
+    ResolvedAddressesView *addressView = currentTab->findChild<ResolvedAddressesView*>();
+    if (addressView == nullptr) {
+        return;
+    }
+
+    addressView->saveAs();
 }

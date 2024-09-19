@@ -12,6 +12,7 @@
 #include "config.h"
 
 #include <epan/packet.h>
+#include <epan/tfs.h>
 #include "packet-mpeg-sect.h"
 #include "packet-mpeg-descriptor.h"
 
@@ -20,23 +21,23 @@ void proto_reg_handoff_dvb_sit(void);
 
 static dissector_handle_t dvb_sit_handle;
 
-static int proto_dvb_sit = -1;
+static int proto_dvb_sit;
 
-static int hf_dvb_sit_reserved_future_use1 = -1;
-static int hf_dvb_sit_reserved = -1;
-static int hf_dvb_sit_version_number = -1;
-static int hf_dvb_sit_current_next_indicator = -1;
-static int hf_dvb_sit_section_number = -1;
-static int hf_dvb_sit_last_section_number = -1;
-static int hf_dvb_sit_reserved_future_use2 = -1;
-static int hf_dvb_sit_transmission_info_len = -1;
-static int hf_dvb_sit_service_id = -1;
-static int hf_dvb_sit_reserved_future_use3 = -1;
-static int hf_dvb_sit_running_status = -1;
-static int hf_dvb_sit_service_descriptors_length = -1;
+static int hf_dvb_sit_reserved_future_use1;
+static int hf_dvb_sit_reserved;
+static int hf_dvb_sit_version_number;
+static int hf_dvb_sit_current_next_indicator;
+static int hf_dvb_sit_section_number;
+static int hf_dvb_sit_last_section_number;
+static int hf_dvb_sit_reserved_future_use2;
+static int hf_dvb_sit_transmission_info_len;
+static int hf_dvb_sit_service_id;
+static int hf_dvb_sit_reserved_future_use3;
+static int hf_dvb_sit_running_status;
+static int hf_dvb_sit_service_descriptors_length;
 
-static gint ett_dvb_sit = -1;
-static gint ett_dvb_sit_service = -1;
+static int ett_dvb_sit;
+static int ett_dvb_sit_service;
 
 #define DVB_SIT_RESERVED_MASK                   0xC0
 #define DVB_SIT_VERSION_NUMBER_MASK             0x3E
@@ -48,13 +49,6 @@ static gint ett_dvb_sit_service = -1;
 #define DVB_SIT_RESERVED_FUTURE_USE3_MASK       0x8000
 #define DVB_SIT_RUNNING_STATUS_MASK             0x7000
 #define DVB_SIT_SERVICE_DESCRIPTORS_LENGTH_MASK 0x0FFF
-
-static const value_string dvb_sit_cur_next_vals[] = {
-    { 0, "Not yet applicable" },
-    { 1, "Currently applicable" },
-
-    { 0, NULL }
-};
 
 static const value_string dvb_sit_running_status_vals[] = {
     { 0, "Undefined" },
@@ -71,9 +65,9 @@ static int
 dissect_dvb_sit(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, void* data _U_)
 {
 
-    guint       offset = 0, length = 0;
-    guint       descriptor_len;
-    guint16     svc_id;
+    unsigned    offset = 0, length = 0;
+    unsigned    descriptor_len;
+    uint16_t    svc_id;
 
     proto_item *ti;
     proto_tree *dvb_sit_tree;
@@ -161,7 +155,7 @@ proto_register_dvb_sit(void)
 
         { &hf_dvb_sit_current_next_indicator, {
             "Current/Next Indicator", "dvb_sit.cur_next_ind",
-            FT_UINT8, BASE_DEC, VALS(dvb_sit_cur_next_vals), DVB_SIT_CURRENT_NEXT_INDICATOR_MASK, NULL, HFILL
+            FT_BOOLEAN, 8, TFS(&tfs_current_not_yet), DVB_SIT_CURRENT_NEXT_INDICATOR_MASK, NULL, HFILL
         } },
 
         { &hf_dvb_sit_section_number, {
@@ -206,7 +200,7 @@ proto_register_dvb_sit(void)
 
     };
 
-    static gint *ett[] = {
+    static int *ett[] = {
         &ett_dvb_sit,
         &ett_dvb_sit_service
     };

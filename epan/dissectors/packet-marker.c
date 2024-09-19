@@ -23,6 +23,8 @@
 void proto_register_marker(void);
 void proto_reg_handoff_marker(void);
 
+static dissector_handle_t marker_handle;
+
 /* MARKER TLVs subtype */
 #define MARKER_TERMINATOR               0x0
 #define MARKERPDU_MARKER_INFO           0x1
@@ -36,32 +38,32 @@ static const value_string marker_vals[] = {
 };
 
 /* Initialise the protocol and registered fields */
-static int proto_marker = -1;
+static int proto_marker;
 
-static int hf_marker_version_number = -1;
-static int hf_marker_tlv_type = -1;
-static int hf_marker_tlv_length = -1;
-static int hf_marker_req_port = -1;
-static int hf_marker_req_system = -1;
-static int hf_marker_req_trans_id = -1;
-static int hf_marker_req_pad = -1;
-static int hf_marker_reserved = -1;
+static int hf_marker_version_number;
+static int hf_marker_tlv_type;
+static int hf_marker_tlv_length;
+static int hf_marker_req_port;
+static int hf_marker_req_system;
+static int hf_marker_req_trans_id;
+static int hf_marker_req_pad;
+static int hf_marker_reserved;
 
 /* Expert Items */
-static expert_field ei_marker_wrong_tlv_type = EI_INIT;
-static expert_field ei_marker_wrong_tlv_length = EI_INIT;
-static expert_field ei_marker_wrong_pad_value = EI_INIT;
+static expert_field ei_marker_wrong_tlv_type;
+static expert_field ei_marker_wrong_tlv_length;
+static expert_field ei_marker_wrong_pad_value;
 
 /* Initialise the subtree pointers */
-static gint ett_marker = -1;
+static int ett_marker;
 
 static int
 dissect_marker(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, void* data _U_)
 {
     int           offset = 0;
-    guint         tlv_type, tlv_length;
-    guint         port, transactionid, pad;
-    const gchar  *sysidstr;
+    unsigned      tlv_type, tlv_length;
+    unsigned      port, transactionid, pad;
+    const char   *sysidstr;
 
     proto_tree *marker_tree;
     proto_item *marker_item, *tlv_type_item, *tlv_length_item, *pad_item;
@@ -190,7 +192,7 @@ proto_register_marker(void)
 
     /* Setup protocol subtree array */
 
-    static gint *ett[] = {
+    static int *ett[] = {
         &ett_marker,
     };
 
@@ -215,14 +217,12 @@ proto_register_marker(void)
     expert_marker = expert_register_protocol(proto_marker);
     expert_register_field_array(expert_marker, ei, array_length(ei));
 
+    marker_handle = register_dissector("marker", dissect_marker, proto_marker);
 }
 
 void
 proto_reg_handoff_marker(void)
 {
-    dissector_handle_t marker_handle;
-
-    marker_handle = create_dissector_handle(dissect_marker, proto_marker);
     dissector_add_uint("slow.subtype", MARKER_SUBTYPE, marker_handle);
 }
 

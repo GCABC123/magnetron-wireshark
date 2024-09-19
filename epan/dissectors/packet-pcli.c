@@ -60,37 +60,39 @@
 void proto_register_pcli(void);
 void proto_reg_handoff_pcli(void);
 
+static dissector_handle_t pcli_handle, pcli_handle8, pcli_handle12, pcli_handle20;
+
 /* Define the pcli proto */
 
-static int proto_pcli = -1;
-static int proto_pcli8 = -1;
-static int proto_pcli12 = -1;
-static int proto_pcli20 = -1;
+static int proto_pcli;
+static int proto_pcli8;
+static int proto_pcli12;
+static int proto_pcli20;
 
 /* Define headers for pcli */
 
-static int hf_pcli_cccid = -1;
-static int hf_pcli_header = -1;
-static int hf_pcli_timestamp = -1;
-static int hf_pcli_case_id = -1;
+static int hf_pcli_cccid;
+static int hf_pcli_header;
+static int hf_pcli_timestamp;
+static int hf_pcli_case_id;
 
 /* Define the tree for pcli */
 
-static int ett_pcli = -1;
+static int ett_pcli;
 
 /*
  * Here are the global variables associated with the preferences
  * for pcli
  */
 
-static gboolean pcli_summary_in_tree = TRUE;
+static bool pcli_summary_in_tree = true;
 
 static dissector_table_t    pcli_subdissector_table;
 
 static proto_tree *
 dissect_pcli_common(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, int* offset)
 {
-    guint32 cccid;
+    uint32_t cccid;
     proto_tree *pcli_tree;
     proto_item *pcli_item;
 
@@ -187,7 +189,7 @@ dissect_pcli20(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, void* data _
 }
 
 static void
-pcli_prompt(packet_info *pinfo _U_, gchar* result)
+pcli_prompt(packet_info *pinfo _U_, char* result)
 {
     snprintf(result, MAX_DECODE_AS_PROMPT_LEN, "PCLI payload as");
 }
@@ -210,7 +212,7 @@ proto_register_pcli(void)
               NULL, HFILL }},
     };
 
-    static gint *ett[] = {
+    static int *ett[] = {
         &ett_pcli,
     };
 
@@ -235,6 +237,12 @@ proto_register_pcli(void)
 
     pcli_subdissector_table = register_decode_as_next_proto(proto_pcli, "pcli.payload",
                                                              "PCLI payload dissector", pcli_prompt);
+
+    /* Register the dissector handles */
+    pcli_handle = register_dissector("pcli", dissect_pcli, proto_pcli);
+    pcli_handle8 = register_dissector("pcli8", dissect_pcli8, proto_pcli8);
+    pcli_handle12 = register_dissector("pcli12", dissect_pcli12, proto_pcli12);
+    pcli_handle20 = register_dissector("pcli20", dissect_pcli20, proto_pcli20);
 }
 
 /* The registration hand-off routing */
@@ -242,13 +250,6 @@ proto_register_pcli(void)
 void
 proto_reg_handoff_pcli(void)
 {
-    dissector_handle_t pcli_handle, pcli_handle8, pcli_handle12, pcli_handle20;
-
-    pcli_handle = create_dissector_handle(dissect_pcli, proto_pcli);
-    pcli_handle8 = create_dissector_handle(dissect_pcli8, proto_pcli8);
-    pcli_handle12 = create_dissector_handle(dissect_pcli12, proto_pcli12);
-    pcli_handle20 = create_dissector_handle(dissect_pcli20, proto_pcli20);
-
     dissector_add_for_decode_as_with_preference("udp.port", pcli_handle);
     dissector_add_for_decode_as_with_preference("udp.port", pcli_handle8);
     dissector_add_for_decode_as_with_preference("udp.port", pcli_handle12);

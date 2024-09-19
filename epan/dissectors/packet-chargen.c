@@ -21,11 +21,13 @@
 void proto_register_chargen(void);
 void proto_reg_handoff_chargen(void);
 
-static int proto_chargen = -1;
+static dissector_handle_t chargen_handle;
 
-static int hf_chargen_data = -1;
+static int proto_chargen;
 
-static gint ett_chargen = -1;
+static int hf_chargen_data;
+
+static int ett_chargen;
 
 /* dissect_chargen - dissects chargen packet data
  * tvb - tvbuff for packet data (IN)
@@ -37,8 +39,8 @@ dissect_chargen(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, void* disse
 {
 	proto_tree* chargen_tree;
 	proto_item* ti;
-	guint8* data;
-	guint32 len;
+	uint8_t* data;
+	uint32_t len;
 
 	col_set_str(pinfo->cinfo, COL_PROTOCOL, "Chargen");
 	col_set_str(pinfo->cinfo, COL_INFO, "Chargen");
@@ -65,7 +67,7 @@ proto_register_chargen(void)
 			NULL, 0, NULL, HFILL }}
 		};
 
-	static gint *ett[] = {
+	static int *ett[] = {
 		&ett_chargen,
 	};
 
@@ -73,14 +75,13 @@ proto_register_chargen(void)
 	    "chargen");
 	proto_register_field_array(proto_chargen, hf, array_length(hf));
 	proto_register_subtree_array(ett, array_length(ett));
+
+	chargen_handle = register_dissector("chargen", dissect_chargen, proto_chargen);
 }
 
 void
 proto_reg_handoff_chargen(void)
 {
-	dissector_handle_t chargen_handle;
-
-	chargen_handle = create_dissector_handle(dissect_chargen, proto_chargen);
 	dissector_add_uint_with_preference("udp.port", CHARGEN_PORT_UDP, chargen_handle);
 	dissector_add_uint_with_preference("tcp.port", CHARGEN_PORT_TCP, chargen_handle);
 }

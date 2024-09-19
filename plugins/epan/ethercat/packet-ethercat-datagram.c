@@ -8,6 +8,8 @@
  * Copyright 1998 Gerald Combs
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
+ *
+ * https://download.beckhoff.com/download/document/io/ethercat-development-products/ethercat_esc_datasheet_sec1_technology_2i3.pdf
  */
 
 /* Include files */
@@ -15,6 +17,8 @@
 #include "config.h"
 
 #include <epan/packet.h>
+#include <epan/tfs.h>
+#include <wsutil/array.h>
 
 #include "packet-ethercat-datagram.h"
 #include "packet-ecatmb.h"
@@ -23,421 +27,422 @@ void proto_register_ecat(void);
 void proto_reg_handoff_ecat(void);
 
 static heur_dissector_list_t heur_subdissector_list;
+static dissector_handle_t ecat_handle;
 static dissector_handle_t ecat_mailbox_handle;
 
 /* Define the EtherCAT proto */
-static int proto_ecat_datagram = -1;
+static int proto_ecat_datagram;
 
 /* Define the tree for EtherCAT */
-static int ett_ecat = -1;
-static int ett_ecat_header = -1;
-static int ett_ecat_dc = -1;
-static int ett_ecat_length = -1;
-static int ett_ecat_padding = -1;
-static int ett_ecat_datagram_subtree = -1;
-static int ett_ecat_reg_esc_features = -1;
-static int ett_ecat_reg_dlctrl1 = -1;
-static int ett_ecat_reg_dlctrl2 = -1;
-static int ett_ecat_reg_dlctrl3 = -1;
-static int ett_ecat_reg_dlctrl4 = -1;
-static int ett_ecat_reg_dlstatus1 = -1;
-static int ett_ecat_reg_dlstatus2 = -1;
-static int ett_ecat_reg_alctrl = -1;
-static int ett_ecat_reg_alstatus = -1;
-static int ett_ecat_reg_pdictrl1 = -1;
-static int ett_ecat_reg_pdictrl2 = -1;
-static int ett_ecat_reg_ecat_mask = -1;
-static int ett_ecat_reg_pdiL = -1;
-static int ett_ecat_reg_ecat = -1;
-static int ett_ecat_reg_pdi1 = -1;
-static int ett_ecat_reg_crc0 = -1;
-static int ett_ecat_reg_crc1 = -1;
-static int ett_ecat_reg_crc2 = -1;
-static int ett_ecat_reg_crc3 = -1;
-static int ett_ecat_reg_wd_status = -1;
-static int ett_ecat_reg_eeprom_assign = -1;
-static int ett_ecat_reg_ctrlstat = -1;
-static int ett_ecat_reg_mio_ctrlstat = -1;
-static int ett_ecat_mio_addr = -1;
-static int ett_ecat_mio_access = -1;
-static int ett_ecat_mio_status0 = -1;
-static int ett_ecat_mio_status1 = -1;
-static int ett_ecat_mio_status2 = -1;
-static int ett_ecat_mio_status3 = -1;
-static int ett_ecat_reg_fmmu = -1;
-static int ett_ecat_reg_syncman = -1;
-static int ett_ecat_reg_syncman_ctrlstatus = -1;
-static int ett_ecat_reg_syncman_sm_enable = -1;
-static int ett_ecat_reg_dc_cycunitctrl = -1;
-static int ett_ecat_dc_activation = -1;
-static int ett_ecat_dc_activationstat = -1;
-static int ett_ecat_dc_sync0_status = -1;
-static int ett_ecat_dc_sync1_status = -1;
-static int ett_ecat_dc_latch0_ctrl = -1;
-static int ett_ecat_dc_latch1_ctrl = -1;
-static int ett_ecat_dc_latch0_status = -1;
-static int ett_ecat_dc_latch1_status = -1;
+static int ett_ecat;
+static int ett_ecat_header;
+static int ett_ecat_dc;
+static int ett_ecat_length;
+static int ett_ecat_padding;
+static int ett_ecat_datagram_subtree;
+static int ett_ecat_reg_esc_features;
+static int ett_ecat_reg_dlctrl1;
+static int ett_ecat_reg_dlctrl2;
+static int ett_ecat_reg_dlctrl3;
+static int ett_ecat_reg_dlctrl4;
+static int ett_ecat_reg_dlstatus1;
+static int ett_ecat_reg_dlstatus2;
+static int ett_ecat_reg_alctrl;
+static int ett_ecat_reg_alstatus;
+static int ett_ecat_reg_pdictrl1;
+static int ett_ecat_reg_pdictrl2;
+static int ett_ecat_reg_ecat_mask;
+static int ett_ecat_reg_pdiL;
+static int ett_ecat_reg_ecat;
+static int ett_ecat_reg_pdi1;
+static int ett_ecat_reg_crc0;
+static int ett_ecat_reg_crc1;
+static int ett_ecat_reg_crc2;
+static int ett_ecat_reg_crc3;
+static int ett_ecat_reg_wd_status;
+static int ett_ecat_reg_eeprom_assign;
+static int ett_ecat_reg_ctrlstat;
+static int ett_ecat_reg_mio_ctrlstat;
+static int ett_ecat_mio_addr;
+static int ett_ecat_mio_access;
+static int ett_ecat_mio_status0;
+static int ett_ecat_mio_status1;
+static int ett_ecat_mio_status2;
+static int ett_ecat_mio_status3;
+static int ett_ecat_reg_fmmu;
+static int ett_ecat_reg_syncman;
+static int ett_ecat_reg_syncman_ctrlstatus;
+static int ett_ecat_reg_syncman_sm_enable;
+static int ett_ecat_reg_dc_cycunitctrl;
+static int ett_ecat_dc_activation;
+static int ett_ecat_dc_activationstat;
+static int ett_ecat_dc_sync0_status;
+static int ett_ecat_dc_sync1_status;
+static int ett_ecat_dc_latch0_ctrl;
+static int ett_ecat_dc_latch1_ctrl;
+static int ett_ecat_dc_latch0_status;
+static int ett_ecat_dc_latch1_status;
 
 static int hf_ecat_sub;
-static int hf_ecat_sub_data[10] = {-1, -1, -1, -1, -1, -1, -1, -1, -1, -1};
-static int hf_ecat_sub_cmd[10]  = {-1, -1, -1, -1, -1, -1, -1, -1, -1, -1};
-static int hf_ecat_sub_idx[10]  = {-1, -1, -1, -1, -1, -1, -1, -1, -1, -1};
-static int hf_ecat_sub_cnt[10]  = {-1, -1, -1, -1, -1, -1, -1, -1, -1, -1};
-static int hf_ecat_sub_ado[10]  = {-1, -1, -1, -1, -1, -1, -1, -1, -1, -1};
-static int hf_ecat_sub_adp[10]  = {-1, -1, -1, -1, -1, -1, -1, -1, -1, -1};
-static int hf_ecat_sub_lad[10]  = {-1, -1, -1, -1, -1, -1, -1, -1, -1, -1};
+static int hf_ecat_sub_data[10];
+static int hf_ecat_sub_cmd[10];
+static int hf_ecat_sub_idx[10];
+static int hf_ecat_sub_cnt[10];
+static int hf_ecat_sub_ado[10];
+static int hf_ecat_sub_adp[10];
+static int hf_ecat_sub_lad[10];
 
-/* static int hf_ecat_header = -1; */
-static int hf_ecat_data = -1;
-static int hf_ecat_cnt = -1;
-static int hf_ecat_cmd = -1;
-static int hf_ecat_idx = -1;
-static int hf_ecat_adp = -1;
-static int hf_ecat_ado = -1;
-static int hf_ecat_lad = -1;
-/* static int hf_ecat_len = -1; */
-static int hf_ecat_int = -1;
+/* static int hf_ecat_header; */
+static int hf_ecat_data;
+static int hf_ecat_cnt;
+static int hf_ecat_cmd;
+static int hf_ecat_idx;
+static int hf_ecat_adp;
+static int hf_ecat_ado;
+static int hf_ecat_lad;
+/* static int hf_ecat_len; */
+static int hf_ecat_int;
 
-static int hf_ecat_sub_dc_diff_da[10] = {-1, -1, -1, -1, -1, -1, -1, -1, -1, -1};
-static int hf_ecat_sub_dc_diff_bd[10] = {-1, -1, -1, -1, -1, -1, -1, -1, -1, -1};
-static int hf_ecat_sub_dc_diff_cb[10] = {-1, -1, -1, -1, -1, -1, -1, -1, -1, -1};
-static int hf_ecat_sub_dc_diff_cd[10] = {-1, -1, -1, -1, -1, -1, -1, -1, -1, -1};
-static int hf_ecat_sub_dc_diff_ba[10] = {-1, -1, -1, -1, -1, -1, -1, -1, -1, -1};
-static int hf_ecat_sub_dc_diff_ca[10] = {-1, -1, -1, -1, -1, -1, -1, -1, -1, -1};
+static int hf_ecat_sub_dc_diff_da[10];
+static int hf_ecat_sub_dc_diff_bd[10];
+static int hf_ecat_sub_dc_diff_cb[10];
+static int hf_ecat_sub_dc_diff_cd[10];
+static int hf_ecat_sub_dc_diff_ba[10];
+static int hf_ecat_sub_dc_diff_ca[10];
 
-static int hf_ecat_dc_diff_da = -1;
-static int hf_ecat_dc_diff_bd = -1;
-static int hf_ecat_dc_diff_cb = -1;
-static int hf_ecat_dc_diff_cd = -1;
-static int hf_ecat_dc_diff_ba = -1;
-static int hf_ecat_dc_diff_ca = -1;
+static int hf_ecat_dc_diff_da;
+static int hf_ecat_dc_diff_bd;
+static int hf_ecat_dc_diff_cb;
+static int hf_ecat_dc_diff_cd;
+static int hf_ecat_dc_diff_ba;
+static int hf_ecat_dc_diff_ca;
 
-static int hf_ecat_length_len = -1;
-static int hf_ecat_length_r = -1;
-static int hf_ecat_length_c = -1;
-static int hf_ecat_length_m = -1;
+static int hf_ecat_length_len;
+static int hf_ecat_length_r;
+static int hf_ecat_length_c;
+static int hf_ecat_length_m;
 
-static int hf_ecat_padding = -1;
+static int hf_ecat_padding;
 
-static int hf_ecat_reg_revision = -1;
-static int hf_ecat_reg_esc_type = -1;
-static int hf_ecat_reg_esc_build = -1;
-static int hf_ecat_reg_esc_fmmucnt = -1;
-static int hf_ecat_reg_esc_smcnt = -1;
-static int hf_ecat_reg_esc_ports = -1;
-static int hf_ecat_reg_esc_dpram = -1;
-static int hf_ecat_reg_esc_features = -1;
-static int hf_ecat_reg_esc_features_fmmurestrict = -1;
-static int hf_ecat_reg_esc_features_smaddrrestrict = -1;
-static int hf_ecat_reg_esc_features_dcsupport = -1;
-static int hf_ecat_reg_esc_features_dc64support = -1;
-static int hf_ecat_reg_esc_features_ebuslowjitter = -1;
-static int hf_ecat_reg_esc_features_ebusextlinkdetect = -1;
-static int hf_ecat_reg_esc_features_miiextlinkdetect = -1;
-static int hf_ecat_reg_esc_features_crcext = -1;
-static int hf_ecat_reg_physaddr = -1;
-static int hf_ecat_reg_physaddr2 = -1;
-static int hf_ecat_reg_dlctrl1 = -1;
-static int hf_ecat_reg_dlctrl1_killnonecat = -1;
-static int hf_ecat_reg_dlctrl1_port0extlinkdetect = -1;
-static int hf_ecat_reg_dlctrl1_port1extlinkdetect = -1;
-static int hf_ecat_reg_dlctrl1_port2extlinkdetect = -1;
-static int hf_ecat_reg_dlctrl1_port3extlinkdetect = -1;
-static int hf_ecat_reg_dlctrl2 = -1;
-static int hf_ecat_reg_dlctrl2_port0 = -1;
-static int hf_ecat_reg_dlctrl2_port1 = -1;
-static int hf_ecat_reg_dlctrl2_port2 = -1;
-static int hf_ecat_reg_dlctrl2_port3 = -1;
-static int hf_ecat_reg_dlctrl3 = -1;
-static int hf_ecat_reg_dlctrl3_fifosize = -1;
-static int hf_ecat_reg_dlctrl3_lowebusjit = -1;
-static int hf_ecat_reg_dlctrl4 = -1;
-static int hf_ecat_reg_dlctrl4_2ndaddress = -1;
-static int hf_ecat_reg_dlstatus1 = -1;
-static int hf_ecat_reg_dlstatus1_operation = -1;
-static int hf_ecat_reg_dlstatus1_pdiwatchdog = -1;
-static int hf_ecat_reg_dlstatus1_enhlinkdetect = -1;
-static int hf_ecat_reg_dlstatus1_physlink_port0 = -1;
-static int hf_ecat_reg_dlstatus1_physlink_port1 = -1;
-static int hf_ecat_reg_dlstatus1_physlink_port2 = -1;
-static int hf_ecat_reg_dlstatus1_physlink_port3 = -1;
-static int hf_ecat_reg_dlstatus2 = -1;
-static int hf_ecat_reg_dlstatus2_port0 = -1;
-static int hf_ecat_reg_dlstatus2_port1 = -1;
-static int hf_ecat_reg_dlstatus2_port2 = -1;
-static int hf_ecat_reg_dlstatus2_port3 = -1;
-static int hf_ecat_reg_regprotect = -1;
-static int hf_ecat_reg_accessprotect = -1;
-static int hf_ecat_reg_resetecat = -1;
-static int hf_ecat_reg_resetpdi = -1;
-static int hf_ecat_reg_regphysrwoffs = -1;
-static int hf_ecat_reg_alctrl = -1;
-static int hf_ecat_reg_alctrl_ctrl = -1;
-static int hf_ecat_reg_alctrl_errack = -1;
-static int hf_ecat_reg_alctrl_id = -1;
-static int hf_ecat_reg_alstatus = -1;
-static int hf_ecat_reg_alstatus_status = -1;
-static int hf_ecat_reg_alstatus_err = -1;
-static int hf_ecat_reg_alstatus_id = -1;
-static int hf_ecat_reg_pdictrl1 = -1;
-static int hf_ecat_reg_pdictrl1_pdi = -1;
-static int hf_ecat_reg_pdictrl2 = -1;
-static int hf_ecat_reg_pdictrl2_devemul = -1;
-static int hf_ecat_reg_pdictrl2_enhlnkdetect = -1;
-static int hf_ecat_reg_pdictrl2_dcsyncout = -1;
-static int hf_ecat_reg_pdictrl2_dcsyncin = -1;
-static int hf_ecat_reg_pdictrl2_enhlnkdetect0 = -1;
-static int hf_ecat_reg_pdictrl2_enhlnkdetect1 = -1;
-static int hf_ecat_reg_pdictrl2_enhlnkdetect2 = -1;
-static int hf_ecat_reg_pdictrl2_enhlnkdetect3 = -1;
-static int hf_ecat_reg_alstatuscode = -1;
-static int hf_ecat_reg_ecat_mask = -1;
-static int hf_ecat_reg_ecat_mask_latchevt = -1;
-static int hf_ecat_reg_ecat_mask_escstatevt = -1;
-static int hf_ecat_reg_ecat_mask_alstatevt = -1;
-static int hf_ecat_reg_ecat_mask_sm0irq = -1;
-static int hf_ecat_reg_ecat_mask_sm1irq = -1;
-static int hf_ecat_reg_ecat_mask_sm2irq = -1;
-static int hf_ecat_reg_ecat_mask_sm3irq = -1;
-static int hf_ecat_reg_ecat_mask_sm4irq = -1;
-static int hf_ecat_reg_ecat_mask_sm5irq = -1;
-static int hf_ecat_reg_ecat_mask_sm6irq = -1;
-static int hf_ecat_reg_ecat_mask_sm7irq = -1;
-static int hf_ecat_reg_pdiL = -1;
-static int hf_ecat_reg_pdiL_alctrl = -1;
-static int hf_ecat_reg_pdiL_latchin = -1;
-static int hf_ecat_reg_pdiL_sync0 = -1;
-static int hf_ecat_reg_pdiL_sync1 = -1;
-static int hf_ecat_reg_pdiL_smchg = -1;
-static int hf_ecat_reg_pdiL_eepromcmdpen = -1;
-static int hf_ecat_reg_pdiL_sm0 = -1;
-static int hf_ecat_reg_pdiL_sm1 = -1;
-static int hf_ecat_reg_pdiL_sm2 = -1;
-static int hf_ecat_reg_pdiL_sm3 = -1;
-static int hf_ecat_reg_pdiL_sm4 = -1;
-static int hf_ecat_reg_pdiL_sm5 = -1;
-static int hf_ecat_reg_pdiL_sm6 = -1;
-static int hf_ecat_reg_pdiL_sm7 = -1;
-static int hf_ecat_reg_pdiH = -1;
-static int hf_ecat_reg_ecat = -1;
-static int hf_ecat_reg_ecat_latchevt = -1;
-static int hf_ecat_reg_ecat_escstatevt = -1;
-static int hf_ecat_reg_ecat_alstatevt = -1;
-static int hf_ecat_reg_ecat_sm0irq = -1;
-static int hf_ecat_reg_ecat_sm1irq = -1;
-static int hf_ecat_reg_ecat_sm2irq = -1;
-static int hf_ecat_reg_ecat_sm3irq = -1;
-static int hf_ecat_reg_ecat_sm4irq = -1;
-static int hf_ecat_reg_ecat_sm5irq = -1;
-static int hf_ecat_reg_ecat_sm6irq = -1;
-static int hf_ecat_reg_ecat_sm7irq = -1;
-static int hf_ecat_reg_pdi1 = -1;
-static int hf_ecat_reg_pdi1_alctrl = -1;
-static int hf_ecat_reg_pdi1_latchin = -1;
-static int hf_ecat_reg_pdi1_sync0 = -1;
-static int hf_ecat_reg_pdi1_sync1 = -1;
-static int hf_ecat_reg_pdi1_smchg = -1;
-static int hf_ecat_reg_pdi1_eepromcmdpen = -1;
-static int hf_ecat_reg_pdi1_sm0 = -1;
-static int hf_ecat_reg_pdi1_sm1 = -1;
-static int hf_ecat_reg_pdi1_sm2 = -1;
-static int hf_ecat_reg_pdi1_sm3 = -1;
-static int hf_ecat_reg_pdi1_sm4 = -1;
-static int hf_ecat_reg_pdi1_sm5 = -1;
-static int hf_ecat_reg_pdi1_sm6 = -1;
-static int hf_ecat_reg_pdi1_sm7 = -1;
-static int hf_ecat_reg_pdi2 = -1;
-static int hf_ecat_reg_crc0 = -1;
-static int hf_ecat_reg_crc0_frame = -1;
-static int hf_ecat_reg_crc0_rx = -1;
-static int hf_ecat_reg_crc1 = -1;
-static int hf_ecat_reg_crc1_frame = -1;
-static int hf_ecat_reg_crc1_rx = -1;
-static int hf_ecat_reg_crc2 = -1;
-static int hf_ecat_reg_crc2_frame = -1;
-static int hf_ecat_reg_crc2_rx = -1;
-static int hf_ecat_reg_crc3 = -1;
-static int hf_ecat_reg_crc3_frame = -1;
-static int hf_ecat_reg_crc3_rx = -1;
-static int hf_ecat_reg_crc_fwd0 = -1;
-static int hf_ecat_reg_crc_fwd1 = -1;
-static int hf_ecat_reg_crc_fwd2 = -1;
-static int hf_ecat_reg_crc_fwd3 = -1;
-static int hf_ecat_reg_processuniterr = -1;
-static int hf_ecat_reg_pdierr = -1;
-static int hf_ecat_reg_linklost0 = -1;
-static int hf_ecat_reg_linklost1 = -1;
-static int hf_ecat_reg_linklost2 = -1;
-static int hf_ecat_reg_linklost3 = -1;
-static int hf_ecat_reg_wd_divisor = -1;
-static int hf_ecat_reg_wd_timepdi = -1;
-static int hf_ecat_reg_wd_timesm = -1;
-static int hf_ecat_reg_wd_status = -1;
-static int hf_ecat_reg_wd_status_pdwatchdog = -1;
-static int hf_ecat_reg_wd_cntsm = -1;
-static int hf_ecat_reg_wd_cntpdi = -1;
-static int hf_ecat_reg_eeprom_assign = -1;
-static int hf_ecat_reg_eeprom_assign_ctrl = -1;
-static int hf_ecat_reg_eeprom_assign_pdiaccess = -1;
-static int hf_ecat_reg_eeprom_assign_status = -1;
-static int hf_ecat_reg_ctrlstat = -1;
-static int hf_ecat_reg_ctrlstat_wraccess = -1;
-static int hf_ecat_reg_ctrlstat_eepromemul = -1;
-static int hf_ecat_reg_ctrlstat_8bacc = -1;
-static int hf_ecat_reg_ctrlstat_2bacc = -1;
-static int hf_ecat_reg_ctrlstat_rdacc = -1;
-static int hf_ecat_reg_ctrlstat_wracc = -1;
-static int hf_ecat_reg_ctrlstat_reloadacc = -1;
-static int hf_ecat_reg_ctrlstat_crcerr = -1;
-static int hf_ecat_reg_ctrlstat_lderr = -1;
-static int hf_ecat_reg_ctrlstat_cmderr = -1;
-static int hf_ecat_reg_ctrlstat_wrerr = -1;
-static int hf_ecat_reg_ctrlstat_busy = -1;
-static int hf_ecat_reg_addrl = -1;
-static int hf_ecat_reg_addrh = -1;
-static int hf_ecat_reg_data0 = -1;
-static int hf_ecat_reg_data1 = -1;
-static int hf_ecat_reg_data2 = -1;
-static int hf_ecat_reg_data3 = -1;
-static int hf_ecat_reg_mio_ctrlstat = -1;
-static int hf_ecat_reg_mio_ctrlstat_wracc1 = -1;
-static int hf_ecat_reg_mio_ctrlstat_offsphy = -1;
-static int hf_ecat_reg_mio_ctrlstat_rdacc = -1;
-static int hf_ecat_reg_mio_ctrlstat_wracc2 = -1;
-static int hf_ecat_reg_mio_ctrlstat_wrerr = -1;
-static int hf_ecat_reg_mio_ctrlstat_busy = -1;
-static int hf_ecat_reg_mio_addr = -1;
-static int hf_ecat_reg_mio_addr_phyaddr = -1;
-static int hf_ecat_reg_mio_addr_mioaddr = -1;
-static int hf_ecat_reg_mio_data = -1;
-static int hf_ecat_reg_mio_access = -1;
-static int hf_ecat_reg_mio_access_ecatacc = -1;
-static int hf_ecat_reg_mio_access_pdiacc = -1;
-static int hf_ecat_reg_mio_access_forcereset = -1;
-static int hf_ecat_reg_mio_status0 = -1;
-static int hf_ecat_reg_mio_status0_physlink = -1;
-static int hf_ecat_reg_mio_status0_link = -1;
-static int hf_ecat_reg_mio_status0_linkstatuserr = -1;
-static int hf_ecat_reg_mio_status0_readerr = -1;
-static int hf_ecat_reg_mio_status0_linkpartnererr = -1;
-static int hf_ecat_reg_mio_status0_phycfgupdated = -1;
-static int hf_ecat_reg_mio_status1 = -1;
-static int hf_ecat_reg_mio_status1_physlink = -1;
-static int hf_ecat_reg_mio_status1_link = -1;
-static int hf_ecat_reg_mio_status1_linkstatuserr = -1;
-static int hf_ecat_reg_mio_status1_readerr = -1;
-static int hf_ecat_reg_mio_status1_linkpartnererr = -1;
-static int hf_ecat_reg_mio_status1_phycfgupdated = -1;
-static int hf_ecat_reg_mio_status2 = -1;
-static int hf_ecat_reg_mio_status2_physlink = -1;
-static int hf_ecat_reg_mio_status2_link = -1;
-static int hf_ecat_reg_mio_status2_linkstatuserr = -1;
-static int hf_ecat_reg_mio_status2_readerr = -1;
-static int hf_ecat_reg_mio_status2_linkpartnererr = -1;
-static int hf_ecat_reg_mio_status2_phycfgupdated = -1;
-static int hf_ecat_reg_mio_status3 = -1;
-static int hf_ecat_reg_mio_status3_physlink = -1;
-static int hf_ecat_reg_mio_status3_link = -1;
-static int hf_ecat_reg_mio_status3_linkstatuserr = -1;
-static int hf_ecat_reg_mio_status3_readerr = -1;
-static int hf_ecat_reg_mio_status3_linkpartnererr = -1;
-static int hf_ecat_reg_mio_status3_phycfgupdated = -1;
-static int hf_ecat_reg_fmmu = -1;
-static int hf_ecat_reg_fmmu_lstart = -1;
-static int hf_ecat_reg_fmmu_llen = -1;
-static int hf_ecat_reg_fmmu_lstartbit = -1;
-static int hf_ecat_reg_fmmu_lendbit = -1;
-static int hf_ecat_reg_fmmu_pstart = -1;
-static int hf_ecat_reg_fmmu_pstartbit = -1;
-static int hf_ecat_reg_fmmu_type = -1;
-static int hf_ecat_reg_fmmu_typeread = -1;
-static int hf_ecat_reg_fmmu_typewrite = -1;
-static int hf_ecat_reg_fmmu_activate = -1;
-static int hf_ecat_reg_fmmu_activate0 = -1;
-static int hf_ecat_reg_syncman_ctrlstatus = -1;
-static int hf_ecat_reg_syncman_pmode = -1;
-static int hf_ecat_reg_syncman_access = -1;
-static int hf_ecat_reg_syncman_irq_ecat = -1;
-static int hf_ecat_reg_syncman_irq_pdi = -1;
-static int hf_ecat_reg_syncman_wdt = -1;
-static int hf_ecat_reg_syncman_irq_write = -1;
-static int hf_ecat_reg_syncman_irq_read = -1;
-static int hf_ecat_reg_syncman_1bufstate = -1;
-static int hf_ecat_reg_syncman_3bufstate = -1;
-static int hf_ecat_reg_syncman_sm_enable = -1;
-static int hf_ecat_reg_syncman_enable = -1;
-static int hf_ecat_reg_syncman_repeatreq = -1;
-static int hf_ecat_reg_syncman_latchsmchg_ecat = -1;
-static int hf_ecat_reg_syncman_latchsmchg_pdi = -1;
-static int hf_ecat_reg_syncman_deactivate = -1;
-static int hf_ecat_reg_syncman_repeatack = -1;
-static int hf_ecat_reg_syncman = -1;
-static int hf_ecat_reg_syncman_start = -1;
-static int hf_ecat_reg_syncman_len = -1;
-static int hf_ecat_reg_dc_recv0 = -1;
-static int hf_ecat_reg_dc_recv1 = -1;
-static int hf_ecat_reg_dc_recv2 = -1;
-static int hf_ecat_reg_dc_recv3 = -1;
-static int hf_ecat_reg_dc_systime = -1;
-static int hf_ecat_reg_dc_systimeL = -1;
-static int hf_ecat_reg_dc_systimeH = -1;
-static int hf_ecat_reg_dc_recvtime64 = -1;
-static int hf_ecat_reg_dc_systimeoffs = -1;
-static int hf_ecat_reg_dc_systimeoffsl = -1;
-static int hf_ecat_reg_dc_systimeoffsh = -1;
-static int hf_ecat_reg_dc_systimedelay = -1;
-static int hf_ecat_reg_dc_ctrlerr = -1;
-static int hf_ecat_reg_dc_speedstart = -1;
-static int hf_ecat_reg_dc_speeddiff = -1;
-static int hf_ecat_reg_dc_fltdepth_systimediff = -1;
-static int hf_ecat_reg_dc_fltdepth_speedcnt = -1;
-static int hf_ecat_reg_dc_cycunitctrl = -1;
-static int hf_ecat_reg_dc_cycunitctrl_access_cyclic = -1;
-static int hf_ecat_reg_dc_cycunitctrl_access_latch0 = -1;
-static int hf_ecat_reg_dc_cycunitctrl_access_latch1 = -1;
-static int hf_ecat_reg_dc_activation = -1;
-static int hf_ecat_reg_dc_activation_enablecyclic = -1;
-static int hf_ecat_reg_dc_activation_gen_sync0 = -1;
-static int hf_ecat_reg_dc_activation_gen_sync1 = -1;
-static int hf_ecat_reg_dc_activation_autoactivation = -1;
-static int hf_ecat_reg_dc_activation_stimeext = -1;
-static int hf_ecat_reg_dc_activation_stimecheck = -1;
-static int hf_ecat_reg_dc_activation_hlfrange = -1;
-static int hf_ecat_reg_dc_activation_dblrange = -1;
-static int hf_ecat_reg_dc_cycimpuls = -1;
-static int hf_ecat_reg_dc_activationstat = -1;
-static int hf_ecat_reg_dc_activationstat_sync0pend = -1;
-static int hf_ecat_reg_dc_activationstat_sync1pend = -1;
-static int hf_ecat_reg_dc_activationstat_stimeoutofrange = -1;
-static int hf_ecat_reg_dc_sync0_status = -1;
-static int hf_ecat_reg_dc_sync0_status_triggered = -1;
-static int hf_ecat_reg_dc_sync1_status = -1;
-static int hf_ecat_reg_dc_sync1_status_triggered = -1;
-static int hf_ecat_reg_dc_starttime0 = -1;
-static int hf_ecat_reg_dc_starttime1 = -1;
-static int hf_ecat_reg_dc_cyctime0 = -1;
-static int hf_ecat_reg_dc_cyctime1 = -1;
-static int hf_ecat_reg_dc_latch0_ctrl_pos = -1;
-static int hf_ecat_reg_dc_latch0_ctrl_neg = -1;
-static int hf_ecat_reg_dc_latch1_ctrl_pos = -1;
-static int hf_ecat_reg_dc_latch1_ctrl_neg = -1;
-static int hf_ecat_reg_dc_latch0_status_eventpos = -1;
-static int hf_ecat_reg_dc_latch0_status_eventneg = -1;
-static int hf_ecat_reg_dc_latch0_status_pinstate = -1;
-static int hf_ecat_reg_dc_latch1_status_eventpos = -1;
-static int hf_ecat_reg_dc_latch1_status_eventneg = -1;
-static int hf_ecat_reg_dc_latch1_status_pinstate = -1;
-static int hf_ecat_reg_dc_latch0_ctrl = -1;
-static int hf_ecat_reg_dc_latch1_ctrl = -1;
-static int hf_ecat_reg_dc_latch0_status = -1;
-static int hf_ecat_reg_dc_latch1_status = -1;
-static int hf_ecat_reg_dc_latch0_pos = -1;
-static int hf_ecat_reg_dc_latch0_neg = -1;
-static int hf_ecat_reg_dc_latch1_pos = -1;
-static int hf_ecat_reg_dc_latch1_neg = -1;
-static int hf_ecat_reg_dc_rcvsyncmanchg = -1;
-static int hf_ecat_reg_dc_pdismstart = -1;
-static int hf_ecat_reg_dc_pdismchg = -1;
+static int hf_ecat_reg_revision;
+static int hf_ecat_reg_esc_type;
+static int hf_ecat_reg_esc_build;
+static int hf_ecat_reg_esc_fmmucnt;
+static int hf_ecat_reg_esc_smcnt;
+static int hf_ecat_reg_esc_ports;
+static int hf_ecat_reg_esc_dpram;
+static int hf_ecat_reg_esc_features;
+static int hf_ecat_reg_esc_features_fmmurestrict;
+static int hf_ecat_reg_esc_features_smaddrrestrict;
+static int hf_ecat_reg_esc_features_dcsupport;
+static int hf_ecat_reg_esc_features_dc64support;
+static int hf_ecat_reg_esc_features_ebuslowjitter;
+static int hf_ecat_reg_esc_features_ebusextlinkdetect;
+static int hf_ecat_reg_esc_features_miiextlinkdetect;
+static int hf_ecat_reg_esc_features_crcext;
+static int hf_ecat_reg_physaddr;
+static int hf_ecat_reg_physaddr2;
+static int hf_ecat_reg_dlctrl1;
+static int hf_ecat_reg_dlctrl1_killnonecat;
+static int hf_ecat_reg_dlctrl1_port0extlinkdetect;
+static int hf_ecat_reg_dlctrl1_port1extlinkdetect;
+static int hf_ecat_reg_dlctrl1_port2extlinkdetect;
+static int hf_ecat_reg_dlctrl1_port3extlinkdetect;
+static int hf_ecat_reg_dlctrl2;
+static int hf_ecat_reg_dlctrl2_port0;
+static int hf_ecat_reg_dlctrl2_port1;
+static int hf_ecat_reg_dlctrl2_port2;
+static int hf_ecat_reg_dlctrl2_port3;
+static int hf_ecat_reg_dlctrl3;
+static int hf_ecat_reg_dlctrl3_fifosize;
+static int hf_ecat_reg_dlctrl3_lowebusjit;
+static int hf_ecat_reg_dlctrl4;
+static int hf_ecat_reg_dlctrl4_2ndaddress;
+static int hf_ecat_reg_dlstatus1;
+static int hf_ecat_reg_dlstatus1_operation;
+static int hf_ecat_reg_dlstatus1_pdiwatchdog;
+static int hf_ecat_reg_dlstatus1_enhlinkdetect;
+static int hf_ecat_reg_dlstatus1_physlink_port0;
+static int hf_ecat_reg_dlstatus1_physlink_port1;
+static int hf_ecat_reg_dlstatus1_physlink_port2;
+static int hf_ecat_reg_dlstatus1_physlink_port3;
+static int hf_ecat_reg_dlstatus2;
+static int hf_ecat_reg_dlstatus2_port0;
+static int hf_ecat_reg_dlstatus2_port1;
+static int hf_ecat_reg_dlstatus2_port2;
+static int hf_ecat_reg_dlstatus2_port3;
+static int hf_ecat_reg_regprotect;
+static int hf_ecat_reg_accessprotect;
+static int hf_ecat_reg_resetecat;
+static int hf_ecat_reg_resetpdi;
+static int hf_ecat_reg_regphysrwoffs;
+static int hf_ecat_reg_alctrl;
+static int hf_ecat_reg_alctrl_ctrl;
+static int hf_ecat_reg_alctrl_errack;
+static int hf_ecat_reg_alctrl_id;
+static int hf_ecat_reg_alstatus;
+static int hf_ecat_reg_alstatus_status;
+static int hf_ecat_reg_alstatus_err;
+static int hf_ecat_reg_alstatus_id;
+static int hf_ecat_reg_pdictrl1;
+static int hf_ecat_reg_pdictrl1_pdi;
+static int hf_ecat_reg_pdictrl2;
+static int hf_ecat_reg_pdictrl2_devemul;
+static int hf_ecat_reg_pdictrl2_enhlnkdetect;
+static int hf_ecat_reg_pdictrl2_dcsyncout;
+static int hf_ecat_reg_pdictrl2_dcsyncin;
+static int hf_ecat_reg_pdictrl2_enhlnkdetect0;
+static int hf_ecat_reg_pdictrl2_enhlnkdetect1;
+static int hf_ecat_reg_pdictrl2_enhlnkdetect2;
+static int hf_ecat_reg_pdictrl2_enhlnkdetect3;
+static int hf_ecat_reg_alstatuscode;
+static int hf_ecat_reg_ecat_mask;
+static int hf_ecat_reg_ecat_mask_latchevt;
+static int hf_ecat_reg_ecat_mask_escstatevt;
+static int hf_ecat_reg_ecat_mask_alstatevt;
+static int hf_ecat_reg_ecat_mask_sm0irq;
+static int hf_ecat_reg_ecat_mask_sm1irq;
+static int hf_ecat_reg_ecat_mask_sm2irq;
+static int hf_ecat_reg_ecat_mask_sm3irq;
+static int hf_ecat_reg_ecat_mask_sm4irq;
+static int hf_ecat_reg_ecat_mask_sm5irq;
+static int hf_ecat_reg_ecat_mask_sm6irq;
+static int hf_ecat_reg_ecat_mask_sm7irq;
+static int hf_ecat_reg_pdiL;
+static int hf_ecat_reg_pdiL_alctrl;
+static int hf_ecat_reg_pdiL_latchin;
+static int hf_ecat_reg_pdiL_sync0;
+static int hf_ecat_reg_pdiL_sync1;
+static int hf_ecat_reg_pdiL_smchg;
+static int hf_ecat_reg_pdiL_eepromcmdpen;
+static int hf_ecat_reg_pdiL_sm0;
+static int hf_ecat_reg_pdiL_sm1;
+static int hf_ecat_reg_pdiL_sm2;
+static int hf_ecat_reg_pdiL_sm3;
+static int hf_ecat_reg_pdiL_sm4;
+static int hf_ecat_reg_pdiL_sm5;
+static int hf_ecat_reg_pdiL_sm6;
+static int hf_ecat_reg_pdiL_sm7;
+static int hf_ecat_reg_pdiH;
+static int hf_ecat_reg_ecat;
+static int hf_ecat_reg_ecat_latchevt;
+static int hf_ecat_reg_ecat_escstatevt;
+static int hf_ecat_reg_ecat_alstatevt;
+static int hf_ecat_reg_ecat_sm0irq;
+static int hf_ecat_reg_ecat_sm1irq;
+static int hf_ecat_reg_ecat_sm2irq;
+static int hf_ecat_reg_ecat_sm3irq;
+static int hf_ecat_reg_ecat_sm4irq;
+static int hf_ecat_reg_ecat_sm5irq;
+static int hf_ecat_reg_ecat_sm6irq;
+static int hf_ecat_reg_ecat_sm7irq;
+static int hf_ecat_reg_pdi1;
+static int hf_ecat_reg_pdi1_alctrl;
+static int hf_ecat_reg_pdi1_latchin;
+static int hf_ecat_reg_pdi1_sync0;
+static int hf_ecat_reg_pdi1_sync1;
+static int hf_ecat_reg_pdi1_smchg;
+static int hf_ecat_reg_pdi1_eepromcmdpen;
+static int hf_ecat_reg_pdi1_sm0;
+static int hf_ecat_reg_pdi1_sm1;
+static int hf_ecat_reg_pdi1_sm2;
+static int hf_ecat_reg_pdi1_sm3;
+static int hf_ecat_reg_pdi1_sm4;
+static int hf_ecat_reg_pdi1_sm5;
+static int hf_ecat_reg_pdi1_sm6;
+static int hf_ecat_reg_pdi1_sm7;
+static int hf_ecat_reg_pdi2;
+static int hf_ecat_reg_crc0;
+static int hf_ecat_reg_crc0_frame;
+static int hf_ecat_reg_crc0_rx;
+static int hf_ecat_reg_crc1;
+static int hf_ecat_reg_crc1_frame;
+static int hf_ecat_reg_crc1_rx;
+static int hf_ecat_reg_crc2;
+static int hf_ecat_reg_crc2_frame;
+static int hf_ecat_reg_crc2_rx;
+static int hf_ecat_reg_crc3;
+static int hf_ecat_reg_crc3_frame;
+static int hf_ecat_reg_crc3_rx;
+static int hf_ecat_reg_crc_fwd0;
+static int hf_ecat_reg_crc_fwd1;
+static int hf_ecat_reg_crc_fwd2;
+static int hf_ecat_reg_crc_fwd3;
+static int hf_ecat_reg_processuniterr;
+static int hf_ecat_reg_pdierr;
+static int hf_ecat_reg_linklost0;
+static int hf_ecat_reg_linklost1;
+static int hf_ecat_reg_linklost2;
+static int hf_ecat_reg_linklost3;
+static int hf_ecat_reg_wd_divisor;
+static int hf_ecat_reg_wd_timepdi;
+static int hf_ecat_reg_wd_timesm;
+static int hf_ecat_reg_wd_status;
+static int hf_ecat_reg_wd_status_pdwatchdog;
+static int hf_ecat_reg_wd_cntsm;
+static int hf_ecat_reg_wd_cntpdi;
+static int hf_ecat_reg_eeprom_assign;
+static int hf_ecat_reg_eeprom_assign_ctrl;
+static int hf_ecat_reg_eeprom_assign_pdiaccess;
+static int hf_ecat_reg_eeprom_assign_status;
+static int hf_ecat_reg_ctrlstat;
+static int hf_ecat_reg_ctrlstat_wraccess;
+static int hf_ecat_reg_ctrlstat_eepromemul;
+static int hf_ecat_reg_ctrlstat_8bacc;
+static int hf_ecat_reg_ctrlstat_2bacc;
+static int hf_ecat_reg_ctrlstat_rdacc;
+static int hf_ecat_reg_ctrlstat_wracc;
+static int hf_ecat_reg_ctrlstat_reloadacc;
+static int hf_ecat_reg_ctrlstat_crcerr;
+static int hf_ecat_reg_ctrlstat_lderr;
+static int hf_ecat_reg_ctrlstat_cmderr;
+static int hf_ecat_reg_ctrlstat_wrerr;
+static int hf_ecat_reg_ctrlstat_busy;
+static int hf_ecat_reg_addrl;
+static int hf_ecat_reg_addrh;
+static int hf_ecat_reg_data0;
+static int hf_ecat_reg_data1;
+static int hf_ecat_reg_data2;
+static int hf_ecat_reg_data3;
+static int hf_ecat_reg_mio_ctrlstat;
+static int hf_ecat_reg_mio_ctrlstat_wracc1;
+static int hf_ecat_reg_mio_ctrlstat_offsphy;
+static int hf_ecat_reg_mio_ctrlstat_rdacc;
+static int hf_ecat_reg_mio_ctrlstat_wracc2;
+static int hf_ecat_reg_mio_ctrlstat_wrerr;
+static int hf_ecat_reg_mio_ctrlstat_busy;
+static int hf_ecat_reg_mio_addr;
+static int hf_ecat_reg_mio_addr_phyaddr;
+static int hf_ecat_reg_mio_addr_mioaddr;
+static int hf_ecat_reg_mio_data;
+static int hf_ecat_reg_mio_access;
+static int hf_ecat_reg_mio_access_ecatacc;
+static int hf_ecat_reg_mio_access_pdiacc;
+static int hf_ecat_reg_mio_access_forcereset;
+static int hf_ecat_reg_mio_status0;
+static int hf_ecat_reg_mio_status0_physlink;
+static int hf_ecat_reg_mio_status0_link;
+static int hf_ecat_reg_mio_status0_linkstatuserr;
+static int hf_ecat_reg_mio_status0_readerr;
+static int hf_ecat_reg_mio_status0_linkpartnererr;
+static int hf_ecat_reg_mio_status0_phycfgupdated;
+static int hf_ecat_reg_mio_status1;
+static int hf_ecat_reg_mio_status1_physlink;
+static int hf_ecat_reg_mio_status1_link;
+static int hf_ecat_reg_mio_status1_linkstatuserr;
+static int hf_ecat_reg_mio_status1_readerr;
+static int hf_ecat_reg_mio_status1_linkpartnererr;
+static int hf_ecat_reg_mio_status1_phycfgupdated;
+static int hf_ecat_reg_mio_status2;
+static int hf_ecat_reg_mio_status2_physlink;
+static int hf_ecat_reg_mio_status2_link;
+static int hf_ecat_reg_mio_status2_linkstatuserr;
+static int hf_ecat_reg_mio_status2_readerr;
+static int hf_ecat_reg_mio_status2_linkpartnererr;
+static int hf_ecat_reg_mio_status2_phycfgupdated;
+static int hf_ecat_reg_mio_status3;
+static int hf_ecat_reg_mio_status3_physlink;
+static int hf_ecat_reg_mio_status3_link;
+static int hf_ecat_reg_mio_status3_linkstatuserr;
+static int hf_ecat_reg_mio_status3_readerr;
+static int hf_ecat_reg_mio_status3_linkpartnererr;
+static int hf_ecat_reg_mio_status3_phycfgupdated;
+static int hf_ecat_reg_fmmu;
+static int hf_ecat_reg_fmmu_lstart;
+static int hf_ecat_reg_fmmu_llen;
+static int hf_ecat_reg_fmmu_lstartbit;
+static int hf_ecat_reg_fmmu_lendbit;
+static int hf_ecat_reg_fmmu_pstart;
+static int hf_ecat_reg_fmmu_pstartbit;
+static int hf_ecat_reg_fmmu_type;
+static int hf_ecat_reg_fmmu_typeread;
+static int hf_ecat_reg_fmmu_typewrite;
+static int hf_ecat_reg_fmmu_activate;
+static int hf_ecat_reg_fmmu_activate0;
+static int hf_ecat_reg_syncman_ctrlstatus;
+static int hf_ecat_reg_syncman_pmode;
+static int hf_ecat_reg_syncman_access;
+static int hf_ecat_reg_syncman_irq_ecat;
+static int hf_ecat_reg_syncman_irq_pdi;
+static int hf_ecat_reg_syncman_wdt;
+static int hf_ecat_reg_syncman_irq_write;
+static int hf_ecat_reg_syncman_irq_read;
+static int hf_ecat_reg_syncman_1bufstate;
+static int hf_ecat_reg_syncman_3bufstate;
+static int hf_ecat_reg_syncman_sm_enable;
+static int hf_ecat_reg_syncman_enable;
+static int hf_ecat_reg_syncman_repeatreq;
+static int hf_ecat_reg_syncman_latchsmchg_ecat;
+static int hf_ecat_reg_syncman_latchsmchg_pdi;
+static int hf_ecat_reg_syncman_deactivate;
+static int hf_ecat_reg_syncman_repeatack;
+static int hf_ecat_reg_syncman;
+static int hf_ecat_reg_syncman_start;
+static int hf_ecat_reg_syncman_len;
+static int hf_ecat_reg_dc_recv0;
+static int hf_ecat_reg_dc_recv1;
+static int hf_ecat_reg_dc_recv2;
+static int hf_ecat_reg_dc_recv3;
+static int hf_ecat_reg_dc_systime;
+static int hf_ecat_reg_dc_systimeL;
+static int hf_ecat_reg_dc_systimeH;
+static int hf_ecat_reg_dc_recvtime64;
+static int hf_ecat_reg_dc_systimeoffs;
+static int hf_ecat_reg_dc_systimeoffsl;
+static int hf_ecat_reg_dc_systimeoffsh;
+static int hf_ecat_reg_dc_systimedelay;
+static int hf_ecat_reg_dc_ctrlerr;
+static int hf_ecat_reg_dc_speedstart;
+static int hf_ecat_reg_dc_speeddiff;
+static int hf_ecat_reg_dc_fltdepth_systimediff;
+static int hf_ecat_reg_dc_fltdepth_speedcnt;
+static int hf_ecat_reg_dc_cycunitctrl;
+static int hf_ecat_reg_dc_cycunitctrl_access_cyclic;
+static int hf_ecat_reg_dc_cycunitctrl_access_latch0;
+static int hf_ecat_reg_dc_cycunitctrl_access_latch1;
+static int hf_ecat_reg_dc_activation;
+static int hf_ecat_reg_dc_activation_enablecyclic;
+static int hf_ecat_reg_dc_activation_gen_sync0;
+static int hf_ecat_reg_dc_activation_gen_sync1;
+static int hf_ecat_reg_dc_activation_autoactivation;
+static int hf_ecat_reg_dc_activation_stimeext;
+static int hf_ecat_reg_dc_activation_stimecheck;
+static int hf_ecat_reg_dc_activation_hlfrange;
+static int hf_ecat_reg_dc_activation_dblrange;
+static int hf_ecat_reg_dc_cycimpuls;
+static int hf_ecat_reg_dc_activationstat;
+static int hf_ecat_reg_dc_activationstat_sync0pend;
+static int hf_ecat_reg_dc_activationstat_sync1pend;
+static int hf_ecat_reg_dc_activationstat_stimeoutofrange;
+static int hf_ecat_reg_dc_sync0_status;
+static int hf_ecat_reg_dc_sync0_status_triggered;
+static int hf_ecat_reg_dc_sync1_status;
+static int hf_ecat_reg_dc_sync1_status_triggered;
+static int hf_ecat_reg_dc_starttime0;
+static int hf_ecat_reg_dc_starttime1;
+static int hf_ecat_reg_dc_cyctime0;
+static int hf_ecat_reg_dc_cyctime1;
+static int hf_ecat_reg_dc_latch0_ctrl_pos;
+static int hf_ecat_reg_dc_latch0_ctrl_neg;
+static int hf_ecat_reg_dc_latch1_ctrl_pos;
+static int hf_ecat_reg_dc_latch1_ctrl_neg;
+static int hf_ecat_reg_dc_latch0_status_eventpos;
+static int hf_ecat_reg_dc_latch0_status_eventneg;
+static int hf_ecat_reg_dc_latch0_status_pinstate;
+static int hf_ecat_reg_dc_latch1_status_eventpos;
+static int hf_ecat_reg_dc_latch1_status_eventneg;
+static int hf_ecat_reg_dc_latch1_status_pinstate;
+static int hf_ecat_reg_dc_latch0_ctrl;
+static int hf_ecat_reg_dc_latch1_ctrl;
+static int hf_ecat_reg_dc_latch0_status;
+static int hf_ecat_reg_dc_latch1_status;
+static int hf_ecat_reg_dc_latch0_pos;
+static int hf_ecat_reg_dc_latch0_neg;
+static int hf_ecat_reg_dc_latch1_pos;
+static int hf_ecat_reg_dc_latch1_neg;
+static int hf_ecat_reg_dc_rcvsyncmanchg;
+static int hf_ecat_reg_dc_pdismstart;
+static int hf_ecat_reg_dc_pdismchg;
 
 
 static const value_string EcCmdShort[] =
@@ -1069,12 +1074,12 @@ typedef int register_dissect_func(packet_info *pinfo, proto_tree *tree, tvbuff_t
 /* esc registers */
 typedef struct
 {
-   guint16								reg;
-   guint16								length;
-   guint16								repeat;
+   uint16_t								reg;
+   uint16_t								length;
+   uint16_t								repeat;
    int*									phf;
    int* const							*bitmask_info;
-   gint*								pett;
+   int*								pett;
    register_dissect_func				*dissect;
 } ecat_esc_reg_info;
 
@@ -1195,13 +1200,13 @@ static ecat_esc_reg_info ecat_esc_registers [] =
 };
 
 /* esc dissector */
-static int dissect_esc_register(packet_info* pinfo, proto_tree *tree, tvbuff_t *tvb, gint offset, guint32 len, EcParserHDR* hdr, guint16 cnt)
+static int dissect_esc_register(packet_info* pinfo, proto_tree *tree, tvbuff_t *tvb, int offset, uint32_t len, EcParserHDR* hdr, uint16_t cnt)
 {
-   guint i;
-   gint r;
-   gint res = -1;
-   gint regOffset;
-   gint read = 0;
+   unsigned i;
+   int r;
+   int res = -1;
+   int regOffset;
+   int read = 0;
 
    if (len > 0 )
    {
@@ -1228,7 +1233,7 @@ static int dissect_esc_register(packet_info* pinfo, proto_tree *tree, tvbuff_t *
             regOffset = ecat_esc_registers[i].reg;
             for ( r=0; r<ecat_esc_registers[i].repeat; r++ )
             {
-               if ( regOffset >= hdr->anAddrUnion.a.ado && regOffset+ecat_esc_registers[i].length <= (guint16)(hdr->anAddrUnion.a.ado + len) )
+               if ( regOffset >= hdr->anAddrUnion.a.ado && regOffset+ecat_esc_registers[i].length <= (uint16_t)(hdr->anAddrUnion.a.ado + len) )
                {
                   if ( cnt > 0 || !read )
                   {
@@ -1257,17 +1262,17 @@ static int dissect_esc_register(packet_info* pinfo, proto_tree *tree, tvbuff_t *
 
    return res;
 }
-static void init_EcParserHDR(EcParserHDR* pHdr, tvbuff_t *tvb, gint offset)
+static void init_EcParserHDR(EcParserHDR* pHdr, tvbuff_t *tvb, int offset)
 {
-   pHdr->cmd = tvb_get_guint8(tvb, offset++);
-   pHdr->idx = tvb_get_guint8(tvb, offset++);
+   pHdr->cmd = tvb_get_uint8(tvb, offset++);
+   pHdr->idx = tvb_get_uint8(tvb, offset++);
    pHdr->anAddrUnion.a.adp = tvb_get_letohs(tvb, offset); offset+=2;
    pHdr->anAddrUnion.a.ado = tvb_get_letohs(tvb, offset); offset+=2;
    pHdr->len = tvb_get_letohs(tvb, offset); offset+=2;
    pHdr->intr = tvb_get_letohs(tvb, offset);
 }
 
-static void init_dc_measure(guint32* pDC, tvbuff_t *tvb, gint offset)
+static void init_dc_measure(uint32_t* pDC, tvbuff_t *tvb, int offset)
 {
    int i;
    for ( i=0; i<4; i++ )
@@ -1277,27 +1282,27 @@ static void init_dc_measure(guint32* pDC, tvbuff_t *tvb, gint offset)
    }
 }
 
-static guint16 get_wc(EcParserHDR* pHdr, tvbuff_t *tvb, gint offset)
+static uint16_t get_wc(EcParserHDR* pHdr, tvbuff_t *tvb, int offset)
 {
    return tvb_get_letohs(tvb, offset+EcParserHDR_Len+(pHdr->len&0x07ff));
 }
 
-static guint16 get_cmd_len(EcParserHDR* pHdr)
+static uint16_t get_cmd_len(EcParserHDR* pHdr)
 {
    return (EcParserHDR_Len+(pHdr->len&0x07ff)+2); /*Header + data + wc*/
 }
 
 
-static void EcSummaryFormater(guint32 datalength, tvbuff_t *tvb, gint offset, char *szText, gint nMax)
+static void EcSummaryFormater(uint32_t datalength, tvbuff_t *tvb, int offset, char *szText, int nMax)
 {
-   guint nSub=0;
-   guint nLen=0;
-   guint8  nCmds[4];
-   guint nLens[4];
+   unsigned nSub=0;
+   unsigned nLen=0;
+   uint8_t nCmds[4];
+   unsigned nLens[4];
    EcParserHDR ecFirst;
    EcParserHDR ecParser;
 
-   guint suboffset=0;
+   unsigned suboffset=0;
 
    init_EcParserHDR(&ecFirst, tvb, offset);
 
@@ -1328,8 +1333,8 @@ static void EcSummaryFormater(guint32 datalength, tvbuff_t *tvb, gint offset, ch
    }
    if ( nSub == 1 )
    {
-      guint16 len = ecFirst.len&0x07ff;
-      guint16 cnt = get_wc(&ecFirst, tvb, offset);
+      uint16_t len = ecFirst.len&0x07ff;
+      uint16_t cnt = get_wc(&ecFirst, tvb, offset);
       snprintf ( szText, nMax, "'%s': Len: %d, Adp 0x%x, Ado 0x%x, Wc %d ",
          convertEcCmdToText(ecFirst.cmd, EcCmdShort), len, ecFirst.anAddrUnion.a.adp, ecFirst.anAddrUnion.a.ado, cnt );
    }
@@ -1353,10 +1358,10 @@ static void EcSummaryFormater(guint32 datalength, tvbuff_t *tvb, gint offset, ch
          nSub, nLen, convertEcCmdToText(ecFirst.cmd, EcCmdShort));
 }
 
-static void EcCmdFormatter(guint8 cmd, char *szText, gint nMax)
+static void EcCmdFormatter(uint8_t cmd, char *szText, int nMax)
 {
-   gint idx=0;
-   const gchar *szCmd = try_val_to_str_idx((guint32)cmd, EcCmdLong, &idx);
+   int idx=0;
+   const char *szCmd = try_val_to_str_idx((uint32_t)cmd, EcCmdLong, &idx);
 
    if ( idx != -1 )
       snprintf(szText, nMax, "Cmd        : %d (%s)", cmd, szCmd);
@@ -1365,10 +1370,10 @@ static void EcCmdFormatter(guint8 cmd, char *szText, gint nMax)
 }
 
 
-static void EcSubFormatter(tvbuff_t *tvb, gint offset, char *szText, gint nMax)
+static void EcSubFormatter(tvbuff_t *tvb, int offset, char *szText, int nMax)
 {
    EcParserHDR ecParser;
-   guint16 len, cnt;
+   uint16_t len, cnt;
 
    init_EcParserHDR(&ecParser, tvb, offset);
    len = ecParser.len&0x07ff;
@@ -1411,14 +1416,14 @@ static int dissect_ecat_datagram(tvbuff_t *tvb, packet_info *pinfo, proto_tree *
    tvbuff_t *next_tvb;
    proto_item *ti, *aitem = NULL;
    proto_tree *ecat_datagrams_tree = NULL;
-   guint offset = 0;
+   unsigned offset = 0;
    char szText[200];
    int nMax = sizeof(szText)-1;
 
-   guint ecLength=0;
-   guint subCount = 0;
-   const guint datagram_length = tvb_captured_length(tvb);
-   guint datagram_padding_bytes = 0;
+   unsigned ecLength=0;
+   unsigned subCount = 0;
+   const unsigned datagram_length = tvb_captured_length(tvb);
+   unsigned datagram_padding_bytes = 0;
    EcParserHDR ecHdr;
    heur_dtbl_entry_t *hdtbl_entry;
 
@@ -1470,10 +1475,10 @@ static int dissect_ecat_datagram(tvbuff_t *tvb, packet_info *pinfo, proto_tree *
       proto_tree *ecat_datagram_tree = NULL, *ecat_header_tree = NULL, *ecat_dc_tree = NULL;
 
       proto_item *hidden_item;
-      guint32 subsize;
-      guint32 suboffset;
-      guint32 len;
-      guint16 cnt;
+      uint32_t subsize;
+      uint32_t suboffset;
+      uint32_t len;
+      uint16_t cnt;
       ETHERCAT_MBOX_HEADER mbox;
 
       suboffset = offset;
@@ -1565,7 +1570,7 @@ static int dissect_ecat_datagram(tvbuff_t *tvb, packet_info *pinfo, proto_tree *
 
       if ( (ecHdr.cmd == 1 || ecHdr.cmd == 4) && ecHdr.anAddrUnion.a.ado == 0x900 && ecHdr.len >= 16 && cnt > 0 )
       {
-         guint32 pDC[4];
+         uint32_t pDC[4];
          init_dc_measure(pDC, tvb, suboffset);
 
          ecat_dc_tree = proto_tree_add_subtree(ecat_datagram_tree, tvb, suboffset, len, ett_ecat_dc, NULL, "Dc");
@@ -1628,8 +1633,8 @@ static int dissect_ecat_datagram(tvbuff_t *tvb, packet_info *pinfo, proto_tree *
       }
       else if (dissect_esc_register(pinfo, ecat_datagram_tree, tvb, suboffset, len, &ecHdr, cnt) != 0)
       {
-         guint startOfData = offset + EcParserHDR_Len;
-         guint dataLength = len;
+         unsigned startOfData = offset + EcParserHDR_Len;
+         unsigned dataLength = len;
 
          if ( len >= ETHERCAT_MBOX_HEADER_LEN &&
            ((ecHdr.cmd==EC_CMD_TYPE_FPWR || ecHdr.cmd == EC_CMD_TYPE_APWR || ecHdr.cmd == EC_CMD_TYPE_APRW || ecHdr.cmd == EC_CMD_TYPE_FPRW) || ((ecHdr.cmd==EC_CMD_TYPE_FPRD  || ecHdr.cmd==EC_CMD_TYPE_APRD) && cnt==1) ) &&
@@ -1646,7 +1651,7 @@ static int dissect_ecat_datagram(tvbuff_t *tvb, packet_info *pinfo, proto_tree *
                case ETHERCAT_MBOX_TYPE_SOE:
                if ( mbox.Length <= 1500 )
                {
-                  guint MBoxLength = mbox.Length + ETHERCAT_MBOX_HEADER_LEN;
+                  unsigned MBoxLength = mbox.Length + ETHERCAT_MBOX_HEADER_LEN;
                   if ( MBoxLength > len )
                      MBoxLength = len;
 
@@ -3095,11 +3100,11 @@ void proto_register_ecat(void)
            {"EEPROM Data 3 (0x50e)", "ecat.reg.data3",
            FT_UINT16, BASE_HEX, NULL, 0, NULL, HFILL }
          },
+
          { &hf_ecat_reg_mio_ctrlstat,
            {"Phy MIO Ctrl/Status (0x510)", "ecat.reg.mio.ctrlstat",
            FT_UINT16, BASE_HEX, NULL, 0, NULL, HFILL }
          },
-
          /* TODO: check these masks (ecat_esc_reg_510) against spec.
           * In particular hf_ecat_reg_mio_ctrlstat_offsphy is non-contiguous and overlaps wracc1 */
          { &hf_ecat_reg_mio_ctrlstat_wracc1,
@@ -3508,7 +3513,7 @@ void proto_register_ecat(void)
            FT_BOOLEAN, 8, TFS(&tfs_local_true_false), 0x10, NULL, HFILL }
          },
          { &hf_ecat_reg_dc_activation_stimecheck,
-           {"Start time chheck", "ecat.reg.dc.activation.stimecheck",
+           {"Start time check", "ecat.reg.dc.activation.stimecheck",
            FT_BOOLEAN, 8, TFS(&tfs_local_true_false), 0x20, NULL, HFILL }
          },
          { &hf_ecat_reg_dc_activation_hlfrange,
@@ -3657,7 +3662,7 @@ void proto_register_ecat(void)
          },
       };
 
-   static gint *ett[] =
+   static int *ett[] =
       {
          &ett_ecat,
          &ett_ecat_header,
@@ -3712,19 +3717,17 @@ void proto_register_ecat(void)
    proto_ecat_datagram = proto_register_protocol("EtherCAT datagram(s)", "ECAT", "ecat");
    proto_register_field_array(proto_ecat_datagram, hf, array_length(hf));
    proto_register_subtree_array(ett, array_length(ett));
+   ecat_handle = register_dissector("ecat", dissect_ecat_datagram, proto_ecat_datagram);
 
    /* Sub dissector code */
-   heur_subdissector_list = register_heur_dissector_list("ecat.data", proto_ecat_datagram);
+   heur_subdissector_list = register_heur_dissector_list_with_description("ecat.data", "EtherCAT payload", proto_ecat_datagram);
 }
 
 /* The registration hand-off routing */
 void proto_reg_handoff_ecat(void)
 {
-   dissector_handle_t ecat_handle;
-
    /* Register this dissector as a sub dissector to EtherCAT frame based on
       ether type. */
-   ecat_handle = create_dissector_handle(dissect_ecat_datagram, proto_ecat_datagram);
    dissector_add_uint("ecatf.type", 1 /* EtherCAT type */, ecat_handle);
 
    ecat_mailbox_handle = find_dissector_add_dependency("ecat_mailbox", proto_ecat_datagram);

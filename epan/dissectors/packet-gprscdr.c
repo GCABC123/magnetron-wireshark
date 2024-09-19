@@ -1,7 +1,7 @@
 /* Do not modify this file. Changes will be overwritten.                      */
 /* Generated automatically by the ASN.1 to Wireshark dissector compiler       */
 /* packet-gprscdr.c                                                           */
-/* asn2wrs.py -b -L -p gprscdr -c ./gprscdr.cnf -s ./packet-gprscdr-template -D . -O ../.. GenericChargingDataTypes.asn GPRSChargingDataTypesV641.asn GPRSChargingDataTypes.asn */
+/* asn2wrs.py -b -q -L -p gprscdr -c ./gprscdr.cnf -s ./packet-gprscdr-template -D . -O ../.. GenericChargingDataTypes.asn GPRSChargingDataTypesV641.asn GPRSChargingDataTypes.asn */
 
 /* packet-gprscdr-template.c
  * Copyright 2011 , Anders Broman <anders.broman [AT] ericsson.com>
@@ -22,6 +22,7 @@
 #include <epan/packet.h>
 #include <epan/expert.h>
 #include <epan/asn1.h>
+#include <wsutil/array.h>
 
 #include "packet-ber.h"
 #include "packet-gsm_map.h"
@@ -38,607 +39,607 @@
 void proto_register_gprscdr(void);
 
 /* Define the GPRS CDR proto */
-static int proto_gprscdr = -1;
+static int proto_gprscdr;
 
-static int hf_gprscdr_gprscdr_GPRSCallEventRecord_PDU = -1;  /* GPRSCallEventRecord */
-static int hf_gprscdr_gprscdr_GPRSRecord_PDU = -1;  /* GPRSRecord */
-static int hf_gprscdr_gprscdr_CAMELInformationPDP_PDU = -1;  /* CAMELInformationPDP */
-static int hf_gprscdr_gsm0408Cause = -1;          /* INTEGER */
-static int hf_gprscdr_gsm0902MapErrorValue = -1;  /* INTEGER */
-static int hf_gprscdr_itu_tQ767Cause = -1;        /* INTEGER */
-static int hf_gprscdr_networkSpecificCause = -1;  /* ManagementExtension */
-static int hf_gprscdr_manufacturerSpecificCause = -1;  /* ManagementExtension */
-static int hf_gprscdr_positionMethodFailureCause = -1;  /* PositionMethodFailure_Diagnostic */
-static int hf_gprscdr_unauthorizedLCSClientCause = -1;  /* UnauthorizedLCSClient_Diagnostic */
-static int hf_gprscdr_diameterResultCodeAndExperimentalResult = -1;  /* INTEGER */
-static int hf_gprscdr_plmnId = -1;                /* PLMN_Id */
-static int hf_gprscdr_eutraCellId = -1;           /* EutraCellId */
-static int hf_gprscdr_nid = -1;                   /* Nid */
-static int hf_gprscdr_rANNASCause = -1;           /* SEQUENCE_OF_RANNASCause */
-static int hf_gprscdr_rANNASCause_item = -1;      /* RANNASCause */
-static int hf_gprscdr_sIP_URI = -1;               /* GraphicString */
-static int hf_gprscdr_tEL_URI = -1;               /* GraphicString */
-static int hf_gprscdr_uRN = -1;                   /* GraphicString */
-static int hf_gprscdr_iSDN_E164 = -1;             /* GraphicString */
-static int hf_gprscdr_externalId = -1;            /* UTF8String */
-static int hf_gprscdr_iPBinaryAddress = -1;       /* IPBinaryAddress */
-static int hf_gprscdr_iPTextRepresentedAddress = -1;  /* IPTextRepresentedAddress */
-static int hf_gprscdr_iPBinV4Address = -1;        /* IPBinV4Address */
-static int hf_gprscdr_iPBinV6Address_choice = -1;  /* IPBinV6AddressWithOrWithoutPrefixLength */
-static int hf_gprscdr_iPBinV6Address = -1;        /* IPBinV6Address */
-static int hf_gprscdr_iPBinV6AddressWithPrefix = -1;  /* IPBinV6AddressWithPrefixLength */
-static int hf_gprscdr_pDPAddressPrefixLength = -1;  /* PDPAddressPrefixLength */
-static int hf_gprscdr_iPTextV4Address = -1;       /* IA5String_SIZE_7_15 */
-static int hf_gprscdr_iPTextV6Address = -1;       /* IA5String_SIZE_15_45 */
-static int hf_gprscdr_lcsClientExternalID = -1;   /* LCSClientExternalID */
-static int hf_gprscdr_lcsClientDialedByMS = -1;   /* AddressString */
-static int hf_gprscdr_lcsClientInternalID = -1;   /* LCSClientInternalID */
-static int hf_gprscdr_locationAreaCode = -1;      /* LocationAreaCode */
-static int hf_gprscdr_cellId = -1;                /* CellId */
-static int hf_gprscdr_mCC_MNC = -1;               /* MCC_MNC */
-static int hf_gprscdr_ManagementExtensions_item = -1;  /* ManagementExtension */
-static int hf_gprscdr_tMGI = -1;                  /* TMGI */
-static int hf_gprscdr_mBMSSessionIdentity = -1;   /* MBMSSessionIdentity */
-static int hf_gprscdr_mBMSServiceType = -1;       /* MBMSServiceType */
-static int hf_gprscdr_mBMSUserServiceType = -1;   /* MBMSUserServiceType */
-static int hf_gprscdr_mBMS2G3GIndicator = -1;     /* MBMS2G3GIndicator */
-static int hf_gprscdr_fileRepairSupported = -1;   /* BOOLEAN */
-static int hf_gprscdr_rAI = -1;                   /* RoutingAreaCode */
-static int hf_gprscdr_mBMSServiceArea = -1;       /* MBMSServiceArea */
-static int hf_gprscdr_requiredMBMSBearerCaps = -1;  /* RequiredMBMSBearerCapabilities */
-static int hf_gprscdr_mBMSGWAddress = -1;         /* GSNAddress */
-static int hf_gprscdr_cNIPMulticastDistribution = -1;  /* CNIPMulticastDistribution */
-static int hf_gprscdr_mBMSDataTransferStart = -1;  /* MBMSTime */
-static int hf_gprscdr_mBMSDataTransferStop = -1;  /* MBMSTime */
-static int hf_gprscdr_nrCellId = -1;              /* NrCellId */
-static int hf_gprscdr_iPAddress = -1;             /* IPAddress */
-static int hf_gprscdr_nRcgi = -1;                 /* Ncgi */
-static int hf_gprscdr_ecgi = -1;                  /* Ecgi */
-static int hf_gprscdr_sCSAddress = -1;            /* IPAddress */
-static int hf_gprscdr_sCSRealm = -1;              /* DiameterIdentity */
-static int hf_gprscdr_serviceSpecificData = -1;   /* GraphicString */
-static int hf_gprscdr_serviceSpecificType = -1;   /* INTEGER */
-static int hf_gprscdr_subscriptionIDType = -1;    /* SubscriptionIDType */
-static int hf_gprscdr_subscriptionIDData = -1;    /* UTF8String */
-static int hf_gprscdr_identifier = -1;            /* T_identifier */
-static int hf_gprscdr_significance = -1;          /* BOOLEAN */
-static int hf_gprscdr_information = -1;           /* T_information */
-static int hf_gprscdr_sgsnPDPRecord = -1;         /* SGSNPDPRecordV651 */
-static int hf_gprscdr_ggsnPDPRecord = -1;         /* GGSNPDPRecord */
-static int hf_gprscdr_sgsnMMRecord = -1;          /* SGSNMMRecord */
-static int hf_gprscdr_sgsnSMORecord = -1;         /* SGSNSMORecordV651 */
-static int hf_gprscdr_sgsnSMTRecord = -1;         /* SGSNSMTRecordV651 */
-static int hf_gprscdr_egsnPDPRecord = -1;         /* EGSNPDPRecord */
-static int hf_gprscdr_recordType = -1;            /* CallEventRecordType */
-static int hf_gprscdr_networkInitiation = -1;     /* NetworkInitiatedPDPContext */
-static int hf_gprscdr_servedIMSI = -1;            /* IMSI */
-static int hf_gprscdr_ggsnAddress = -1;           /* GSNAddress */
-static int hf_gprscdr_chargingID = -1;            /* ChargingID */
-static int hf_gprscdr_sgsnAddress = -1;           /* SEQUENCE_OF_GSNAddress */
-static int hf_gprscdr_sgsnAddress_item = -1;      /* GSNAddress */
-static int hf_gprscdr_accessPointNameNI = -1;     /* AccessPointNameNI */
-static int hf_gprscdr_pdpType = -1;               /* PDPType */
-static int hf_gprscdr_servedPDPAddress = -1;      /* PDPAddress */
-static int hf_gprscdr_dynamicAddressFlag = -1;    /* DynamicAddressFlag */
-static int hf_gprscdr_listOfTrafficVolumes = -1;  /* SEQUENCE_OF_ChangeOfCharConditionV651 */
-static int hf_gprscdr_listOfTrafficVolumes_item = -1;  /* ChangeOfCharConditionV651 */
-static int hf_gprscdr_recordOpeningTime = -1;     /* TimeStamp */
-static int hf_gprscdr_duration = -1;              /* CallDuration */
-static int hf_gprscdr_causeForRecClosing = -1;    /* CauseForRecClosingV651 */
-static int hf_gprscdr_diagnostics = -1;           /* Diagnostics */
-static int hf_gprscdr_recordSequenceNumber = -1;  /* INTEGER */
-static int hf_gprscdr_nodeID = -1;                /* NodeID */
-static int hf_gprscdr_recordExtensions = -1;      /* ManagementExtensions */
-static int hf_gprscdr_localSequenceNumber = -1;   /* LocalSequenceNumber */
-static int hf_gprscdr_apnSelectionMode = -1;      /* APNSelectionMode */
-static int hf_gprscdr_servedMSISDN = -1;          /* MSISDN */
-static int hf_gprscdr_chargingCharacteristics = -1;  /* ChargingCharacteristics */
-static int hf_gprscdr_chChSelectionMode = -1;     /* ChChSelectionMode */
-static int hf_gprscdr_iMSsignalingContext = -1;   /* NULL */
-static int hf_gprscdr_externalChargingID = -1;    /* OCTET_STRING */
-static int hf_gprscdr_sgsnPLMNIdentifier = -1;    /* PLMN_Id */
-static int hf_gprscdr_servedIMEISV = -1;          /* IMEI */
-static int hf_gprscdr_rATType = -1;               /* RATType */
-static int hf_gprscdr_mSTimeZone = -1;            /* MSTimeZone */
-static int hf_gprscdr_userLocationInformation = -1;  /* T_userLocationInformation */
-static int hf_gprscdr_cAMELChargingInformation = -1;  /* OCTET_STRING */
-static int hf_gprscdr_recordType_01 = -1;         /* RecordType */
-static int hf_gprscdr_causeForRecClosing_01 = -1;  /* CauseForRecClosing */
-static int hf_gprscdr_userLocationInformation_01 = -1;  /* T_userLocationInformation_01 */
-static int hf_gprscdr_pSFurnishChargingInformation = -1;  /* PSFurnishChargingInformation */
-static int hf_gprscdr_userLocationInformation_02 = -1;  /* T_userLocationInformation_02 */
-static int hf_gprscdr_listOfServiceData = -1;     /* SEQUENCE_OF_ChangeOfServiceConditionV651 */
-static int hf_gprscdr_listOfServiceData_item = -1;  /* ChangeOfServiceConditionV651 */
-static int hf_gprscdr_userLocationInformation_03 = -1;  /* T_userLocationInformation_03 */
-static int hf_gprscdr_listOfServiceData_01 = -1;  /* SEQUENCE_OF_ChangeOfServiceConditionV750 */
-static int hf_gprscdr_listOfServiceData_item_01 = -1;  /* ChangeOfServiceConditionV750 */
-static int hf_gprscdr_servedIMEI = -1;            /* IMEI */
-static int hf_gprscdr_sgsnAddress_01 = -1;        /* GSNAddress */
-static int hf_gprscdr_msNetworkCapability = -1;   /* MSNetworkCapability */
-static int hf_gprscdr_routingArea = -1;           /* RoutingAreaCode */
-static int hf_gprscdr_cellIdentifier = -1;        /* CellId */
-static int hf_gprscdr_ggsnAddressUsed = -1;       /* GSNAddress */
-static int hf_gprscdr_sgsnChange = -1;            /* SGSNChange */
-static int hf_gprscdr_accessPointNameOI = -1;     /* AccessPointNameOI */
-static int hf_gprscdr_cAMELInformationPDP = -1;   /* CAMELInformationPDP */
-static int hf_gprscdr_rNCUnsentDownlinkVolume = -1;  /* DataVolumeGPRS */
-static int hf_gprscdr_serviceCentre = -1;         /* AddressString */
-static int hf_gprscdr_recordingEntity = -1;       /* RecordingEntity */
-static int hf_gprscdr_locationArea = -1;          /* LocationAreaCode */
-static int hf_gprscdr_messageReference = -1;      /* MessageReference */
-static int hf_gprscdr_eventTimeStamp = -1;        /* TimeStamp */
-static int hf_gprscdr_smsResult = -1;             /* SMSResult */
-static int hf_gprscdr_destinationNumber = -1;     /* SmsTpDestinationNumber */
-static int hf_gprscdr_cAMELInformationSMS = -1;   /* CAMELInformationSMS */
-static int hf_gprscdr_qosRequested = -1;          /* QoSInformation */
-static int hf_gprscdr_qosNegotiated = -1;         /* QoSInformation */
-static int hf_gprscdr_dataVolumeGPRSUplink = -1;  /* DataVolumeGPRS */
-static int hf_gprscdr_dataVolumeGPRSDownlink = -1;  /* DataVolumeGPRS */
-static int hf_gprscdr_changeCondition = -1;       /* ChangeConditionV651 */
-static int hf_gprscdr_changeTime = -1;            /* TimeStamp */
-static int hf_gprscdr_failureHandlingContinue = -1;  /* FailureHandlingContinue */
-static int hf_gprscdr_userLocationInformation_04 = -1;  /* T_userLocationInformation_04 */
-static int hf_gprscdr_ratingGroup = -1;           /* RatingGroupId */
-static int hf_gprscdr_chargingRuleBaseName = -1;  /* ChargingRuleBaseName */
-static int hf_gprscdr_resultCode = -1;            /* ResultCode */
-static int hf_gprscdr_timeOfFirstUsage = -1;      /* TimeStamp */
-static int hf_gprscdr_timeOfLastUsage = -1;       /* TimeStamp */
-static int hf_gprscdr_timeUsage = -1;             /* CallDuration */
-static int hf_gprscdr_serviceConditionChange = -1;  /* ServiceConditionChangeV651 */
-static int hf_gprscdr_qoSInformationNeg = -1;     /* QoSInformation */
-static int hf_gprscdr_sgsn_Address = -1;          /* GSNAddress */
-static int hf_gprscdr_sGSNPLMNIdentifier = -1;    /* PLMN_Id */
-static int hf_gprscdr_datavolumeFBCUplink = -1;   /* DataVolumeGPRS */
-static int hf_gprscdr_datavolumeFBCDownlink = -1;  /* DataVolumeGPRS */
-static int hf_gprscdr_timeOfReport = -1;          /* TimeStamp */
-static int hf_gprscdr_serviceIdentifier = -1;     /* ServiceIdentifier */
-static int hf_gprscdr_serviceConditionChangeV750 = -1;  /* ServiceConditionChangeV750 */
-static int hf_gprscdr_aFRecordInformation = -1;   /* SEQUENCE_OF_AFRecordInformation */
-static int hf_gprscdr_aFRecordInformation_item = -1;  /* AFRecordInformation */
-static int hf_gprscdr_userLocationInformation_05 = -1;  /* T_userLocationInformation_05 */
-static int hf_gprscdr_eventBasedChargingInformation = -1;  /* EventBasedChargingInformation */
-static int hf_gprscdr_timeQuotaMechanism = -1;    /* TimeQuotaMechanism */
-static int hf_gprscdr_sgsnPDPRecord_01 = -1;      /* SGSNPDPRecord */
-static int hf_gprscdr_ggsnPDPRecord_01 = -1;      /* GGSNPDPRecordV750 */
-static int hf_gprscdr_sgsnSMORecord_01 = -1;      /* SGSNSMORecord */
-static int hf_gprscdr_sgsnSMTRecord_01 = -1;      /* SGSNSMTRecord */
-static int hf_gprscdr_sgsnMTLCSRecord = -1;       /* SGSNMTLCSRecord */
-static int hf_gprscdr_sgsnMOLCSRecord = -1;       /* SGSNMOLCSRecord */
-static int hf_gprscdr_sgsnNILCSRecord = -1;       /* SGSNNILCSRecord */
-static int hf_gprscdr_egsnPDPRecord_01 = -1;      /* EGSNPDPRecordV750 */
-static int hf_gprscdr_sgsnMBMSRecord = -1;        /* SGSNMBMSRecord */
-static int hf_gprscdr_ggsnMBMSRecord = -1;        /* GGSNMBMSRecord */
-static int hf_gprscdr_sGWRecord = -1;             /* SGWRecord */
-static int hf_gprscdr_pGWRecord = -1;             /* PGWRecord */
-static int hf_gprscdr_gwMBMSRecord = -1;          /* GWMBMSRecord */
-static int hf_gprscdr_tDFRecord = -1;             /* TDFRecord */
-static int hf_gprscdr_iPERecord = -1;             /* IPERecord */
-static int hf_gprscdr_ePDGRecord = -1;            /* EPDGRecord */
-static int hf_gprscdr_tWAGRecord = -1;            /* TWAGRecord */
-static int hf_gprscdr_s_GWAddress = -1;           /* GSNAddress */
-static int hf_gprscdr_servingNodeAddress = -1;    /* SEQUENCE_OF_GSNAddress */
-static int hf_gprscdr_servingNodeAddress_item = -1;  /* GSNAddress */
-static int hf_gprscdr_pdpPDNType = -1;            /* PDPType */
-static int hf_gprscdr_servedPDPPDNAddress = -1;   /* PDPAddress */
-static int hf_gprscdr_listOfTrafficVolumes_01 = -1;  /* SEQUENCE_OF_ChangeOfCharCondition */
-static int hf_gprscdr_listOfTrafficVolumes_item_01 = -1;  /* ChangeOfCharCondition */
-static int hf_gprscdr_servingNodePLMNIdentifier = -1;  /* PLMN_Id */
-static int hf_gprscdr_userLocationInformation_06 = -1;  /* T_userLocationInformation_06 */
-static int hf_gprscdr_sGWChange = -1;             /* SGWChange */
-static int hf_gprscdr_servingNodeType = -1;       /* SEQUENCE_OF_ServingNodeType */
-static int hf_gprscdr_servingNodeType_item = -1;  /* ServingNodeType */
-static int hf_gprscdr_p_GWAddressUsed = -1;       /* GSNAddress */
-static int hf_gprscdr_p_GWPLMNIdentifier = -1;    /* PLMN_Id */
-static int hf_gprscdr_startTime = -1;             /* TimeStamp */
-static int hf_gprscdr_stopTime = -1;              /* TimeStamp */
-static int hf_gprscdr_pDNConnectionChargingID = -1;  /* ChargingID */
-static int hf_gprscdr_iMSIunauthenticatedFlag = -1;  /* NULL */
-static int hf_gprscdr_userCSGInformation = -1;    /* UserCSGInformation */
-static int hf_gprscdr_servedPDPPDNAddressExt = -1;  /* PDPAddress */
-static int hf_gprscdr_lowPriorityIndicator = -1;  /* NULL */
-static int hf_gprscdr_dynamicAddressFlagExt = -1;  /* DynamicAddressFlag */
-static int hf_gprscdr_s_GWiPv6Address = -1;       /* GSNAddress */
-static int hf_gprscdr_servingNodeiPv6Address = -1;  /* SEQUENCE_OF_GSNAddress */
-static int hf_gprscdr_servingNodeiPv6Address_item = -1;  /* GSNAddress */
-static int hf_gprscdr_p_GWiPv6AddressUsed = -1;   /* GSNAddress */
-static int hf_gprscdr_retransmission = -1;        /* NULL */
-static int hf_gprscdr_userLocationInfoTime = -1;  /* TimeStamp */
-static int hf_gprscdr_cNOperatorSelectionEnt = -1;  /* CNOperatorSelectionEntity */
-static int hf_gprscdr_presenceReportingAreaInfo = -1;  /* PresenceReportingAreaInfo */
-static int hf_gprscdr_lastUserLocationInformation = -1;  /* T_lastUserLocationInformation */
-static int hf_gprscdr_lastMSTimeZone = -1;        /* MSTimeZone */
-static int hf_gprscdr_enhancedDiagnostics = -1;   /* EnhancedDiagnostics */
-static int hf_gprscdr_cPCIoTEPSOptimisationIndicator = -1;  /* CPCIoTEPSOptimisationIndicator */
-static int hf_gprscdr_uNIPDUCPOnlyFlag = -1;      /* UNIPDUCPOnlyFlag */
-static int hf_gprscdr_servingPLMNRateControl = -1;  /* ServingPLMNRateControl */
-static int hf_gprscdr_pDPPDNTypeExtension = -1;   /* PDPPDNTypeExtension */
-static int hf_gprscdr_mOExceptionDataCounter = -1;  /* MOExceptionDataCounter */
-static int hf_gprscdr_listOfRANSecondaryRATUsageReports = -1;  /* SEQUENCE_OF_RANSecondaryRATUsageReport */
-static int hf_gprscdr_listOfRANSecondaryRATUsageReports_item = -1;  /* RANSecondaryRATUsageReport */
-static int hf_gprscdr_pSCellInformation = -1;     /* PSCellInformation */
-static int hf_gprscdr_p_GWAddress = -1;           /* GSNAddress */
-static int hf_gprscdr_userLocationInformation_07 = -1;  /* T_userLocationInformation_07 */
-static int hf_gprscdr_listOfServiceData_02 = -1;  /* SEQUENCE_OF_ChangeOfServiceCondition */
-static int hf_gprscdr_listOfServiceData_item_02 = -1;  /* ChangeOfServiceCondition */
-static int hf_gprscdr_servedMNNAI = -1;           /* SubscriptionID */
-static int hf_gprscdr_served3gpp2MEID = -1;       /* OCTET_STRING */
-static int hf_gprscdr_threeGPP2UserLocationInformation = -1;  /* OCTET_STRING */
-static int hf_gprscdr_tWANUserLocationInformation = -1;  /* TWANUserLocationInfo */
-static int hf_gprscdr_ePCQoSInformation = -1;     /* EPCQoSInformation */
-static int hf_gprscdr_lastUserLocationInformation_01 = -1;  /* T_lastUserLocationInformation_01 */
-static int hf_gprscdr_nBIFOMMode = -1;            /* NBIFOMMode */
-static int hf_gprscdr_nBIFOMSupport = -1;         /* NBIFOMSupport */
-static int hf_gprscdr_uWANUserLocationInformation = -1;  /* UWANUserLocationInfo */
-static int hf_gprscdr_sGiPtPTunnellingMethod = -1;  /* SGiPtPTunnellingMethod */
-static int hf_gprscdr_aPNRateControl = -1;        /* APNRateControl */
-static int hf_gprscdr_chargingPerIPCANSessionIndicator = -1;  /* ChargingPerIPCANSessionIndicator */
-static int hf_gprscdr_threeGPPPSDataOffStatus = -1;  /* ThreeGPPPSDataOffStatus */
-static int hf_gprscdr_sCSASAddress = -1;          /* SCSASAddress */
-static int hf_gprscdr_userLocationInformation_08 = -1;  /* OCTET_STRING */
-static int hf_gprscdr_tDFAddress = -1;            /* GSNAddress */
-static int hf_gprscdr_tDFiPv6AddressUsed = -1;    /* GSNAddress */
-static int hf_gprscdr_tDFPLMNIdentifier = -1;     /* PLMN_Id */
-static int hf_gprscdr_servedFixedSubsID = -1;     /* FixedSubsID */
-static int hf_gprscdr_accessLineIdentifier = -1;  /* AccessLineIdentifier */
-static int hf_gprscdr_fixedUserLocationInformation = -1;  /* FixedUserLocationInformation */
-static int hf_gprscdr_iPEdgeAddress = -1;         /* GSNAddress */
-static int hf_gprscdr_iPCANsessionType = -1;      /* PDPType */
-static int hf_gprscdr_servedIPCANsessionAddress = -1;  /* PDPAddress */
-static int hf_gprscdr_iPEdgeOperatorIdentifier = -1;  /* PLMN_Id */
-static int hf_gprscdr_servedIPCANsessionAddressExt = -1;  /* PDPAddress */
-static int hf_gprscdr_iPEdgeiPv6AddressUsed = -1;  /* GSNAddress */
-static int hf_gprscdr_ePDGAddressUsed = -1;       /* GSNAddress */
-static int hf_gprscdr_ePDGiPv6AddressUsed = -1;   /* GSNAddress */
-static int hf_gprscdr_tWAGAddressUsed = -1;       /* GSNAddress */
-static int hf_gprscdr_tWAGiPv6AddressUsed = -1;   /* GSNAddress */
-static int hf_gprscdr_changeLocation = -1;        /* SEQUENCE_OF_ChangeLocation */
-static int hf_gprscdr_changeLocation_item = -1;   /* ChangeLocation */
-static int hf_gprscdr_cAMELInformationMM = -1;    /* CAMELInformationMM */
-static int hf_gprscdr_cellPLMNId = -1;            /* PLMN_Id */
-static int hf_gprscdr_servingNodeType_01 = -1;    /* ServingNodeType */
-static int hf_gprscdr_servingNodeAddress_01 = -1;  /* GSNAddress */
-static int hf_gprscdr_servingNodeiPv6Address_01 = -1;  /* GSNAddress */
-static int hf_gprscdr_mMEName = -1;               /* DiameterIdentity */
-static int hf_gprscdr_mMERealm = -1;              /* DiameterIdentity */
-static int hf_gprscdr_originatingAddress = -1;    /* AddressString */
-static int hf_gprscdr_lcsClientType = -1;         /* LCSClientType */
-static int hf_gprscdr_lcsClientIdentity = -1;     /* LCSClientIdentity */
-static int hf_gprscdr_locationType = -1;          /* LocationType */
-static int hf_gprscdr_lcsQos = -1;                /* LCSQoSInfo */
-static int hf_gprscdr_lcsPriority = -1;           /* LCS_Priority */
-static int hf_gprscdr_mlcNumber = -1;             /* ISDN_AddressString */
-static int hf_gprscdr_measurementDuration = -1;   /* CallDuration */
-static int hf_gprscdr_notificationToMSUser = -1;  /* NotificationToMSUser */
-static int hf_gprscdr_privacyOverride = -1;       /* NULL */
-static int hf_gprscdr_location = -1;              /* LocationAreaAndCell */
-static int hf_gprscdr_locationEstimate = -1;      /* Ext_GeographicalInformation */
-static int hf_gprscdr_positioningData = -1;       /* PositioningData */
-static int hf_gprscdr_lcsCause = -1;              /* LCSCause */
-static int hf_gprscdr_locationMethod = -1;        /* LocationMethod */
-static int hf_gprscdr_listofRAs = -1;             /* SEQUENCE_OF_RAIdentity */
-static int hf_gprscdr_listofRAs_item = -1;        /* RAIdentity */
-static int hf_gprscdr_listOfTrafficVolumes_02 = -1;  /* SEQUENCE_OF_ChangeOfMBMSCondition */
-static int hf_gprscdr_listOfTrafficVolumes_item_02 = -1;  /* ChangeOfMBMSCondition */
-static int hf_gprscdr_numberofReceivingUE = -1;   /* INTEGER */
-static int hf_gprscdr_mbmsInformation = -1;       /* MBMSInformation */
-static int hf_gprscdr_listofDownstreamNodes = -1;  /* SEQUENCE_OF_GSNAddress */
-static int hf_gprscdr_listofDownstreamNodes_item = -1;  /* GSNAddress */
-static int hf_gprscdr_mbmsGWAddress = -1;         /* GSNAddress */
-static int hf_gprscdr_commonTeid = -1;            /* CTEID */
-static int hf_gprscdr_iPMulticastSourceAddress = -1;  /* PDPAddress */
-static int hf_gprscdr_physicalAccessID = -1;      /* UTF8String */
-static int hf_gprscdr_logicalAccessID = -1;       /* OCTET_STRING */
-static int hf_gprscdr_aFChargingIdentifier = -1;  /* AFChargingIdentifier */
-static int hf_gprscdr_flows = -1;                 /* Flows */
-static int hf_gprscdr_aPNRateControlUplink = -1;  /* APNRateControlParameters */
-static int hf_gprscdr_aPNRateControlDownlink = -1;  /* APNRateControlParameters */
-static int hf_gprscdr_additionalExceptionReports = -1;  /* AdditionalExceptionReports */
-static int hf_gprscdr_rateControlTimeUnit = -1;   /* RateControlTimeUnit */
-static int hf_gprscdr_rateControlMaxRate = -1;    /* INTEGER */
-static int hf_gprscdr_rateControlMaxMessageSize = -1;  /* DataVolumeGPRS */
-static int hf_gprscdr_called_Party_Address = -1;  /* InvolvedParty */
-static int hf_gprscdr_requested_Party_Address = -1;  /* InvolvedParty */
-static int hf_gprscdr_list_Of_Called_Asserted_Identity = -1;  /* SEQUENCE_OF_InvolvedParty */
-static int hf_gprscdr_list_Of_Called_Asserted_Identity_item = -1;  /* InvolvedParty */
-static int hf_gprscdr_sCFAddress = -1;            /* SCFAddress */
-static int hf_gprscdr_serviceKey = -1;            /* ServiceKey */
-static int hf_gprscdr_defaultTransactionHandling = -1;  /* DefaultGPRS_Handling */
-static int hf_gprscdr_numberOfDPEncountered = -1;  /* NumberOfDPEncountered */
-static int hf_gprscdr_levelOfCAMELService = -1;   /* LevelOfCAMELService */
-static int hf_gprscdr_freeFormatData = -1;        /* FreeFormatData */
-static int hf_gprscdr_fFDAppendIndicator = -1;    /* FFDAppendIndicator */
-static int hf_gprscdr_cAMELAccessPointNameNI = -1;  /* CAMELAccessPointNameNI */
-static int hf_gprscdr_cAMELAccessPointNameOI = -1;  /* CAMELAccessPointNameOI */
-static int hf_gprscdr_defaultSMSHandling = -1;    /* DefaultSMS_Handling */
-static int hf_gprscdr_cAMELCallingPartyNumber = -1;  /* CallingNumber */
-static int hf_gprscdr_cAMELDestinationSubscriberNumber = -1;  /* SmsTpDestinationNumber */
-static int hf_gprscdr_cAMELSMSCAddress = -1;      /* AddressString */
-static int hf_gprscdr_smsReferenceNumber = -1;    /* CallReferenceNumber */
-static int hf_gprscdr_changeCondition_01 = -1;    /* ChangeCondition */
-static int hf_gprscdr_userLocationInformation_09 = -1;  /* T_userLocationInformation_08 */
-static int hf_gprscdr_presenceReportingAreaStatus = -1;  /* PresenceReportingAreaStatus */
-static int hf_gprscdr_accessAvailabilityChangeReason = -1;  /* AccessAvailabilityChangeReason */
-static int hf_gprscdr_relatedChangeOfCharCondition = -1;  /* RelatedChangeOfCharCondition */
-static int hf_gprscdr_listOfPresenceReportingAreaInformation = -1;  /* SEQUENCE_OF_PresenceReportingAreaInfo */
-static int hf_gprscdr_listOfPresenceReportingAreaInformation_item = -1;  /* PresenceReportingAreaInfo */
-static int hf_gprscdr_dataVolumeMBMSUplink = -1;  /* DataVolumeMBMS */
-static int hf_gprscdr_dataVolumeMBMSDownlink = -1;  /* DataVolumeMBMS */
-static int hf_gprscdr_serviceConditionChange_01 = -1;  /* ServiceConditionChange */
-static int hf_gprscdr_qoSInformationNeg_01 = -1;  /* EPCQoSInformation */
-static int hf_gprscdr_userLocationInformation_10 = -1;  /* T_userLocationInformation_09 */
-static int hf_gprscdr_serviceSpecificInfo = -1;   /* SEQUENCE_OF_ServiceSpecificInfo */
-static int hf_gprscdr_serviceSpecificInfo_item = -1;  /* ServiceSpecificInfo */
-static int hf_gprscdr_sponsorIdentity = -1;       /* OCTET_STRING */
-static int hf_gprscdr_applicationServiceProviderIdentity = -1;  /* OCTET_STRING */
-static int hf_gprscdr_aDCRuleBaseName = -1;       /* ADCRuleBaseName */
-static int hf_gprscdr_relatedChangeOfServiceCondition = -1;  /* RelatedChangeOfServiceCondition */
-static int hf_gprscdr_trafficSteeringPolicyIDDownlink = -1;  /* TrafficSteeringPolicyIDDownlink */
-static int hf_gprscdr_trafficSteeringPolicyIDUplink = -1;  /* TrafficSteeringPolicyIDUplink */
-static int hf_gprscdr_voLTEInformation = -1;      /* VoLTEInformation */
-static int hf_gprscdr_routingAreaCode = -1;       /* RoutingAreaCode */
-static int hf_gprscdr_mCC_MNC_01 = -1;            /* PLMN_Id */
-static int hf_gprscdr_qCI = -1;                   /* INTEGER */
-static int hf_gprscdr_maxRequestedBandwithUL = -1;  /* INTEGER */
-static int hf_gprscdr_maxRequestedBandwithDL = -1;  /* INTEGER */
-static int hf_gprscdr_guaranteedBitrateUL = -1;   /* INTEGER */
-static int hf_gprscdr_guaranteedBitrateDL = -1;   /* INTEGER */
-static int hf_gprscdr_aRP = -1;                   /* T_aRP */
-static int hf_gprscdr_aPNAggregateMaxBitrateUL = -1;  /* INTEGER */
-static int hf_gprscdr_aPNAggregateMaxBitrateDL = -1;  /* INTEGER */
-static int hf_gprscdr_extendedMaxRequestedBWUL = -1;  /* INTEGER */
-static int hf_gprscdr_extendedMaxRequestedBWDL = -1;  /* INTEGER */
-static int hf_gprscdr_extendedGBRUL = -1;         /* INTEGER */
-static int hf_gprscdr_extendedGBRDL = -1;         /* INTEGER */
-static int hf_gprscdr_extendedAPNAMBRUL = -1;     /* INTEGER */
-static int hf_gprscdr_extendedAPNAMBRDL = -1;     /* INTEGER */
-static int hf_gprscdr_numberOfEvents = -1;        /* INTEGER */
-static int hf_gprscdr_eventTimeStamps = -1;       /* SEQUENCE_OF_TimeStamp */
-static int hf_gprscdr_eventTimeStamps_item = -1;  /* TimeStamp */
-static int hf_gprscdr_sSID = -1;                  /* OCTET_STRING */
-static int hf_gprscdr_bSSID = -1;                 /* OCTET_STRING */
-static int hf_gprscdr_mediaComponentNumber = -1;  /* INTEGER */
-static int hf_gprscdr_flowNumber = -1;            /* T_flowNumber */
-static int hf_gprscdr_flowNumber_item = -1;       /* INTEGER */
-static int hf_gprscdr_counterValue = -1;          /* INTEGER */
-static int hf_gprscdr_counterTimestamp = -1;      /* TimeStamp */
-static int hf_gprscdr_presenceReportingAreaIdentifier = -1;  /* OCTET_STRING */
-static int hf_gprscdr_presenceReportingAreaElementsList = -1;  /* PresenceReportingAreaElementsList */
-static int hf_gprscdr_presenceReportingAreaNode = -1;  /* PresenceReportingAreaNode */
-static int hf_gprscdr_pSFreeFormatData = -1;      /* FreeFormatData */
-static int hf_gprscdr_pSFFDAppendIndicator = -1;  /* FFDAppendIndicator */
-static int hf_gprscdr_dataVolumeUplink = -1;      /* DataVolumeGPRS */
-static int hf_gprscdr_dataVolumeDownlink = -1;    /* DataVolumeGPRS */
-static int hf_gprscdr_rANStartTime = -1;          /* TimeStamp */
-static int hf_gprscdr_rANEndTime = -1;            /* TimeStamp */
-static int hf_gprscdr_secondaryRATType = -1;      /* SecondaryRATType */
-static int hf_gprscdr_userLocationInformation_11 = -1;  /* T_userLocationInformation_10 */
-static int hf_gprscdr_userLocationInformation_12 = -1;  /* T_userLocationInformation_11 */
-static int hf_gprscdr_relatedServiceConditionChange = -1;  /* ServiceConditionChange */
-static int hf_gprscdr_sPLMNDLRateControlValue = -1;  /* INTEGER */
-static int hf_gprscdr_sPLMNULRateControlValue = -1;  /* INTEGER */
-static int hf_gprscdr_timeQuotaType = -1;         /* TimeQuotaType */
-static int hf_gprscdr_baseTimeInterval = -1;      /* INTEGER */
-static int hf_gprscdr_civicAddressInformation = -1;  /* CivicAddressInformation */
-static int hf_gprscdr_wLANOperatorId = -1;        /* WLANOperatorId */
-static int hf_gprscdr_cSGId = -1;                 /* CSGId */
-static int hf_gprscdr_cSGAccessMode = -1;         /* CSGAccessMode */
-static int hf_gprscdr_cSGMembershipIndication = -1;  /* NULL */
-static int hf_gprscdr_uELocalIPAddress = -1;      /* IPAddress */
-static int hf_gprscdr_uDPSourcePort = -1;         /* OCTET_STRING_SIZE_2 */
-static int hf_gprscdr_tCPSourcePort = -1;         /* OCTET_STRING_SIZE_2 */
-static int hf_gprscdr_callerInformation = -1;     /* SEQUENCE_OF_InvolvedParty */
-static int hf_gprscdr_callerInformation_item = -1;  /* InvolvedParty */
-static int hf_gprscdr_calleeInformation = -1;     /* CalleePartyInformation */
-static int hf_gprscdr_wLANOperatorName = -1;      /* OCTET_STRING */
-static int hf_gprscdr_wLANPLMNId = -1;            /* PLMN_Id */
+static int hf_gprscdr_gprscdr_GPRSCallEventRecord_PDU;  /* GPRSCallEventRecord */
+static int hf_gprscdr_gprscdr_GPRSRecord_PDU;     /* GPRSRecord */
+static int hf_gprscdr_gprscdr_CAMELInformationPDP_PDU;  /* CAMELInformationPDP */
+static int hf_gprscdr_gsm0408Cause;               /* INTEGER */
+static int hf_gprscdr_gsm0902MapErrorValue;       /* INTEGER */
+static int hf_gprscdr_itu_tQ767Cause;             /* INTEGER */
+static int hf_gprscdr_networkSpecificCause;       /* ManagementExtension */
+static int hf_gprscdr_manufacturerSpecificCause;  /* ManagementExtension */
+static int hf_gprscdr_positionMethodFailureCause;  /* PositionMethodFailure_Diagnostic */
+static int hf_gprscdr_unauthorizedLCSClientCause;  /* UnauthorizedLCSClient_Diagnostic */
+static int hf_gprscdr_diameterResultCodeAndExperimentalResult;  /* INTEGER */
+static int hf_gprscdr_plmnId;                     /* PLMN_Id */
+static int hf_gprscdr_eutraCellId;                /* EutraCellId */
+static int hf_gprscdr_nid;                        /* Nid */
+static int hf_gprscdr_rANNASCause;                /* SEQUENCE_OF_RANNASCause */
+static int hf_gprscdr_rANNASCause_item;           /* RANNASCause */
+static int hf_gprscdr_sIP_URI;                    /* GraphicString */
+static int hf_gprscdr_tEL_URI;                    /* GraphicString */
+static int hf_gprscdr_uRN;                        /* GraphicString */
+static int hf_gprscdr_iSDN_E164;                  /* GraphicString */
+static int hf_gprscdr_externalId;                 /* UTF8String */
+static int hf_gprscdr_iPBinaryAddress;            /* IPBinaryAddress */
+static int hf_gprscdr_iPTextRepresentedAddress;   /* IPTextRepresentedAddress */
+static int hf_gprscdr_iPBinV4Address;             /* IPBinV4Address */
+static int hf_gprscdr_iPBinV6Address_choice;      /* IPBinV6AddressWithOrWithoutPrefixLength */
+static int hf_gprscdr_iPBinV6Address;             /* IPBinV6Address */
+static int hf_gprscdr_iPBinV6AddressWithPrefix;   /* IPBinV6AddressWithPrefixLength */
+static int hf_gprscdr_pDPAddressPrefixLength;     /* PDPAddressPrefixLength */
+static int hf_gprscdr_iPTextV4Address;            /* IA5String_SIZE_7_15 */
+static int hf_gprscdr_iPTextV6Address;            /* IA5String_SIZE_15_45 */
+static int hf_gprscdr_lcsClientExternalID;        /* LCSClientExternalID */
+static int hf_gprscdr_lcsClientDialedByMS;        /* AddressString */
+static int hf_gprscdr_lcsClientInternalID;        /* LCSClientInternalID */
+static int hf_gprscdr_locationAreaCode;           /* LocationAreaCode */
+static int hf_gprscdr_cellId;                     /* CellId */
+static int hf_gprscdr_mCC_MNC;                    /* MCC_MNC */
+static int hf_gprscdr_ManagementExtensions_item;  /* ManagementExtension */
+static int hf_gprscdr_tMGI;                       /* TMGI */
+static int hf_gprscdr_mBMSSessionIdentity;        /* MBMSSessionIdentity */
+static int hf_gprscdr_mBMSServiceType;            /* MBMSServiceType */
+static int hf_gprscdr_mBMSUserServiceType;        /* MBMSUserServiceType */
+static int hf_gprscdr_mBMS2G3GIndicator;          /* MBMS2G3GIndicator */
+static int hf_gprscdr_fileRepairSupported;        /* BOOLEAN */
+static int hf_gprscdr_rAI;                        /* RoutingAreaCode */
+static int hf_gprscdr_mBMSServiceArea;            /* MBMSServiceArea */
+static int hf_gprscdr_requiredMBMSBearerCaps;     /* RequiredMBMSBearerCapabilities */
+static int hf_gprscdr_mBMSGWAddress;              /* GSNAddress */
+static int hf_gprscdr_cNIPMulticastDistribution;  /* CNIPMulticastDistribution */
+static int hf_gprscdr_mBMSDataTransferStart;      /* MBMSTime */
+static int hf_gprscdr_mBMSDataTransferStop;       /* MBMSTime */
+static int hf_gprscdr_nrCellId;                   /* NrCellId */
+static int hf_gprscdr_iPAddress;                  /* IPAddress */
+static int hf_gprscdr_nRcgi;                      /* Ncgi */
+static int hf_gprscdr_ecgi;                       /* Ecgi */
+static int hf_gprscdr_sCSAddress;                 /* IPAddress */
+static int hf_gprscdr_sCSRealm;                   /* DiameterIdentity */
+static int hf_gprscdr_serviceSpecificData;        /* GraphicString */
+static int hf_gprscdr_serviceSpecificType;        /* INTEGER */
+static int hf_gprscdr_subscriptionIDType;         /* SubscriptionIDType */
+static int hf_gprscdr_subscriptionIDData;         /* UTF8String */
+static int hf_gprscdr_identifier;                 /* T_identifier */
+static int hf_gprscdr_significance;               /* BOOLEAN */
+static int hf_gprscdr_information;                /* T_information */
+static int hf_gprscdr_sgsnPDPRecord;              /* SGSNPDPRecordV651 */
+static int hf_gprscdr_ggsnPDPRecord;              /* GGSNPDPRecord */
+static int hf_gprscdr_sgsnMMRecord;               /* SGSNMMRecord */
+static int hf_gprscdr_sgsnSMORecord;              /* SGSNSMORecordV651 */
+static int hf_gprscdr_sgsnSMTRecord;              /* SGSNSMTRecordV651 */
+static int hf_gprscdr_egsnPDPRecord;              /* EGSNPDPRecord */
+static int hf_gprscdr_recordType;                 /* CallEventRecordType */
+static int hf_gprscdr_networkInitiation;          /* NetworkInitiatedPDPContext */
+static int hf_gprscdr_servedIMSI;                 /* IMSI */
+static int hf_gprscdr_ggsnAddress;                /* GSNAddress */
+static int hf_gprscdr_chargingID;                 /* ChargingID */
+static int hf_gprscdr_sgsnAddress;                /* SEQUENCE_OF_GSNAddress */
+static int hf_gprscdr_sgsnAddress_item;           /* GSNAddress */
+static int hf_gprscdr_accessPointNameNI;          /* AccessPointNameNI */
+static int hf_gprscdr_pdpType;                    /* PDPType */
+static int hf_gprscdr_servedPDPAddress;           /* PDPAddress */
+static int hf_gprscdr_dynamicAddressFlag;         /* DynamicAddressFlag */
+static int hf_gprscdr_listOfTrafficVolumes;       /* SEQUENCE_OF_ChangeOfCharConditionV651 */
+static int hf_gprscdr_listOfTrafficVolumes_item;  /* ChangeOfCharConditionV651 */
+static int hf_gprscdr_recordOpeningTime;          /* TimeStamp */
+static int hf_gprscdr_duration;                   /* CallDuration */
+static int hf_gprscdr_causeForRecClosing;         /* CauseForRecClosingV651 */
+static int hf_gprscdr_diagnostics;                /* Diagnostics */
+static int hf_gprscdr_recordSequenceNumber;       /* INTEGER */
+static int hf_gprscdr_nodeID;                     /* NodeID */
+static int hf_gprscdr_recordExtensions;           /* ManagementExtensions */
+static int hf_gprscdr_localSequenceNumber;        /* LocalSequenceNumber */
+static int hf_gprscdr_apnSelectionMode;           /* APNSelectionMode */
+static int hf_gprscdr_servedMSISDN;               /* MSISDN */
+static int hf_gprscdr_chargingCharacteristics;    /* ChargingCharacteristics */
+static int hf_gprscdr_chChSelectionMode;          /* ChChSelectionMode */
+static int hf_gprscdr_iMSsignalingContext;        /* NULL */
+static int hf_gprscdr_externalChargingID;         /* OCTET_STRING */
+static int hf_gprscdr_sgsnPLMNIdentifier;         /* PLMN_Id */
+static int hf_gprscdr_servedIMEISV;               /* IMEI */
+static int hf_gprscdr_rATType;                    /* RATType */
+static int hf_gprscdr_mSTimeZone;                 /* MSTimeZone */
+static int hf_gprscdr_userLocationInformation;    /* T_userLocationInformation */
+static int hf_gprscdr_cAMELChargingInformation;   /* OCTET_STRING */
+static int hf_gprscdr_recordType_01;              /* RecordType */
+static int hf_gprscdr_causeForRecClosing_01;      /* CauseForRecClosing */
+static int hf_gprscdr_userLocationInformation_01;  /* T_userLocationInformation_01 */
+static int hf_gprscdr_pSFurnishChargingInformation;  /* PSFurnishChargingInformation */
+static int hf_gprscdr_userLocationInformation_02;  /* T_userLocationInformation_02 */
+static int hf_gprscdr_listOfServiceData;          /* SEQUENCE_OF_ChangeOfServiceConditionV651 */
+static int hf_gprscdr_listOfServiceData_item;     /* ChangeOfServiceConditionV651 */
+static int hf_gprscdr_userLocationInformation_03;  /* T_userLocationInformation_03 */
+static int hf_gprscdr_listOfServiceData_01;       /* SEQUENCE_OF_ChangeOfServiceConditionV750 */
+static int hf_gprscdr_listOfServiceData_item_01;  /* ChangeOfServiceConditionV750 */
+static int hf_gprscdr_servedIMEI;                 /* IMEI */
+static int hf_gprscdr_sgsnAddress_01;             /* GSNAddress */
+static int hf_gprscdr_msNetworkCapability;        /* MSNetworkCapability */
+static int hf_gprscdr_routingArea;                /* RoutingAreaCode */
+static int hf_gprscdr_cellIdentifier;             /* CellId */
+static int hf_gprscdr_ggsnAddressUsed;            /* GSNAddress */
+static int hf_gprscdr_sgsnChange;                 /* SGSNChange */
+static int hf_gprscdr_accessPointNameOI;          /* AccessPointNameOI */
+static int hf_gprscdr_cAMELInformationPDP;        /* CAMELInformationPDP */
+static int hf_gprscdr_rNCUnsentDownlinkVolume;    /* DataVolumeGPRS */
+static int hf_gprscdr_serviceCentre;              /* AddressString */
+static int hf_gprscdr_recordingEntity;            /* RecordingEntity */
+static int hf_gprscdr_locationArea;               /* LocationAreaCode */
+static int hf_gprscdr_messageReference;           /* MessageReference */
+static int hf_gprscdr_eventTimeStamp;             /* TimeStamp */
+static int hf_gprscdr_smsResult;                  /* SMSResult */
+static int hf_gprscdr_destinationNumber;          /* SmsTpDestinationNumber */
+static int hf_gprscdr_cAMELInformationSMS;        /* CAMELInformationSMS */
+static int hf_gprscdr_qosRequested;               /* QoSInformation */
+static int hf_gprscdr_qosNegotiated;              /* QoSInformation */
+static int hf_gprscdr_dataVolumeGPRSUplink;       /* DataVolumeGPRS */
+static int hf_gprscdr_dataVolumeGPRSDownlink;     /* DataVolumeGPRS */
+static int hf_gprscdr_changeCondition;            /* ChangeConditionV651 */
+static int hf_gprscdr_changeTime;                 /* TimeStamp */
+static int hf_gprscdr_failureHandlingContinue;    /* FailureHandlingContinue */
+static int hf_gprscdr_userLocationInformation_04;  /* T_userLocationInformation_04 */
+static int hf_gprscdr_ratingGroup;                /* RatingGroupId */
+static int hf_gprscdr_chargingRuleBaseName;       /* ChargingRuleBaseName */
+static int hf_gprscdr_resultCode;                 /* ResultCode */
+static int hf_gprscdr_timeOfFirstUsage;           /* TimeStamp */
+static int hf_gprscdr_timeOfLastUsage;            /* TimeStamp */
+static int hf_gprscdr_timeUsage;                  /* CallDuration */
+static int hf_gprscdr_serviceConditionChange;     /* ServiceConditionChangeV651 */
+static int hf_gprscdr_qoSInformationNeg;          /* QoSInformation */
+static int hf_gprscdr_sgsn_Address;               /* GSNAddress */
+static int hf_gprscdr_sGSNPLMNIdentifier;         /* PLMN_Id */
+static int hf_gprscdr_datavolumeFBCUplink;        /* DataVolumeGPRS */
+static int hf_gprscdr_datavolumeFBCDownlink;      /* DataVolumeGPRS */
+static int hf_gprscdr_timeOfReport;               /* TimeStamp */
+static int hf_gprscdr_serviceIdentifier;          /* ServiceIdentifier */
+static int hf_gprscdr_serviceConditionChangeV750;  /* ServiceConditionChangeV750 */
+static int hf_gprscdr_aFRecordInformation;        /* SEQUENCE_OF_AFRecordInformation */
+static int hf_gprscdr_aFRecordInformation_item;   /* AFRecordInformation */
+static int hf_gprscdr_userLocationInformation_05;  /* T_userLocationInformation_05 */
+static int hf_gprscdr_eventBasedChargingInformation;  /* EventBasedChargingInformation */
+static int hf_gprscdr_timeQuotaMechanism;         /* TimeQuotaMechanism */
+static int hf_gprscdr_sgsnPDPRecord_01;           /* SGSNPDPRecord */
+static int hf_gprscdr_ggsnPDPRecord_01;           /* GGSNPDPRecordV750 */
+static int hf_gprscdr_sgsnSMORecord_01;           /* SGSNSMORecord */
+static int hf_gprscdr_sgsnSMTRecord_01;           /* SGSNSMTRecord */
+static int hf_gprscdr_sgsnMTLCSRecord;            /* SGSNMTLCSRecord */
+static int hf_gprscdr_sgsnMOLCSRecord;            /* SGSNMOLCSRecord */
+static int hf_gprscdr_sgsnNILCSRecord;            /* SGSNNILCSRecord */
+static int hf_gprscdr_egsnPDPRecord_01;           /* EGSNPDPRecordV750 */
+static int hf_gprscdr_sgsnMBMSRecord;             /* SGSNMBMSRecord */
+static int hf_gprscdr_ggsnMBMSRecord;             /* GGSNMBMSRecord */
+static int hf_gprscdr_sGWRecord;                  /* SGWRecord */
+static int hf_gprscdr_pGWRecord;                  /* PGWRecord */
+static int hf_gprscdr_gwMBMSRecord;               /* GWMBMSRecord */
+static int hf_gprscdr_tDFRecord;                  /* TDFRecord */
+static int hf_gprscdr_iPERecord;                  /* IPERecord */
+static int hf_gprscdr_ePDGRecord;                 /* EPDGRecord */
+static int hf_gprscdr_tWAGRecord;                 /* TWAGRecord */
+static int hf_gprscdr_s_GWAddress;                /* GSNAddress */
+static int hf_gprscdr_servingNodeAddress;         /* SEQUENCE_OF_GSNAddress */
+static int hf_gprscdr_servingNodeAddress_item;    /* GSNAddress */
+static int hf_gprscdr_pdpPDNType;                 /* PDPType */
+static int hf_gprscdr_servedPDPPDNAddress;        /* PDPAddress */
+static int hf_gprscdr_listOfTrafficVolumes_01;    /* SEQUENCE_OF_ChangeOfCharCondition */
+static int hf_gprscdr_listOfTrafficVolumes_item_01;  /* ChangeOfCharCondition */
+static int hf_gprscdr_servingNodePLMNIdentifier;  /* PLMN_Id */
+static int hf_gprscdr_userLocationInformation_06;  /* T_userLocationInformation_06 */
+static int hf_gprscdr_sGWChange;                  /* SGWChange */
+static int hf_gprscdr_servingNodeType;            /* SEQUENCE_OF_ServingNodeType */
+static int hf_gprscdr_servingNodeType_item;       /* ServingNodeType */
+static int hf_gprscdr_p_GWAddressUsed;            /* GSNAddress */
+static int hf_gprscdr_p_GWPLMNIdentifier;         /* PLMN_Id */
+static int hf_gprscdr_startTime;                  /* TimeStamp */
+static int hf_gprscdr_stopTime;                   /* TimeStamp */
+static int hf_gprscdr_pDNConnectionChargingID;    /* ChargingID */
+static int hf_gprscdr_iMSIunauthenticatedFlag;    /* NULL */
+static int hf_gprscdr_userCSGInformation;         /* UserCSGInformation */
+static int hf_gprscdr_servedPDPPDNAddressExt;     /* PDPAddress */
+static int hf_gprscdr_lowPriorityIndicator;       /* NULL */
+static int hf_gprscdr_dynamicAddressFlagExt;      /* DynamicAddressFlag */
+static int hf_gprscdr_s_GWiPv6Address;            /* GSNAddress */
+static int hf_gprscdr_servingNodeiPv6Address;     /* SEQUENCE_OF_GSNAddress */
+static int hf_gprscdr_servingNodeiPv6Address_item;  /* GSNAddress */
+static int hf_gprscdr_p_GWiPv6AddressUsed;        /* GSNAddress */
+static int hf_gprscdr_retransmission;             /* NULL */
+static int hf_gprscdr_userLocationInfoTime;       /* TimeStamp */
+static int hf_gprscdr_cNOperatorSelectionEnt;     /* CNOperatorSelectionEntity */
+static int hf_gprscdr_presenceReportingAreaInfo;  /* PresenceReportingAreaInfo */
+static int hf_gprscdr_lastUserLocationInformation;  /* T_lastUserLocationInformation */
+static int hf_gprscdr_lastMSTimeZone;             /* MSTimeZone */
+static int hf_gprscdr_enhancedDiagnostics;        /* EnhancedDiagnostics */
+static int hf_gprscdr_cPCIoTEPSOptimisationIndicator;  /* CPCIoTEPSOptimisationIndicator */
+static int hf_gprscdr_uNIPDUCPOnlyFlag;           /* UNIPDUCPOnlyFlag */
+static int hf_gprscdr_servingPLMNRateControl;     /* ServingPLMNRateControl */
+static int hf_gprscdr_pDPPDNTypeExtension;        /* PDPPDNTypeExtension */
+static int hf_gprscdr_mOExceptionDataCounter;     /* MOExceptionDataCounter */
+static int hf_gprscdr_listOfRANSecondaryRATUsageReports;  /* SEQUENCE_OF_RANSecondaryRATUsageReport */
+static int hf_gprscdr_listOfRANSecondaryRATUsageReports_item;  /* RANSecondaryRATUsageReport */
+static int hf_gprscdr_pSCellInformation;          /* PSCellInformation */
+static int hf_gprscdr_p_GWAddress;                /* GSNAddress */
+static int hf_gprscdr_userLocationInformation_07;  /* T_userLocationInformation_07 */
+static int hf_gprscdr_listOfServiceData_02;       /* SEQUENCE_OF_ChangeOfServiceCondition */
+static int hf_gprscdr_listOfServiceData_item_02;  /* ChangeOfServiceCondition */
+static int hf_gprscdr_servedMNNAI;                /* SubscriptionID */
+static int hf_gprscdr_served3gpp2MEID;            /* OCTET_STRING */
+static int hf_gprscdr_threeGPP2UserLocationInformation;  /* OCTET_STRING */
+static int hf_gprscdr_tWANUserLocationInformation;  /* TWANUserLocationInfo */
+static int hf_gprscdr_ePCQoSInformation;          /* EPCQoSInformation */
+static int hf_gprscdr_lastUserLocationInformation_01;  /* T_lastUserLocationInformation_01 */
+static int hf_gprscdr_nBIFOMMode;                 /* NBIFOMMode */
+static int hf_gprscdr_nBIFOMSupport;              /* NBIFOMSupport */
+static int hf_gprscdr_uWANUserLocationInformation;  /* UWANUserLocationInfo */
+static int hf_gprscdr_sGiPtPTunnellingMethod;     /* SGiPtPTunnellingMethod */
+static int hf_gprscdr_aPNRateControl;             /* APNRateControl */
+static int hf_gprscdr_chargingPerIPCANSessionIndicator;  /* ChargingPerIPCANSessionIndicator */
+static int hf_gprscdr_threeGPPPSDataOffStatus;    /* ThreeGPPPSDataOffStatus */
+static int hf_gprscdr_sCSASAddress;               /* SCSASAddress */
+static int hf_gprscdr_userLocationInformation_08;  /* OCTET_STRING */
+static int hf_gprscdr_tDFAddress;                 /* GSNAddress */
+static int hf_gprscdr_tDFiPv6AddressUsed;         /* GSNAddress */
+static int hf_gprscdr_tDFPLMNIdentifier;          /* PLMN_Id */
+static int hf_gprscdr_servedFixedSubsID;          /* FixedSubsID */
+static int hf_gprscdr_accessLineIdentifier;       /* AccessLineIdentifier */
+static int hf_gprscdr_fixedUserLocationInformation;  /* FixedUserLocationInformation */
+static int hf_gprscdr_iPEdgeAddress;              /* GSNAddress */
+static int hf_gprscdr_iPCANsessionType;           /* PDPType */
+static int hf_gprscdr_servedIPCANsessionAddress;  /* PDPAddress */
+static int hf_gprscdr_iPEdgeOperatorIdentifier;   /* PLMN_Id */
+static int hf_gprscdr_servedIPCANsessionAddressExt;  /* PDPAddress */
+static int hf_gprscdr_iPEdgeiPv6AddressUsed;      /* GSNAddress */
+static int hf_gprscdr_ePDGAddressUsed;            /* GSNAddress */
+static int hf_gprscdr_ePDGiPv6AddressUsed;        /* GSNAddress */
+static int hf_gprscdr_tWAGAddressUsed;            /* GSNAddress */
+static int hf_gprscdr_tWAGiPv6AddressUsed;        /* GSNAddress */
+static int hf_gprscdr_changeLocation;             /* SEQUENCE_OF_ChangeLocation */
+static int hf_gprscdr_changeLocation_item;        /* ChangeLocation */
+static int hf_gprscdr_cAMELInformationMM;         /* CAMELInformationMM */
+static int hf_gprscdr_cellPLMNId;                 /* PLMN_Id */
+static int hf_gprscdr_servingNodeType_01;         /* ServingNodeType */
+static int hf_gprscdr_servingNodeAddress_01;      /* GSNAddress */
+static int hf_gprscdr_servingNodeiPv6Address_01;  /* GSNAddress */
+static int hf_gprscdr_mMEName;                    /* DiameterIdentity */
+static int hf_gprscdr_mMERealm;                   /* DiameterIdentity */
+static int hf_gprscdr_originatingAddress;         /* AddressString */
+static int hf_gprscdr_lcsClientType;              /* LCSClientType */
+static int hf_gprscdr_lcsClientIdentity;          /* LCSClientIdentity */
+static int hf_gprscdr_locationType;               /* LocationType */
+static int hf_gprscdr_lcsQos;                     /* LCSQoSInfo */
+static int hf_gprscdr_lcsPriority;                /* LCS_Priority */
+static int hf_gprscdr_mlcNumber;                  /* ISDN_AddressString */
+static int hf_gprscdr_measurementDuration;        /* CallDuration */
+static int hf_gprscdr_notificationToMSUser;       /* NotificationToMSUser */
+static int hf_gprscdr_privacyOverride;            /* NULL */
+static int hf_gprscdr_location;                   /* LocationAreaAndCell */
+static int hf_gprscdr_locationEstimate;           /* Ext_GeographicalInformation */
+static int hf_gprscdr_positioningData;            /* PositioningData */
+static int hf_gprscdr_lcsCause;                   /* LCSCause */
+static int hf_gprscdr_locationMethod;             /* LocationMethod */
+static int hf_gprscdr_listofRAs;                  /* SEQUENCE_OF_RAIdentity */
+static int hf_gprscdr_listofRAs_item;             /* RAIdentity */
+static int hf_gprscdr_listOfTrafficVolumes_02;    /* SEQUENCE_OF_ChangeOfMBMSCondition */
+static int hf_gprscdr_listOfTrafficVolumes_item_02;  /* ChangeOfMBMSCondition */
+static int hf_gprscdr_numberofReceivingUE;        /* INTEGER */
+static int hf_gprscdr_mbmsInformation;            /* MBMSInformation */
+static int hf_gprscdr_listofDownstreamNodes;      /* SEQUENCE_OF_GSNAddress */
+static int hf_gprscdr_listofDownstreamNodes_item;  /* GSNAddress */
+static int hf_gprscdr_mbmsGWAddress;              /* GSNAddress */
+static int hf_gprscdr_commonTeid;                 /* CTEID */
+static int hf_gprscdr_iPMulticastSourceAddress;   /* PDPAddress */
+static int hf_gprscdr_physicalAccessID;           /* UTF8String */
+static int hf_gprscdr_logicalAccessID;            /* OCTET_STRING */
+static int hf_gprscdr_aFChargingIdentifier;       /* AFChargingIdentifier */
+static int hf_gprscdr_flows;                      /* Flows */
+static int hf_gprscdr_aPNRateControlUplink;       /* APNRateControlParameters */
+static int hf_gprscdr_aPNRateControlDownlink;     /* APNRateControlParameters */
+static int hf_gprscdr_additionalExceptionReports;  /* AdditionalExceptionReports */
+static int hf_gprscdr_rateControlTimeUnit;        /* RateControlTimeUnit */
+static int hf_gprscdr_rateControlMaxRate;         /* INTEGER */
+static int hf_gprscdr_rateControlMaxMessageSize;  /* DataVolumeGPRS */
+static int hf_gprscdr_called_Party_Address;       /* InvolvedParty */
+static int hf_gprscdr_requested_Party_Address;    /* InvolvedParty */
+static int hf_gprscdr_list_Of_Called_Asserted_Identity;  /* SEQUENCE_OF_InvolvedParty */
+static int hf_gprscdr_list_Of_Called_Asserted_Identity_item;  /* InvolvedParty */
+static int hf_gprscdr_sCFAddress;                 /* SCFAddress */
+static int hf_gprscdr_serviceKey;                 /* ServiceKey */
+static int hf_gprscdr_defaultTransactionHandling;  /* DefaultGPRS_Handling */
+static int hf_gprscdr_numberOfDPEncountered;      /* NumberOfDPEncountered */
+static int hf_gprscdr_levelOfCAMELService;        /* LevelOfCAMELService */
+static int hf_gprscdr_freeFormatData;             /* FreeFormatData */
+static int hf_gprscdr_fFDAppendIndicator;         /* FFDAppendIndicator */
+static int hf_gprscdr_cAMELAccessPointNameNI;     /* CAMELAccessPointNameNI */
+static int hf_gprscdr_cAMELAccessPointNameOI;     /* CAMELAccessPointNameOI */
+static int hf_gprscdr_defaultSMSHandling;         /* DefaultSMS_Handling */
+static int hf_gprscdr_cAMELCallingPartyNumber;    /* CallingNumber */
+static int hf_gprscdr_cAMELDestinationSubscriberNumber;  /* SmsTpDestinationNumber */
+static int hf_gprscdr_cAMELSMSCAddress;           /* AddressString */
+static int hf_gprscdr_smsReferenceNumber;         /* CallReferenceNumber */
+static int hf_gprscdr_changeCondition_01;         /* ChangeCondition */
+static int hf_gprscdr_userLocationInformation_09;  /* T_userLocationInformation_08 */
+static int hf_gprscdr_presenceReportingAreaStatus;  /* PresenceReportingAreaStatus */
+static int hf_gprscdr_accessAvailabilityChangeReason;  /* AccessAvailabilityChangeReason */
+static int hf_gprscdr_relatedChangeOfCharCondition;  /* RelatedChangeOfCharCondition */
+static int hf_gprscdr_listOfPresenceReportingAreaInformation;  /* SEQUENCE_OF_PresenceReportingAreaInfo */
+static int hf_gprscdr_listOfPresenceReportingAreaInformation_item;  /* PresenceReportingAreaInfo */
+static int hf_gprscdr_dataVolumeMBMSUplink;       /* DataVolumeMBMS */
+static int hf_gprscdr_dataVolumeMBMSDownlink;     /* DataVolumeMBMS */
+static int hf_gprscdr_serviceConditionChange_01;  /* ServiceConditionChange */
+static int hf_gprscdr_qoSInformationNeg_01;       /* EPCQoSInformation */
+static int hf_gprscdr_userLocationInformation_10;  /* T_userLocationInformation_09 */
+static int hf_gprscdr_serviceSpecificInfo;        /* SEQUENCE_OF_ServiceSpecificInfo */
+static int hf_gprscdr_serviceSpecificInfo_item;   /* ServiceSpecificInfo */
+static int hf_gprscdr_sponsorIdentity;            /* OCTET_STRING */
+static int hf_gprscdr_applicationServiceProviderIdentity;  /* OCTET_STRING */
+static int hf_gprscdr_aDCRuleBaseName;            /* ADCRuleBaseName */
+static int hf_gprscdr_relatedChangeOfServiceCondition;  /* RelatedChangeOfServiceCondition */
+static int hf_gprscdr_trafficSteeringPolicyIDDownlink;  /* TrafficSteeringPolicyIDDownlink */
+static int hf_gprscdr_trafficSteeringPolicyIDUplink;  /* TrafficSteeringPolicyIDUplink */
+static int hf_gprscdr_voLTEInformation;           /* VoLTEInformation */
+static int hf_gprscdr_routingAreaCode;            /* RoutingAreaCode */
+static int hf_gprscdr_mCC_MNC_01;                 /* PLMN_Id */
+static int hf_gprscdr_qCI;                        /* INTEGER */
+static int hf_gprscdr_maxRequestedBandwithUL;     /* INTEGER */
+static int hf_gprscdr_maxRequestedBandwithDL;     /* INTEGER */
+static int hf_gprscdr_guaranteedBitrateUL;        /* INTEGER */
+static int hf_gprscdr_guaranteedBitrateDL;        /* INTEGER */
+static int hf_gprscdr_aRP;                        /* T_aRP */
+static int hf_gprscdr_aPNAggregateMaxBitrateUL;   /* INTEGER */
+static int hf_gprscdr_aPNAggregateMaxBitrateDL;   /* INTEGER */
+static int hf_gprscdr_extendedMaxRequestedBWUL;   /* INTEGER */
+static int hf_gprscdr_extendedMaxRequestedBWDL;   /* INTEGER */
+static int hf_gprscdr_extendedGBRUL;              /* INTEGER */
+static int hf_gprscdr_extendedGBRDL;              /* INTEGER */
+static int hf_gprscdr_extendedAPNAMBRUL;          /* INTEGER */
+static int hf_gprscdr_extendedAPNAMBRDL;          /* INTEGER */
+static int hf_gprscdr_numberOfEvents;             /* INTEGER */
+static int hf_gprscdr_eventTimeStamps;            /* SEQUENCE_OF_TimeStamp */
+static int hf_gprscdr_eventTimeStamps_item;       /* TimeStamp */
+static int hf_gprscdr_sSID;                       /* OCTET_STRING */
+static int hf_gprscdr_bSSID;                      /* OCTET_STRING */
+static int hf_gprscdr_mediaComponentNumber;       /* INTEGER */
+static int hf_gprscdr_flowNumber;                 /* T_flowNumber */
+static int hf_gprscdr_flowNumber_item;            /* INTEGER */
+static int hf_gprscdr_counterValue;               /* INTEGER */
+static int hf_gprscdr_counterTimestamp;           /* TimeStamp */
+static int hf_gprscdr_presenceReportingAreaIdentifier;  /* OCTET_STRING */
+static int hf_gprscdr_presenceReportingAreaElementsList;  /* PresenceReportingAreaElementsList */
+static int hf_gprscdr_presenceReportingAreaNode;  /* PresenceReportingAreaNode */
+static int hf_gprscdr_pSFreeFormatData;           /* FreeFormatData */
+static int hf_gprscdr_pSFFDAppendIndicator;       /* FFDAppendIndicator */
+static int hf_gprscdr_dataVolumeUplink;           /* DataVolumeGPRS */
+static int hf_gprscdr_dataVolumeDownlink;         /* DataVolumeGPRS */
+static int hf_gprscdr_rANStartTime;               /* TimeStamp */
+static int hf_gprscdr_rANEndTime;                 /* TimeStamp */
+static int hf_gprscdr_secondaryRATType;           /* SecondaryRATType */
+static int hf_gprscdr_userLocationInformation_11;  /* T_userLocationInformation_10 */
+static int hf_gprscdr_userLocationInformation_12;  /* T_userLocationInformation_11 */
+static int hf_gprscdr_relatedServiceConditionChange;  /* ServiceConditionChange */
+static int hf_gprscdr_sPLMNDLRateControlValue;    /* INTEGER */
+static int hf_gprscdr_sPLMNULRateControlValue;    /* INTEGER */
+static int hf_gprscdr_timeQuotaType;              /* TimeQuotaType */
+static int hf_gprscdr_baseTimeInterval;           /* INTEGER */
+static int hf_gprscdr_civicAddressInformation;    /* CivicAddressInformation */
+static int hf_gprscdr_wLANOperatorId;             /* WLANOperatorId */
+static int hf_gprscdr_cSGId;                      /* CSGId */
+static int hf_gprscdr_cSGAccessMode;              /* CSGAccessMode */
+static int hf_gprscdr_cSGMembershipIndication;    /* NULL */
+static int hf_gprscdr_uELocalIPAddress;           /* IPAddress */
+static int hf_gprscdr_uDPSourcePort;              /* OCTET_STRING_SIZE_2 */
+static int hf_gprscdr_tCPSourcePort;              /* OCTET_STRING_SIZE_2 */
+static int hf_gprscdr_callerInformation;          /* SEQUENCE_OF_InvolvedParty */
+static int hf_gprscdr_callerInformation_item;     /* InvolvedParty */
+static int hf_gprscdr_calleeInformation;          /* CalleePartyInformation */
+static int hf_gprscdr_wLANOperatorName;           /* OCTET_STRING */
+static int hf_gprscdr_wLANPLMNId;                 /* PLMN_Id */
 /* named bits */
-static int hf_gprscdr_LevelOfCAMELService_basic = -1;
-static int hf_gprscdr_LevelOfCAMELService_callDurationSupervision = -1;
-static int hf_gprscdr_LevelOfCAMELService_onlineCharging = -1;
-static int hf_gprscdr_ServiceConditionChangeV651_qoSChange = -1;
-static int hf_gprscdr_ServiceConditionChangeV651_sGSNChange = -1;
-static int hf_gprscdr_ServiceConditionChangeV651_sGSNPLMNIDChange = -1;
-static int hf_gprscdr_ServiceConditionChangeV651_tariffTimeSwitch = -1;
-static int hf_gprscdr_ServiceConditionChangeV651_pDPContextRelease = -1;
-static int hf_gprscdr_ServiceConditionChangeV651_rATChange = -1;
-static int hf_gprscdr_ServiceConditionChangeV651_serviceIdledOut = -1;
-static int hf_gprscdr_ServiceConditionChangeV651_qCTExpiry = -1;
-static int hf_gprscdr_ServiceConditionChangeV651_configurationChange = -1;
-static int hf_gprscdr_ServiceConditionChangeV651_serviceStop = -1;
-static int hf_gprscdr_ServiceConditionChangeV651_timeThresholdReached = -1;
-static int hf_gprscdr_ServiceConditionChangeV651_volumeThresholdReached = -1;
-static int hf_gprscdr_ServiceConditionChangeV651_spare_bit12 = -1;
-static int hf_gprscdr_ServiceConditionChangeV651_timeExhausted = -1;
-static int hf_gprscdr_ServiceConditionChangeV651_volumeExhausted = -1;
-static int hf_gprscdr_ServiceConditionChangeV651_timeout = -1;
-static int hf_gprscdr_ServiceConditionChangeV651_returnRequested = -1;
-static int hf_gprscdr_ServiceConditionChangeV651_reauthorisationRequest = -1;
-static int hf_gprscdr_ServiceConditionChangeV651_continueOngoingSession = -1;
-static int hf_gprscdr_ServiceConditionChangeV651_retryAndTerminateOngoingSession = -1;
-static int hf_gprscdr_ServiceConditionChangeV651_terminateOngoingSession = -1;
-static int hf_gprscdr_ServiceConditionChangeV750_qoSChange = -1;
-static int hf_gprscdr_ServiceConditionChangeV750_sGSNChange = -1;
-static int hf_gprscdr_ServiceConditionChangeV750_sGSNPLMNIDChange = -1;
-static int hf_gprscdr_ServiceConditionChangeV750_tariffTimeSwitch = -1;
-static int hf_gprscdr_ServiceConditionChangeV750_pDPContextRelease = -1;
-static int hf_gprscdr_ServiceConditionChangeV750_rATChange = -1;
-static int hf_gprscdr_ServiceConditionChangeV750_serviceIdledOut = -1;
-static int hf_gprscdr_ServiceConditionChangeV750_reserved = -1;
-static int hf_gprscdr_ServiceConditionChangeV750_configurationChange = -1;
-static int hf_gprscdr_ServiceConditionChangeV750_serviceStop = -1;
-static int hf_gprscdr_ServiceConditionChangeV750_dCCATimeThresholdReached = -1;
-static int hf_gprscdr_ServiceConditionChangeV750_dCCAVolumeThresholdReached = -1;
-static int hf_gprscdr_ServiceConditionChangeV750_dCCAServiceSpecificUnitThresholdReached = -1;
-static int hf_gprscdr_ServiceConditionChangeV750_dCCATimeExhausted = -1;
-static int hf_gprscdr_ServiceConditionChangeV750_dCCAVolumeExhausted = -1;
-static int hf_gprscdr_ServiceConditionChangeV750_dCCAValidityTimeout = -1;
-static int hf_gprscdr_ServiceConditionChangeV750_reserved2 = -1;
-static int hf_gprscdr_ServiceConditionChangeV750_dCCAReauthorisationRequest = -1;
-static int hf_gprscdr_ServiceConditionChangeV750_dCCAContinueOngoingSession = -1;
-static int hf_gprscdr_ServiceConditionChangeV750_dCCARetryAndTerminateOngoingSession = -1;
-static int hf_gprscdr_ServiceConditionChangeV750_dCCATerminateOngoingSession = -1;
-static int hf_gprscdr_ServiceConditionChangeV750_cGI_SAIChange = -1;
-static int hf_gprscdr_ServiceConditionChangeV750_rAIChange = -1;
-static int hf_gprscdr_ServiceConditionChangeV750_dCCAServiceSpecificUnitExhausted = -1;
-static int hf_gprscdr_ServiceConditionChangeV750_recordClosure = -1;
-static int hf_gprscdr_ServiceConditionChangeV750_timeLimit = -1;
-static int hf_gprscdr_ServiceConditionChangeV750_volumeLimit = -1;
-static int hf_gprscdr_ServiceConditionChangeV750_serviceSpecificUnitLimit = -1;
-static int hf_gprscdr_ServiceConditionChangeV750_envelopeClosure = -1;
-static int hf_gprscdr_PresenceReportingAreaNode_oCS = -1;
-static int hf_gprscdr_PresenceReportingAreaNode_pCRF = -1;
-static int hf_gprscdr_ServiceConditionChange_qoSChange = -1;
-static int hf_gprscdr_ServiceConditionChange_sGSNChange = -1;
-static int hf_gprscdr_ServiceConditionChange_sGSNPLMNIDChange = -1;
-static int hf_gprscdr_ServiceConditionChange_tariffTimeSwitch = -1;
-static int hf_gprscdr_ServiceConditionChange_pDPContextRelease = -1;
-static int hf_gprscdr_ServiceConditionChange_rATChange = -1;
-static int hf_gprscdr_ServiceConditionChange_serviceIdledOut = -1;
-static int hf_gprscdr_ServiceConditionChange_reserved = -1;
-static int hf_gprscdr_ServiceConditionChange_configurationChange = -1;
-static int hf_gprscdr_ServiceConditionChange_serviceStop = -1;
-static int hf_gprscdr_ServiceConditionChange_dCCATimeThresholdReached = -1;
-static int hf_gprscdr_ServiceConditionChange_dCCAVolumeThresholdReached = -1;
-static int hf_gprscdr_ServiceConditionChange_dCCAServiceSpecificUnitThresholdReached = -1;
-static int hf_gprscdr_ServiceConditionChange_dCCATimeExhausted = -1;
-static int hf_gprscdr_ServiceConditionChange_dCCAVolumeExhausted = -1;
-static int hf_gprscdr_ServiceConditionChange_dCCAValidityTimeout = -1;
-static int hf_gprscdr_ServiceConditionChange_reserved1 = -1;
-static int hf_gprscdr_ServiceConditionChange_dCCAReauthorisationRequest = -1;
-static int hf_gprscdr_ServiceConditionChange_dCCAContinueOngoingSession = -1;
-static int hf_gprscdr_ServiceConditionChange_dCCARetryAndTerminateOngoingSession = -1;
-static int hf_gprscdr_ServiceConditionChange_dCCATerminateOngoingSession = -1;
-static int hf_gprscdr_ServiceConditionChange_cGI_SAIChange = -1;
-static int hf_gprscdr_ServiceConditionChange_rAIChange = -1;
-static int hf_gprscdr_ServiceConditionChange_dCCAServiceSpecificUnitExhausted = -1;
-static int hf_gprscdr_ServiceConditionChange_recordClosure = -1;
-static int hf_gprscdr_ServiceConditionChange_timeLimit = -1;
-static int hf_gprscdr_ServiceConditionChange_volumeLimit = -1;
-static int hf_gprscdr_ServiceConditionChange_serviceSpecificUnitLimit = -1;
-static int hf_gprscdr_ServiceConditionChange_envelopeClosure = -1;
-static int hf_gprscdr_ServiceConditionChange_eCGIChange = -1;
-static int hf_gprscdr_ServiceConditionChange_tAIChange = -1;
-static int hf_gprscdr_ServiceConditionChange_userLocationChange = -1;
-static int hf_gprscdr_ServiceConditionChange_userCSGInformationChange = -1;
-static int hf_gprscdr_ServiceConditionChange_presenceInPRAChange = -1;
-static int hf_gprscdr_ServiceConditionChange_accessChangeOfSDF = -1;
-static int hf_gprscdr_ServiceConditionChange_indirectServiceConditionChange = -1;
-static int hf_gprscdr_ServiceConditionChange_servingPLMNRateControlChange = -1;
-static int hf_gprscdr_ServiceConditionChange_aPNRateControlChange = -1;
+static int hf_gprscdr_LevelOfCAMELService_basic;
+static int hf_gprscdr_LevelOfCAMELService_callDurationSupervision;
+static int hf_gprscdr_LevelOfCAMELService_onlineCharging;
+static int hf_gprscdr_ServiceConditionChangeV651_qoSChange;
+static int hf_gprscdr_ServiceConditionChangeV651_sGSNChange;
+static int hf_gprscdr_ServiceConditionChangeV651_sGSNPLMNIDChange;
+static int hf_gprscdr_ServiceConditionChangeV651_tariffTimeSwitch;
+static int hf_gprscdr_ServiceConditionChangeV651_pDPContextRelease;
+static int hf_gprscdr_ServiceConditionChangeV651_rATChange;
+static int hf_gprscdr_ServiceConditionChangeV651_serviceIdledOut;
+static int hf_gprscdr_ServiceConditionChangeV651_qCTExpiry;
+static int hf_gprscdr_ServiceConditionChangeV651_configurationChange;
+static int hf_gprscdr_ServiceConditionChangeV651_serviceStop;
+static int hf_gprscdr_ServiceConditionChangeV651_timeThresholdReached;
+static int hf_gprscdr_ServiceConditionChangeV651_volumeThresholdReached;
+static int hf_gprscdr_ServiceConditionChangeV651_spare_bit12;
+static int hf_gprscdr_ServiceConditionChangeV651_timeExhausted;
+static int hf_gprscdr_ServiceConditionChangeV651_volumeExhausted;
+static int hf_gprscdr_ServiceConditionChangeV651_timeout;
+static int hf_gprscdr_ServiceConditionChangeV651_returnRequested;
+static int hf_gprscdr_ServiceConditionChangeV651_reauthorisationRequest;
+static int hf_gprscdr_ServiceConditionChangeV651_continueOngoingSession;
+static int hf_gprscdr_ServiceConditionChangeV651_retryAndTerminateOngoingSession;
+static int hf_gprscdr_ServiceConditionChangeV651_terminateOngoingSession;
+static int hf_gprscdr_ServiceConditionChangeV750_qoSChange;
+static int hf_gprscdr_ServiceConditionChangeV750_sGSNChange;
+static int hf_gprscdr_ServiceConditionChangeV750_sGSNPLMNIDChange;
+static int hf_gprscdr_ServiceConditionChangeV750_tariffTimeSwitch;
+static int hf_gprscdr_ServiceConditionChangeV750_pDPContextRelease;
+static int hf_gprscdr_ServiceConditionChangeV750_rATChange;
+static int hf_gprscdr_ServiceConditionChangeV750_serviceIdledOut;
+static int hf_gprscdr_ServiceConditionChangeV750_reserved;
+static int hf_gprscdr_ServiceConditionChangeV750_configurationChange;
+static int hf_gprscdr_ServiceConditionChangeV750_serviceStop;
+static int hf_gprscdr_ServiceConditionChangeV750_dCCATimeThresholdReached;
+static int hf_gprscdr_ServiceConditionChangeV750_dCCAVolumeThresholdReached;
+static int hf_gprscdr_ServiceConditionChangeV750_dCCAServiceSpecificUnitThresholdReached;
+static int hf_gprscdr_ServiceConditionChangeV750_dCCATimeExhausted;
+static int hf_gprscdr_ServiceConditionChangeV750_dCCAVolumeExhausted;
+static int hf_gprscdr_ServiceConditionChangeV750_dCCAValidityTimeout;
+static int hf_gprscdr_ServiceConditionChangeV750_reserved2;
+static int hf_gprscdr_ServiceConditionChangeV750_dCCAReauthorisationRequest;
+static int hf_gprscdr_ServiceConditionChangeV750_dCCAContinueOngoingSession;
+static int hf_gprscdr_ServiceConditionChangeV750_dCCARetryAndTerminateOngoingSession;
+static int hf_gprscdr_ServiceConditionChangeV750_dCCATerminateOngoingSession;
+static int hf_gprscdr_ServiceConditionChangeV750_cGI_SAIChange;
+static int hf_gprscdr_ServiceConditionChangeV750_rAIChange;
+static int hf_gprscdr_ServiceConditionChangeV750_dCCAServiceSpecificUnitExhausted;
+static int hf_gprscdr_ServiceConditionChangeV750_recordClosure;
+static int hf_gprscdr_ServiceConditionChangeV750_timeLimit;
+static int hf_gprscdr_ServiceConditionChangeV750_volumeLimit;
+static int hf_gprscdr_ServiceConditionChangeV750_serviceSpecificUnitLimit;
+static int hf_gprscdr_ServiceConditionChangeV750_envelopeClosure;
+static int hf_gprscdr_PresenceReportingAreaNode_oCS;
+static int hf_gprscdr_PresenceReportingAreaNode_pCRF;
+static int hf_gprscdr_ServiceConditionChange_qoSChange;
+static int hf_gprscdr_ServiceConditionChange_sGSNChange;
+static int hf_gprscdr_ServiceConditionChange_sGSNPLMNIDChange;
+static int hf_gprscdr_ServiceConditionChange_tariffTimeSwitch;
+static int hf_gprscdr_ServiceConditionChange_pDPContextRelease;
+static int hf_gprscdr_ServiceConditionChange_rATChange;
+static int hf_gprscdr_ServiceConditionChange_serviceIdledOut;
+static int hf_gprscdr_ServiceConditionChange_reserved;
+static int hf_gprscdr_ServiceConditionChange_configurationChange;
+static int hf_gprscdr_ServiceConditionChange_serviceStop;
+static int hf_gprscdr_ServiceConditionChange_dCCATimeThresholdReached;
+static int hf_gprscdr_ServiceConditionChange_dCCAVolumeThresholdReached;
+static int hf_gprscdr_ServiceConditionChange_dCCAServiceSpecificUnitThresholdReached;
+static int hf_gprscdr_ServiceConditionChange_dCCATimeExhausted;
+static int hf_gprscdr_ServiceConditionChange_dCCAVolumeExhausted;
+static int hf_gprscdr_ServiceConditionChange_dCCAValidityTimeout;
+static int hf_gprscdr_ServiceConditionChange_reserved1;
+static int hf_gprscdr_ServiceConditionChange_dCCAReauthorisationRequest;
+static int hf_gprscdr_ServiceConditionChange_dCCAContinueOngoingSession;
+static int hf_gprscdr_ServiceConditionChange_dCCARetryAndTerminateOngoingSession;
+static int hf_gprscdr_ServiceConditionChange_dCCATerminateOngoingSession;
+static int hf_gprscdr_ServiceConditionChange_cGI_SAIChange;
+static int hf_gprscdr_ServiceConditionChange_rAIChange;
+static int hf_gprscdr_ServiceConditionChange_dCCAServiceSpecificUnitExhausted;
+static int hf_gprscdr_ServiceConditionChange_recordClosure;
+static int hf_gprscdr_ServiceConditionChange_timeLimit;
+static int hf_gprscdr_ServiceConditionChange_volumeLimit;
+static int hf_gprscdr_ServiceConditionChange_serviceSpecificUnitLimit;
+static int hf_gprscdr_ServiceConditionChange_envelopeClosure;
+static int hf_gprscdr_ServiceConditionChange_eCGIChange;
+static int hf_gprscdr_ServiceConditionChange_tAIChange;
+static int hf_gprscdr_ServiceConditionChange_userLocationChange;
+static int hf_gprscdr_ServiceConditionChange_userCSGInformationChange;
+static int hf_gprscdr_ServiceConditionChange_presenceInPRAChange;
+static int hf_gprscdr_ServiceConditionChange_accessChangeOfSDF;
+static int hf_gprscdr_ServiceConditionChange_indirectServiceConditionChange;
+static int hf_gprscdr_ServiceConditionChange_servingPLMNRateControlChange;
+static int hf_gprscdr_ServiceConditionChange_aPNRateControlChange;
 
-static int ett_gprscdr = -1;
-static int ett_gprscdr_timestamp = -1;
-static int ett_gprscdr_plmn_id = -1;
-static int ett_gprscdr_pdp_pdn_type = -1;
-static int ett_gprscdr_eps_qos_arp = -1;
-static int ett_gprscdr_managementextension_information = -1;
-static int ett_gprscdr_userlocationinformation = -1;
-static gint ett_gprscdr_Diagnostics = -1;
-static gint ett_gprscdr_Ecgi = -1;
-static gint ett_gprscdr_EnhancedDiagnostics = -1;
-static gint ett_gprscdr_SEQUENCE_OF_RANNASCause = -1;
-static gint ett_gprscdr_InvolvedParty = -1;
-static gint ett_gprscdr_IPAddress = -1;
-static gint ett_gprscdr_IPBinaryAddress = -1;
-static gint ett_gprscdr_IPBinV6AddressWithOrWithoutPrefixLength = -1;
-static gint ett_gprscdr_IPBinV6AddressWithPrefixLength = -1;
-static gint ett_gprscdr_IPTextRepresentedAddress = -1;
-static gint ett_gprscdr_LCSClientIdentity = -1;
-static gint ett_gprscdr_LevelOfCAMELService = -1;
-static gint ett_gprscdr_LocationAreaAndCell = -1;
-static gint ett_gprscdr_ManagementExtensions = -1;
-static gint ett_gprscdr_MBMSInformation = -1;
-static gint ett_gprscdr_Ncgi = -1;
-static gint ett_gprscdr_PDPAddress = -1;
-static gint ett_gprscdr_PSCellInformation = -1;
-static gint ett_gprscdr_SCSASAddress = -1;
-static gint ett_gprscdr_ServiceSpecificInfo = -1;
-static gint ett_gprscdr_SubscriptionID = -1;
-static gint ett_gprscdr_ManagementExtension = -1;
-static gint ett_gprscdr_GPRSCallEventRecord = -1;
-static gint ett_gprscdr_GGSNPDPRecord = -1;
-static gint ett_gprscdr_SEQUENCE_OF_GSNAddress = -1;
-static gint ett_gprscdr_SEQUENCE_OF_ChangeOfCharConditionV651 = -1;
-static gint ett_gprscdr_GGSNPDPRecordV750 = -1;
-static gint ett_gprscdr_EGSNPDPRecord = -1;
-static gint ett_gprscdr_SEQUENCE_OF_ChangeOfServiceConditionV651 = -1;
-static gint ett_gprscdr_EGSNPDPRecordV750 = -1;
-static gint ett_gprscdr_SEQUENCE_OF_ChangeOfServiceConditionV750 = -1;
-static gint ett_gprscdr_SGSNPDPRecordV651 = -1;
-static gint ett_gprscdr_SGSNSMORecordV651 = -1;
-static gint ett_gprscdr_SGSNSMTRecordV651 = -1;
-static gint ett_gprscdr_ChangeOfCharConditionV651 = -1;
-static gint ett_gprscdr_ChangeOfServiceConditionV651 = -1;
-static gint ett_gprscdr_ChangeOfServiceConditionV750 = -1;
-static gint ett_gprscdr_SEQUENCE_OF_AFRecordInformation = -1;
-static gint ett_gprscdr_ServiceConditionChangeV651 = -1;
-static gint ett_gprscdr_ServiceConditionChangeV750 = -1;
-static gint ett_gprscdr_GPRSRecord = -1;
-static gint ett_gprscdr_SGWRecord = -1;
-static gint ett_gprscdr_SEQUENCE_OF_ChangeOfCharCondition = -1;
-static gint ett_gprscdr_SEQUENCE_OF_ServingNodeType = -1;
-static gint ett_gprscdr_SEQUENCE_OF_RANSecondaryRATUsageReport = -1;
-static gint ett_gprscdr_PGWRecord = -1;
-static gint ett_gprscdr_SEQUENCE_OF_ChangeOfServiceCondition = -1;
-static gint ett_gprscdr_TDFRecord = -1;
-static gint ett_gprscdr_IPERecord = -1;
-static gint ett_gprscdr_EPDGRecord = -1;
-static gint ett_gprscdr_TWAGRecord = -1;
-static gint ett_gprscdr_SGSNMMRecord = -1;
-static gint ett_gprscdr_SEQUENCE_OF_ChangeLocation = -1;
-static gint ett_gprscdr_SGSNPDPRecord = -1;
-static gint ett_gprscdr_SGSNSMORecord = -1;
-static gint ett_gprscdr_SGSNSMTRecord = -1;
-static gint ett_gprscdr_SGSNMTLCSRecord = -1;
-static gint ett_gprscdr_SGSNMOLCSRecord = -1;
-static gint ett_gprscdr_SGSNNILCSRecord = -1;
-static gint ett_gprscdr_SGSNMBMSRecord = -1;
-static gint ett_gprscdr_SEQUENCE_OF_RAIdentity = -1;
-static gint ett_gprscdr_SEQUENCE_OF_ChangeOfMBMSCondition = -1;
-static gint ett_gprscdr_GGSNMBMSRecord = -1;
-static gint ett_gprscdr_GWMBMSRecord = -1;
-static gint ett_gprscdr_AccessLineIdentifier = -1;
-static gint ett_gprscdr_AFRecordInformation = -1;
-static gint ett_gprscdr_APNRateControl = -1;
-static gint ett_gprscdr_APNRateControlParameters = -1;
-static gint ett_gprscdr_CalleePartyInformation = -1;
-static gint ett_gprscdr_SEQUENCE_OF_InvolvedParty = -1;
-static gint ett_gprscdr_CAMELInformationMM = -1;
-static gint ett_gprscdr_CAMELInformationPDP = -1;
-static gint ett_gprscdr_CAMELInformationSMS = -1;
-static gint ett_gprscdr_ChangeOfCharCondition = -1;
-static gint ett_gprscdr_SEQUENCE_OF_PresenceReportingAreaInfo = -1;
-static gint ett_gprscdr_ChangeOfMBMSCondition = -1;
-static gint ett_gprscdr_ChangeOfServiceCondition = -1;
-static gint ett_gprscdr_SEQUENCE_OF_ServiceSpecificInfo = -1;
-static gint ett_gprscdr_ChangeLocation = -1;
-static gint ett_gprscdr_EPCQoSInformation = -1;
-static gint ett_gprscdr_EventBasedChargingInformation = -1;
-static gint ett_gprscdr_SEQUENCE_OF_TimeStamp = -1;
-static gint ett_gprscdr_FixedUserLocationInformation = -1;
-static gint ett_gprscdr_Flows = -1;
-static gint ett_gprscdr_T_flowNumber = -1;
-static gint ett_gprscdr_MOExceptionDataCounter = -1;
-static gint ett_gprscdr_PresenceReportingAreaInfo = -1;
-static gint ett_gprscdr_PresenceReportingAreaNode = -1;
-static gint ett_gprscdr_PSFurnishChargingInformation = -1;
-static gint ett_gprscdr_RANSecondaryRATUsageReport = -1;
-static gint ett_gprscdr_RelatedChangeOfCharCondition = -1;
-static gint ett_gprscdr_RelatedChangeOfServiceCondition = -1;
-static gint ett_gprscdr_ServiceConditionChange = -1;
-static gint ett_gprscdr_ServingPLMNRateControl = -1;
-static gint ett_gprscdr_TimeQuotaMechanism = -1;
-static gint ett_gprscdr_TWANUserLocationInfo = -1;
-static gint ett_gprscdr_UserCSGInformation = -1;
-static gint ett_gprscdr_UWANUserLocationInfo = -1;
-static gint ett_gprscdr_VoLTEInformation = -1;
-static gint ett_gprscdr_WLANOperatorId = -1;
+static int ett_gprscdr;
+static int ett_gprscdr_timestamp;
+static int ett_gprscdr_plmn_id;
+static int ett_gprscdr_pdp_pdn_type;
+static int ett_gprscdr_eps_qos_arp;
+static int ett_gprscdr_managementextension_information;
+static int ett_gprscdr_userlocationinformation;
+static int ett_gprscdr_Diagnostics;
+static int ett_gprscdr_Ecgi;
+static int ett_gprscdr_EnhancedDiagnostics;
+static int ett_gprscdr_SEQUENCE_OF_RANNASCause;
+static int ett_gprscdr_InvolvedParty;
+static int ett_gprscdr_IPAddress;
+static int ett_gprscdr_IPBinaryAddress;
+static int ett_gprscdr_IPBinV6AddressWithOrWithoutPrefixLength;
+static int ett_gprscdr_IPBinV6AddressWithPrefixLength;
+static int ett_gprscdr_IPTextRepresentedAddress;
+static int ett_gprscdr_LCSClientIdentity;
+static int ett_gprscdr_LevelOfCAMELService;
+static int ett_gprscdr_LocationAreaAndCell;
+static int ett_gprscdr_ManagementExtensions;
+static int ett_gprscdr_MBMSInformation;
+static int ett_gprscdr_Ncgi;
+static int ett_gprscdr_PDPAddress;
+static int ett_gprscdr_PSCellInformation;
+static int ett_gprscdr_SCSASAddress;
+static int ett_gprscdr_ServiceSpecificInfo;
+static int ett_gprscdr_SubscriptionID;
+static int ett_gprscdr_ManagementExtension;
+static int ett_gprscdr_GPRSCallEventRecord;
+static int ett_gprscdr_GGSNPDPRecord;
+static int ett_gprscdr_SEQUENCE_OF_GSNAddress;
+static int ett_gprscdr_SEQUENCE_OF_ChangeOfCharConditionV651;
+static int ett_gprscdr_GGSNPDPRecordV750;
+static int ett_gprscdr_EGSNPDPRecord;
+static int ett_gprscdr_SEQUENCE_OF_ChangeOfServiceConditionV651;
+static int ett_gprscdr_EGSNPDPRecordV750;
+static int ett_gprscdr_SEQUENCE_OF_ChangeOfServiceConditionV750;
+static int ett_gprscdr_SGSNPDPRecordV651;
+static int ett_gprscdr_SGSNSMORecordV651;
+static int ett_gprscdr_SGSNSMTRecordV651;
+static int ett_gprscdr_ChangeOfCharConditionV651;
+static int ett_gprscdr_ChangeOfServiceConditionV651;
+static int ett_gprscdr_ChangeOfServiceConditionV750;
+static int ett_gprscdr_SEQUENCE_OF_AFRecordInformation;
+static int ett_gprscdr_ServiceConditionChangeV651;
+static int ett_gprscdr_ServiceConditionChangeV750;
+static int ett_gprscdr_GPRSRecord;
+static int ett_gprscdr_SGWRecord;
+static int ett_gprscdr_SEQUENCE_OF_ChangeOfCharCondition;
+static int ett_gprscdr_SEQUENCE_OF_ServingNodeType;
+static int ett_gprscdr_SEQUENCE_OF_RANSecondaryRATUsageReport;
+static int ett_gprscdr_PGWRecord;
+static int ett_gprscdr_SEQUENCE_OF_ChangeOfServiceCondition;
+static int ett_gprscdr_TDFRecord;
+static int ett_gprscdr_IPERecord;
+static int ett_gprscdr_EPDGRecord;
+static int ett_gprscdr_TWAGRecord;
+static int ett_gprscdr_SGSNMMRecord;
+static int ett_gprscdr_SEQUENCE_OF_ChangeLocation;
+static int ett_gprscdr_SGSNPDPRecord;
+static int ett_gprscdr_SGSNSMORecord;
+static int ett_gprscdr_SGSNSMTRecord;
+static int ett_gprscdr_SGSNMTLCSRecord;
+static int ett_gprscdr_SGSNMOLCSRecord;
+static int ett_gprscdr_SGSNNILCSRecord;
+static int ett_gprscdr_SGSNMBMSRecord;
+static int ett_gprscdr_SEQUENCE_OF_RAIdentity;
+static int ett_gprscdr_SEQUENCE_OF_ChangeOfMBMSCondition;
+static int ett_gprscdr_GGSNMBMSRecord;
+static int ett_gprscdr_GWMBMSRecord;
+static int ett_gprscdr_AccessLineIdentifier;
+static int ett_gprscdr_AFRecordInformation;
+static int ett_gprscdr_APNRateControl;
+static int ett_gprscdr_APNRateControlParameters;
+static int ett_gprscdr_CalleePartyInformation;
+static int ett_gprscdr_SEQUENCE_OF_InvolvedParty;
+static int ett_gprscdr_CAMELInformationMM;
+static int ett_gprscdr_CAMELInformationPDP;
+static int ett_gprscdr_CAMELInformationSMS;
+static int ett_gprscdr_ChangeOfCharCondition;
+static int ett_gprscdr_SEQUENCE_OF_PresenceReportingAreaInfo;
+static int ett_gprscdr_ChangeOfMBMSCondition;
+static int ett_gprscdr_ChangeOfServiceCondition;
+static int ett_gprscdr_SEQUENCE_OF_ServiceSpecificInfo;
+static int ett_gprscdr_ChangeLocation;
+static int ett_gprscdr_EPCQoSInformation;
+static int ett_gprscdr_EventBasedChargingInformation;
+static int ett_gprscdr_SEQUENCE_OF_TimeStamp;
+static int ett_gprscdr_FixedUserLocationInformation;
+static int ett_gprscdr_Flows;
+static int ett_gprscdr_T_flowNumber;
+static int ett_gprscdr_MOExceptionDataCounter;
+static int ett_gprscdr_PresenceReportingAreaInfo;
+static int ett_gprscdr_PresenceReportingAreaNode;
+static int ett_gprscdr_PSFurnishChargingInformation;
+static int ett_gprscdr_RANSecondaryRATUsageReport;
+static int ett_gprscdr_RelatedChangeOfCharCondition;
+static int ett_gprscdr_RelatedChangeOfServiceCondition;
+static int ett_gprscdr_ServiceConditionChange;
+static int ett_gprscdr_ServingPLMNRateControl;
+static int ett_gprscdr_TimeQuotaMechanism;
+static int ett_gprscdr_TWANUserLocationInfo;
+static int ett_gprscdr_UserCSGInformation;
+static int ett_gprscdr_UWANUserLocationInfo;
+static int ett_gprscdr_VoLTEInformation;
+static int ett_gprscdr_WLANOperatorId;
 
-static expert_field ei_gprscdr_not_dissected = EI_INIT;
-static expert_field ei_gprscdr_choice_not_found = EI_INIT;
+static expert_field ei_gprscdr_not_dissected;
+static expert_field ei_gprscdr_choice_not_found;
 
 /* Global variables */
-static const char *obj_id = NULL;
+static const char *obj_id;
 
 static const value_string gprscdr_daylight_saving_time_vals[] = {
     {0, "No adjustment"},
@@ -674,7 +675,7 @@ static const value_string gprscdr_rat_type_vals[] = {
 static int
 dissect_gprscdr_uli(tvbuff_t *tvb _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int type) {
   proto_tree *ext_tree_uli;
-  guint       length;
+  unsigned    length;
 
   length = tvb_reported_length(tvb);
   ext_tree_uli = proto_tree_add_subtree(tree, tvb, 0, length, ett_gprscdr_userlocationinformation, NULL, "UserLocationInformation");
@@ -705,7 +706,7 @@ dissect_gprscdr_uli(tvbuff_t *tvb _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U
 
 
 static int
-dissect_gprscdr_BCDDirectoryNumber(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_gprscdr_BCDDirectoryNumber(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_octet_string(implicit_tag, actx, tree, tvb, offset, hf_index,
                                        NULL);
 
@@ -715,7 +716,7 @@ dissect_gprscdr_BCDDirectoryNumber(gboolean implicit_tag _U_, tvbuff_t *tvb _U_,
 
 
 static int
-dissect_gprscdr_CallDuration(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_gprscdr_CallDuration(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_integer(implicit_tag, actx, tree, tvb, offset, hf_index,
                                                 NULL);
 
@@ -810,7 +811,7 @@ static const value_string gprscdr_CallEventRecordType_vals[] = {
 
 
 static int
-dissect_gprscdr_CallEventRecordType(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_gprscdr_CallEventRecordType(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_integer(implicit_tag, actx, tree, tvb, offset, hf_index,
                                                 NULL);
 
@@ -820,7 +821,7 @@ dissect_gprscdr_CallEventRecordType(gboolean implicit_tag _U_, tvbuff_t *tvb _U_
 
 
 static int
-dissect_gprscdr_CallingNumber(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_gprscdr_CallingNumber(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_gprscdr_BCDDirectoryNumber(implicit_tag, tvb, offset, actx, tree, hf_index);
 
   return offset;
@@ -829,7 +830,7 @@ dissect_gprscdr_CallingNumber(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int 
 
 
 static int
-dissect_gprscdr_CellId(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_gprscdr_CellId(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_octet_string(implicit_tag, actx, tree, tvb, offset, hf_index,
                                        NULL);
 
@@ -864,7 +865,7 @@ static const value_string gprscdr_CauseForRecClosing_vals[] = {
 
 
 static int
-dissect_gprscdr_CauseForRecClosing(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_gprscdr_CauseForRecClosing(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_integer(implicit_tag, actx, tree, tvb, offset, hf_index,
                                                 NULL);
 
@@ -874,7 +875,7 @@ dissect_gprscdr_CauseForRecClosing(gboolean implicit_tag _U_, tvbuff_t *tvb _U_,
 
 
 static int
-dissect_gprscdr_ChargingID(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_gprscdr_ChargingID(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_integer(implicit_tag, actx, tree, tvb, offset, hf_index,
                                                 NULL);
 
@@ -884,7 +885,7 @@ dissect_gprscdr_ChargingID(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int off
 
 
 static int
-dissect_gprscdr_CivicAddressInformation(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_gprscdr_CivicAddressInformation(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_octet_string(implicit_tag, actx, tree, tvb, offset, hf_index,
                                        NULL);
 
@@ -900,7 +901,7 @@ static const value_string gprscdr_CNIPMulticastDistribution_vals[] = {
 
 
 static int
-dissect_gprscdr_CNIPMulticastDistribution(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_gprscdr_CNIPMulticastDistribution(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_integer(implicit_tag, actx, tree, tvb, offset, hf_index,
                                   NULL);
 
@@ -910,7 +911,7 @@ dissect_gprscdr_CNIPMulticastDistribution(gboolean implicit_tag _U_, tvbuff_t *t
 
 
 static int
-dissect_gprscdr_DynamicAddressFlag(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_gprscdr_DynamicAddressFlag(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_boolean(implicit_tag, actx, tree, tvb, offset, hf_index, NULL);
 
   return offset;
@@ -919,7 +920,7 @@ dissect_gprscdr_DynamicAddressFlag(gboolean implicit_tag _U_, tvbuff_t *tvb _U_,
 
 
 static int
-dissect_gprscdr_INTEGER(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_gprscdr_INTEGER(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_integer(implicit_tag, actx, tree, tvb, offset, hf_index,
                                                 NULL);
 
@@ -929,7 +930,7 @@ dissect_gprscdr_INTEGER(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset
 
 
 static int
-dissect_gprscdr_T_identifier(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_gprscdr_T_identifier(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_object_identifier_str(implicit_tag, actx, tree, tvb, offset, hf_index, &obj_id);
 
   return offset;
@@ -938,7 +939,7 @@ dissect_gprscdr_T_identifier(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int o
 
 
 static int
-dissect_gprscdr_BOOLEAN(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_gprscdr_BOOLEAN(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_boolean(implicit_tag, actx, tree, tvb, offset, hf_index, NULL);
 
   return offset;
@@ -947,7 +948,7 @@ dissect_gprscdr_BOOLEAN(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset
 
 
 static int
-dissect_gprscdr_T_information(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_gprscdr_T_information(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
 
   proto_tree *ext_tree;
   ext_tree = proto_tree_add_subtree(tree, tvb, offset, -1, ett_gprscdr_managementextension_information, NULL, "Information");
@@ -970,7 +971,7 @@ static const ber_sequence_t ManagementExtension_sequence[] = {
 };
 
 static int
-dissect_gprscdr_ManagementExtension(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_gprscdr_ManagementExtension(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence(implicit_tag, actx, tree, tvb, offset,
                                    ManagementExtension_sequence, hf_index, ett_gprscdr_ManagementExtension);
 
@@ -1003,7 +1004,7 @@ static const ber_choice_t Diagnostics_choice[] = {
 };
 
 static int
-dissect_gprscdr_Diagnostics(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_gprscdr_Diagnostics(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_choice(actx, tree, tvb, offset,
                                  Diagnostics_choice, hf_index, ett_gprscdr_Diagnostics,
                                  NULL);
@@ -1014,7 +1015,7 @@ dissect_gprscdr_Diagnostics(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int of
 
 
 static int
-dissect_gprscdr_DiameterIdentity(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_gprscdr_DiameterIdentity(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_octet_string(implicit_tag, actx, tree, tvb, offset, hf_index,
                                        NULL);
 
@@ -1024,7 +1025,7 @@ dissect_gprscdr_DiameterIdentity(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, i
 
 
 static int
-dissect_gprscdr_PLMN_Id(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_gprscdr_PLMN_Id(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   tvbuff_t *parameter_tvb;
   proto_tree *subtree;
 
@@ -1036,7 +1037,7 @@ dissect_gprscdr_PLMN_Id(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset
     return offset;
 
   subtree = proto_item_add_subtree(actx->created_item, ett_gprscdr_plmn_id);
-  dissect_e212_mcc_mnc(parameter_tvb, actx->pinfo, subtree, 0, E212_NONE, TRUE);
+  dissect_e212_mcc_mnc(parameter_tvb, actx->pinfo, subtree, 0, E212_NONE, true);
 
 
   return offset;
@@ -1045,7 +1046,7 @@ dissect_gprscdr_PLMN_Id(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset
 
 
 static int
-dissect_gprscdr_EutraCellId(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_gprscdr_EutraCellId(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_restricted_string(implicit_tag, BER_UNI_TAG_UTF8String,
                                             actx, tree, tvb, offset, hf_index,
                                             NULL);
@@ -1056,7 +1057,7 @@ dissect_gprscdr_EutraCellId(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int of
 
 
 static int
-dissect_gprscdr_Nid(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_gprscdr_Nid(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_restricted_string(implicit_tag, BER_UNI_TAG_UTF8String,
                                             actx, tree, tvb, offset, hf_index,
                                             NULL);
@@ -1073,7 +1074,7 @@ static const ber_sequence_t Ecgi_sequence[] = {
 };
 
 static int
-dissect_gprscdr_Ecgi(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_gprscdr_Ecgi(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence(implicit_tag, actx, tree, tvb, offset,
                                    Ecgi_sequence, hf_index, ett_gprscdr_Ecgi);
 
@@ -1083,7 +1084,7 @@ dissect_gprscdr_Ecgi(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U
 
 
 static int
-dissect_gprscdr_RANNASCause(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_gprscdr_RANNASCause(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_octet_string(implicit_tag, actx, tree, tvb, offset, hf_index,
                                        NULL);
 
@@ -1096,7 +1097,7 @@ static const ber_sequence_t SEQUENCE_OF_RANNASCause_sequence_of[1] = {
 };
 
 static int
-dissect_gprscdr_SEQUENCE_OF_RANNASCause(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_gprscdr_SEQUENCE_OF_RANNASCause(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence_of(implicit_tag, actx, tree, tvb, offset,
                                       SEQUENCE_OF_RANNASCause_sequence_of, hf_index, ett_gprscdr_SEQUENCE_OF_RANNASCause);
 
@@ -1110,7 +1111,7 @@ static const ber_sequence_t EnhancedDiagnostics_sequence[] = {
 };
 
 static int
-dissect_gprscdr_EnhancedDiagnostics(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_gprscdr_EnhancedDiagnostics(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence(implicit_tag, actx, tree, tvb, offset,
                                    EnhancedDiagnostics_sequence, hf_index, ett_gprscdr_EnhancedDiagnostics);
 
@@ -1120,7 +1121,7 @@ dissect_gprscdr_EnhancedDiagnostics(gboolean implicit_tag _U_, tvbuff_t *tvb _U_
 
 
 static int
-dissect_gprscdr_IPBinV4Address(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_gprscdr_IPBinV4Address(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_octet_string(implicit_tag, actx, tree, tvb, offset, hf_index,
                                        NULL);
 
@@ -1130,7 +1131,7 @@ dissect_gprscdr_IPBinV4Address(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int
 
 
 static int
-dissect_gprscdr_IPBinV6Address(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_gprscdr_IPBinV6Address(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_octet_string(implicit_tag, actx, tree, tvb, offset, hf_index,
                                        NULL);
 
@@ -1140,7 +1141,7 @@ dissect_gprscdr_IPBinV6Address(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int
 
 
 static int
-dissect_gprscdr_PDPAddressPrefixLength(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_gprscdr_PDPAddressPrefixLength(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_integer(implicit_tag, actx, tree, tvb, offset, hf_index,
                                                 NULL);
 
@@ -1155,7 +1156,7 @@ static const ber_sequence_t IPBinV6AddressWithPrefixLength_sequence[] = {
 };
 
 static int
-dissect_gprscdr_IPBinV6AddressWithPrefixLength(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_gprscdr_IPBinV6AddressWithPrefixLength(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence(implicit_tag, actx, tree, tvb, offset,
                                    IPBinV6AddressWithPrefixLength_sequence, hf_index, ett_gprscdr_IPBinV6AddressWithPrefixLength);
 
@@ -1176,7 +1177,7 @@ static const ber_choice_t IPBinV6AddressWithOrWithoutPrefixLength_choice[] = {
 };
 
 static int
-dissect_gprscdr_IPBinV6AddressWithOrWithoutPrefixLength(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_gprscdr_IPBinV6AddressWithOrWithoutPrefixLength(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_choice(actx, tree, tvb, offset,
                                  IPBinV6AddressWithOrWithoutPrefixLength_choice, hf_index, ett_gprscdr_IPBinV6AddressWithOrWithoutPrefixLength,
                                  NULL);
@@ -1198,7 +1199,7 @@ static const ber_choice_t IPBinaryAddress_choice[] = {
 };
 
 static int
-dissect_gprscdr_IPBinaryAddress(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_gprscdr_IPBinaryAddress(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_choice(actx, tree, tvb, offset,
                                  IPBinaryAddress_choice, hf_index, ett_gprscdr_IPBinaryAddress,
                                  NULL);
@@ -1209,7 +1210,7 @@ dissect_gprscdr_IPBinaryAddress(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, in
 
 
 static int
-dissect_gprscdr_IA5String_SIZE_7_15(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_gprscdr_IA5String_SIZE_7_15(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_restricted_string(implicit_tag, BER_UNI_TAG_IA5String,
                                             actx, tree, tvb, offset, hf_index,
                                             NULL);
@@ -1220,7 +1221,7 @@ dissect_gprscdr_IA5String_SIZE_7_15(gboolean implicit_tag _U_, tvbuff_t *tvb _U_
 
 
 static int
-dissect_gprscdr_IA5String_SIZE_15_45(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_gprscdr_IA5String_SIZE_15_45(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_restricted_string(implicit_tag, BER_UNI_TAG_IA5String,
                                             actx, tree, tvb, offset, hf_index,
                                             NULL);
@@ -1242,7 +1243,7 @@ static const ber_choice_t IPTextRepresentedAddress_choice[] = {
 };
 
 static int
-dissect_gprscdr_IPTextRepresentedAddress(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_gprscdr_IPTextRepresentedAddress(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_choice(actx, tree, tvb, offset,
                                  IPTextRepresentedAddress_choice, hf_index, ett_gprscdr_IPTextRepresentedAddress,
                                  NULL);
@@ -1264,7 +1265,7 @@ static const ber_choice_t IPAddress_choice[] = {
 };
 
 static int
-dissect_gprscdr_IPAddress(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_gprscdr_IPAddress(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_choice(actx, tree, tvb, offset,
                                  IPAddress_choice, hf_index, ett_gprscdr_IPAddress,
                                  NULL);
@@ -1275,7 +1276,7 @@ dissect_gprscdr_IPAddress(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offs
 
 
 static int
-dissect_gprscdr_GSNAddress(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_gprscdr_GSNAddress(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_gprscdr_IPAddress(implicit_tag, tvb, offset, actx, tree, hf_index);
 
   return offset;
@@ -1284,7 +1285,7 @@ dissect_gprscdr_GSNAddress(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int off
 
 
 static int
-dissect_gprscdr_GraphicString(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_gprscdr_GraphicString(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_restricted_string(implicit_tag, BER_UNI_TAG_GraphicString,
                                             actx, tree, tvb, offset, hf_index,
                                             NULL);
@@ -1295,7 +1296,7 @@ dissect_gprscdr_GraphicString(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int 
 
 
 static int
-dissect_gprscdr_UTF8String(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_gprscdr_UTF8String(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_restricted_string(implicit_tag, BER_UNI_TAG_UTF8String,
                                             actx, tree, tvb, offset, hf_index,
                                             NULL);
@@ -1323,7 +1324,7 @@ static const ber_choice_t InvolvedParty_choice[] = {
 };
 
 static int
-dissect_gprscdr_InvolvedParty(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_gprscdr_InvolvedParty(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_choice(actx, tree, tvb, offset,
                                  InvolvedParty_choice, hf_index, ett_gprscdr_InvolvedParty,
                                  NULL);
@@ -1334,7 +1335,7 @@ dissect_gprscdr_InvolvedParty(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int 
 
 
 static int
-dissect_gprscdr_LCSCause(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_gprscdr_LCSCause(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_octet_string(implicit_tag, actx, tree, tvb, offset, hf_index,
                                        NULL);
 
@@ -1350,7 +1351,7 @@ static const ber_sequence_t LCSClientIdentity_sequence[] = {
 };
 
 static int
-dissect_gprscdr_LCSClientIdentity(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_gprscdr_LCSClientIdentity(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence(implicit_tag, actx, tree, tvb, offset,
                                    LCSClientIdentity_sequence, hf_index, ett_gprscdr_LCSClientIdentity);
 
@@ -1360,7 +1361,7 @@ dissect_gprscdr_LCSClientIdentity(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, 
 
 
 static int
-dissect_gprscdr_LCSQoSInfo(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_gprscdr_LCSQoSInfo(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_octet_string(implicit_tag, actx, tree, tvb, offset, hf_index,
                                        NULL);
 
@@ -1376,7 +1377,7 @@ static int * const LevelOfCAMELService_bits[] = {
 };
 
 static int
-dissect_gprscdr_LevelOfCAMELService(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_gprscdr_LevelOfCAMELService(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_bitstring(implicit_tag, actx, tree, tvb, offset,
                                     LevelOfCAMELService_bits, 3, hf_index, ett_gprscdr_LevelOfCAMELService,
                                     NULL);
@@ -1387,7 +1388,7 @@ dissect_gprscdr_LevelOfCAMELService(gboolean implicit_tag _U_, tvbuff_t *tvb _U_
 
 
 static int
-dissect_gprscdr_LocalSequenceNumber(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_gprscdr_LocalSequenceNumber(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_integer(implicit_tag, actx, tree, tvb, offset, hf_index,
                                                 NULL);
 
@@ -1397,7 +1398,7 @@ dissect_gprscdr_LocalSequenceNumber(gboolean implicit_tag _U_, tvbuff_t *tvb _U_
 
 
 static int
-dissect_gprscdr_LocationAreaCode(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_gprscdr_LocationAreaCode(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_octet_string(implicit_tag, actx, tree, tvb, offset, hf_index,
                                        NULL);
 
@@ -1407,7 +1408,7 @@ dissect_gprscdr_LocationAreaCode(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, i
 
 
 static int
-dissect_gprscdr_MCC_MNC(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_gprscdr_MCC_MNC(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_octet_string(implicit_tag, actx, tree, tvb, offset, hf_index,
                                        NULL);
 
@@ -1423,7 +1424,7 @@ static const ber_sequence_t LocationAreaAndCell_sequence[] = {
 };
 
 static int
-dissect_gprscdr_LocationAreaAndCell(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_gprscdr_LocationAreaAndCell(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence(implicit_tag, actx, tree, tvb, offset,
                                    LocationAreaAndCell_sequence, hf_index, ett_gprscdr_LocationAreaAndCell);
 
@@ -1436,7 +1437,7 @@ static const ber_sequence_t ManagementExtensions_set_of[1] = {
 };
 
 static int
-dissect_gprscdr_ManagementExtensions(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_gprscdr_ManagementExtensions(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_set_of(implicit_tag, actx, tree, tvb, offset,
                                  ManagementExtensions_set_of, hf_index, ett_gprscdr_ManagementExtensions);
 
@@ -1453,7 +1454,7 @@ static const value_string gprscdr_MBMS2G3GIndicator_vals[] = {
 
 
 static int
-dissect_gprscdr_MBMS2G3GIndicator(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_gprscdr_MBMS2G3GIndicator(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_integer(implicit_tag, actx, tree, tvb, offset, hf_index,
                                   NULL);
 
@@ -1463,7 +1464,7 @@ dissect_gprscdr_MBMS2G3GIndicator(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, 
 
 
 static int
-dissect_gprscdr_TMGI(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_gprscdr_TMGI(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_octet_string(implicit_tag, actx, tree, tvb, offset, hf_index,
                                        NULL);
 
@@ -1473,7 +1474,7 @@ dissect_gprscdr_TMGI(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U
 
 
 static int
-dissect_gprscdr_MBMSSessionIdentity(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_gprscdr_MBMSSessionIdentity(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_octet_string(implicit_tag, actx, tree, tvb, offset, hf_index,
                                        NULL);
 
@@ -1489,7 +1490,7 @@ static const value_string gprscdr_MBMSServiceType_vals[] = {
 
 
 static int
-dissect_gprscdr_MBMSServiceType(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_gprscdr_MBMSServiceType(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_integer(implicit_tag, actx, tree, tvb, offset, hf_index,
                                   NULL);
 
@@ -1505,7 +1506,7 @@ static const value_string gprscdr_MBMSUserServiceType_vals[] = {
 
 
 static int
-dissect_gprscdr_MBMSUserServiceType(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_gprscdr_MBMSUserServiceType(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_integer(implicit_tag, actx, tree, tvb, offset, hf_index,
                                   NULL);
 
@@ -1515,7 +1516,7 @@ dissect_gprscdr_MBMSUserServiceType(gboolean implicit_tag _U_, tvbuff_t *tvb _U_
 
 
 static int
-dissect_gprscdr_RoutingAreaCode(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_gprscdr_RoutingAreaCode(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_octet_string(implicit_tag, actx, tree, tvb, offset, hf_index,
                                        NULL);
 
@@ -1525,7 +1526,7 @@ dissect_gprscdr_RoutingAreaCode(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, in
 
 
 static int
-dissect_gprscdr_MBMSServiceArea(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_gprscdr_MBMSServiceArea(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_octet_string(implicit_tag, actx, tree, tvb, offset, hf_index,
                                        NULL);
 
@@ -1535,7 +1536,7 @@ dissect_gprscdr_MBMSServiceArea(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, in
 
 
 static int
-dissect_gprscdr_RequiredMBMSBearerCapabilities(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_gprscdr_RequiredMBMSBearerCapabilities(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_octet_string(implicit_tag, actx, tree, tvb, offset, hf_index,
                                        NULL);
 
@@ -1545,7 +1546,7 @@ dissect_gprscdr_RequiredMBMSBearerCapabilities(gboolean implicit_tag _U_, tvbuff
 
 
 static int
-dissect_gprscdr_MBMSTime(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_gprscdr_MBMSTime(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_octet_string(implicit_tag, actx, tree, tvb, offset, hf_index,
                                        NULL);
 
@@ -1571,7 +1572,7 @@ static const ber_sequence_t MBMSInformation_set[] = {
 };
 
 static int
-dissect_gprscdr_MBMSInformation(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_gprscdr_MBMSInformation(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_set(implicit_tag, actx, tree, tvb, offset,
                               MBMSInformation_set, hf_index, ett_gprscdr_MBMSInformation);
 
@@ -1581,7 +1582,7 @@ dissect_gprscdr_MBMSInformation(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, in
 
 
 static int
-dissect_gprscdr_MessageReference(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_gprscdr_MessageReference(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_octet_string(implicit_tag, actx, tree, tvb, offset, hf_index,
                                        NULL);
 
@@ -1591,7 +1592,7 @@ dissect_gprscdr_MessageReference(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, i
 
 
 static int
-dissect_gprscdr_MSISDN(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_gprscdr_MSISDN(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_gsm_map_ISDN_AddressString(implicit_tag, tvb, offset, actx, tree, hf_index);
 
   return offset;
@@ -1600,13 +1601,13 @@ dissect_gprscdr_MSISDN(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset 
 
 
 static int
-dissect_gprscdr_MSTimeZone(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_gprscdr_MSTimeZone(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
 /*
  *
  * 1.Octet: Time Zone and 2. Octet: Daylight saving time, see TS 29.060 [75]
  */
   tvbuff_t *parameter_tvb;
-  guint8 data, data2;
+  uint8_t data, data2;
   char sign;
 
   offset = dissect_ber_octet_string(implicit_tag, actx, tree, tvb, offset, hf_index,
@@ -1616,11 +1617,11 @@ dissect_gprscdr_MSTimeZone(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int off
   if (!parameter_tvb)
     return offset;
 
-  data = tvb_get_guint8(parameter_tvb, 0);
+  data = tvb_get_uint8(parameter_tvb, 0);
   sign = (data & 0x08) ? '-' : '+';
   data = (data >> 4) + (data & 0x07) * 10;
 
-  data2 = tvb_get_guint8(tvb, 1) & 0x3;
+  data2 = tvb_get_uint8(tvb, 1) & 0x3;
 
   proto_item_append_text(actx->created_item, " (GMT %c %d hours %d minutes %s)",
                          sign,
@@ -1636,7 +1637,7 @@ dissect_gprscdr_MSTimeZone(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int off
 
 
 static int
-dissect_gprscdr_NrCellId(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_gprscdr_NrCellId(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_restricted_string(implicit_tag, BER_UNI_TAG_UTF8String,
                                             actx, tree, tvb, offset, hf_index,
                                             NULL);
@@ -1653,7 +1654,7 @@ static const ber_sequence_t Ncgi_sequence[] = {
 };
 
 static int
-dissect_gprscdr_Ncgi(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_gprscdr_Ncgi(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence(implicit_tag, actx, tree, tvb, offset,
                                    Ncgi_sequence, hf_index, ett_gprscdr_Ncgi);
 
@@ -1663,7 +1664,7 @@ dissect_gprscdr_Ncgi(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U
 
 
 static int
-dissect_gprscdr_NodeID(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_gprscdr_NodeID(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_restricted_string(implicit_tag, BER_UNI_TAG_IA5String,
                                             actx, tree, tvb, offset, hf_index,
                                             NULL);
@@ -1683,7 +1684,7 @@ static const ber_choice_t PDPAddress_choice[] = {
 };
 
 static int
-dissect_gprscdr_PDPAddress(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_gprscdr_PDPAddress(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_choice(actx, tree, tvb, offset,
                                  PDPAddress_choice, hf_index, ett_gprscdr_PDPAddress,
                                  NULL);
@@ -1694,7 +1695,7 @@ dissect_gprscdr_PDPAddress(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int off
 
 
 static int
-dissect_gprscdr_PositioningData(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_gprscdr_PositioningData(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_octet_string(implicit_tag, actx, tree, tvb, offset, hf_index,
                                        NULL);
 
@@ -1709,7 +1710,7 @@ static const ber_sequence_t PSCellInformation_sequence[] = {
 };
 
 static int
-dissect_gprscdr_PSCellInformation(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_gprscdr_PSCellInformation(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence(implicit_tag, actx, tree, tvb, offset,
                                    PSCellInformation_sequence, hf_index, ett_gprscdr_PSCellInformation);
 
@@ -1719,7 +1720,7 @@ dissect_gprscdr_PSCellInformation(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, 
 
 
 static int
-dissect_gprscdr_RATType(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_gprscdr_RATType(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_integer(implicit_tag, actx, tree, tvb, offset, hf_index,
                                                 NULL);
 
@@ -1729,7 +1730,7 @@ dissect_gprscdr_RATType(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset
 
 
 static int
-dissect_gprscdr_RecordingEntity(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_gprscdr_RecordingEntity(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_gsm_map_AddressString(implicit_tag, tvb, offset, actx, tree, hf_index);
 
   return offset;
@@ -1852,7 +1853,7 @@ static const value_string gprscdr_RecordType_vals[] = {
 
 
 static int
-dissect_gprscdr_RecordType(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_gprscdr_RecordType(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_integer(implicit_tag, actx, tree, tvb, offset, hf_index,
                                                 NULL);
 
@@ -1867,7 +1868,7 @@ static const ber_sequence_t SCSASAddress_set[] = {
 };
 
 static int
-dissect_gprscdr_SCSASAddress(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_gprscdr_SCSASAddress(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_set(implicit_tag, actx, tree, tvb, offset,
                               SCSASAddress_set, hf_index, ett_gprscdr_SCSASAddress);
 
@@ -1882,7 +1883,7 @@ static const ber_sequence_t ServiceSpecificInfo_sequence[] = {
 };
 
 static int
-dissect_gprscdr_ServiceSpecificInfo(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_gprscdr_ServiceSpecificInfo(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence(implicit_tag, actx, tree, tvb, offset,
                                    ServiceSpecificInfo_sequence, hf_index, ett_gprscdr_ServiceSpecificInfo);
 
@@ -1892,7 +1893,7 @@ dissect_gprscdr_ServiceSpecificInfo(gboolean implicit_tag _U_, tvbuff_t *tvb _U_
 
 
 static int
-dissect_gprscdr_SMSResult(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_gprscdr_SMSResult(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_gprscdr_Diagnostics(implicit_tag, tvb, offset, actx, tree, hf_index);
 
   return offset;
@@ -1901,7 +1902,7 @@ dissect_gprscdr_SMSResult(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offs
 
 
 static int
-dissect_gprscdr_SmsTpDestinationNumber(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_gprscdr_SmsTpDestinationNumber(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_octet_string(implicit_tag, actx, tree, tvb, offset, hf_index,
                                        NULL);
 
@@ -1920,7 +1921,7 @@ static const value_string gprscdr_SubscriptionIDType_vals[] = {
 
 
 static int
-dissect_gprscdr_SubscriptionIDType(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_gprscdr_SubscriptionIDType(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_integer(implicit_tag, actx, tree, tvb, offset, hf_index,
                                   NULL);
 
@@ -1935,7 +1936,7 @@ static const ber_sequence_t SubscriptionID_set[] = {
 };
 
 static int
-dissect_gprscdr_SubscriptionID(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_gprscdr_SubscriptionID(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_set(implicit_tag, actx, tree, tvb, offset,
                               SubscriptionID_set, hf_index, ett_gprscdr_SubscriptionID);
 
@@ -1951,7 +1952,7 @@ static const value_string gprscdr_ThreeGPPPSDataOffStatus_vals[] = {
 
 
 static int
-dissect_gprscdr_ThreeGPPPSDataOffStatus(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_gprscdr_ThreeGPPPSDataOffStatus(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_integer(implicit_tag, actx, tree, tvb, offset, hf_index,
                                   NULL);
 
@@ -1961,7 +1962,7 @@ dissect_gprscdr_ThreeGPPPSDataOffStatus(gboolean implicit_tag _U_, tvbuff_t *tvb
 
 
 static int
-dissect_gprscdr_TimeStamp(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_gprscdr_TimeStamp(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
 /*
  *
  * The contents of this field are a compact form of the UTCTime format
@@ -1991,15 +1992,15 @@ dissect_gprscdr_TimeStamp(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offs
     return offset;
 
   proto_item_append_text(actx->created_item, " (UTC %x-%x-%x %x:%x:%x %s%x:%x)",
-                         tvb_get_guint8(parameter_tvb,0),                        /* Year */
-                         tvb_get_guint8(parameter_tvb,1),                        /* Month */
-                         tvb_get_guint8(parameter_tvb,2),                        /* Day */
-                         tvb_get_guint8(parameter_tvb,3),                        /* Hour */
-                         tvb_get_guint8(parameter_tvb,4),                        /* Minute */
-                         tvb_get_guint8(parameter_tvb,5),                        /* Second */
+                         tvb_get_uint8(parameter_tvb,0),                        /* Year */
+                         tvb_get_uint8(parameter_tvb,1),                        /* Month */
+                         tvb_get_uint8(parameter_tvb,2),                        /* Day */
+                         tvb_get_uint8(parameter_tvb,3),                        /* Hour */
+                         tvb_get_uint8(parameter_tvb,4),                        /* Minute */
+                         tvb_get_uint8(parameter_tvb,5),                        /* Second */
                          tvb_get_string_enc(actx->pinfo->pool, parameter_tvb,6,1,ENC_ASCII|ENC_NA), /* Sign */
-                         tvb_get_guint8(parameter_tvb,7),                        /* Hour */
-                         tvb_get_guint8(parameter_tvb,8)                         /* Minute */
+                         tvb_get_uint8(parameter_tvb,7),                        /* Hour */
+                         tvb_get_uint8(parameter_tvb,8)                         /* Minute */
                         );
 
 
@@ -2009,7 +2010,7 @@ dissect_gprscdr_TimeStamp(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offs
 
 
 static int
-dissect_gprscdr_NetworkInitiatedPDPContext(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_gprscdr_NetworkInitiatedPDPContext(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_boolean(implicit_tag, actx, tree, tvb, offset, hf_index, NULL);
 
   return offset;
@@ -2018,7 +2019,7 @@ dissect_gprscdr_NetworkInitiatedPDPContext(gboolean implicit_tag _U_, tvbuff_t *
 
 
 static int
-dissect_gprscdr_MSNetworkCapability(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_gprscdr_MSNetworkCapability(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_octet_string(implicit_tag, actx, tree, tvb, offset, hf_index,
                                        NULL);
 
@@ -2028,7 +2029,7 @@ dissect_gprscdr_MSNetworkCapability(gboolean implicit_tag _U_, tvbuff_t *tvb _U_
 
 
 static int
-dissect_gprscdr_AccessPointNameNI(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_gprscdr_AccessPointNameNI(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_restricted_string(implicit_tag, BER_UNI_TAG_IA5String,
                                             actx, tree, tvb, offset, hf_index,
                                             NULL);
@@ -2039,9 +2040,9 @@ dissect_gprscdr_AccessPointNameNI(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, 
 
 
 static int
-dissect_gprscdr_PDPType(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_gprscdr_PDPType(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   proto_tree *ext_tree_pdp_pdn_type;
-  guint length;
+  unsigned length;
 
   length = tvb_reported_length(tvb);
 
@@ -2073,7 +2074,7 @@ dissect_gprscdr_PDPType(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset
 
 
 static int
-dissect_gprscdr_QoSInformation(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_gprscdr_QoSInformation(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
 
   /* This octet string is a 1:1 copy of the contents (i.e. starting with octet 4) of the
    * Quality of Service (QoS) Profile information element specified in 29.060, ch7.7.34.
@@ -2092,7 +2093,7 @@ dissect_gprscdr_QoSInformation(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int
 
 
 static int
-dissect_gprscdr_DataVolumeGPRS(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_gprscdr_DataVolumeGPRS(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_integer(implicit_tag, actx, tree, tvb, offset, hf_index,
                                                 NULL);
 
@@ -2116,7 +2117,7 @@ static const value_string gprscdr_ChangeConditionV651_vals[] = {
 
 
 static int
-dissect_gprscdr_ChangeConditionV651(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_gprscdr_ChangeConditionV651(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_integer(implicit_tag, actx, tree, tvb, offset, hf_index,
                                   NULL);
 
@@ -2126,7 +2127,7 @@ dissect_gprscdr_ChangeConditionV651(gboolean implicit_tag _U_, tvbuff_t *tvb _U_
 
 
 static int
-dissect_gprscdr_FailureHandlingContinue(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_gprscdr_FailureHandlingContinue(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_boolean(implicit_tag, actx, tree, tvb, offset, hf_index, NULL);
 
   return offset;
@@ -2135,7 +2136,7 @@ dissect_gprscdr_FailureHandlingContinue(gboolean implicit_tag _U_, tvbuff_t *tvb
 
 
 static int
-dissect_gprscdr_T_userLocationInformation_04(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_gprscdr_T_userLocationInformation_04(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
 
   offset = dissect_gprscdr_uli(tvb, actx, tree, 1);
 
@@ -2157,7 +2158,7 @@ static const ber_sequence_t ChangeOfCharConditionV651_sequence[] = {
 };
 
 static int
-dissect_gprscdr_ChangeOfCharConditionV651(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_gprscdr_ChangeOfCharConditionV651(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence(implicit_tag, actx, tree, tvb, offset,
                                    ChangeOfCharConditionV651_sequence, hf_index, ett_gprscdr_ChangeOfCharConditionV651);
 
@@ -2170,7 +2171,7 @@ static const ber_sequence_t SEQUENCE_OF_ChangeOfCharConditionV651_sequence_of[1]
 };
 
 static int
-dissect_gprscdr_SEQUENCE_OF_ChangeOfCharConditionV651(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_gprscdr_SEQUENCE_OF_ChangeOfCharConditionV651(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence_of(implicit_tag, actx, tree, tvb, offset,
                                       SEQUENCE_OF_ChangeOfCharConditionV651_sequence_of, hf_index, ett_gprscdr_SEQUENCE_OF_ChangeOfCharConditionV651);
 
@@ -2180,7 +2181,7 @@ dissect_gprscdr_SEQUENCE_OF_ChangeOfCharConditionV651(gboolean implicit_tag _U_,
 
 
 static int
-dissect_gprscdr_SGSNChange(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_gprscdr_SGSNChange(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_boolean(implicit_tag, actx, tree, tvb, offset, hf_index, NULL);
 
   return offset;
@@ -2210,7 +2211,7 @@ static const value_string gprscdr_CauseForRecClosingV651_vals[] = {
 
 
 static int
-dissect_gprscdr_CauseForRecClosingV651(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_gprscdr_CauseForRecClosingV651(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_integer(implicit_tag, actx, tree, tvb, offset, hf_index,
                                                 NULL);
 
@@ -2227,7 +2228,7 @@ static const value_string gprscdr_APNSelectionMode_vals[] = {
 
 
 static int
-dissect_gprscdr_APNSelectionMode(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_gprscdr_APNSelectionMode(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_integer(implicit_tag, actx, tree, tvb, offset, hf_index,
                                   NULL);
 
@@ -2237,7 +2238,7 @@ dissect_gprscdr_APNSelectionMode(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, i
 
 
 static int
-dissect_gprscdr_AccessPointNameOI(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_gprscdr_AccessPointNameOI(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_restricted_string(implicit_tag, BER_UNI_TAG_IA5String,
                                             actx, tree, tvb, offset, hf_index,
                                             NULL);
@@ -2248,7 +2249,7 @@ dissect_gprscdr_AccessPointNameOI(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, 
 
 
 static int
-dissect_gprscdr_ChargingCharacteristics(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_gprscdr_ChargingCharacteristics(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_octet_string(implicit_tag, actx, tree, tvb, offset, hf_index,
                                        NULL);
 
@@ -2258,7 +2259,7 @@ dissect_gprscdr_ChargingCharacteristics(gboolean implicit_tag _U_, tvbuff_t *tvb
 
 
 static int
-dissect_gprscdr_SCFAddress(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_gprscdr_SCFAddress(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_gsm_map_AddressString(implicit_tag, tvb, offset, actx, tree, hf_index);
 
   return offset;
@@ -2267,7 +2268,7 @@ dissect_gprscdr_SCFAddress(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int off
 
 
 static int
-dissect_gprscdr_CAMELAccessPointNameNI(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_gprscdr_CAMELAccessPointNameNI(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_gprscdr_AccessPointNameNI(implicit_tag, tvb, offset, actx, tree, hf_index);
 
   return offset;
@@ -2276,7 +2277,7 @@ dissect_gprscdr_CAMELAccessPointNameNI(gboolean implicit_tag _U_, tvbuff_t *tvb 
 
 
 static int
-dissect_gprscdr_CAMELAccessPointNameOI(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_gprscdr_CAMELAccessPointNameOI(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_gprscdr_AccessPointNameOI(implicit_tag, tvb, offset, actx, tree, hf_index);
 
   return offset;
@@ -2285,7 +2286,7 @@ dissect_gprscdr_CAMELAccessPointNameOI(gboolean implicit_tag _U_, tvbuff_t *tvb 
 
 
 static int
-dissect_gprscdr_NumberOfDPEncountered(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_gprscdr_NumberOfDPEncountered(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_integer(implicit_tag, actx, tree, tvb, offset, hf_index,
                                                 NULL);
 
@@ -2295,7 +2296,7 @@ dissect_gprscdr_NumberOfDPEncountered(gboolean implicit_tag _U_, tvbuff_t *tvb _
 
 
 static int
-dissect_gprscdr_FreeFormatData(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_gprscdr_FreeFormatData(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_octet_string(implicit_tag, actx, tree, tvb, offset, hf_index,
                                        NULL);
 
@@ -2305,7 +2306,7 @@ dissect_gprscdr_FreeFormatData(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int
 
 
 static int
-dissect_gprscdr_FFDAppendIndicator(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_gprscdr_FFDAppendIndicator(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_boolean(implicit_tag, actx, tree, tvb, offset, hf_index, NULL);
 
   return offset;
@@ -2326,7 +2327,7 @@ static const ber_sequence_t CAMELInformationPDP_set[] = {
 };
 
 int
-dissect_gprscdr_CAMELInformationPDP(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_gprscdr_CAMELInformationPDP(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_set(implicit_tag, actx, tree, tvb, offset,
                               CAMELInformationPDP_set, hf_index, ett_gprscdr_CAMELInformationPDP);
 
@@ -2347,7 +2348,7 @@ static const value_string gprscdr_ChChSelectionMode_vals[] = {
 
 
 static int
-dissect_gprscdr_ChChSelectionMode(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_gprscdr_ChChSelectionMode(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_integer(implicit_tag, actx, tree, tvb, offset, hf_index,
                                   NULL);
 
@@ -2393,7 +2394,7 @@ static const ber_sequence_t SGSNPDPRecordV651_set[] = {
 };
 
 static int
-dissect_gprscdr_SGSNPDPRecordV651(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_gprscdr_SGSNPDPRecordV651(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_set(implicit_tag, actx, tree, tvb, offset,
                               SGSNPDPRecordV651_set, hf_index, ett_gprscdr_SGSNPDPRecordV651);
 
@@ -2406,7 +2407,7 @@ static const ber_sequence_t SEQUENCE_OF_GSNAddress_sequence_of[1] = {
 };
 
 static int
-dissect_gprscdr_SEQUENCE_OF_GSNAddress(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_gprscdr_SEQUENCE_OF_GSNAddress(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence_of(implicit_tag, actx, tree, tvb, offset,
                                       SEQUENCE_OF_GSNAddress_sequence_of, hf_index, ett_gprscdr_SEQUENCE_OF_GSNAddress);
 
@@ -2416,7 +2417,7 @@ dissect_gprscdr_SEQUENCE_OF_GSNAddress(gboolean implicit_tag _U_, tvbuff_t *tvb 
 
 
 static int
-dissect_gprscdr_NULL(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_gprscdr_NULL(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_null(implicit_tag, actx, tree, tvb, offset, hf_index);
 
   return offset;
@@ -2425,7 +2426,7 @@ dissect_gprscdr_NULL(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U
 
 
 static int
-dissect_gprscdr_OCTET_STRING(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_gprscdr_OCTET_STRING(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_octet_string(implicit_tag, actx, tree, tvb, offset, hf_index,
                                        NULL);
 
@@ -2435,7 +2436,7 @@ dissect_gprscdr_OCTET_STRING(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int o
 
 
 static int
-dissect_gprscdr_T_userLocationInformation(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_gprscdr_T_userLocationInformation(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
 
   offset = dissect_gprscdr_uli(tvb, actx, tree, 1);
 
@@ -2480,7 +2481,7 @@ static const ber_sequence_t GGSNPDPRecord_set[] = {
 };
 
 static int
-dissect_gprscdr_GGSNPDPRecord(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_gprscdr_GGSNPDPRecord(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_set(implicit_tag, actx, tree, tvb, offset,
                               GGSNPDPRecord_set, hf_index, ett_gprscdr_GGSNPDPRecord);
 
@@ -2498,7 +2499,7 @@ static const ber_sequence_t ChangeLocation_sequence[] = {
 };
 
 static int
-dissect_gprscdr_ChangeLocation(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_gprscdr_ChangeLocation(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence(implicit_tag, actx, tree, tvb, offset,
                                    ChangeLocation_sequence, hf_index, ett_gprscdr_ChangeLocation);
 
@@ -2511,7 +2512,7 @@ static const ber_sequence_t SEQUENCE_OF_ChangeLocation_sequence_of[1] = {
 };
 
 static int
-dissect_gprscdr_SEQUENCE_OF_ChangeLocation(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_gprscdr_SEQUENCE_OF_ChangeLocation(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence_of(implicit_tag, actx, tree, tvb, offset,
                                       SEQUENCE_OF_ChangeLocation_sequence_of, hf_index, ett_gprscdr_SEQUENCE_OF_ChangeLocation);
 
@@ -2531,7 +2532,7 @@ static const ber_sequence_t CAMELInformationMM_set[] = {
 };
 
 static int
-dissect_gprscdr_CAMELInformationMM(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_gprscdr_CAMELInformationMM(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_set(implicit_tag, actx, tree, tvb, offset,
                               CAMELInformationMM_set, hf_index, ett_gprscdr_CAMELInformationMM);
 
@@ -2547,7 +2548,7 @@ static const value_string gprscdr_CNOperatorSelectionEntity_vals[] = {
 
 
 static int
-dissect_gprscdr_CNOperatorSelectionEntity(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_gprscdr_CNOperatorSelectionEntity(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_integer(implicit_tag, actx, tree, tvb, offset, hf_index,
                                   NULL);
 
@@ -2586,7 +2587,7 @@ static const ber_sequence_t SGSNMMRecord_set[] = {
 };
 
 static int
-dissect_gprscdr_SGSNMMRecord(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_gprscdr_SGSNMMRecord(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_set(implicit_tag, actx, tree, tvb, offset,
                               SGSNMMRecord_set, hf_index, ett_gprscdr_SGSNMMRecord);
 
@@ -2607,7 +2608,7 @@ static const ber_sequence_t CAMELInformationSMS_set[] = {
 };
 
 static int
-dissect_gprscdr_CAMELInformationSMS(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_gprscdr_CAMELInformationSMS(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_set(implicit_tag, actx, tree, tvb, offset,
                               CAMELInformationSMS_set, hf_index, ett_gprscdr_CAMELInformationSMS);
 
@@ -2641,7 +2642,7 @@ static const ber_sequence_t SGSNSMORecordV651_set[] = {
 };
 
 static int
-dissect_gprscdr_SGSNSMORecordV651(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_gprscdr_SGSNSMORecordV651(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_set(implicit_tag, actx, tree, tvb, offset,
                               SGSNSMORecordV651_set, hf_index, ett_gprscdr_SGSNSMORecordV651);
 
@@ -2673,7 +2674,7 @@ static const ber_sequence_t SGSNSMTRecordV651_set[] = {
 };
 
 static int
-dissect_gprscdr_SGSNSMTRecordV651(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_gprscdr_SGSNSMTRecordV651(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_set(implicit_tag, actx, tree, tvb, offset,
                               SGSNSMTRecordV651_set, hf_index, ett_gprscdr_SGSNSMTRecordV651);
 
@@ -2688,7 +2689,7 @@ static const ber_sequence_t PSFurnishChargingInformation_sequence[] = {
 };
 
 static int
-dissect_gprscdr_PSFurnishChargingInformation(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_gprscdr_PSFurnishChargingInformation(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence(implicit_tag, actx, tree, tvb, offset,
                                    PSFurnishChargingInformation_sequence, hf_index, ett_gprscdr_PSFurnishChargingInformation);
 
@@ -2698,7 +2699,7 @@ dissect_gprscdr_PSFurnishChargingInformation(gboolean implicit_tag _U_, tvbuff_t
 
 
 static int
-dissect_gprscdr_T_userLocationInformation_02(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_gprscdr_T_userLocationInformation_02(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
 
   offset = dissect_gprscdr_uli(tvb, actx, tree, 1);
 
@@ -2709,7 +2710,7 @@ dissect_gprscdr_T_userLocationInformation_02(gboolean implicit_tag _U_, tvbuff_t
 
 
 static int
-dissect_gprscdr_RatingGroupId(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_gprscdr_RatingGroupId(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_integer(implicit_tag, actx, tree, tvb, offset, hf_index,
                                                 NULL);
 
@@ -2719,7 +2720,7 @@ dissect_gprscdr_RatingGroupId(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int 
 
 
 static int
-dissect_gprscdr_ChargingRuleBaseName(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_gprscdr_ChargingRuleBaseName(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_restricted_string(implicit_tag, BER_UNI_TAG_IA5String,
                                             actx, tree, tvb, offset, hf_index,
                                             NULL);
@@ -2730,7 +2731,7 @@ dissect_gprscdr_ChargingRuleBaseName(gboolean implicit_tag _U_, tvbuff_t *tvb _U
 
 
 static int
-dissect_gprscdr_ResultCode(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_gprscdr_ResultCode(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_integer(implicit_tag, actx, tree, tvb, offset, hf_index,
                                                 NULL);
 
@@ -2764,7 +2765,7 @@ static int * const ServiceConditionChangeV651_bits[] = {
 };
 
 static int
-dissect_gprscdr_ServiceConditionChangeV651(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_gprscdr_ServiceConditionChangeV651(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_bitstring(implicit_tag, actx, tree, tvb, offset,
                                     ServiceConditionChangeV651_bits, 21, hf_index, ett_gprscdr_ServiceConditionChangeV651,
                                     NULL);
@@ -2775,7 +2776,7 @@ dissect_gprscdr_ServiceConditionChangeV651(gboolean implicit_tag _U_, tvbuff_t *
 
 
 static int
-dissect_gprscdr_ServiceIdentifier(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_gprscdr_ServiceIdentifier(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_integer(implicit_tag, actx, tree, tvb, offset, hf_index,
                                                 NULL);
 
@@ -2806,7 +2807,7 @@ static const ber_sequence_t ChangeOfServiceConditionV651_sequence[] = {
 };
 
 static int
-dissect_gprscdr_ChangeOfServiceConditionV651(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_gprscdr_ChangeOfServiceConditionV651(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence(implicit_tag, actx, tree, tvb, offset,
                                    ChangeOfServiceConditionV651_sequence, hf_index, ett_gprscdr_ChangeOfServiceConditionV651);
 
@@ -2819,7 +2820,7 @@ static const ber_sequence_t SEQUENCE_OF_ChangeOfServiceConditionV651_sequence_of
 };
 
 static int
-dissect_gprscdr_SEQUENCE_OF_ChangeOfServiceConditionV651(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_gprscdr_SEQUENCE_OF_ChangeOfServiceConditionV651(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence_of(implicit_tag, actx, tree, tvb, offset,
                                       SEQUENCE_OF_ChangeOfServiceConditionV651_sequence_of, hf_index, ett_gprscdr_SEQUENCE_OF_ChangeOfServiceConditionV651);
 
@@ -2865,7 +2866,7 @@ static const ber_sequence_t EGSNPDPRecord_set[] = {
 };
 
 static int
-dissect_gprscdr_EGSNPDPRecord(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_gprscdr_EGSNPDPRecord(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_set(implicit_tag, actx, tree, tvb, offset,
                               EGSNPDPRecord_set, hf_index, ett_gprscdr_EGSNPDPRecord);
 
@@ -2894,7 +2895,7 @@ static const ber_choice_t GPRSCallEventRecord_choice[] = {
 };
 
 int
-dissect_gprscdr_GPRSCallEventRecord(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_gprscdr_GPRSCallEventRecord(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_choice(actx, tree, tvb, offset,
                                  GPRSCallEventRecord_choice, hf_index, ett_gprscdr_GPRSCallEventRecord,
                                  NULL);
@@ -2905,7 +2906,7 @@ dissect_gprscdr_GPRSCallEventRecord(gboolean implicit_tag _U_, tvbuff_t *tvb _U_
 
 
 static int
-dissect_gprscdr_T_userLocationInformation_01(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_gprscdr_T_userLocationInformation_01(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
 
   offset = dissect_gprscdr_uli(tvb, actx, tree, 1);
 
@@ -2950,7 +2951,7 @@ static const ber_sequence_t GGSNPDPRecordV750_set[] = {
 };
 
 static int
-dissect_gprscdr_GGSNPDPRecordV750(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_gprscdr_GGSNPDPRecordV750(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_set(implicit_tag, actx, tree, tvb, offset,
                               GGSNPDPRecordV750_set, hf_index, ett_gprscdr_GGSNPDPRecordV750);
 
@@ -2960,7 +2961,7 @@ dissect_gprscdr_GGSNPDPRecordV750(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, 
 
 
 static int
-dissect_gprscdr_T_userLocationInformation_03(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_gprscdr_T_userLocationInformation_03(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
 
   offset = dissect_gprscdr_uli(tvb, actx, tree, 1);
 
@@ -3003,7 +3004,7 @@ static int * const ServiceConditionChangeV750_bits[] = {
 };
 
 static int
-dissect_gprscdr_ServiceConditionChangeV750(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_gprscdr_ServiceConditionChangeV750(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_bitstring(implicit_tag, actx, tree, tvb, offset,
                                     ServiceConditionChangeV750_bits, 29, hf_index, ett_gprscdr_ServiceConditionChangeV750,
                                     NULL);
@@ -3014,7 +3015,7 @@ dissect_gprscdr_ServiceConditionChangeV750(gboolean implicit_tag _U_, tvbuff_t *
 
 
 static int
-dissect_gprscdr_AFChargingIdentifier(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_gprscdr_AFChargingIdentifier(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_octet_string(implicit_tag, actx, tree, tvb, offset, hf_index,
                                        NULL);
 
@@ -3027,7 +3028,7 @@ static const ber_sequence_t T_flowNumber_sequence_of[1] = {
 };
 
 static int
-dissect_gprscdr_T_flowNumber(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_gprscdr_T_flowNumber(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence_of(implicit_tag, actx, tree, tvb, offset,
                                       T_flowNumber_sequence_of, hf_index, ett_gprscdr_T_flowNumber);
 
@@ -3042,7 +3043,7 @@ static const ber_sequence_t Flows_sequence[] = {
 };
 
 static int
-dissect_gprscdr_Flows(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_gprscdr_Flows(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence(implicit_tag, actx, tree, tvb, offset,
                                    Flows_sequence, hf_index, ett_gprscdr_Flows);
 
@@ -3057,7 +3058,7 @@ static const ber_sequence_t AFRecordInformation_sequence[] = {
 };
 
 static int
-dissect_gprscdr_AFRecordInformation(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_gprscdr_AFRecordInformation(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence(implicit_tag, actx, tree, tvb, offset,
                                    AFRecordInformation_sequence, hf_index, ett_gprscdr_AFRecordInformation);
 
@@ -3070,7 +3071,7 @@ static const ber_sequence_t SEQUENCE_OF_AFRecordInformation_sequence_of[1] = {
 };
 
 static int
-dissect_gprscdr_SEQUENCE_OF_AFRecordInformation(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_gprscdr_SEQUENCE_OF_AFRecordInformation(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence_of(implicit_tag, actx, tree, tvb, offset,
                                       SEQUENCE_OF_AFRecordInformation_sequence_of, hf_index, ett_gprscdr_SEQUENCE_OF_AFRecordInformation);
 
@@ -3080,7 +3081,7 @@ dissect_gprscdr_SEQUENCE_OF_AFRecordInformation(gboolean implicit_tag _U_, tvbuf
 
 
 static int
-dissect_gprscdr_T_userLocationInformation_05(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_gprscdr_T_userLocationInformation_05(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
 
   offset = dissect_gprscdr_uli(tvb, actx, tree, 1);
 
@@ -3094,7 +3095,7 @@ static const ber_sequence_t SEQUENCE_OF_TimeStamp_sequence_of[1] = {
 };
 
 static int
-dissect_gprscdr_SEQUENCE_OF_TimeStamp(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_gprscdr_SEQUENCE_OF_TimeStamp(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence_of(implicit_tag, actx, tree, tvb, offset,
                                       SEQUENCE_OF_TimeStamp_sequence_of, hf_index, ett_gprscdr_SEQUENCE_OF_TimeStamp);
 
@@ -3109,7 +3110,7 @@ static const ber_sequence_t EventBasedChargingInformation_sequence[] = {
 };
 
 static int
-dissect_gprscdr_EventBasedChargingInformation(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_gprscdr_EventBasedChargingInformation(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence(implicit_tag, actx, tree, tvb, offset,
                                    EventBasedChargingInformation_sequence, hf_index, ett_gprscdr_EventBasedChargingInformation);
 
@@ -3125,7 +3126,7 @@ static const value_string gprscdr_TimeQuotaType_vals[] = {
 
 
 static int
-dissect_gprscdr_TimeQuotaType(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_gprscdr_TimeQuotaType(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_integer(implicit_tag, actx, tree, tvb, offset, hf_index,
                                   NULL);
 
@@ -3140,7 +3141,7 @@ static const ber_sequence_t TimeQuotaMechanism_sequence[] = {
 };
 
 static int
-dissect_gprscdr_TimeQuotaMechanism(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_gprscdr_TimeQuotaMechanism(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence(implicit_tag, actx, tree, tvb, offset,
                                    TimeQuotaMechanism_sequence, hf_index, ett_gprscdr_TimeQuotaMechanism);
 
@@ -3175,7 +3176,7 @@ static const ber_sequence_t ChangeOfServiceConditionV750_sequence[] = {
 };
 
 static int
-dissect_gprscdr_ChangeOfServiceConditionV750(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_gprscdr_ChangeOfServiceConditionV750(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence(implicit_tag, actx, tree, tvb, offset,
                                    ChangeOfServiceConditionV750_sequence, hf_index, ett_gprscdr_ChangeOfServiceConditionV750);
 
@@ -3188,7 +3189,7 @@ static const ber_sequence_t SEQUENCE_OF_ChangeOfServiceConditionV750_sequence_of
 };
 
 static int
-dissect_gprscdr_SEQUENCE_OF_ChangeOfServiceConditionV750(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_gprscdr_SEQUENCE_OF_ChangeOfServiceConditionV750(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence_of(implicit_tag, actx, tree, tvb, offset,
                                       SEQUENCE_OF_ChangeOfServiceConditionV750_sequence_of, hf_index, ett_gprscdr_SEQUENCE_OF_ChangeOfServiceConditionV750);
 
@@ -3234,7 +3235,7 @@ static const ber_sequence_t EGSNPDPRecordV750_set[] = {
 };
 
 static int
-dissect_gprscdr_EGSNPDPRecordV750(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_gprscdr_EGSNPDPRecordV750(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_set(implicit_tag, actx, tree, tvb, offset,
                               EGSNPDPRecordV750_set, hf_index, ett_gprscdr_EGSNPDPRecordV750);
 
@@ -3270,7 +3271,7 @@ static const value_string gprscdr_ChangeCondition_vals[] = {
 
 
 static int
-dissect_gprscdr_ChangeCondition(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_gprscdr_ChangeCondition(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_integer(implicit_tag, actx, tree, tvb, offset, hf_index,
                                   NULL);
 
@@ -3280,7 +3281,7 @@ dissect_gprscdr_ChangeCondition(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, in
 
 
 static int
-dissect_gprscdr_T_userLocationInformation_08(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_gprscdr_T_userLocationInformation_08(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
 
   offset = dissect_gprscdr_uli(tvb, actx, tree, 2);
 
@@ -3291,9 +3292,9 @@ dissect_gprscdr_T_userLocationInformation_08(gboolean implicit_tag _U_, tvbuff_t
 
 
 static int
-dissect_gprscdr_T_aRP(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_gprscdr_T_aRP(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   proto_tree *ext_tree_arp;
-  guint length;
+  unsigned length;
 
   /*
    * 8.86 Allocation/Retention Priority (ARP)
@@ -3332,7 +3333,7 @@ static const ber_sequence_t EPCQoSInformation_sequence[] = {
 };
 
 static int
-dissect_gprscdr_EPCQoSInformation(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_gprscdr_EPCQoSInformation(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence(implicit_tag, actx, tree, tvb, offset,
                                    EPCQoSInformation_sequence, hf_index, ett_gprscdr_EPCQoSInformation);
 
@@ -3350,7 +3351,7 @@ static const value_string gprscdr_PresenceReportingAreaStatus_vals[] = {
 
 
 static int
-dissect_gprscdr_PresenceReportingAreaStatus(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_gprscdr_PresenceReportingAreaStatus(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_integer(implicit_tag, actx, tree, tvb, offset, hf_index,
                                   NULL);
 
@@ -3360,7 +3361,7 @@ dissect_gprscdr_PresenceReportingAreaStatus(gboolean implicit_tag _U_, tvbuff_t 
 
 
 static int
-dissect_gprscdr_CSGId(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_gprscdr_CSGId(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_octet_string(implicit_tag, actx, tree, tvb, offset, hf_index,
                                        NULL);
 
@@ -3376,7 +3377,7 @@ static const value_string gprscdr_CSGAccessMode_vals[] = {
 
 
 static int
-dissect_gprscdr_CSGAccessMode(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_gprscdr_CSGAccessMode(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_integer(implicit_tag, actx, tree, tvb, offset, hf_index,
                                   NULL);
 
@@ -3392,7 +3393,7 @@ static const ber_sequence_t UserCSGInformation_sequence[] = {
 };
 
 static int
-dissect_gprscdr_UserCSGInformation(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_gprscdr_UserCSGInformation(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence(implicit_tag, actx, tree, tvb, offset,
                                    UserCSGInformation_sequence, hf_index, ett_gprscdr_UserCSGInformation);
 
@@ -3402,7 +3403,7 @@ dissect_gprscdr_UserCSGInformation(gboolean implicit_tag _U_, tvbuff_t *tvb _U_,
 
 
 static int
-dissect_gprscdr_AccessAvailabilityChangeReason(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_gprscdr_AccessAvailabilityChangeReason(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_integer(implicit_tag, actx, tree, tvb, offset, hf_index,
                                                 NULL);
 
@@ -3412,7 +3413,7 @@ dissect_gprscdr_AccessAvailabilityChangeReason(gboolean implicit_tag _U_, tvbuff
 
 
 static int
-dissect_gprscdr_OCTET_STRING_SIZE_2(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_gprscdr_OCTET_STRING_SIZE_2(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_octet_string(implicit_tag, actx, tree, tvb, offset, hf_index,
                                        NULL);
 
@@ -3427,7 +3428,7 @@ static const ber_sequence_t WLANOperatorId_sequence[] = {
 };
 
 static int
-dissect_gprscdr_WLANOperatorId(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_gprscdr_WLANOperatorId(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence(implicit_tag, actx, tree, tvb, offset,
                                    WLANOperatorId_sequence, hf_index, ett_gprscdr_WLANOperatorId);
 
@@ -3448,7 +3449,7 @@ static const ber_sequence_t UWANUserLocationInfo_sequence[] = {
 };
 
 static int
-dissect_gprscdr_UWANUserLocationInfo(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_gprscdr_UWANUserLocationInfo(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence(implicit_tag, actx, tree, tvb, offset,
                                    UWANUserLocationInfo_sequence, hf_index, ett_gprscdr_UWANUserLocationInfo);
 
@@ -3458,7 +3459,7 @@ dissect_gprscdr_UWANUserLocationInfo(gboolean implicit_tag _U_, tvbuff_t *tvb _U
 
 
 static int
-dissect_gprscdr_T_userLocationInformation_10(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_gprscdr_T_userLocationInformation_10(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
 
   offset = dissect_gprscdr_uli(tvb, actx, tree, 2);
 
@@ -3479,7 +3480,7 @@ static const ber_sequence_t RelatedChangeOfCharCondition_sequence[] = {
 };
 
 static int
-dissect_gprscdr_RelatedChangeOfCharCondition(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_gprscdr_RelatedChangeOfCharCondition(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence(implicit_tag, actx, tree, tvb, offset,
                                    RelatedChangeOfCharCondition_sequence, hf_index, ett_gprscdr_RelatedChangeOfCharCondition);
 
@@ -3489,7 +3490,7 @@ dissect_gprscdr_RelatedChangeOfCharCondition(gboolean implicit_tag _U_, tvbuff_t
 
 
 static int
-dissect_gprscdr_CPCIoTEPSOptimisationIndicator(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_gprscdr_CPCIoTEPSOptimisationIndicator(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_boolean(implicit_tag, actx, tree, tvb, offset, hf_index, NULL);
 
   return offset;
@@ -3503,7 +3504,7 @@ static const ber_sequence_t ServingPLMNRateControl_sequence[] = {
 };
 
 static int
-dissect_gprscdr_ServingPLMNRateControl(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_gprscdr_ServingPLMNRateControl(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence(implicit_tag, actx, tree, tvb, offset,
                                    ServingPLMNRateControl_sequence, hf_index, ett_gprscdr_ServingPLMNRateControl);
 
@@ -3513,7 +3514,7 @@ dissect_gprscdr_ServingPLMNRateControl(gboolean implicit_tag _U_, tvbuff_t *tvb 
 
 
 static int
-dissect_gprscdr_PresenceReportingAreaElementsList(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_gprscdr_PresenceReportingAreaElementsList(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_octet_string(implicit_tag, actx, tree, tvb, offset, hf_index,
                                        NULL);
 
@@ -3528,7 +3529,7 @@ static int * const PresenceReportingAreaNode_bits[] = {
 };
 
 static int
-dissect_gprscdr_PresenceReportingAreaNode(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_gprscdr_PresenceReportingAreaNode(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_bitstring(implicit_tag, actx, tree, tvb, offset,
                                     PresenceReportingAreaNode_bits, 2, hf_index, ett_gprscdr_PresenceReportingAreaNode,
                                     NULL);
@@ -3546,7 +3547,7 @@ static const ber_sequence_t PresenceReportingAreaInfo_sequence[] = {
 };
 
 static int
-dissect_gprscdr_PresenceReportingAreaInfo(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_gprscdr_PresenceReportingAreaInfo(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence(implicit_tag, actx, tree, tvb, offset,
                                    PresenceReportingAreaInfo_sequence, hf_index, ett_gprscdr_PresenceReportingAreaInfo);
 
@@ -3559,7 +3560,7 @@ static const ber_sequence_t SEQUENCE_OF_PresenceReportingAreaInfo_sequence_of[1]
 };
 
 static int
-dissect_gprscdr_SEQUENCE_OF_PresenceReportingAreaInfo(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_gprscdr_SEQUENCE_OF_PresenceReportingAreaInfo(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence_of(implicit_tag, actx, tree, tvb, offset,
                                       SEQUENCE_OF_PresenceReportingAreaInfo_sequence_of, hf_index, ett_gprscdr_SEQUENCE_OF_PresenceReportingAreaInfo);
 
@@ -3575,7 +3576,7 @@ static const value_string gprscdr_AdditionalExceptionReports_vals[] = {
 
 
 static int
-dissect_gprscdr_AdditionalExceptionReports(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_gprscdr_AdditionalExceptionReports(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_integer(implicit_tag, actx, tree, tvb, offset, hf_index,
                                   NULL);
 
@@ -3594,7 +3595,7 @@ static const value_string gprscdr_RateControlTimeUnit_vals[] = {
 
 
 static int
-dissect_gprscdr_RateControlTimeUnit(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_gprscdr_RateControlTimeUnit(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_integer(implicit_tag, actx, tree, tvb, offset, hf_index,
                                                 NULL);
 
@@ -3611,7 +3612,7 @@ static const ber_sequence_t APNRateControlParameters_sequence[] = {
 };
 
 static int
-dissect_gprscdr_APNRateControlParameters(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_gprscdr_APNRateControlParameters(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence(implicit_tag, actx, tree, tvb, offset,
                                    APNRateControlParameters_sequence, hf_index, ett_gprscdr_APNRateControlParameters);
 
@@ -3626,7 +3627,7 @@ static const ber_sequence_t APNRateControl_sequence[] = {
 };
 
 static int
-dissect_gprscdr_APNRateControl(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_gprscdr_APNRateControl(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence(implicit_tag, actx, tree, tvb, offset,
                                    APNRateControl_sequence, hf_index, ett_gprscdr_APNRateControl);
 
@@ -3661,7 +3662,7 @@ static const ber_sequence_t ChangeOfCharCondition_sequence[] = {
 };
 
 static int
-dissect_gprscdr_ChangeOfCharCondition(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_gprscdr_ChangeOfCharCondition(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence(implicit_tag, actx, tree, tvb, offset,
                                    ChangeOfCharCondition_sequence, hf_index, ett_gprscdr_ChangeOfCharCondition);
 
@@ -3674,7 +3675,7 @@ static const ber_sequence_t SEQUENCE_OF_ChangeOfCharCondition_sequence_of[1] = {
 };
 
 static int
-dissect_gprscdr_SEQUENCE_OF_ChangeOfCharCondition(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_gprscdr_SEQUENCE_OF_ChangeOfCharCondition(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence_of(implicit_tag, actx, tree, tvb, offset,
                                       SEQUENCE_OF_ChangeOfCharCondition_sequence_of, hf_index, ett_gprscdr_SEQUENCE_OF_ChangeOfCharCondition);
 
@@ -3726,7 +3727,7 @@ static const ber_sequence_t SGSNPDPRecord_set[] = {
 };
 
 static int
-dissect_gprscdr_SGSNPDPRecord(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_gprscdr_SGSNPDPRecord(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_set(implicit_tag, actx, tree, tvb, offset,
                               SGSNPDPRecord_set, hf_index, ett_gprscdr_SGSNPDPRecord);
 
@@ -3747,7 +3748,7 @@ static const value_string gprscdr_ServingNodeType_vals[] = {
 
 
 static int
-dissect_gprscdr_ServingNodeType(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_gprscdr_ServingNodeType(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_integer(implicit_tag, actx, tree, tvb, offset, hf_index,
                                   NULL);
 
@@ -3791,7 +3792,7 @@ static const ber_sequence_t SGSNSMORecord_set[] = {
 };
 
 static int
-dissect_gprscdr_SGSNSMORecord(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_gprscdr_SGSNSMORecord(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_set(implicit_tag, actx, tree, tvb, offset,
                               SGSNSMORecord_set, hf_index, ett_gprscdr_SGSNSMORecord);
 
@@ -3834,7 +3835,7 @@ static const ber_sequence_t SGSNSMTRecord_set[] = {
 };
 
 static int
-dissect_gprscdr_SGSNSMTRecord(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_gprscdr_SGSNSMTRecord(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_set(implicit_tag, actx, tree, tvb, offset,
                               SGSNSMTRecord_set, hf_index, ett_gprscdr_SGSNSMTRecord);
 
@@ -3877,7 +3878,7 @@ static const ber_sequence_t SGSNMTLCSRecord_set[] = {
 };
 
 static int
-dissect_gprscdr_SGSNMTLCSRecord(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_gprscdr_SGSNMTLCSRecord(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_set(implicit_tag, actx, tree, tvb, offset,
                               SGSNMTLCSRecord_set, hf_index, ett_gprscdr_SGSNMTLCSRecord);
 
@@ -3918,7 +3919,7 @@ static const ber_sequence_t SGSNMOLCSRecord_set[] = {
 };
 
 static int
-dissect_gprscdr_SGSNMOLCSRecord(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_gprscdr_SGSNMOLCSRecord(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_set(implicit_tag, actx, tree, tvb, offset,
                               SGSNMOLCSRecord_set, hf_index, ett_gprscdr_SGSNMOLCSRecord);
 
@@ -3959,7 +3960,7 @@ static const ber_sequence_t SGSNNILCSRecord_set[] = {
 };
 
 static int
-dissect_gprscdr_SGSNNILCSRecord(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_gprscdr_SGSNNILCSRecord(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_set(implicit_tag, actx, tree, tvb, offset,
                               SGSNNILCSRecord_set, hf_index, ett_gprscdr_SGSNNILCSRecord);
 
@@ -3972,7 +3973,7 @@ static const ber_sequence_t SEQUENCE_OF_RAIdentity_sequence_of[1] = {
 };
 
 static int
-dissect_gprscdr_SEQUENCE_OF_RAIdentity(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_gprscdr_SEQUENCE_OF_RAIdentity(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence_of(implicit_tag, actx, tree, tvb, offset,
                                       SEQUENCE_OF_RAIdentity_sequence_of, hf_index, ett_gprscdr_SEQUENCE_OF_RAIdentity);
 
@@ -3982,7 +3983,7 @@ dissect_gprscdr_SEQUENCE_OF_RAIdentity(gboolean implicit_tag _U_, tvbuff_t *tvb 
 
 
 static int
-dissect_gprscdr_DataVolumeMBMS(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_gprscdr_DataVolumeMBMS(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_integer(implicit_tag, actx, tree, tvb, offset, hf_index,
                                                 NULL);
 
@@ -4002,7 +4003,7 @@ static const ber_sequence_t ChangeOfMBMSCondition_sequence[] = {
 };
 
 static int
-dissect_gprscdr_ChangeOfMBMSCondition(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_gprscdr_ChangeOfMBMSCondition(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence(implicit_tag, actx, tree, tvb, offset,
                                    ChangeOfMBMSCondition_sequence, hf_index, ett_gprscdr_ChangeOfMBMSCondition);
 
@@ -4015,7 +4016,7 @@ static const ber_sequence_t SEQUENCE_OF_ChangeOfMBMSCondition_sequence_of[1] = {
 };
 
 static int
-dissect_gprscdr_SEQUENCE_OF_ChangeOfMBMSCondition(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_gprscdr_SEQUENCE_OF_ChangeOfMBMSCondition(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence_of(implicit_tag, actx, tree, tvb, offset,
                                       SEQUENCE_OF_ChangeOfMBMSCondition_sequence_of, hf_index, ett_gprscdr_SEQUENCE_OF_ChangeOfMBMSCondition);
 
@@ -4046,7 +4047,7 @@ static const ber_sequence_t SGSNMBMSRecord_set[] = {
 };
 
 static int
-dissect_gprscdr_SGSNMBMSRecord(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_gprscdr_SGSNMBMSRecord(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_set(implicit_tag, actx, tree, tvb, offset,
                               SGSNMBMSRecord_set, hf_index, ett_gprscdr_SGSNMBMSRecord);
 
@@ -4075,7 +4076,7 @@ static const ber_sequence_t GGSNMBMSRecord_set[] = {
 };
 
 static int
-dissect_gprscdr_GGSNMBMSRecord(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_gprscdr_GGSNMBMSRecord(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_set(implicit_tag, actx, tree, tvb, offset,
                               GGSNMBMSRecord_set, hf_index, ett_gprscdr_GGSNMBMSRecord);
 
@@ -4085,7 +4086,7 @@ dissect_gprscdr_GGSNMBMSRecord(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int
 
 
 static int
-dissect_gprscdr_T_userLocationInformation_06(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_gprscdr_T_userLocationInformation_06(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
 
   offset = dissect_gprscdr_uli(tvb, actx, tree, 2);
 
@@ -4096,7 +4097,7 @@ dissect_gprscdr_T_userLocationInformation_06(gboolean implicit_tag _U_, tvbuff_t
 
 
 static int
-dissect_gprscdr_SGWChange(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_gprscdr_SGWChange(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_boolean(implicit_tag, actx, tree, tvb, offset, hf_index, NULL);
 
   return offset;
@@ -4108,7 +4109,7 @@ static const ber_sequence_t SEQUENCE_OF_ServingNodeType_sequence_of[1] = {
 };
 
 static int
-dissect_gprscdr_SEQUENCE_OF_ServingNodeType(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_gprscdr_SEQUENCE_OF_ServingNodeType(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence_of(implicit_tag, actx, tree, tvb, offset,
                                       SEQUENCE_OF_ServingNodeType_sequence_of, hf_index, ett_gprscdr_SEQUENCE_OF_ServingNodeType);
 
@@ -4118,7 +4119,7 @@ dissect_gprscdr_SEQUENCE_OF_ServingNodeType(gboolean implicit_tag _U_, tvbuff_t 
 
 
 static int
-dissect_gprscdr_T_lastUserLocationInformation(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_gprscdr_T_lastUserLocationInformation(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
 
   offset = dissect_gprscdr_uli(tvb, actx, tree, 2);
 
@@ -4129,7 +4130,7 @@ dissect_gprscdr_T_lastUserLocationInformation(gboolean implicit_tag _U_, tvbuff_
 
 
 static int
-dissect_gprscdr_UNIPDUCPOnlyFlag(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_gprscdr_UNIPDUCPOnlyFlag(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_boolean(implicit_tag, actx, tree, tvb, offset, hf_index, NULL);
 
   return offset;
@@ -4138,7 +4139,7 @@ dissect_gprscdr_UNIPDUCPOnlyFlag(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, i
 
 
 static int
-dissect_gprscdr_PDPPDNTypeExtension(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_gprscdr_PDPPDNTypeExtension(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_integer(implicit_tag, actx, tree, tvb, offset, hf_index,
                                                 NULL);
 
@@ -4153,7 +4154,7 @@ static const ber_sequence_t MOExceptionDataCounter_sequence[] = {
 };
 
 static int
-dissect_gprscdr_MOExceptionDataCounter(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_gprscdr_MOExceptionDataCounter(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence(implicit_tag, actx, tree, tvb, offset,
                                    MOExceptionDataCounter_sequence, hf_index, ett_gprscdr_MOExceptionDataCounter);
 
@@ -4168,7 +4169,7 @@ static const value_string gprscdr_SecondaryRATType_vals[] = {
 
 
 static int
-dissect_gprscdr_SecondaryRATType(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_gprscdr_SecondaryRATType(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_integer(implicit_tag, actx, tree, tvb, offset, hf_index,
                                                 NULL);
 
@@ -4187,7 +4188,7 @@ static const ber_sequence_t RANSecondaryRATUsageReport_sequence[] = {
 };
 
 static int
-dissect_gprscdr_RANSecondaryRATUsageReport(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_gprscdr_RANSecondaryRATUsageReport(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence(implicit_tag, actx, tree, tvb, offset,
                                    RANSecondaryRATUsageReport_sequence, hf_index, ett_gprscdr_RANSecondaryRATUsageReport);
 
@@ -4200,7 +4201,7 @@ static const ber_sequence_t SEQUENCE_OF_RANSecondaryRATUsageReport_sequence_of[1
 };
 
 static int
-dissect_gprscdr_SEQUENCE_OF_RANSecondaryRATUsageReport(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_gprscdr_SEQUENCE_OF_RANSecondaryRATUsageReport(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence_of(implicit_tag, actx, tree, tvb, offset,
                                       SEQUENCE_OF_RANSecondaryRATUsageReport_sequence_of, hf_index, ett_gprscdr_SEQUENCE_OF_RANSecondaryRATUsageReport);
 
@@ -4270,7 +4271,7 @@ static const ber_sequence_t SGWRecord_set[] = {
 };
 
 static int
-dissect_gprscdr_SGWRecord(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_gprscdr_SGWRecord(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_set(implicit_tag, actx, tree, tvb, offset,
                               SGWRecord_set, hf_index, ett_gprscdr_SGWRecord);
 
@@ -4280,7 +4281,7 @@ dissect_gprscdr_SGWRecord(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offs
 
 
 static int
-dissect_gprscdr_T_userLocationInformation_07(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_gprscdr_T_userLocationInformation_07(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
 
   offset = dissect_gprscdr_uli(tvb, actx, tree, 2);
 
@@ -4332,7 +4333,7 @@ static int * const ServiceConditionChange_bits[] = {
 };
 
 static int
-dissect_gprscdr_ServiceConditionChange(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_gprscdr_ServiceConditionChange(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_bitstring(implicit_tag, actx, tree, tvb, offset,
                                     ServiceConditionChange_bits, 38, hf_index, ett_gprscdr_ServiceConditionChange,
                                     NULL);
@@ -4343,7 +4344,7 @@ dissect_gprscdr_ServiceConditionChange(gboolean implicit_tag _U_, tvbuff_t *tvb 
 
 
 static int
-dissect_gprscdr_T_userLocationInformation_09(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_gprscdr_T_userLocationInformation_09(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
 
   offset = dissect_gprscdr_uli(tvb, actx, tree, 2);
 
@@ -4357,7 +4358,7 @@ static const ber_sequence_t SEQUENCE_OF_ServiceSpecificInfo_sequence_of[1] = {
 };
 
 static int
-dissect_gprscdr_SEQUENCE_OF_ServiceSpecificInfo(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_gprscdr_SEQUENCE_OF_ServiceSpecificInfo(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence_of(implicit_tag, actx, tree, tvb, offset,
                                       SEQUENCE_OF_ServiceSpecificInfo_sequence_of, hf_index, ett_gprscdr_SEQUENCE_OF_ServiceSpecificInfo);
 
@@ -4367,7 +4368,7 @@ dissect_gprscdr_SEQUENCE_OF_ServiceSpecificInfo(gboolean implicit_tag _U_, tvbuf
 
 
 static int
-dissect_gprscdr_ADCRuleBaseName(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_gprscdr_ADCRuleBaseName(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_restricted_string(implicit_tag, BER_UNI_TAG_IA5String,
                                             actx, tree, tvb, offset, hf_index,
                                             NULL);
@@ -4378,7 +4379,7 @@ dissect_gprscdr_ADCRuleBaseName(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, in
 
 
 static int
-dissect_gprscdr_T_userLocationInformation_11(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_gprscdr_T_userLocationInformation_11(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
 
   offset = dissect_gprscdr_uli(tvb, actx, tree, 2);
 
@@ -4399,7 +4400,7 @@ static const ber_sequence_t RelatedChangeOfServiceCondition_sequence[] = {
 };
 
 static int
-dissect_gprscdr_RelatedChangeOfServiceCondition(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_gprscdr_RelatedChangeOfServiceCondition(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence(implicit_tag, actx, tree, tvb, offset,
                                    RelatedChangeOfServiceCondition_sequence, hf_index, ett_gprscdr_RelatedChangeOfServiceCondition);
 
@@ -4409,7 +4410,7 @@ dissect_gprscdr_RelatedChangeOfServiceCondition(gboolean implicit_tag _U_, tvbuf
 
 
 static int
-dissect_gprscdr_TrafficSteeringPolicyIDDownlink(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_gprscdr_TrafficSteeringPolicyIDDownlink(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_octet_string(implicit_tag, actx, tree, tvb, offset, hf_index,
                                        NULL);
 
@@ -4419,7 +4420,7 @@ dissect_gprscdr_TrafficSteeringPolicyIDDownlink(gboolean implicit_tag _U_, tvbuf
 
 
 static int
-dissect_gprscdr_TrafficSteeringPolicyIDUplink(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_gprscdr_TrafficSteeringPolicyIDUplink(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_octet_string(implicit_tag, actx, tree, tvb, offset, hf_index,
                                        NULL);
 
@@ -4437,7 +4438,7 @@ static const ber_sequence_t TWANUserLocationInfo_sequence[] = {
 };
 
 static int
-dissect_gprscdr_TWANUserLocationInfo(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_gprscdr_TWANUserLocationInfo(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence(implicit_tag, actx, tree, tvb, offset,
                                    TWANUserLocationInfo_sequence, hf_index, ett_gprscdr_TWANUserLocationInfo);
 
@@ -4450,7 +4451,7 @@ static const ber_sequence_t SEQUENCE_OF_InvolvedParty_sequence_of[1] = {
 };
 
 static int
-dissect_gprscdr_SEQUENCE_OF_InvolvedParty(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_gprscdr_SEQUENCE_OF_InvolvedParty(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence_of(implicit_tag, actx, tree, tvb, offset,
                                       SEQUENCE_OF_InvolvedParty_sequence_of, hf_index, ett_gprscdr_SEQUENCE_OF_InvolvedParty);
 
@@ -4466,7 +4467,7 @@ static const ber_sequence_t CalleePartyInformation_sequence[] = {
 };
 
 static int
-dissect_gprscdr_CalleePartyInformation(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_gprscdr_CalleePartyInformation(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence(implicit_tag, actx, tree, tvb, offset,
                                    CalleePartyInformation_sequence, hf_index, ett_gprscdr_CalleePartyInformation);
 
@@ -4481,7 +4482,7 @@ static const ber_sequence_t VoLTEInformation_sequence[] = {
 };
 
 static int
-dissect_gprscdr_VoLTEInformation(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_gprscdr_VoLTEInformation(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence(implicit_tag, actx, tree, tvb, offset,
                                    VoLTEInformation_sequence, hf_index, ett_gprscdr_VoLTEInformation);
 
@@ -4532,7 +4533,7 @@ static const ber_sequence_t ChangeOfServiceCondition_sequence[] = {
 };
 
 static int
-dissect_gprscdr_ChangeOfServiceCondition(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_gprscdr_ChangeOfServiceCondition(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence(implicit_tag, actx, tree, tvb, offset,
                                    ChangeOfServiceCondition_sequence, hf_index, ett_gprscdr_ChangeOfServiceCondition);
 
@@ -4545,7 +4546,7 @@ static const ber_sequence_t SEQUENCE_OF_ChangeOfServiceCondition_sequence_of[1] 
 };
 
 static int
-dissect_gprscdr_SEQUENCE_OF_ChangeOfServiceCondition(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_gprscdr_SEQUENCE_OF_ChangeOfServiceCondition(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence_of(implicit_tag, actx, tree, tvb, offset,
                                       SEQUENCE_OF_ChangeOfServiceCondition_sequence_of, hf_index, ett_gprscdr_SEQUENCE_OF_ChangeOfServiceCondition);
 
@@ -4555,7 +4556,7 @@ dissect_gprscdr_SEQUENCE_OF_ChangeOfServiceCondition(gboolean implicit_tag _U_, 
 
 
 static int
-dissect_gprscdr_T_lastUserLocationInformation_01(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_gprscdr_T_lastUserLocationInformation_01(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
 
   offset = dissect_gprscdr_uli(tvb, actx, tree, 2);
 
@@ -4572,7 +4573,7 @@ static const value_string gprscdr_NBIFOMMode_vals[] = {
 
 
 static int
-dissect_gprscdr_NBIFOMMode(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_gprscdr_NBIFOMMode(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_integer(implicit_tag, actx, tree, tvb, offset, hf_index,
                                   NULL);
 
@@ -4588,7 +4589,7 @@ static const value_string gprscdr_NBIFOMSupport_vals[] = {
 
 
 static int
-dissect_gprscdr_NBIFOMSupport(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_gprscdr_NBIFOMSupport(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_integer(implicit_tag, actx, tree, tvb, offset, hf_index,
                                   NULL);
 
@@ -4604,7 +4605,7 @@ static const value_string gprscdr_SGiPtPTunnellingMethod_vals[] = {
 
 
 static int
-dissect_gprscdr_SGiPtPTunnellingMethod(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_gprscdr_SGiPtPTunnellingMethod(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_integer(implicit_tag, actx, tree, tvb, offset, hf_index,
                                   NULL);
 
@@ -4620,7 +4621,7 @@ static const value_string gprscdr_ChargingPerIPCANSessionIndicator_vals[] = {
 
 
 static int
-dissect_gprscdr_ChargingPerIPCANSessionIndicator(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_gprscdr_ChargingPerIPCANSessionIndicator(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_integer(implicit_tag, actx, tree, tvb, offset, hf_index,
                                   NULL);
 
@@ -4701,7 +4702,7 @@ static const ber_sequence_t PGWRecord_set[] = {
 };
 
 static int
-dissect_gprscdr_PGWRecord(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_gprscdr_PGWRecord(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_set(implicit_tag, actx, tree, tvb, offset,
                               PGWRecord_set, hf_index, ett_gprscdr_PGWRecord);
 
@@ -4711,7 +4712,7 @@ dissect_gprscdr_PGWRecord(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offs
 
 
 static int
-dissect_gprscdr_CTEID(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_gprscdr_CTEID(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_octet_string(implicit_tag, actx, tree, tvb, offset, hf_index,
                                        NULL);
 
@@ -4743,7 +4744,7 @@ static const ber_sequence_t GWMBMSRecord_set[] = {
 };
 
 static int
-dissect_gprscdr_GWMBMSRecord(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_gprscdr_GWMBMSRecord(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_set(implicit_tag, actx, tree, tvb, offset,
                               GWMBMSRecord_set, hf_index, ett_gprscdr_GWMBMSRecord);
 
@@ -4753,7 +4754,7 @@ dissect_gprscdr_GWMBMSRecord(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int o
 
 
 static int
-dissect_gprscdr_FixedSubsID(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_gprscdr_FixedSubsID(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_octet_string(implicit_tag, actx, tree, tvb, offset, hf_index,
                                        NULL);
 
@@ -4768,7 +4769,7 @@ static const ber_sequence_t AccessLineIdentifier_sequence[] = {
 };
 
 static int
-dissect_gprscdr_AccessLineIdentifier(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_gprscdr_AccessLineIdentifier(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence(implicit_tag, actx, tree, tvb, offset,
                                    AccessLineIdentifier_sequence, hf_index, ett_gprscdr_AccessLineIdentifier);
 
@@ -4784,7 +4785,7 @@ static const ber_sequence_t FixedUserLocationInformation_sequence[] = {
 };
 
 static int
-dissect_gprscdr_FixedUserLocationInformation(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_gprscdr_FixedUserLocationInformation(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence(implicit_tag, actx, tree, tvb, offset,
                                    FixedUserLocationInformation_sequence, hf_index, ett_gprscdr_FixedUserLocationInformation);
 
@@ -4845,7 +4846,7 @@ static const ber_sequence_t TDFRecord_set[] = {
 };
 
 static int
-dissect_gprscdr_TDFRecord(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_gprscdr_TDFRecord(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_set(implicit_tag, actx, tree, tvb, offset,
                               TDFRecord_set, hf_index, ett_gprscdr_TDFRecord);
 
@@ -4892,7 +4893,7 @@ static const ber_sequence_t IPERecord_set[] = {
 };
 
 static int
-dissect_gprscdr_IPERecord(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_gprscdr_IPERecord(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_set(implicit_tag, actx, tree, tvb, offset,
                               IPERecord_set, hf_index, ett_gprscdr_IPERecord);
 
@@ -4944,7 +4945,7 @@ static const ber_sequence_t EPDGRecord_set[] = {
 };
 
 static int
-dissect_gprscdr_EPDGRecord(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_gprscdr_EPDGRecord(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_set(implicit_tag, actx, tree, tvb, offset,
                               EPDGRecord_set, hf_index, ett_gprscdr_EPDGRecord);
 
@@ -4994,7 +4995,7 @@ static const ber_sequence_t TWAGRecord_set[] = {
 };
 
 static int
-dissect_gprscdr_TWAGRecord(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_gprscdr_TWAGRecord(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_set(implicit_tag, actx, tree, tvb, offset,
                               TWAGRecord_set, hf_index, ett_gprscdr_TWAGRecord);
 
@@ -5047,10 +5048,10 @@ static const ber_choice_t GPRSRecord_choice[] = {
 };
 
 int
-dissect_gprscdr_GPRSRecord(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_gprscdr_GPRSRecord(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
 proto_item *item;
-gint branch_taken, t_offset = offset;
-gint32   tag;
+int branch_taken, t_offset = offset;
+int32_t  tag;
 
     offset = dissect_ber_choice(actx, tree, tvb, offset,
                                  GPRSRecord_choice, hf_index, ett_gprscdr_GPRSRecord,
@@ -5073,22 +5074,22 @@ gint32   tag;
 int dissect_gprscdr_GPRSCallEventRecord_PDU(tvbuff_t *tvb _U_, packet_info *pinfo _U_, proto_tree *tree _U_, void *data _U_) {
   int offset = 0;
   asn1_ctx_t asn1_ctx;
-  asn1_ctx_init(&asn1_ctx, ASN1_ENC_BER, TRUE, pinfo);
-  offset = dissect_gprscdr_GPRSCallEventRecord(FALSE, tvb, offset, &asn1_ctx, tree, hf_gprscdr_gprscdr_GPRSCallEventRecord_PDU);
+  asn1_ctx_init(&asn1_ctx, ASN1_ENC_BER, true, pinfo);
+  offset = dissect_gprscdr_GPRSCallEventRecord(false, tvb, offset, &asn1_ctx, tree, hf_gprscdr_gprscdr_GPRSCallEventRecord_PDU);
   return offset;
 }
 int dissect_gprscdr_GPRSRecord_PDU(tvbuff_t *tvb _U_, packet_info *pinfo _U_, proto_tree *tree _U_, void *data _U_) {
   int offset = 0;
   asn1_ctx_t asn1_ctx;
-  asn1_ctx_init(&asn1_ctx, ASN1_ENC_BER, TRUE, pinfo);
-  offset = dissect_gprscdr_GPRSRecord(FALSE, tvb, offset, &asn1_ctx, tree, hf_gprscdr_gprscdr_GPRSRecord_PDU);
+  asn1_ctx_init(&asn1_ctx, ASN1_ENC_BER, true, pinfo);
+  offset = dissect_gprscdr_GPRSRecord(false, tvb, offset, &asn1_ctx, tree, hf_gprscdr_gprscdr_GPRSRecord_PDU);
   return offset;
 }
 int dissect_gprscdr_CAMELInformationPDP_PDU(tvbuff_t *tvb _U_, packet_info *pinfo _U_, proto_tree *tree _U_, void *data _U_) {
   int offset = 0;
   asn1_ctx_t asn1_ctx;
-  asn1_ctx_init(&asn1_ctx, ASN1_ENC_BER, TRUE, pinfo);
-  offset = dissect_gprscdr_CAMELInformationPDP(FALSE, tvb, offset, &asn1_ctx, tree, hf_gprscdr_gprscdr_CAMELInformationPDP_PDU);
+  asn1_ctx_init(&asn1_ctx, ASN1_ENC_BER, true, pinfo);
+  offset = dissect_gprscdr_CAMELInformationPDP(false, tvb, offset, &asn1_ctx, tree, hf_gprscdr_gprscdr_CAMELInformationPDP_PDU);
   return offset;
 }
 
@@ -7040,7 +7041,7 @@ proto_register_gprscdr(void)
   };
 
   /* List of subtrees */
-  static gint *ett[] = {
+  static int *ett[] = {
     &ett_gprscdr,
     &ett_gprscdr_timestamp,
     &ett_gprscdr_plmn_id,

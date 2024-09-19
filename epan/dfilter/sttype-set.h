@@ -11,11 +11,11 @@
 #ifndef STTYPE_SET_H
 #define STTYPE_SET_H
 
-#include <glib.h>
+#include <wireshark.h>
 
-#include "ws_attributes.h"
+#include "syntax-tree.h"
 
-gboolean
+bool
 sttype_set_convert_to_range(stnode_t **node_left, stnode_t **node_right);
 
 void

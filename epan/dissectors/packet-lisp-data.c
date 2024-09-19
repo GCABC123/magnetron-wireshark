@@ -13,6 +13,8 @@
 
 #include <epan/packet.h>
 #include <epan/expert.h>
+#include <epan/tfs.h>
+#include <wsutil/array.h>
 
 void proto_register_lisp_data(void);
 void proto_reg_handoff_lisp_data(void);
@@ -39,41 +41,42 @@ void proto_reg_handoff_lisp_data(void);
 #define LISP_DATA_FLAG_RES      0x07    /* Reserved */
 
 /* Initialize the protocol and registered fields */
-static int proto_lisp_data = -1;
-static int hf_lisp_data_flags = -1;
-static int hf_lisp_data_flags_nonce = -1;
-static int hf_lisp_data_flags_lsb = -1;
-static int hf_lisp_data_flags_enr = -1;
-static int hf_lisp_data_flags_mv = -1;
-static int hf_lisp_data_flags_iid = -1;
-static int hf_lisp_data_flags_res = -1;
-static int hf_lisp_data_nonce = -1;
-static int hf_lisp_data_mapver = -1;
-static int hf_lisp_data_srcmapver = -1;
-static int hf_lisp_data_dstmapver = -1;
-static int hf_lisp_data_iid = -1;
-static int hf_lisp_data_lsb = -1;
-static int hf_lisp_data_lsb8 = -1;
+static int proto_lisp_data;
+static int hf_lisp_data_flags;
+static int hf_lisp_data_flags_nonce;
+static int hf_lisp_data_flags_lsb;
+static int hf_lisp_data_flags_enr;
+static int hf_lisp_data_flags_mv;
+static int hf_lisp_data_flags_iid;
+static int hf_lisp_data_flags_res;
+static int hf_lisp_data_nonce;
+static int hf_lisp_data_mapver;
+static int hf_lisp_data_srcmapver;
+static int hf_lisp_data_dstmapver;
+static int hf_lisp_data_iid;
+static int hf_lisp_data_lsb;
+static int hf_lisp_data_lsb8;
 
 /* Initialize the subtree pointers */
-static gint ett_lisp_data = -1;
-static gint ett_lisp_data_flags = -1;
-static gint ett_lisp_data_mapver = -1;
+static int ett_lisp_data;
+static int ett_lisp_data_flags;
+static int ett_lisp_data_mapver;
 
-static expert_field ei_lisp_data_flags_en_invalid = EI_INIT;
-static expert_field ei_lisp_data_flags_nv_invalid = EI_INIT;
+static expert_field ei_lisp_data_flags_en_invalid;
+static expert_field ei_lisp_data_flags_nv_invalid;
 
 static dissector_handle_t ipv4_handle;
 static dissector_handle_t ipv6_handle;
 static dissector_handle_t lisp_handle;
+static dissector_handle_t lisp_data_handle;
 
 /* Code to actually dissect the packets */
 static int
 dissect_lisp_data(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, void *data _U_)
 {
-    gint        offset = 0;
-    guint8      flags;
-    guint8      ip_ver;
+    int         offset = 0;
+    uint8_t     flags;
+    uint8_t     ip_ver;
     tvbuff_t   *next_tvb;
     proto_item *ti;
     proto_item *tif;
@@ -117,7 +120,7 @@ dissect_lisp_data(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, void *dat
     proto_tree_add_item(lisp_data_flags_tree,
             hf_lisp_data_flags_res, tvb, offset, 1, ENC_BIG_ENDIAN);
 
-    flags = tvb_get_guint8(tvb, offset);
+    flags = tvb_get_uint8(tvb, offset);
     offset += 1;
 
     if (flags&LISP_DATA_FLAG_E && !(flags&LISP_DATA_FLAG_N)) {
@@ -241,7 +244,7 @@ proto_register_lisp_data(void)
     };
 
     /* Setup protocol subtree array */
-    static gint *ett[] = {
+    static int *ett[] = {
         &ett_lisp_data,
         &ett_lisp_data_flags,
         &ett_lisp_data_mapver
@@ -263,6 +266,9 @@ proto_register_lisp_data(void)
     proto_register_subtree_array(ett, array_length(ett));
     expert_lisp_data = expert_register_protocol(proto_lisp_data);
     expert_register_field_array(expert_lisp_data, ei, array_length(ei));
+
+    /* Register the dissector */
+    lisp_data_handle = register_dissector("lisp-data", dissect_lisp_data, proto_lisp_data);
 }
 
 /* Simple form of proto_reg_handoff_lisp_data which can be used if there are
@@ -272,10 +278,6 @@ proto_register_lisp_data(void)
 void
 proto_reg_handoff_lisp_data(void)
 {
-    dissector_handle_t lisp_data_handle;
-
-    lisp_data_handle = create_dissector_handle(dissect_lisp_data,
-                             proto_lisp_data);
     dissector_add_uint_with_preference("udp.port", LISP_DATA_PORT, lisp_data_handle);
     ipv4_handle = find_dissector_add_dependency("ip", proto_lisp_data);
     ipv6_handle = find_dissector_add_dependency("ipv6", proto_lisp_data);

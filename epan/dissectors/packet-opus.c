@@ -15,8 +15,11 @@
 #include <epan/packet.h>
 #include <epan/prefs.h>
 #include <epan/expert.h>
+#include <epan/unit_strings.h>
+#include <epan/tfs.h>
+#include <wsutil/array.h>
+
 #include <ftypes/ftypes.h>
-#include <glibconfig.h>
 #include <proto.h>
 #include <stdint.h>
 
@@ -28,27 +31,29 @@ void proto_register_opus(void);
 static dissector_handle_t opus_handle;
 
 /* Initialize the protocol and registered fields */
-static int proto_opus = -1;
-static int hf_opus_toc_config = -1;
-static int hf_opus_toc_s = -1;
-static int hf_opus_toc_c = -1;
-static int hf_opus_frame = -1;
-static int hf_opus_frame_size = -1;
-static int hf_opus_frame_count_v = -1;
-static int hf_opus_frame_count_p = -1;
-static int hf_opus_frame_count_m = -1;
-static int hf_opus_padding = -1;
+static int proto_opus;
+static int hf_opus_toc_config;
+static int hf_opus_toc_s;
+static int hf_opus_toc_c;
+static int hf_opus_frame;
+static int hf_opus_frame_size;
+static int hf_opus_frame_count_v;
+static int hf_opus_frame_count_p;
+static int hf_opus_frame_count_m;
+static int hf_opus_padding;
+static int hf_opus_padding_size;
 
 /* Initialize the subtree pointers */
-static gint ett_opus = -1;
+static int ett_opus;
 
-static expert_field ei_opus_err_r1 = EI_INIT;
-static expert_field ei_opus_err_r2 = EI_INIT;
-static expert_field ei_opus_err_r3 = EI_INIT;
-static expert_field ei_opus_err_r4 = EI_INIT;
-static expert_field ei_opus_err_r5 = EI_INIT;
-static expert_field ei_opus_err_r6 = EI_INIT;
-static expert_field ei_opus_err_r7 = EI_INIT;
+static expert_field ei_opus_err_r1;
+static expert_field ei_opus_err_r2;
+static expert_field ei_opus_err_r3;
+static expert_field ei_opus_err_r4;
+static expert_field ei_opus_err_r5;
+static expert_field ei_opus_err_r6;
+static expert_field ei_opus_err_r7;
+static expert_field ei_opus_padding_nonzero;
 
 /* From RFC6716 chapter 3.1
  * The top five bits of the TOC byte, labeled "config", encode one of 32
@@ -154,9 +159,9 @@ dissect_opus(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, void* data _U_
     proto_item *item;
     proto_tree *opus_tree;
 
-    gint pkt_total = 0, offset = 0;
-    guint cap_len = 0;
-    guint8 ch = 0, toc = 0, octet[2] = {0, 0};
+    int pkt_total = 0, offset = 0;
+    unsigned cap_len = 0;
+    uint8_t ch = 0, toc = 0, octet[2] = {0, 0};
     int octet_cnt = 0;
     int bytes = 0;
     int16_t framesize = 0;
@@ -170,6 +175,8 @@ dissect_opus(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, void* data _U_
     static int *frame_count_fields[]
         = {&hf_opus_frame_count_v, &hf_opus_frame_count_p,
         &hf_opus_frame_count_m, NULL};
+
+    int padding_size = 0;
 
     col_set_str(pinfo->cinfo, COL_PROTOCOL, "OPUS");
 
@@ -187,14 +194,14 @@ dissect_opus(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, void* data _U_
     proto_tree_add_bitmask_list(opus_tree, tvb, offset, 1, toc_fields, ENC_NA);
 
     cap_len = tvb_captured_length(tvb);
-    pkt_total = tvb_captured_length_remaining(tvb, offset);
+    pkt_total = tvb_reported_length_remaining(tvb, offset);
 
     if (pkt_total <= 0) {
         expert_add_info(pinfo, opus_tree, &ei_opus_err_r1);
         return cap_len;
     }
 
-    toc = tvb_get_guint8(tvb, offset++);
+    toc = tvb_get_uint8(tvb, offset++);
 
     switch (toc & 0x3) {
     case 0: /* One frame */
@@ -218,17 +225,17 @@ dissect_opus(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, void* data _U_
             return cap_len;
         }
         /* offset < pkt_total */
-        octet[octet_cnt++] = tvb_get_guint8(tvb, offset);
+        octet[octet_cnt++] = tvb_get_uint8(tvb, offset);
         if (offset + 1 < pkt_total) {
-            octet[octet_cnt++] = tvb_get_guint8(tvb, offset + 1);
+            octet[octet_cnt++] = tvb_get_uint8(tvb, offset + 1);
         }
         bytes = parse_size_field(octet, octet_cnt, &framesize);
         if (framesize < 0 || framesize > pkt_total) {
             expert_add_info(pinfo, opus_tree, &ei_opus_err_r1);
             return cap_len;
         }
-        proto_tree_add_item(opus_tree, hf_opus_frame_size, tvb, offset, bytes,
-                            ENC_NA);
+        proto_tree_add_uint(opus_tree, hf_opus_frame_size, tvb, offset, bytes,
+                            framesize);
         offset += bytes;
         /* frame[0] has size header, frame[1] is remaining */
         frames[0].begin = offset;
@@ -239,14 +246,14 @@ dissect_opus(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, void* data _U_
         break;
     /* Multiple CBR/VBR frames (from 0 to 120 ms) */
     default: /* case 3:*/
-        if ((pkt_total - offset) < 2) {
+        if ((pkt_total - offset) < 1) {
             expert_add_info(pinfo, opus_tree, &ei_opus_err_r6);
             return cap_len;
         }
         proto_tree_add_bitmask_list(opus_tree, tvb, offset, 1,
                                     frame_count_fields, ENC_NA);
         /* Number of frames encoded in bits 0 to 5 */
-        ch = tvb_get_guint8(tvb, offset++);
+        ch = tvb_get_uint8(tvb, offset++);
         frame_count = ch & 0x3F;
         framesize = opus_packet_get_samples_per_frame(&toc, 48000U);
         if (frame_count <= 0
@@ -254,36 +261,43 @@ dissect_opus(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, void* data _U_
             expert_add_info(pinfo, opus_tree, &ei_opus_err_r5);
             return cap_len;
         }
+        /* The smallest value the function above can return is 120, so
+         * the below holds (but make it obvious). */
+        ws_assert(frame_count <= MAX_FRAMES_COUNT);
         /* Padding flag (bit 6) used */
         if (ch & 0x40) {
             int p;
-            gint padding_size = 0;
-            gint padding_begin = offset;
+            int padding_begin = offset;
             do {
                 int tmp;
                 if (offset >= pkt_total) {
                     expert_add_info(pinfo, opus_tree, &ei_opus_err_r7);
                     return cap_len;
                 }
-                p = tvb_get_guint8(tvb, offset++);
+                p = tvb_get_uint8(tvb, offset++);
                 tmp = p == 255 ? 254 : p;
                 padding_size += tmp;
             } while (p == 255);
-            proto_tree_add_item(opus_tree, hf_opus_padding, tvb, padding_begin,
-                                padding_size, ENC_NA);
-            offset = padding_begin + padding_size;
-        }
-        if (offset >= pkt_total) {
-            expert_add_info(pinfo, opus_tree, &ei_opus_err_r7);
-            return cap_len;
+            proto_tree_add_uint(opus_tree, hf_opus_padding_size, tvb,
+                                padding_begin, offset - padding_begin,
+                                padding_size);
+            /* This padding size is the number of padding bytes at the
+             * end of the packets "in addition to the byte(s) used to
+             * indicate the size of the padding."
+             */
+            pkt_total -= padding_size;
         }
         /* VBR flag is bit 7 */
         if (ch & 0x80) { /* VBR case */
-            for (idx = 0; idx < frame_count; idx++) {
+            for (idx = 0; idx < frame_count - 1; idx++) {
+                if (offset >= pkt_total) {
+                    expert_add_info(pinfo, opus_tree, &ei_opus_err_r7);
+                    return cap_len;
+                }
                 octet_cnt = 0;
-                octet[octet_cnt++] = tvb_get_guint8(tvb, offset);
+                octet[octet_cnt++] = tvb_get_uint8(tvb, offset);
                 if (offset + 1 < pkt_total) {
-                    octet[octet_cnt++] = tvb_get_guint8(tvb, offset);
+                    octet[octet_cnt++] = tvb_get_uint8(tvb, offset);
                 }
                 bytes = parse_size_field(octet, octet_cnt, &frames[idx].size);
                 if (frames[idx].size < 0
@@ -292,11 +306,11 @@ dissect_opus(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, void* data _U_
                     return cap_len;
                 }
 
-                proto_tree_add_item(opus_tree, hf_opus_frame_size, tvb, offset,
-                                    bytes, ENC_NA);
+                proto_tree_add_uint(opus_tree, hf_opus_frame_size, tvb, offset,
+                                    bytes, frames[idx].size);
                 offset += bytes;
             }
-            for (idx = 0; idx < frame_count; idx++) {
+            for (idx = 0; idx < frame_count - 1; idx++) {
                 frames[idx].begin = offset;
                 offset += frames[idx].size;
             }
@@ -304,10 +318,16 @@ dissect_opus(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, void* data _U_
                 expert_add_info(pinfo, opus_tree, &ei_opus_err_r7);
                 return cap_len;
             }
+            frames[idx].begin = offset;
+            frames[idx].size = pkt_total - offset;
         }
         else { /* CBR case */
-            guint frame_size = (pkt_total - offset) / frame_count;
-            if (frame_size * frame_count != (guint)(pkt_total - offset)) {
+            if (offset > pkt_total) {
+                expert_add_info(pinfo, opus_tree, &ei_opus_err_r6);
+                return cap_len;
+            }
+            unsigned frame_size = (pkt_total - offset) / frame_count;
+            if (frame_size * frame_count != (unsigned)(pkt_total - offset)) {
                 expert_add_info(pinfo, opus_tree, &ei_opus_err_r6);
                 return cap_len;
             }
@@ -330,6 +350,22 @@ dissect_opus(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, void* data _U_
                             ENC_NA);
     }
 
+    if (padding_size) {
+        int padding_begin = tvb_reported_length(tvb) - padding_size;
+        item = proto_tree_add_item(opus_tree, hf_opus_padding, tvb,
+                                   padding_begin, padding_size, ENC_NA);
+        /* RFC 6716: "The additional padding bytes appear at the end
+         * of the packet and MUST be set to zero by the encoder to avoid
+         * creating a covert channel."
+         */
+        for (int i = 0; i < padding_size; ++i) {
+            if (tvb_get_uint8(tvb, padding_begin + i) != 0) {
+                expert_add_info(pinfo, item, &ei_opus_padding_nonzero);
+                break;
+            }
+        }
+    }
+
     return cap_len;
 }
 
@@ -345,7 +381,7 @@ proto_register_opus(void)
           &opus_codec_toc_config_request_vals_ext, 0xF8, "Opus TOC config",
           HFILL}},
         {&hf_opus_toc_s,
-         {"TOC.S bit", "opus.TOC.s", FT_BOOLEAN, SEP_DOT, TFS(&toc_s_bit_vals),
+         {"TOC.S bit", "opus.TOC.s", FT_BOOLEAN, 8, TFS(&toc_s_bit_vals),
           0x04, NULL, HFILL}},
         {&hf_opus_toc_c,
          {"TOC.C bits", "opus.TOC.c", FT_UINT8, BASE_DEC | BASE_EXT_STRING,
@@ -354,23 +390,27 @@ proto_register_opus(void)
          {"Frame Count.m", "opus.FC.m", FT_UINT8, BASE_DEC, NULL, 0x3F,
           "Frame Count", HFILL}},
         {&hf_opus_frame_count_p,
-         {"Frame Count.p bit", "opus.FC.p", FT_BOOLEAN, SEP_DOT,
+         {"Frame Count.p bit", "opus.FC.p", FT_BOOLEAN, 8,
           TFS(&fc_p_bit_vals), 0x40, NULL, HFILL}},
         {&hf_opus_frame_count_v,
-         {"Frame Count.v bit", "opus.FC.v", FT_BOOLEAN, SEP_DOT,
+         {"Frame Count.v bit", "opus.FC.v", FT_BOOLEAN, 8,
           TFS(&fc_v_bit_vals), 0x80, NULL, HFILL}},
         {&hf_opus_frame_size,
-         {"Frame Size", "opus.frame_size", FT_BYTES, BASE_NONE, NULL, 0x0, NULL,
-          HFILL}},
+         {"Frame Size", "opus.frame_size", FT_UINT16, BASE_DEC | BASE_UNIT_STRING,
+          UNS(&units_byte_bytes), 0x0, NULL, HFILL}},
         {&hf_opus_frame,
-         {"Frame Data", "opus.frame_data", FT_BYTES, BASE_NONE, NULL, 0x0, NULL,
-          HFILL}},
+         {"Frame Data", "opus.frame_data", FT_BYTES, BASE_NONE | BASE_ALLOW_ZERO,
+          NULL, 0x0, NULL, HFILL}},
         {&hf_opus_padding,
          {"Padding", "opus.padding", FT_BYTES, BASE_NONE, NULL, 0x0, NULL,
           HFILL}},
+        {&hf_opus_padding_size,
+         {"Padding Size", "opus.padding_size", FT_UINT32, BASE_DEC, NULL, 0x0,
+          "Additional padding bytes, not including the bytes indicating the padding size",
+          HFILL}},
     };
 
-    static gint *ett[] = { &ett_opus, };
+    static int *ett[] = { &ett_opus, };
 
     static ei_register_info ei[] = {
         {&ei_opus_err_r1,
@@ -410,6 +450,10 @@ proto_register_opus(void)
           "header bytes (TOC byte, frame count byte, any padding length bytes, "
           "and any frame length bytes), plus the length of the first M-1 "
           "frames, plus any trailing padding bytes.",
+          EXPFILL}},
+        {&ei_opus_padding_nonzero,
+         {"opus.padding.nonzero", PI_PROTOCOL, PI_WARN,
+          "Additional padding bytes MUST be set to zero by the encoder",
           EXPFILL}},
     };
 

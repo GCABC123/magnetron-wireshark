@@ -17,15 +17,17 @@
 void proto_register_dvb_tdt(void);
 void proto_reg_handoff_dvb_tdt(void);
 
-static int proto_dvb_tdt = -1;
-static int hf_dvb_tdt_utc_time = -1;
+static dissector_handle_t dvb_tdt_handle;
 
-static gint ett_dvb_tdt = -1;
+static int proto_dvb_tdt;
+static int hf_dvb_tdt_utc_time;
+
+static int ett_dvb_tdt;
 
 static int
 dissect_dvb_tdt(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, void* data _U_)
 {
-    guint offset = 0;
+    unsigned offset = 0;
 
     proto_item *ti;
     proto_tree *dvb_tdt_tree;
@@ -63,7 +65,7 @@ proto_register_dvb_tdt(void)
         } }
     };
 
-    static gint *ett[] = {
+    static int *ett[] = {
         &ett_dvb_tdt
     };
 
@@ -72,15 +74,12 @@ proto_register_dvb_tdt(void)
     proto_register_field_array(proto_dvb_tdt, hf, array_length(hf));
     proto_register_subtree_array(ett, array_length(ett));
 
+    dvb_tdt_handle = register_dissector("dvb_tdt", dissect_dvb_tdt, proto_dvb_tdt);
 }
 
 
 void proto_reg_handoff_dvb_tdt(void)
 {
-    dissector_handle_t dvb_tdt_handle;
-
-    dvb_tdt_handle = create_dissector_handle(dissect_dvb_tdt, proto_dvb_tdt);
-
     dissector_add_uint("mpeg_sect.tid", DVB_TDT_TID, dvb_tdt_handle);
 }
 

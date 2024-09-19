@@ -23,9 +23,11 @@
 void proto_register_pulse(void);
 void proto_reg_handoff_pulse(void);
 
-static int  proto_pulse    = -1;
-static int  hf_pulse_magic = -1;
-static gint ett_pulse      = -1;
+static dissector_handle_t pulse_handle;
+
+static int  proto_pulse;
+static int  hf_pulse_magic;
+static int ett_pulse;
 
 /* piranha/pulse.c */
 #define PULSE_HEARTBEAT_RUNNING_MAGIC     0xbdaddbda
@@ -43,9 +45,9 @@ dissect_pulse(tvbuff_t *tvb, packet_info *pinfo, proto_tree *parent_tree, void* 
     proto_item *item;
     proto_tree *tree;
 
-    guint32 magic;
+    uint32_t magic;
     const char* magic_str;
-    guint endian;
+    unsigned endian;
 
     if (tvb_captured_length(tvb) < 4)
         return 0;
@@ -85,7 +87,7 @@ proto_register_pulse(void)
             NULL, HFILL }},
     };
 
-    static gint *ett[] = {
+    static int *ett[] = {
         &ett_pulse,
     };
 
@@ -93,13 +95,13 @@ proto_register_pulse(void)
     proto_pulse = proto_register_protocol("PULSE protocol for Linux Virtual Server redundancy", "PULSE", "pulse");
     proto_register_field_array(proto_pulse, hf, array_length(hf));
     proto_register_subtree_array(ett, array_length(ett));
+
+    pulse_handle = register_dissector("pulse", dissect_pulse, proto_pulse);
 }
 
 void
 proto_reg_handoff_pulse(void)
 {
-    dissector_handle_t pulse_handle;
-    pulse_handle = create_dissector_handle(dissect_pulse, proto_pulse);
     dissector_add_uint_with_preference("udp.port", PORT_PULSE, pulse_handle);
 }
 

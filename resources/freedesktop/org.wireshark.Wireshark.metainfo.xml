@@ -5,10 +5,12 @@
     https://www.freedesktop.org/software/appstream/docs/chap-Metadata.html
 -->
 
-<application>
-    <id type="desktop">org.wireshark.Wireshark</id>
+<component type="desktop">
+    <id>org.wireshark.Wireshark</id>
+    <launchable type="desktop-id">org.wireshark.Wireshark.desktop</launchable>
     <name>Wireshark</name>
-    <summary>Wireshark is the world's foremost protocol analyzer</summary>
+    <summary>Network protocol analyzer</summary>
+    <developer_name>The Wireshark developer community</developer_name>
     <content_rating type="oars-1.1"/>
     <metadata_license>CC0-1.0</metadata_license>
     <project_license>GPL-2.0</project_license>
@@ -62,9 +64,6 @@
     </screenshots>
     <update_contact>wireshark-dev_at_wireshark.org</update_contact>
     <releases>
-        <release version="3.3.1" date="2020-10-01">
-        </release>
-        <release version="3.3.0" date="2020-09-15">
-        </release>
+        <!-- release tags should be added using tools/update-appdata.py -->
     </releases>
-</application>
+</component>

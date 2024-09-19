@@ -1,7 +1,7 @@
 /* Do not modify this file. Changes will be overwritten.                      */
 /* Generated automatically by the ASN.1 to Wireshark dissector compiler       */
 /* packet-ocsp.c                                                              */
-/* asn2wrs.py -b -L -p ocsp -c ./ocsp.cnf -s ./packet-ocsp-template -D . -O ../.. OCSP.asn */
+/* asn2wrs.py -b -q -L -p ocsp -c ./ocsp.cnf -s ./packet-ocsp-template -D . -O ../.. OCSP.asn */
 
 /* packet-ocsp.c
  * Routines for Online Certificate Status Protocol (RFC2560) packet dissection
@@ -17,6 +17,7 @@
 #include "config.h"
 
 #include <epan/packet.h>
+#include <wsutil/array.h>
 
 #include <asn1.h>
 
@@ -34,88 +35,91 @@
 void proto_register_ocsp(void);
 void proto_reg_handoff_ocsp(void);
 
+static dissector_handle_t ocsp_request_handle;
+static dissector_handle_t ocsp_response_handle;
+
 /* Initialize the protocol and registered fields */
-int proto_ocsp = -1;
-static int hf_ocsp_responseType_id = -1;
-static int hf_ocsp_BasicOCSPResponse_PDU = -1;    /* BasicOCSPResponse */
-static int hf_ocsp_ArchiveCutoff_PDU = -1;        /* ArchiveCutoff */
-static int hf_ocsp_AcceptableResponses_PDU = -1;  /* AcceptableResponses */
-static int hf_ocsp_ServiceLocator_PDU = -1;       /* ServiceLocator */
-static int hf_ocsp_CrlID_PDU = -1;                /* CrlID */
-static int hf_ocsp_ReOcspNonce_PDU = -1;          /* ReOcspNonce */
-static int hf_ocsp_NULL_PDU = -1;                 /* NULL */
-static int hf_ocsp_tbsRequest = -1;               /* TBSRequest */
-static int hf_ocsp_optionalSignature = -1;        /* Signature */
-static int hf_ocsp_version = -1;                  /* Version */
-static int hf_ocsp_requestorName = -1;            /* GeneralName */
-static int hf_ocsp_requestList = -1;              /* SEQUENCE_OF_Request */
-static int hf_ocsp_requestList_item = -1;         /* Request */
-static int hf_ocsp_requestExtensions = -1;        /* Extensions */
-static int hf_ocsp_signatureAlgorithm = -1;       /* AlgorithmIdentifier */
-static int hf_ocsp_signature = -1;                /* BIT_STRING */
-static int hf_ocsp_certs = -1;                    /* SEQUENCE_OF_Certificate */
-static int hf_ocsp_certs_item = -1;               /* Certificate */
-static int hf_ocsp_reqCert = -1;                  /* CertID */
-static int hf_ocsp_singleRequestExtensions = -1;  /* Extensions */
-static int hf_ocsp_hashAlgorithm = -1;            /* AlgorithmIdentifier */
-static int hf_ocsp_issuerNameHash = -1;           /* OCTET_STRING */
-static int hf_ocsp_issuerKeyHash = -1;            /* OCTET_STRING */
-static int hf_ocsp_serialNumber = -1;             /* CertificateSerialNumber */
-static int hf_ocsp_responseStatus = -1;           /* OCSPResponseStatus */
-static int hf_ocsp_responseBytes = -1;            /* ResponseBytes */
-static int hf_ocsp_responseType = -1;             /* T_responseType */
-static int hf_ocsp_response = -1;                 /* T_response */
-static int hf_ocsp_tbsResponseData = -1;          /* ResponseData */
-static int hf_ocsp_responderID = -1;              /* ResponderID */
-static int hf_ocsp_producedAt = -1;               /* GeneralizedTime */
-static int hf_ocsp_responses = -1;                /* SEQUENCE_OF_SingleResponse */
-static int hf_ocsp_responses_item = -1;           /* SingleResponse */
-static int hf_ocsp_responseExtensions = -1;       /* Extensions */
-static int hf_ocsp_byName = -1;                   /* Name */
-static int hf_ocsp_byKey = -1;                    /* KeyHash */
-static int hf_ocsp_certID = -1;                   /* CertID */
-static int hf_ocsp_certStatus = -1;               /* CertStatus */
-static int hf_ocsp_thisUpdate = -1;               /* GeneralizedTime */
-static int hf_ocsp_nextUpdate = -1;               /* GeneralizedTime */
-static int hf_ocsp_singleExtensions = -1;         /* Extensions */
-static int hf_ocsp_good = -1;                     /* NULL */
-static int hf_ocsp_revoked = -1;                  /* RevokedInfo */
-static int hf_ocsp_unknown = -1;                  /* UnknownInfo */
-static int hf_ocsp_revocationTime = -1;           /* GeneralizedTime */
-static int hf_ocsp_revocationReason = -1;         /* CRLReason */
-static int hf_ocsp_AcceptableResponses_item = -1;  /* OBJECT_IDENTIFIER */
-static int hf_ocsp_issuer = -1;                   /* Name */
-static int hf_ocsp_locator = -1;                  /* AuthorityInfoAccessSyntax */
-static int hf_ocsp_crlUrl = -1;                   /* IA5String */
-static int hf_ocsp_crlNum = -1;                   /* INTEGER */
-static int hf_ocsp_crlTime = -1;                  /* GeneralizedTime */
+int proto_ocsp;
+static int hf_ocsp_responseType_id;
+static int hf_ocsp_BasicOCSPResponse_PDU;         /* BasicOCSPResponse */
+static int hf_ocsp_ArchiveCutoff_PDU;             /* ArchiveCutoff */
+static int hf_ocsp_AcceptableResponses_PDU;       /* AcceptableResponses */
+static int hf_ocsp_ServiceLocator_PDU;            /* ServiceLocator */
+static int hf_ocsp_CrlID_PDU;                     /* CrlID */
+static int hf_ocsp_ReOcspNonce_PDU;               /* ReOcspNonce */
+static int hf_ocsp_NULL_PDU;                      /* NULL */
+static int hf_ocsp_tbsRequest;                    /* TBSRequest */
+static int hf_ocsp_optionalSignature;             /* Signature */
+static int hf_ocsp_version;                       /* Version */
+static int hf_ocsp_requestorName;                 /* GeneralName */
+static int hf_ocsp_requestList;                   /* SEQUENCE_OF_Request */
+static int hf_ocsp_requestList_item;              /* Request */
+static int hf_ocsp_requestExtensions;             /* Extensions */
+static int hf_ocsp_signatureAlgorithm;            /* AlgorithmIdentifier */
+static int hf_ocsp_signature;                     /* BIT_STRING */
+static int hf_ocsp_certs;                         /* SEQUENCE_OF_Certificate */
+static int hf_ocsp_certs_item;                    /* Certificate */
+static int hf_ocsp_reqCert;                       /* CertID */
+static int hf_ocsp_singleRequestExtensions;       /* Extensions */
+static int hf_ocsp_hashAlgorithm;                 /* AlgorithmIdentifier */
+static int hf_ocsp_issuerNameHash;                /* OCTET_STRING */
+static int hf_ocsp_issuerKeyHash;                 /* OCTET_STRING */
+static int hf_ocsp_serialNumber;                  /* CertificateSerialNumber */
+static int hf_ocsp_responseStatus;                /* OCSPResponseStatus */
+static int hf_ocsp_responseBytes;                 /* ResponseBytes */
+static int hf_ocsp_responseType;                  /* T_responseType */
+static int hf_ocsp_response;                      /* T_response */
+static int hf_ocsp_tbsResponseData;               /* ResponseData */
+static int hf_ocsp_responderID;                   /* ResponderID */
+static int hf_ocsp_producedAt;                    /* GeneralizedTime */
+static int hf_ocsp_responses;                     /* SEQUENCE_OF_SingleResponse */
+static int hf_ocsp_responses_item;                /* SingleResponse */
+static int hf_ocsp_responseExtensions;            /* Extensions */
+static int hf_ocsp_byName;                        /* Name */
+static int hf_ocsp_byKey;                         /* KeyHash */
+static int hf_ocsp_certID;                        /* CertID */
+static int hf_ocsp_certStatus;                    /* CertStatus */
+static int hf_ocsp_thisUpdate;                    /* GeneralizedTime */
+static int hf_ocsp_nextUpdate;                    /* GeneralizedTime */
+static int hf_ocsp_singleExtensions;              /* Extensions */
+static int hf_ocsp_good;                          /* NULL */
+static int hf_ocsp_revoked;                       /* RevokedInfo */
+static int hf_ocsp_unknown;                       /* UnknownInfo */
+static int hf_ocsp_revocationTime;                /* GeneralizedTime */
+static int hf_ocsp_revocationReason;              /* CRLReason */
+static int hf_ocsp_AcceptableResponses_item;      /* OBJECT_IDENTIFIER */
+static int hf_ocsp_issuer;                        /* Name */
+static int hf_ocsp_locator;                       /* AuthorityInfoAccessSyntax */
+static int hf_ocsp_crlUrl;                        /* IA5String */
+static int hf_ocsp_crlNum;                        /* INTEGER */
+static int hf_ocsp_crlTime;                       /* GeneralizedTime */
 
 /* Initialize the subtree pointers */
-static gint ett_ocsp = -1;
-static gint ett_ocsp_OCSPRequest = -1;
-static gint ett_ocsp_TBSRequest = -1;
-static gint ett_ocsp_SEQUENCE_OF_Request = -1;
-static gint ett_ocsp_Signature = -1;
-static gint ett_ocsp_SEQUENCE_OF_Certificate = -1;
-static gint ett_ocsp_Request = -1;
-static gint ett_ocsp_CertID = -1;
-static gint ett_ocsp_OCSPResponse = -1;
-static gint ett_ocsp_ResponseBytes = -1;
-static gint ett_ocsp_BasicOCSPResponse = -1;
-static gint ett_ocsp_ResponseData = -1;
-static gint ett_ocsp_SEQUENCE_OF_SingleResponse = -1;
-static gint ett_ocsp_ResponderID = -1;
-static gint ett_ocsp_SingleResponse = -1;
-static gint ett_ocsp_CertStatus = -1;
-static gint ett_ocsp_RevokedInfo = -1;
-static gint ett_ocsp_AcceptableResponses = -1;
-static gint ett_ocsp_ServiceLocator = -1;
-static gint ett_ocsp_CrlID = -1;
+static int ett_ocsp;
+static int ett_ocsp_OCSPRequest;
+static int ett_ocsp_TBSRequest;
+static int ett_ocsp_SEQUENCE_OF_Request;
+static int ett_ocsp_Signature;
+static int ett_ocsp_SEQUENCE_OF_Certificate;
+static int ett_ocsp_Request;
+static int ett_ocsp_CertID;
+static int ett_ocsp_OCSPResponse;
+static int ett_ocsp_ResponseBytes;
+static int ett_ocsp_BasicOCSPResponse;
+static int ett_ocsp_ResponseData;
+static int ett_ocsp_SEQUENCE_OF_SingleResponse;
+static int ett_ocsp_ResponderID;
+static int ett_ocsp_SingleResponse;
+static int ett_ocsp_CertStatus;
+static int ett_ocsp_RevokedInfo;
+static int ett_ocsp_AcceptableResponses;
+static int ett_ocsp_ServiceLocator;
+static int ett_ocsp_CrlID;
 
 
 
 static int
-dissect_ocsp_Version(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ocsp_Version(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_integer(implicit_tag, actx, tree, tvb, offset, hf_index,
                                                 NULL);
 
@@ -125,7 +129,7 @@ dissect_ocsp_Version(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U
 
 
 static int
-dissect_ocsp_OCTET_STRING(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ocsp_OCTET_STRING(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_octet_string(implicit_tag, actx, tree, tvb, offset, hf_index,
                                        NULL);
 
@@ -142,7 +146,7 @@ static const ber_sequence_t CertID_sequence[] = {
 };
 
 static int
-dissect_ocsp_CertID(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ocsp_CertID(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence(implicit_tag, actx, tree, tvb, offset,
                                    CertID_sequence, hf_index, ett_ocsp_CertID);
 
@@ -157,7 +161,7 @@ static const ber_sequence_t Request_sequence[] = {
 };
 
 static int
-dissect_ocsp_Request(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ocsp_Request(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence(implicit_tag, actx, tree, tvb, offset,
                                    Request_sequence, hf_index, ett_ocsp_Request);
 
@@ -170,7 +174,7 @@ static const ber_sequence_t SEQUENCE_OF_Request_sequence_of[1] = {
 };
 
 static int
-dissect_ocsp_SEQUENCE_OF_Request(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ocsp_SEQUENCE_OF_Request(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence_of(implicit_tag, actx, tree, tvb, offset,
                                       SEQUENCE_OF_Request_sequence_of, hf_index, ett_ocsp_SEQUENCE_OF_Request);
 
@@ -187,7 +191,7 @@ static const ber_sequence_t TBSRequest_sequence[] = {
 };
 
 static int
-dissect_ocsp_TBSRequest(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ocsp_TBSRequest(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence(implicit_tag, actx, tree, tvb, offset,
                                    TBSRequest_sequence, hf_index, ett_ocsp_TBSRequest);
 
@@ -197,7 +201,7 @@ dissect_ocsp_TBSRequest(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset
 
 
 static int
-dissect_ocsp_BIT_STRING(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ocsp_BIT_STRING(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_bitstring(implicit_tag, actx, tree, tvb, offset,
                                     NULL, 0, hf_index, -1,
                                     NULL);
@@ -211,7 +215,7 @@ static const ber_sequence_t SEQUENCE_OF_Certificate_sequence_of[1] = {
 };
 
 static int
-dissect_ocsp_SEQUENCE_OF_Certificate(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ocsp_SEQUENCE_OF_Certificate(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence_of(implicit_tag, actx, tree, tvb, offset,
                                       SEQUENCE_OF_Certificate_sequence_of, hf_index, ett_ocsp_SEQUENCE_OF_Certificate);
 
@@ -227,7 +231,7 @@ static const ber_sequence_t Signature_sequence[] = {
 };
 
 static int
-dissect_ocsp_Signature(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ocsp_Signature(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence(implicit_tag, actx, tree, tvb, offset,
                                    Signature_sequence, hf_index, ett_ocsp_Signature);
 
@@ -242,7 +246,7 @@ static const ber_sequence_t OCSPRequest_sequence[] = {
 };
 
 static int
-dissect_ocsp_OCSPRequest(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ocsp_OCSPRequest(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence(implicit_tag, actx, tree, tvb, offset,
                                    OCSPRequest_sequence, hf_index, ett_ocsp_OCSPRequest);
 
@@ -262,7 +266,7 @@ static const value_string ocsp_OCSPResponseStatus_vals[] = {
 
 
 static int
-dissect_ocsp_OCSPResponseStatus(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ocsp_OCSPResponseStatus(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_integer(implicit_tag, actx, tree, tvb, offset, hf_index,
                                   NULL);
 
@@ -272,10 +276,10 @@ dissect_ocsp_OCSPResponseStatus(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, in
 
 
 static int
-dissect_ocsp_T_responseType(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ocsp_T_responseType(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_object_identifier_str(implicit_tag, actx, tree, tvb, offset, hf_ocsp_responseType_id, &actx->external.direct_reference);
 
-  actx->external.direct_ref_present = (actx->external.direct_reference != NULL) ? TRUE : FALSE;
+  actx->external.direct_ref_present = (actx->external.direct_reference != NULL) ? true : false;
 
 
   return offset;
@@ -284,11 +288,11 @@ dissect_ocsp_T_responseType(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int of
 
 
 static int
-dissect_ocsp_T_response(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
-  gint8 appclass;
-  gboolean pc, ind;
-  gint32 tag;
-  guint32 len;
+dissect_ocsp_T_response(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+  int8_t appclass;
+  bool pc, ind;
+  int32_t tag;
+  uint32_t len;
   /* skip past the T and L  */
   offset = dissect_ber_identifier(actx->pinfo, tree, tvb, offset, &appclass, &pc, &tag);
   offset = dissect_ber_length(actx->pinfo, tree, tvb, offset, &len, &ind);
@@ -308,7 +312,7 @@ static const ber_sequence_t ResponseBytes_sequence[] = {
 };
 
 static int
-dissect_ocsp_ResponseBytes(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ocsp_ResponseBytes(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence(implicit_tag, actx, tree, tvb, offset,
                                    ResponseBytes_sequence, hf_index, ett_ocsp_ResponseBytes);
 
@@ -323,7 +327,7 @@ static const ber_sequence_t OCSPResponse_sequence[] = {
 };
 
 int
-dissect_ocsp_OCSPResponse(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ocsp_OCSPResponse(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence(implicit_tag, actx, tree, tvb, offset,
                                    OCSPResponse_sequence, hf_index, ett_ocsp_OCSPResponse);
 
@@ -333,7 +337,7 @@ dissect_ocsp_OCSPResponse(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offs
 
 
 static int
-dissect_ocsp_KeyHash(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ocsp_KeyHash(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_octet_string(implicit_tag, actx, tree, tvb, offset, hf_index,
                                        NULL);
 
@@ -354,7 +358,7 @@ static const ber_choice_t ResponderID_choice[] = {
 };
 
 static int
-dissect_ocsp_ResponderID(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ocsp_ResponderID(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_choice(actx, tree, tvb, offset,
                                  ResponderID_choice, hf_index, ett_ocsp_ResponderID,
                                  NULL);
@@ -365,7 +369,7 @@ dissect_ocsp_ResponderID(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offse
 
 
 static int
-dissect_ocsp_GeneralizedTime(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ocsp_GeneralizedTime(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_GeneralizedTime(implicit_tag, actx, tree, tvb, offset, hf_index);
 
   return offset;
@@ -374,7 +378,7 @@ dissect_ocsp_GeneralizedTime(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int o
 
 
 static int
-dissect_ocsp_NULL(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ocsp_NULL(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_null(implicit_tag, actx, tree, tvb, offset, hf_index);
 
   return offset;
@@ -388,7 +392,7 @@ static const ber_sequence_t RevokedInfo_sequence[] = {
 };
 
 static int
-dissect_ocsp_RevokedInfo(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ocsp_RevokedInfo(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence(implicit_tag, actx, tree, tvb, offset,
                                    RevokedInfo_sequence, hf_index, ett_ocsp_RevokedInfo);
 
@@ -398,7 +402,7 @@ dissect_ocsp_RevokedInfo(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offse
 
 
 static int
-dissect_ocsp_UnknownInfo(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ocsp_UnknownInfo(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_null(implicit_tag, actx, tree, tvb, offset, hf_index);
 
   return offset;
@@ -420,7 +424,7 @@ static const ber_choice_t CertStatus_choice[] = {
 };
 
 static int
-dissect_ocsp_CertStatus(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ocsp_CertStatus(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_choice(actx, tree, tvb, offset,
                                  CertStatus_choice, hf_index, ett_ocsp_CertStatus,
                                  NULL);
@@ -439,7 +443,7 @@ static const ber_sequence_t SingleResponse_sequence[] = {
 };
 
 static int
-dissect_ocsp_SingleResponse(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ocsp_SingleResponse(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence(implicit_tag, actx, tree, tvb, offset,
                                    SingleResponse_sequence, hf_index, ett_ocsp_SingleResponse);
 
@@ -452,7 +456,7 @@ static const ber_sequence_t SEQUENCE_OF_SingleResponse_sequence_of[1] = {
 };
 
 static int
-dissect_ocsp_SEQUENCE_OF_SingleResponse(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ocsp_SEQUENCE_OF_SingleResponse(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence_of(implicit_tag, actx, tree, tvb, offset,
                                       SEQUENCE_OF_SingleResponse_sequence_of, hf_index, ett_ocsp_SEQUENCE_OF_SingleResponse);
 
@@ -470,7 +474,7 @@ static const ber_sequence_t ResponseData_sequence[] = {
 };
 
 static int
-dissect_ocsp_ResponseData(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ocsp_ResponseData(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence(implicit_tag, actx, tree, tvb, offset,
                                    ResponseData_sequence, hf_index, ett_ocsp_ResponseData);
 
@@ -487,7 +491,7 @@ static const ber_sequence_t BasicOCSPResponse_sequence[] = {
 };
 
 static int
-dissect_ocsp_BasicOCSPResponse(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ocsp_BasicOCSPResponse(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence(implicit_tag, actx, tree, tvb, offset,
                                    BasicOCSPResponse_sequence, hf_index, ett_ocsp_BasicOCSPResponse);
 
@@ -497,7 +501,7 @@ dissect_ocsp_BasicOCSPResponse(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int
 
 
 static int
-dissect_ocsp_ArchiveCutoff(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ocsp_ArchiveCutoff(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_GeneralizedTime(implicit_tag, actx, tree, tvb, offset, hf_index);
 
   return offset;
@@ -506,7 +510,7 @@ dissect_ocsp_ArchiveCutoff(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int off
 
 
 static int
-dissect_ocsp_OBJECT_IDENTIFIER(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ocsp_OBJECT_IDENTIFIER(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_object_identifier(implicit_tag, actx, tree, tvb, offset, hf_index, NULL);
 
   return offset;
@@ -518,7 +522,7 @@ static const ber_sequence_t AcceptableResponses_sequence_of[1] = {
 };
 
 static int
-dissect_ocsp_AcceptableResponses(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ocsp_AcceptableResponses(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence_of(implicit_tag, actx, tree, tvb, offset,
                                       AcceptableResponses_sequence_of, hf_index, ett_ocsp_AcceptableResponses);
 
@@ -533,7 +537,7 @@ static const ber_sequence_t ServiceLocator_sequence[] = {
 };
 
 static int
-dissect_ocsp_ServiceLocator(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ocsp_ServiceLocator(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence(implicit_tag, actx, tree, tvb, offset,
                                    ServiceLocator_sequence, hf_index, ett_ocsp_ServiceLocator);
 
@@ -543,7 +547,7 @@ dissect_ocsp_ServiceLocator(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int of
 
 
 static int
-dissect_ocsp_IA5String(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ocsp_IA5String(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_restricted_string(implicit_tag, BER_UNI_TAG_IA5String,
                                             actx, tree, tvb, offset, hf_index,
                                             NULL);
@@ -554,7 +558,7 @@ dissect_ocsp_IA5String(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset 
 
 
 static int
-dissect_ocsp_INTEGER(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ocsp_INTEGER(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_integer(implicit_tag, actx, tree, tvb, offset, hf_index,
                                                 NULL);
 
@@ -570,7 +574,7 @@ static const ber_sequence_t CrlID_sequence[] = {
 };
 
 static int
-dissect_ocsp_CrlID(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ocsp_CrlID(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence(implicit_tag, actx, tree, tvb, offset,
                                    CrlID_sequence, hf_index, ett_ocsp_CrlID);
 
@@ -580,7 +584,7 @@ dissect_ocsp_CrlID(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_,
 
 
 static int
-dissect_ocsp_ReOcspNonce(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ocsp_ReOcspNonce(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_octet_string(implicit_tag, actx, tree, tvb, offset, hf_index,
                                        NULL);
 
@@ -592,50 +596,50 @@ dissect_ocsp_ReOcspNonce(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offse
 static int dissect_BasicOCSPResponse_PDU(tvbuff_t *tvb _U_, packet_info *pinfo _U_, proto_tree *tree _U_, void *data _U_) {
   int offset = 0;
   asn1_ctx_t asn1_ctx;
-  asn1_ctx_init(&asn1_ctx, ASN1_ENC_BER, TRUE, pinfo);
-  offset = dissect_ocsp_BasicOCSPResponse(FALSE, tvb, offset, &asn1_ctx, tree, hf_ocsp_BasicOCSPResponse_PDU);
+  asn1_ctx_init(&asn1_ctx, ASN1_ENC_BER, true, pinfo);
+  offset = dissect_ocsp_BasicOCSPResponse(false, tvb, offset, &asn1_ctx, tree, hf_ocsp_BasicOCSPResponse_PDU);
   return offset;
 }
 static int dissect_ArchiveCutoff_PDU(tvbuff_t *tvb _U_, packet_info *pinfo _U_, proto_tree *tree _U_, void *data _U_) {
   int offset = 0;
   asn1_ctx_t asn1_ctx;
-  asn1_ctx_init(&asn1_ctx, ASN1_ENC_BER, TRUE, pinfo);
-  offset = dissect_ocsp_ArchiveCutoff(FALSE, tvb, offset, &asn1_ctx, tree, hf_ocsp_ArchiveCutoff_PDU);
+  asn1_ctx_init(&asn1_ctx, ASN1_ENC_BER, true, pinfo);
+  offset = dissect_ocsp_ArchiveCutoff(false, tvb, offset, &asn1_ctx, tree, hf_ocsp_ArchiveCutoff_PDU);
   return offset;
 }
 static int dissect_AcceptableResponses_PDU(tvbuff_t *tvb _U_, packet_info *pinfo _U_, proto_tree *tree _U_, void *data _U_) {
   int offset = 0;
   asn1_ctx_t asn1_ctx;
-  asn1_ctx_init(&asn1_ctx, ASN1_ENC_BER, TRUE, pinfo);
-  offset = dissect_ocsp_AcceptableResponses(FALSE, tvb, offset, &asn1_ctx, tree, hf_ocsp_AcceptableResponses_PDU);
+  asn1_ctx_init(&asn1_ctx, ASN1_ENC_BER, true, pinfo);
+  offset = dissect_ocsp_AcceptableResponses(false, tvb, offset, &asn1_ctx, tree, hf_ocsp_AcceptableResponses_PDU);
   return offset;
 }
 static int dissect_ServiceLocator_PDU(tvbuff_t *tvb _U_, packet_info *pinfo _U_, proto_tree *tree _U_, void *data _U_) {
   int offset = 0;
   asn1_ctx_t asn1_ctx;
-  asn1_ctx_init(&asn1_ctx, ASN1_ENC_BER, TRUE, pinfo);
-  offset = dissect_ocsp_ServiceLocator(FALSE, tvb, offset, &asn1_ctx, tree, hf_ocsp_ServiceLocator_PDU);
+  asn1_ctx_init(&asn1_ctx, ASN1_ENC_BER, true, pinfo);
+  offset = dissect_ocsp_ServiceLocator(false, tvb, offset, &asn1_ctx, tree, hf_ocsp_ServiceLocator_PDU);
   return offset;
 }
 static int dissect_CrlID_PDU(tvbuff_t *tvb _U_, packet_info *pinfo _U_, proto_tree *tree _U_, void *data _U_) {
   int offset = 0;
   asn1_ctx_t asn1_ctx;
-  asn1_ctx_init(&asn1_ctx, ASN1_ENC_BER, TRUE, pinfo);
-  offset = dissect_ocsp_CrlID(FALSE, tvb, offset, &asn1_ctx, tree, hf_ocsp_CrlID_PDU);
+  asn1_ctx_init(&asn1_ctx, ASN1_ENC_BER, true, pinfo);
+  offset = dissect_ocsp_CrlID(false, tvb, offset, &asn1_ctx, tree, hf_ocsp_CrlID_PDU);
   return offset;
 }
 static int dissect_ReOcspNonce_PDU(tvbuff_t *tvb _U_, packet_info *pinfo _U_, proto_tree *tree _U_, void *data _U_) {
   int offset = 0;
   asn1_ctx_t asn1_ctx;
-  asn1_ctx_init(&asn1_ctx, ASN1_ENC_BER, TRUE, pinfo);
-  offset = dissect_ocsp_ReOcspNonce(FALSE, tvb, offset, &asn1_ctx, tree, hf_ocsp_ReOcspNonce_PDU);
+  asn1_ctx_init(&asn1_ctx, ASN1_ENC_BER, true, pinfo);
+  offset = dissect_ocsp_ReOcspNonce(false, tvb, offset, &asn1_ctx, tree, hf_ocsp_ReOcspNonce_PDU);
   return offset;
 }
 static int dissect_NULL_PDU(tvbuff_t *tvb _U_, packet_info *pinfo _U_, proto_tree *tree _U_, void *data _U_) {
   int offset = 0;
   asn1_ctx_t asn1_ctx;
-  asn1_ctx_init(&asn1_ctx, ASN1_ENC_BER, TRUE, pinfo);
-  offset = dissect_ocsp_NULL(FALSE, tvb, offset, &asn1_ctx, tree, hf_ocsp_NULL_PDU);
+  asn1_ctx_init(&asn1_ctx, ASN1_ENC_BER, true, pinfo);
+  offset = dissect_ocsp_NULL(false, tvb, offset, &asn1_ctx, tree, hf_ocsp_NULL_PDU);
   return offset;
 }
 
@@ -647,7 +651,7 @@ dissect_ocsp_request(tvbuff_t *tvb, packet_info *pinfo, proto_tree *parent_tree,
 	proto_item *item=NULL;
 	proto_tree *tree=NULL;
 	asn1_ctx_t asn1_ctx;
-	asn1_ctx_init(&asn1_ctx, ASN1_ENC_BER, TRUE, pinfo);
+	asn1_ctx_init(&asn1_ctx, ASN1_ENC_BER, true, pinfo);
 
 	col_set_str(pinfo->cinfo, COL_PROTOCOL, "OCSP");
 
@@ -659,7 +663,7 @@ dissect_ocsp_request(tvbuff_t *tvb, packet_info *pinfo, proto_tree *parent_tree,
 		tree = proto_item_add_subtree(item, ett_ocsp);
 	}
 
-	return dissect_ocsp_OCSPRequest(FALSE, tvb, 0, &asn1_ctx, tree, -1);
+	return dissect_ocsp_OCSPRequest(false, tvb, 0, &asn1_ctx, tree, -1);
 }
 
 
@@ -669,7 +673,7 @@ dissect_ocsp_response(tvbuff_t *tvb, packet_info *pinfo, proto_tree *parent_tree
 	proto_item *item=NULL;
 	proto_tree *tree=NULL;
 	asn1_ctx_t asn1_ctx;
-	asn1_ctx_init(&asn1_ctx, ASN1_ENC_BER, TRUE, pinfo);
+	asn1_ctx_init(&asn1_ctx, ASN1_ENC_BER, true, pinfo);
 
 	col_set_str(pinfo->cinfo, COL_PROTOCOL, "OCSP");
 
@@ -681,7 +685,7 @@ dissect_ocsp_response(tvbuff_t *tvb, packet_info *pinfo, proto_tree *parent_tree
 		tree = proto_item_add_subtree(item, ett_ocsp);
 	}
 
-	return dissect_ocsp_OCSPResponse(FALSE, tvb, 0, &asn1_ctx, tree, -1);
+	return dissect_ocsp_OCSPResponse(false, tvb, 0, &asn1_ctx, tree, -1);
 }
 
 /*--- proto_register_ocsp ----------------------------------------------*/
@@ -904,7 +908,7 @@ void proto_register_ocsp(void) {
   };
 
   /* List of subtrees */
-  static gint *ett[] = {
+  static int *ett[] = {
     &ett_ocsp,
     &ett_ocsp_OCSPRequest,
     &ett_ocsp_TBSRequest,
@@ -934,16 +938,13 @@ void proto_register_ocsp(void) {
   proto_register_field_array(proto_ocsp, hf, array_length(hf));
   proto_register_subtree_array(ett, array_length(ett));
 
+  /* Register dissectors */
+  ocsp_request_handle = register_dissector(PFNAME "_req", dissect_ocsp_request, proto_ocsp);
+  ocsp_response_handle = register_dissector(PFNAME "_res", dissect_ocsp_response, proto_ocsp);
 }
 
 /*--- proto_reg_handoff_ocsp -------------------------------------------*/
 void proto_reg_handoff_ocsp(void) {
-	dissector_handle_t ocsp_request_handle;
-	dissector_handle_t ocsp_response_handle;
-
-	ocsp_request_handle = create_dissector_handle(dissect_ocsp_request, proto_ocsp);
-	ocsp_response_handle = create_dissector_handle(dissect_ocsp_response, proto_ocsp);
-
 	dissector_add_string("media_type", "application/ocsp-request", ocsp_request_handle);
 	dissector_add_string("media_type", "application/ocsp-response", ocsp_response_handle);
 

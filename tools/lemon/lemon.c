@@ -2106,6 +2106,7 @@ int OptInit(char **a, struct s_options *o, FILE *err)
   if( g_argv && *g_argv && op ){
     int i;
     for(i=1; g_argv[i]; i++){
+      if( strcmp(g_argv[i],"--")==0 ) break;
       if( g_argv[i][0]=='+' || g_argv[i][0]=='-' ){
         errcnt += handleflags(i,err);
       }else if( strchr(g_argv[i],'=') ){
@@ -5847,7 +5848,7 @@ int Configtable_insert(struct config *data)
       newnp->from = &(array.ht[h]);
       array.ht[h] = newnp;
     }
-    /* free(x4a->tbl); // This code was originall written for 16-bit machines.
+    /* free(x4a->tbl); // This code was originally written for 16-bit machines.
     ** on modern machines, don't worry about freeing this trival amount of
     ** memory. */
     *x4a = array;

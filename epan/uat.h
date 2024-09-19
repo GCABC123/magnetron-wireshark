@@ -112,11 +112,17 @@ typedef void (*uat_reset_cb_t)(void);
  * fields had been updated (either from file or after modifications in the GUI).
  *
  * Optional, the record will be considered valid if the callback is omitted.
- * It must return TRUE if the contents are considered valid and FALSE otherwise
+ * It must return true if the contents are considered valid and false otherwise
  * in which case the failure reason is set in 'error'. The error string will be
  * freed by g_free.
+ *
+ * XXX: This should only validate the record. Any changes to the record
+ * made here will *not* be persistent if the UAT is saved again, unless
+ * the same changes are also done to a new record created by the copy cb,
+ * e.g. by having the the copy callback call this.
+ * It should probably be made into a const void* to make that clear.
  */
-typedef gboolean (*uat_update_cb_t)(void *record, char **error);
+typedef bool (*uat_update_cb_t)(void *record, char **error);
 
 
 /*******
@@ -129,14 +135,14 @@ typedef gboolean (*uat_update_cb_t)(void *record, char **error);
  * chk(record, ptr, len, chk_data, fld_data, &error)
  *
  * given an input string (ptr, len) checks if the value is OK for a field in the record.
- * it will return TRUE if OK or else
- * it will return FALSE and set *error to inform the user on what's
+ * it will return true if OK or else
+ * it will return false and set *error to inform the user on what's
  * wrong with the given input
  * The error string must be allocated with g_malloc() or
  * a routine that calls it.
  * optional, if not given any input is considered OK and the set cb will be called
  */
-typedef gboolean (*uat_fld_chk_cb_t)(void *record, const char *ptr, unsigned len, const void *chk_data, const void *fld_data, char **error);
+typedef bool (*uat_fld_chk_cb_t)(void *record, const char *ptr, unsigned len, const void *chk_data, const void *fld_data, char **error);
 
 /*
  * Set Field CB
@@ -165,59 +171,59 @@ typedef void (*uat_fld_tostr_cb_t)(void *record, char **out_ptr, unsigned *out_l
  ***********/
 
 typedef enum _uat_text_mode_t {
-	PT_TXTMOD_NONE,
-	/* not used */
+    PT_TXTMOD_NONE,
+    /* not used */
 
-	PT_TXTMOD_STRING,
-	/*
-	 file:
-		 reads:
-			 ,"\x20\x00\x30", as " \00",3 ("space nil zero" of length 3)
-			 ,"", as "",0
-			 ,, as NULL,0
-		 writes:
-			 ,"\x20\x30\x00\x20", for " 0\0 ",4
-			 ,"", for *, 0
-			 ,, for NULL, *
-	 dialog:
-		 accepts \x?? and other escapes
-		 gets "",0 on empty string
-	 */
-	PT_TXTMOD_HEXBYTES,
-	/*
-	 file:
-		 reads:
-			 ,A1b2C3d4, as "\xa1\xb2\xc3\xd4",4
-			 ,, as NULL,0
-		 writes:
-			 ,, on NULL, *
-			 ,a1b2c3d4, on "\xa1\xb2\xc3\xd4",4
-	 dialog:
-		 interprets the following input ... as ...:
-		 "a1b2c3d4" as "\xa1\xb2\xc3\xd4",4
-		 "a1 b2:c3d4" as "\xa1\xb2\xc3\xd4",4
-		 "" as NULL,0
-		 "invalid" as NULL,3
-		 "a1b" as NULL, 1
-	 */
-	PT_TXTMOD_ENUM,
-	/* Read/Writes/displays the string value (not number!) */
-	PT_TXTMOD_DISSECTOR,
-	/* Shows a combobox of dissectors */
+    PT_TXTMOD_STRING,
+    /*
+     file:
+         reads:
+             ,"\x20\x00\x30", as " \00",3 ("space nil zero" of length 3)
+             ,"", as "",0
+             ,, as NULL,0
+         writes:
+             ,"\x20\x30\x00\x20", for " 0\0 ",4
+             ,"", for *, 0
+             ,, for NULL, *
+     dialog:
+         accepts \x?? and other escapes
+         gets "",0 on empty string
+     */
+    PT_TXTMOD_HEXBYTES,
+    /*
+     file:
+         reads:
+             ,A1b2C3d4, as "\xa1\xb2\xc3\xd4",4
+             ,, as NULL,0
+         writes:
+             ,, on NULL, *
+             ,a1b2c3d4, on "\xa1\xb2\xc3\xd4",4
+     dialog:
+         interprets the following input ... as ...:
+         "a1b2c3d4" as "\xa1\xb2\xc3\xd4",4
+         "a1 b2:c3d4" as "\xa1\xb2\xc3\xd4",4
+         "" as NULL,0
+         "invalid" as NULL,3
+         "a1b" as NULL, 1
+     */
+    PT_TXTMOD_ENUM,
+    /* Read/Writes/displays the string value (not number!) */
+    PT_TXTMOD_DISSECTOR,
+    /* Shows a combobox of dissectors */
 
-	PT_TXTMOD_COLOR,
-	/* Reads/Writes/display color in #RRGGBB format */
+    PT_TXTMOD_COLOR,
+    /* Reads/Writes/display color in #RRGGBB format */
 
-	PT_TXTMOD_FILENAME,
-	/* processed like a PT_TXTMOD_STRING, but shows a filename dialog */
-	PT_TXTMOD_DIRECTORYNAME,
-	/* processed like a PT_TXTMOD_STRING, but shows a directory dialog */
-	PT_TXTMOD_DISPLAY_FILTER,
-	/* processed like a PT_TXTMOD_STRING, but verifies display filter */
-	PT_TXTMOD_PROTO_FIELD,
-	/* processed like a PT_TXTMOD_STRING, but verifies protocol field name (e.g tcp.flags.syn) */
-	PT_TXTMOD_BOOL
-	/* Displays a checkbox for value */
+    PT_TXTMOD_FILENAME,
+    /* processed like a PT_TXTMOD_STRING, but shows a filename dialog */
+    PT_TXTMOD_DIRECTORYNAME,
+    /* processed like a PT_TXTMOD_STRING, but shows a directory dialog */
+    PT_TXTMOD_DISPLAY_FILTER,
+    /* processed like a PT_TXTMOD_STRING, but verifies display filter */
+    PT_TXTMOD_PROTO_FIELD,
+    /* processed like a PT_TXTMOD_STRING, but verifies protocol field name (e.g tcp.flags.syn) */
+    PT_TXTMOD_BOOL
+    /* Displays a checkbox for value */
 } uat_text_mode_t;
 
 /*
@@ -226,26 +232,26 @@ typedef enum _uat_text_mode_t {
  *
  */
 typedef struct _uat_field_t {
-	const char* name;
-	const char* title;
-	uat_text_mode_t mode;
+    const char* name;
+    const char* title;
+    uat_text_mode_t mode;
 
-	struct {
-		uat_fld_chk_cb_t chk;
-		uat_fld_set_cb_t set;
-		uat_fld_tostr_cb_t tostr;
-	} cb;
+    struct {
+        uat_fld_chk_cb_t chk;
+        uat_fld_set_cb_t set;
+        uat_fld_tostr_cb_t tostr;
+    } cb;
 
-	struct {
-		const void* chk;
-		const void* set;
-		const void* tostr;
-	} cbdata;
+    struct {
+        const void* chk;
+        const void* set;
+        const void* tostr;
+    } cbdata;
 
-	const void* fld_data;
+    const void* fld_data;
 
-	const char* desc;
-	struct _fld_data_t* priv;
+    const char* desc;
+    struct _fld_data_t* priv;
 } uat_field_t;
 
 #define FLDFILL NULL
@@ -255,6 +261,10 @@ typedef struct _uat_field_t {
  * Flags to indicate what the settings in this UAT affect.
  * This is used when UATs are changed interactively, to indicate what needs
  * to be redone when the UAT is changed.
+ *
+ * UAT_AFFECTS_FIELDS does *not* trigger a redissection, so usually one
+ * will also want UAT_AFFECTS_DISSECTION. A rare exception is changing
+ * the defined dfilter macros.
  */
 #define UAT_AFFECTS_DISSECTION	0x00000001	/* affects packet dissection */
 #define UAT_AFFECTS_FIELDS	0x00000002	/* affects what named fields exist */
@@ -264,7 +274,7 @@ typedef struct _uat_field_t {
  * @param name The name of the table
  * @param size The size of the structure
  * @param filename The filename to be used (either in userdir or datadir)
- * @param from_profile TRUE if profile directory to be used
+ * @param from_profile true if profile directory to be used
  * @param data_ptr Although a void*, this is really a pointer to a null terminated array of pointers to the data
  * @param num_items_ptr A pointer with number of items
  * @param flags flags indicating what this UAT affects
@@ -280,19 +290,25 @@ typedef struct _uat_field_t {
  */
 WS_DLL_PUBLIC
 uat_t* uat_new(const char* name,
-			   size_t size,
-			   const char* filename,
-			   gboolean from_profile,
-			   void* data_ptr,
-			   guint* num_items_ptr,
-			   guint flags,
-			   const char* help,
-			   uat_copy_cb_t copy_cb,
-			   uat_update_cb_t update_cb,
-			   uat_free_cb_t free_cb,
-			   uat_post_update_cb_t post_update_cb,
-			   uat_reset_cb_t reset_cb,
-			   uat_field_t* flds_array);
+               size_t size,
+               const char* filename,
+               bool from_profile,
+               void* data_ptr,
+               unsigned* num_items_ptr,
+               unsigned flags,
+               const char* help,
+               uat_copy_cb_t copy_cb,
+               uat_update_cb_t update_cb,
+               uat_free_cb_t free_cb,
+               uat_post_update_cb_t post_update_cb,
+               uat_reset_cb_t reset_cb,
+               uat_field_t* flds_array);
+
+/** Free and deregister a single UAT.
+ *
+ */
+WS_DLL_PUBLIC
+void uat_destroy(uat_t *uat);
 
 /** Cleanup all UATs.
  *
@@ -305,10 +321,10 @@ void uat_cleanup(void);
  * @param filename Filename to load, NULL to fetch from current profile.
  * @param err Upon failure, points to an error string.
  *
- * @return TRUE on success, FALSE on failure.
+ * @return true on success, false on failure.
  */
 WS_DLL_PUBLIC
-gboolean uat_load(uat_t* uat_in, const gchar *filename, char** err);
+bool uat_load(uat_t* uat_in, const char *filename, char** err);
 
 /** Create or update a single UAT entry using a string.
  *
@@ -317,9 +333,9 @@ gboolean uat_load(uat_t* uat_in, const gchar *filename, char** err);
  * what's written to the uat's output file.
  * @param err Upon failure, points to an error string.
  *
- * @return TRUE on success, FALSE on failure.
+ * @return true on success, false on failure.
  */
-gboolean uat_load_str(uat_t* uat_in, char* entry, char** err);
+bool uat_load_str(uat_t* uat_in, const char* entry, char** err);
 
 /** Given a UAT name or filename, find its pointer.
  *
@@ -327,7 +343,7 @@ gboolean uat_load_str(uat_t* uat_in, char* entry, char** err);
  *
  * @return A pointer to the uat on success, NULL on failure.
  */
-uat_t *uat_find(gchar *name);
+uat_t *uat_find(char *name);
 
 WS_DLL_PUBLIC
 uat_t* uat_get_table_by_name(const char* name);
@@ -352,57 +368,57 @@ void uat_set_default_values(uat_t *uat_in, const char *default_values[]);
  * Some common uat_fld_chk_cbs
  */
 WS_DLL_PUBLIC
-gboolean uat_fld_chk_str(void*, const char*, unsigned, const void*, const void*, char** err);
-gboolean uat_fld_chk_oid(void*, const char*, unsigned, const void*, const void*, char** err);
+bool uat_fld_chk_str(void*, const char*, unsigned, const void*, const void*, char** err);
+bool uat_fld_chk_oid(void*, const char*, unsigned, const void*, const void*, char** err);
 WS_DLL_PUBLIC
-gboolean uat_fld_chk_proto(void*, const char*, unsigned, const void*, const void*, char** err);
+bool uat_fld_chk_proto(void*, const char*, unsigned, const void*, const void*, char** err);
 WS_DLL_PUBLIC
-gboolean uat_fld_chk_num_dec(void*, const char*, unsigned, const void*, const void*, char** err);
+bool uat_fld_chk_num_dec(void*, const char*, unsigned, const void*, const void*, char** err);
 WS_DLL_PUBLIC
-gboolean uat_fld_chk_num_dec64(void*, const char*, unsigned, const void*, const void*, char** err);
+bool uat_fld_chk_num_dec64(void*, const char*, unsigned, const void*, const void*, char** err);
 WS_DLL_PUBLIC
-gboolean uat_fld_chk_num_hex(void*, const char*, unsigned, const void*, const void*, char** err);
+bool uat_fld_chk_num_hex(void*, const char*, unsigned, const void*, const void*, char** err);
 WS_DLL_PUBLIC
-gboolean uat_fld_chk_num_hex64(void*, const char*, unsigned, const void*, const void*, char** err);
+bool uat_fld_chk_num_hex64(void*, const char*, unsigned, const void*, const void*, char** err);
 WS_DLL_PUBLIC
-gboolean uat_fld_chk_num_signed_dec(void*, const char*, unsigned, const void*, const void*, char** err);
+bool uat_fld_chk_num_signed_dec(void*, const char*, unsigned, const void*, const void*, char** err);
 WS_DLL_PUBLIC
-gboolean uat_fld_chk_num_signed_dec64(void*, const char*, unsigned, const void*, const void*, char** err);
+bool uat_fld_chk_num_signed_dec64(void*, const char*, unsigned, const void*, const void*, char** err);
 WS_DLL_PUBLIC
-gboolean uat_fld_chk_bool(void*, const char*, unsigned, const void*, const void*, char** err);
+bool uat_fld_chk_bool(void*, const char*, unsigned, const void*, const void*, char** err);
 WS_DLL_PUBLIC
-gboolean uat_fld_chk_enum(void*, const char*, unsigned, const void*, const void*, char**);
+bool uat_fld_chk_enum(void*, const char*, unsigned, const void*, const void*, char**);
 WS_DLL_PUBLIC
-gboolean uat_fld_chk_range(void*, const char*, unsigned, const void*, const void*, char**);
+bool uat_fld_chk_range(void*, const char*, unsigned, const void*, const void*, char**);
 WS_DLL_PUBLIC
-gboolean uat_fld_chk_color(void*, const char*, unsigned, const void*, const void*, char**);
+bool uat_fld_chk_color(void*, const char*, unsigned, const void*, const void*, char**);
 
 typedef void (*uat_cb_t)(void* uat,void* user_data);
 WS_DLL_PUBLIC
 void uat_foreach_table(uat_cb_t cb,void* user_data);
 void uat_unload_all(void);
 
-char* uat_undquote(const char* si, guint in_len, guint* len_p);
-char* uat_unbinstring(const char* si, guint in_len, guint* len_p);
-char* uat_unesc(const char* si, guint in_len, guint* len_p);
-char* uat_esc(const char* buf, guint len);
+char* uat_undquote(const char* si, unsigned in_len, unsigned* len_p);
+char* uat_unbinstring(const char* si, unsigned in_len, unsigned* len_p);
+char* uat_unesc(const char* si, unsigned in_len, unsigned* len_p);
+char* uat_esc(const char* buf, unsigned len);
 
 /* Some strings entirely made of ... already declared */
 
 WS_DLL_PUBLIC
-gboolean uat_fld_chk_str_isprint(void*, const char*, unsigned, const void*, const void*, char**);
+bool uat_fld_chk_str_isprint(void*, const char*, unsigned, const void*, const void*, char**);
 
 WS_DLL_PUBLIC
-gboolean uat_fld_chk_str_isalpha(void*, const char*, unsigned, const void*, const void*, char**);
+bool uat_fld_chk_str_isalpha(void*, const char*, unsigned, const void*, const void*, char**);
 
 WS_DLL_PUBLIC
-gboolean uat_fld_chk_str_isalnum(void*, const char*, unsigned, const void*, const void*, char**);
+bool uat_fld_chk_str_isalnum(void*, const char*, unsigned, const void*, const void*, char**);
 
 WS_DLL_PUBLIC
-gboolean uat_fld_chk_str_isdigit(void*, const char*, unsigned, const void*, const void*, char**);
+bool uat_fld_chk_str_isdigit(void*, const char*, unsigned, const void*, const void*, char**);
 
 WS_DLL_PUBLIC
-gboolean uat_fld_chk_str_isxdigit(void*, const char*, unsigned, const void*, const void*, char**);
+bool uat_fld_chk_str_isxdigit(void*, const char*, unsigned, const void*, const void*, char**);
 
 
 /*
@@ -422,25 +438,26 @@ gboolean uat_fld_chk_str_isxdigit(void*, const char*, unsigned, const void*, con
  *    a simple c-string contained in (((rec_t*)rec)->(field_name))
  */
 #define UAT_CSTRING_CB_DEF(basename,field_name,rec_t) \
-static void basename ## _ ## field_name ## _set_cb(void* rec, const char* buf, guint len, const void* UNUSED_PARAMETER(u1), const void* UNUSED_PARAMETER(u2)) {\
+static void basename ## _ ## field_name ## _set_cb(void* rec, const char* buf, unsigned len, const void* UNUSED_PARAMETER(u1), const void* UNUSED_PARAMETER(u2)) {\
     char* new_buf = g_strndup(buf,len); \
-	g_free((((rec_t*)rec)->field_name)); \
-	(((rec_t*)rec)->field_name) = new_buf; } \
+    g_free((((rec_t*)rec)->field_name)); \
+    (((rec_t*)rec)->field_name) = new_buf; } \
 static void basename ## _ ## field_name ## _tostr_cb(void* rec, char** out_ptr, unsigned* out_len, const void* UNUSED_PARAMETER(u1), const void* UNUSED_PARAMETER(u2)) {\
-		if (((rec_t*)rec)->field_name ) { \
-			*out_ptr = g_strdup((((rec_t*)rec)->field_name)); \
-			*out_len = (unsigned)strlen((((rec_t*)rec)->field_name)); \
-		} else { \
-			*out_ptr = g_strdup(""); *out_len = 0; } }
+    if (((rec_t*)rec)->field_name ) { \
+        *out_ptr = g_strdup((((rec_t*)rec)->field_name)); \
+        *out_len = (unsigned)strlen((((rec_t*)rec)->field_name)); \
+    } else { \
+        *out_ptr = g_strdup(""); *out_len = 0; \
+    } }
 
 #define UAT_FLD_CSTRING(basename,field_name,title,desc) \
-	{#field_name, title, PT_TXTMOD_STRING,{uat_fld_chk_str,basename ## _ ## field_name ## _set_cb,basename ## _ ## field_name ## _tostr_cb},{0,0,0},0,desc,FLDFILL}
+    {#field_name, title, PT_TXTMOD_STRING,{uat_fld_chk_str,basename ## _ ## field_name ## _set_cb,basename ## _ ## field_name ## _tostr_cb},{0,0,0},0,desc,FLDFILL}
 
 #define UAT_FLD_CSTRING_ISPRINT(basename,field_name,title,desc) \
-	{#field_name, title, PT_TXTMOD_STRING,{uat_fld_chk_str_isprint,basename ## _ ## field_name ## _set_cb,basename ## _ ## field_name ## _tostr_cb},{0,0,0},0,desc,FLDFILL}
+    {#field_name, title, PT_TXTMOD_STRING,{uat_fld_chk_str_isprint,basename ## _ ## field_name ## _set_cb,basename ## _ ## field_name ## _tostr_cb},{0,0,0},0,desc,FLDFILL}
 
 #define UAT_FLD_CSTRING_OTHER(basename,field_name,title,chk,desc) \
-	{#field_name, title, PT_TXTMOD_STRING,{ chk ,basename ## _ ## field_name ## _set_cb,basename ## _ ## field_name ## _tostr_cb},{0,0,0},0,desc,FLDFILL}
+    {#field_name, title, PT_TXTMOD_STRING,{ chk ,basename ## _ ## field_name ## _set_cb,basename ## _ ## field_name ## _tostr_cb},{0,0,0},0,desc,FLDFILL}
 
 /*
  * FILENAME and DIRECTORYNAME,
@@ -450,7 +467,7 @@ static void basename ## _ ## field_name ## _tostr_cb(void* rec, char** out_ptr, 
 
 /* XXX UAT_FLD_FILENAME is currently unused. */
 #define UAT_FLD_FILENAME(basename,field_name,title,desc) \
-	{#field_name, title, PT_TXTMOD_FILENAME,{uat_fld_chk_str,basename ## _ ## field_name ## _set_cb,basename ## _ ## field_name ## _tostr_cb},{0,0,0},0,desc,FLDFILL}
+    {#field_name, title, PT_TXTMOD_FILENAME,{uat_fld_chk_str,basename ## _ ## field_name ## _set_cb,basename ## _ ## field_name ## _tostr_cb},{0,0,0},0,desc,FLDFILL}
 
 /*
  * Both the Qt and GTK+ UIs assume that we're opening a preexisting
@@ -459,12 +476,12 @@ static void basename ## _ ## field_name ## _tostr_cb(void* rec, char** out_ptr, 
  * file that we're creating.
  */
 #define UAT_FLD_FILENAME_OTHER(basename,field_name,title,chk,desc) \
-	{#field_name, title, PT_TXTMOD_FILENAME,{chk,basename ## _ ## field_name ## _set_cb,basename ## _ ## field_name ## _tostr_cb},{0,0,0},0,desc,FLDFILL}
+    {#field_name, title, PT_TXTMOD_FILENAME,{chk,basename ## _ ## field_name ## _set_cb,basename ## _ ## field_name ## _tostr_cb},{0,0,0},0,desc,FLDFILL}
 
 #define UAT_DIRECTORYNAME_CB_DEF(basename,field_name,rec_t) UAT_CSTRING_CB_DEF(basename,field_name,rec_t)
 
 #define UAT_FLD_DIRECTORYNAME(basename,field_name,title,desc) \
-	{#field_name, title, PT_TXTMOD_DIRECTORYNAME,{uat_fld_chk_str,basename ## _ ## field_name ## _set_cb,basename ## _ ## field_name ## _tostr_cb},{0,0,0},0,desc,FLDFILL}
+    {#field_name, title, PT_TXTMOD_DIRECTORYNAME,{uat_fld_chk_str,basename ## _ ## field_name ## _set_cb,basename ## _ ## field_name ## _tostr_cb},{0,0,0},0,desc,FLDFILL}
 
 /*
  * DISPLAY_FILTER,
@@ -473,7 +490,7 @@ static void basename ## _ ## field_name ## _tostr_cb(void* rec, char** out_ptr, 
 #define UAT_DISPLAY_FILTER_CB_DEF(basename,field_name,rec_t) UAT_CSTRING_CB_DEF(basename,field_name,rec_t)
 
 #define UAT_FLD_DISPLAY_FILTER(basename,field_name,title,desc) \
-	{#field_name, title, PT_TXTMOD_DISPLAY_FILTER, {uat_fld_chk_str,basename ## _ ## field_name ## _set_cb,basename ## _ ## field_name ## _tostr_cb},{0,0,0},0,desc,FLDFILL}
+    {#field_name, title, PT_TXTMOD_DISPLAY_FILTER, {uat_fld_chk_str,basename ## _ ## field_name ## _set_cb,basename ## _ ## field_name ## _tostr_cb},{0,0,0},0,desc,FLDFILL}
 
 /*
  * PROTO_FIELD,
@@ -482,32 +499,31 @@ static void basename ## _ ## field_name ## _tostr_cb(void* rec, char** out_ptr, 
 #define UAT_PROTO_FIELD_CB_DEF(basename,field_name,rec_t) UAT_CSTRING_CB_DEF(basename,field_name,rec_t)
 
 #define UAT_FLD_PROTO_FIELD(basename,field_name,title,desc) \
-	{#field_name, title, PT_TXTMOD_PROTO_FIELD, {uat_fld_chk_str,basename ## _ ## field_name ## _set_cb,basename ## _ ## field_name ## _tostr_cb},{0,0,0},0,desc,FLDFILL}
+    {#field_name, title, PT_TXTMOD_PROTO_FIELD, {uat_fld_chk_str,basename ## _ ## field_name ## _set_cb,basename ## _ ## field_name ## _tostr_cb},{0,0,0},0,desc,FLDFILL}
 
 /*
  * OID - just a CSTRING with a specific check routine
  */
 #define UAT_FLD_OID(basename,field_name,title,desc) \
-	{#field_name, title, PT_TXTMOD_STRING,{uat_fld_chk_oid,basename ## _ ## field_name ## _set_cb,basename ## _ ## field_name ## _tostr_cb},{0,0,0},0,desc,FLDFILL}
+    {#field_name, title, PT_TXTMOD_STRING,{uat_fld_chk_oid,basename ## _ ## field_name ## _set_cb,basename ## _ ## field_name ## _tostr_cb},{0,0,0},0,desc,FLDFILL}
 
 
 /*
  * LSTRING MACROS
  */
 #define UAT_LSTRING_CB_DEF(basename,field_name,rec_t,ptr_element,len_element) \
-static void basename ## _ ## field_name ## _set_cb(void* rec, const char* buf, guint len, const void* UNUSED_PARAMETER(u1), const void* UNUSED_PARAMETER(u2)) {\
-	char* new_val = uat_unesc(buf,len,&(((rec_t*)rec)->len_element)); \
-        g_free((((rec_t*)rec)->ptr_element)); \
-	(((rec_t*)rec)->ptr_element) = new_val; }\
+static void basename ## _ ## field_name ## _set_cb(void* rec, const char* buf, unsigned len, const void* UNUSED_PARAMETER(u1), const void* UNUSED_PARAMETER(u2)) {\
+    char* new_val = uat_unesc(buf,len,&(((rec_t*)rec)->len_element)); \
+    g_free((((rec_t*)rec)->ptr_element)); \
+    (((rec_t*)rec)->ptr_element) = new_val; } \
 static void basename ## _ ## field_name ## _tostr_cb(void* rec, char** out_ptr, unsigned* out_len, const void* UNUSED_PARAMETER(u1), const void* UNUSED_PARAMETER(u2)) {\
-	if (((rec_t*)rec)->ptr_element ) { \
-		*out_ptr = uat_esc(((rec_t*)rec)->ptr_element, (((rec_t*)rec)->len_element)); \
-		*out_len = (unsigned)strlen(*out_ptr); \
-	} else { \
-		*out_ptr = g_strdup(""); \
-		*out_len = 0; \
-	} \
-}
+    if (((rec_t*)rec)->ptr_element ) { \
+        *out_ptr = uat_esc(((rec_t*)rec)->ptr_element, (((rec_t*)rec)->len_element)); \
+        *out_len = (unsigned)strlen(*out_ptr); \
+    } else { \
+        *out_ptr = g_strdup(""); \
+        *out_len = 0; \
+    } }
 
 #define UAT_FLD_LSTRING(basename,field_name,title, desc) \
 {#field_name, title, PT_TXTMOD_STRING,{0,basename ## _ ## field_name ## _set_cb,basename ## _ ## field_name ## _tostr_cb},{0,0,0},0,desc,FLDFILL}
@@ -519,17 +535,17 @@ static void basename ## _ ## field_name ## _tostr_cb(void* rec, char** out_ptr, 
  *    and its len in (((rec_t*)rec)->(len_name))
  */
 #define UAT_BUFFER_CB_DEF(basename,field_name,rec_t,ptr_element,len_element) \
-static void basename ## _ ## field_name ## _set_cb(void* rec, const char* buf, guint len, const void* UNUSED_PARAMETER(u1), const void* UNUSED_PARAMETER(u2)) {\
-        unsigned char* new_buf = len ? (char *)g_memdup2(buf,len) : NULL; \
-	g_free((((rec_t*)rec)->ptr_element)); \
-	(((rec_t*)rec)->ptr_element) = new_buf; \
-	(((rec_t*)rec)->len_element) = len; } \
+static void basename ## _ ## field_name ## _set_cb(void* rec, const char* buf, unsigned len, const void* UNUSED_PARAMETER(u1), const void* UNUSED_PARAMETER(u2)) {\
+    unsigned char* new_buf = len ? (unsigned char *)g_memdup2(buf,len) : NULL; \
+    g_free((((rec_t*)rec)->ptr_element)); \
+    (((rec_t*)rec)->ptr_element) = new_buf; \
+    (((rec_t*)rec)->len_element) = len; } \
 static void basename ## _ ## field_name ## _tostr_cb(void* rec, char** out_ptr, unsigned* out_len, const void* UNUSED_PARAMETER(u1), const void* UNUSED_PARAMETER(u2)) {\
-	*out_ptr = ((rec_t*)rec)->ptr_element ? (char*)g_memdup2(((rec_t*)rec)->ptr_element,((rec_t*)rec)->len_element) : g_strdup(""); \
-	*out_len = ((rec_t*)rec)->len_element; }
+    *out_ptr = ((rec_t*)rec)->ptr_element ? (char*)g_memdup2(((rec_t*)rec)->ptr_element,((rec_t*)rec)->len_element) : g_strdup(""); \
+    *out_len = ((rec_t*)rec)->len_element; }
 
 #define UAT_FLD_BUFFER(basename,field_name,title,desc) \
-	{#field_name, title, PT_TXTMOD_HEXBYTES,{0,basename ## _ ## field_name ## _set_cb,basename ## _ ## field_name ## _tostr_cb},{0,0,0},0,desc,FLDFILL}
+    {#field_name, title, PT_TXTMOD_HEXBYTES,{0,basename ## _ ## field_name ## _set_cb,basename ## _ ## field_name ## _tostr_cb},{0,0,0},0,desc,FLDFILL}
 
 
 /*
@@ -537,64 +553,64 @@ static void basename ## _ ## field_name ## _tostr_cb(void* rec, char** out_ptr, 
  *   an unsigned decimal number contained in (((rec_t*)rec)->(field_name))
  */
 #define UAT_DEC_CB_DEF(basename,field_name,rec_t) \
-static void basename ## _ ## field_name ## _set_cb(void* rec, const char* buf, guint len, const void* UNUSED_PARAMETER(u1), const void* UNUSED_PARAMETER(u2)) {\
-	char* tmp_str = g_strndup(buf,len); \
-	ws_strtou32(tmp_str, NULL, &((rec_t*)rec)->field_name); \
-	g_free(tmp_str); } \
+static void basename ## _ ## field_name ## _set_cb(void* rec, const char* buf, unsigned len, const void* UNUSED_PARAMETER(u1), const void* UNUSED_PARAMETER(u2)) {\
+    char* tmp_str = g_strndup(buf,len); \
+    ws_strtou32(tmp_str, NULL, &((rec_t*)rec)->field_name); \
+    g_free(tmp_str); } \
 static void basename ## _ ## field_name ## _tostr_cb(void* rec, char** out_ptr, unsigned* out_len, const void* UNUSED_PARAMETER(u1), const void* UNUSED_PARAMETER(u2)) {\
-	*out_ptr = ws_strdup_printf("%u",((rec_t*)rec)->field_name); \
-	*out_len = (unsigned)strlen(*out_ptr); }
+    *out_ptr = ws_strdup_printf("%u",((rec_t*)rec)->field_name); \
+    *out_len = (unsigned)strlen(*out_ptr); }
 
 #define UAT_FLD_DEC(basename,field_name,title,desc) \
-	{#field_name, title, PT_TXTMOD_STRING,{uat_fld_chk_num_dec,basename ## _ ## field_name ## _set_cb,basename ## _ ## field_name ## _tostr_cb},{0,0,0},0,desc,FLDFILL}
+    {#field_name, title, PT_TXTMOD_STRING,{uat_fld_chk_num_dec,basename ## _ ## field_name ## _set_cb,basename ## _ ## field_name ## _tostr_cb},{0,0,0},0,desc,FLDFILL}
 
  /*
   *   an unsigned 64bit decimal number contained in (((rec_t*)rec)->(field_name))
   */
 #define UAT_DEC64_CB_DEF(basename,field_name,rec_t) \
-static void basename ## _ ## field_name ## _set_cb(void* rec, const char* buf, guint len, const void* UNUSED_PARAMETER(u1), const void* UNUSED_PARAMETER(u2)) {\
-	char* tmp_str = g_strndup(buf,len); \
-	ws_strtou64(tmp_str, NULL, &((rec_t*)rec)->field_name); \
-	g_free(tmp_str); } \
+static void basename ## _ ## field_name ## _set_cb(void* rec, const char* buf, unsigned len, const void* UNUSED_PARAMETER(u1), const void* UNUSED_PARAMETER(u2)) {\
+    char* tmp_str = g_strndup(buf,len); \
+    ws_strtou64(tmp_str, NULL, &((rec_t*)rec)->field_name); \
+    g_free(tmp_str); } \
 static void basename ## _ ## field_name ## _tostr_cb(void* rec, char** out_ptr, unsigned* out_len, const void* UNUSED_PARAMETER(u1), const void* UNUSED_PARAMETER(u2)) {\
-	*out_ptr = ws_strdup_printf("%" PRIu64,((rec_t*)rec)->field_name); \
-	*out_len = (unsigned)strlen(*out_ptr); }
+    *out_ptr = ws_strdup_printf("%" PRIu64,((rec_t*)rec)->field_name); \
+    *out_len = (unsigned)strlen(*out_ptr); }
 
 #define UAT_FLD_DEC64(basename,field_name,title,desc) \
-	{#field_name, title, PT_TXTMOD_STRING,{uat_fld_chk_num_dec64,basename ## _ ## field_name ## _set_cb,basename ## _ ## field_name ## _tostr_cb},{0,0,0},0,desc,FLDFILL}
+    {#field_name, title, PT_TXTMOD_STRING,{uat_fld_chk_num_dec64,basename ## _ ## field_name ## _set_cb,basename ## _ ## field_name ## _tostr_cb},{0,0,0},0,desc,FLDFILL}
 
 /*
  *   a *signed* decimal number contained in (((rec_t*)rec)->(field_name))
  */
 #define UAT_SIGNED_DEC_CB_DEF(basename,field_name,rec_t) \
-static void basename ## _ ## field_name ## _set_cb(void* rec, const char* buf, guint len, const void* UNUSED_PARAMETER(u1), const void* UNUSED_PARAMETER(u2)) {\
-	char* tmp_str = g_strndup(buf,len); \
-	ws_strtoi32(tmp_str, NULL, &((rec_t*)rec)->field_name); \
-	g_free(tmp_str); } \
+static void basename ## _ ## field_name ## _set_cb(void* rec, const char* buf, unsigned len, const void* UNUSED_PARAMETER(u1), const void* UNUSED_PARAMETER(u2)) {\
+    char* tmp_str = g_strndup(buf,len); \
+    ws_strtoi32(tmp_str, NULL, &((rec_t*)rec)->field_name); \
+    g_free(tmp_str); } \
 static void basename ## _ ## field_name ## _tostr_cb(void* rec, char** out_ptr, unsigned* out_len, const void* UNUSED_PARAMETER(u1), const void* UNUSED_PARAMETER(u2)) {\
-	*out_ptr = ws_strdup_printf("%d",((rec_t*)rec)->field_name); \
-	*out_len = (unsigned)strlen(*out_ptr); }
+    *out_ptr = ws_strdup_printf("%d",((rec_t*)rec)->field_name); \
+    *out_len = (unsigned)strlen(*out_ptr); }
 
 #define UAT_FLD_SIGNED_DEC(basename,field_name,title,desc) \
-	{#field_name, title, PT_TXTMOD_STRING,{uat_fld_chk_num_signed_dec,basename ## _ ## field_name ## _set_cb,basename ## _ ## field_name ## _tostr_cb},{0,0,0},0,desc,FLDFILL}
+    {#field_name, title, PT_TXTMOD_STRING,{uat_fld_chk_num_signed_dec,basename ## _ ## field_name ## _set_cb,basename ## _ ## field_name ## _tostr_cb},{0,0,0},0,desc,FLDFILL}
 
  /*
   *   and a *signed* 64bit decimal number contained in (((rec_t*)rec)->(field_name))
   */
 #define UAT_SIGNED_DEC64_CB_DEF(basename,field_name,rec_t) \
-static void basename ## _ ## field_name ## _set_cb(void* rec, const char* buf, guint len, const void* UNUSED_PARAMETER(u1), const void* UNUSED_PARAMETER(u2)) {\
-	char* tmp_str = g_strndup(buf,len); \
-	ws_strtoi64(tmp_str, NULL, &((rec_t*)rec)->field_name); \
-	g_free(tmp_str); } \
+static void basename ## _ ## field_name ## _set_cb(void* rec, const char* buf, unsigned len, const void* UNUSED_PARAMETER(u1), const void* UNUSED_PARAMETER(u2)) {\
+    char* tmp_str = g_strndup(buf,len); \
+    ws_strtoi64(tmp_str, NULL, &((rec_t*)rec)->field_name); \
+    g_free(tmp_str); } \
 static void basename ## _ ## field_name ## _tostr_cb(void* rec, char** out_ptr, unsigned* out_len, const void* UNUSED_PARAMETER(u1), const void* UNUSED_PARAMETER(u2)) {\
-	*out_ptr = ws_strdup_printf("%" PRId64,((rec_t*)rec)->field_name); \
-	*out_len = (unsigned)strlen(*out_ptr); }
+    *out_ptr = ws_strdup_printf("%" PRId64,((rec_t*)rec)->field_name); \
+    *out_len = (unsigned)strlen(*out_ptr); }
 
 #define UAT_FLD_SIGNED_DEC64(basename,field_name,title,desc) \
-	{#field_name, title, PT_TXTMOD_STRING,{uat_fld_chk_num_signed_dec64,basename ## _ ## field_name ## _set_cb,basename ## _ ## field_name ## _tostr_cb},{0,0,0},0,desc,FLDFILL}
+    {#field_name, title, PT_TXTMOD_STRING,{uat_fld_chk_num_signed_dec64,basename ## _ ## field_name ## _set_cb,basename ## _ ## field_name ## _tostr_cb},{0,0,0},0,desc,FLDFILL}
 
 #define UAT_FLD_NONE(basename,field_name,title,desc) \
-	{#field_name, title, PT_TXTMOD_NONE,{uat_fld_chk_num_dec,basename ## _ ## field_name ## _set_cb,basename ## _ ## field_name ## _tostr_cb},{0,0,0},0,desc,FLDFILL}
+    {#field_name, title, PT_TXTMOD_NONE,{uat_fld_chk_num_dec,basename ## _ ## field_name ## _set_cb,basename ## _ ## field_name ## _tostr_cb},{0,0,0},0,desc,FLDFILL}
 
 
 /*
@@ -602,13 +618,13 @@ static void basename ## _ ## field_name ## _tostr_cb(void* rec, char** out_ptr, 
  *   an unsigned hexadecimal number contained in (((rec_t*)rec)->(field_name))
  */
 #define UAT_HEX_CB_DEF(basename,field_name,rec_t) \
-static void basename ## _ ## field_name ## _set_cb(void* rec, const char* buf, guint len, const void* UNUSED_PARAMETER(u1), const void* UNUSED_PARAMETER(u2)) {\
-	char* tmp_str = g_strndup(buf,len); \
-	ws_hexstrtou32(tmp_str, NULL, &((rec_t*)rec)->field_name); \
-	g_free(tmp_str); } \
+static void basename ## _ ## field_name ## _set_cb(void* rec, const char* buf, unsigned len, const void* UNUSED_PARAMETER(u1), const void* UNUSED_PARAMETER(u2)) {\
+    char* tmp_str = g_strndup(buf,len); \
+    ws_hexstrtou32(tmp_str, NULL, &((rec_t*)rec)->field_name); \
+    g_free(tmp_str); } \
 static void basename ## _ ## field_name ## _tostr_cb(void* rec, char** out_ptr, unsigned* out_len, const void* UNUSED_PARAMETER(u1), const void* UNUSED_PARAMETER(u2)) {\
-	*out_ptr = ws_strdup_printf("%x",((rec_t*)rec)->field_name); \
-	*out_len = (unsigned)strlen(*out_ptr); }
+    *out_ptr = ws_strdup_printf("%x",((rec_t*)rec)->field_name); \
+    *out_len = (unsigned)strlen(*out_ptr); }
 
 #define UAT_FLD_HEX(basename,field_name,title,desc) \
 {#field_name, title, PT_TXTMOD_STRING,{uat_fld_chk_num_hex,basename ## _ ## field_name ## _set_cb,basename ## _ ## field_name ## _tostr_cb},{0,0,0},0,desc,FLDFILL}
@@ -618,13 +634,13 @@ static void basename ## _ ## field_name ## _tostr_cb(void* rec, char** out_ptr, 
   *   an unsigned long long hexadecimal number contained in (((rec_t*)rec)->(field_name))
   */
 #define UAT_HEX64_CB_DEF(basename,field_name,rec_t) \
-static void basename ## _ ## field_name ## _set_cb(void* rec, const char* buf, guint len, const void* UNUSED_PARAMETER(u1), const void* UNUSED_PARAMETER(u2)) {\
-	char* tmp_str = g_strndup(buf,len); \
-	ws_hexstrtou64(tmp_str, NULL, &((rec_t*)rec)->field_name); \
-	g_free(tmp_str); } \
+static void basename ## _ ## field_name ## _set_cb(void* rec, const char* buf, unsigned len, const void* UNUSED_PARAMETER(u1), const void* UNUSED_PARAMETER(u2)) {\
+    char* tmp_str = g_strndup(buf,len); \
+    ws_hexstrtou64(tmp_str, NULL, &((rec_t*)rec)->field_name); \
+    g_free(tmp_str); } \
 static void basename ## _ ## field_name ## _tostr_cb(void* rec, char** out_ptr, unsigned* out_len, const void* UNUSED_PARAMETER(u1), const void* UNUSED_PARAMETER(u2)) {\
-	*out_ptr = ws_strdup_printf("%" PRIx64,((rec_t*)rec)->field_name); \
-	*out_len = (unsigned)strlen(*out_ptr); }
+    *out_ptr = ws_strdup_printf("%" PRIx64,((rec_t*)rec)->field_name); \
+    *out_len = (unsigned)strlen(*out_ptr); }
 
 #define UAT_FLD_HEX64(basename,field_name,title,desc) \
 {#field_name, title, PT_TXTMOD_STRING,{uat_fld_chk_num_hex64,basename ## _ ## field_name ## _set_cb,basename ## _ ## field_name ## _tostr_cb},{0,0,0},0,desc,FLDFILL}
@@ -632,18 +648,21 @@ static void basename ## _ ## field_name ## _tostr_cb(void* rec, char** out_ptr, 
 /*
  * BOOL Macros,
  *   an boolean value contained in (((rec_t*)rec)->(field_name))
+ *
+ * Write "TRUE" or "FALSE" for backwards compatibility with pre-4.4
+ * versions that expect that capitalization.
  */
 #define UAT_BOOL_CB_DEF(basename,field_name,rec_t) \
-static void basename ## _ ## field_name ## _set_cb(void* rec, const char* buf, guint len, const void* UNUSED_PARAMETER(u1), const void* UNUSED_PARAMETER(u2)) {\
-	char* tmp_str = g_strndup(buf,len); \
-	if (g_strcmp0(tmp_str, "TRUE") == 0) \
-		((rec_t*)rec)->field_name = 1; \
-	else \
-		((rec_t*)rec)->field_name = 0; \
-	g_free(tmp_str); } \
+static void basename ## _ ## field_name ## _set_cb(void* rec, const char* buf, unsigned len, const void* UNUSED_PARAMETER(u1), const void* UNUSED_PARAMETER(u2)) {\
+    char* tmp_str = g_strndup(buf,len); \
+    if (tmp_str && g_ascii_strcasecmp(tmp_str, "true") == 0) \
+        ((rec_t*)rec)->field_name = 1; \
+    else \
+        ((rec_t*)rec)->field_name = 0; \
+    g_free(tmp_str); } \
 static void basename ## _ ## field_name ## _tostr_cb(void* rec, char** out_ptr, unsigned* out_len, const void* UNUSED_PARAMETER(u1), const void* UNUSED_PARAMETER(u2)) {\
-	*out_ptr = ws_strdup_printf("%s",((rec_t*)rec)->field_name ? "TRUE" : "FALSE"); \
-	*out_len = (unsigned)strlen(*out_ptr); }
+    *out_ptr = ws_strdup_printf("%s",((rec_t*)rec)->field_name ? "TRUE" : "FALSE"); \
+    *out_len = (unsigned)strlen(*out_ptr); }
 
 #define UAT_FLD_BOOL(basename,field_name,title,desc) \
 {#field_name, title, PT_TXTMOD_BOOL,{uat_fld_chk_bool,basename ## _ ## field_name ## _set_cb,basename ## _ ## field_name ## _tostr_cb},{0,0,0},0,desc,FLDFILL}
@@ -656,54 +675,54 @@ static void basename ## _ ## field_name ## _tostr_cb(void* rec, char** out_ptr, 
  *        value
  */
 #define UAT_VS_DEF(basename,field_name,rec_t,default_t,default_val,default_str) \
-static void basename ## _ ## field_name ## _set_cb(void* rec, const char* buf, guint len, const void* vs, const void* UNUSED_PARAMETER(u2)) {\
-	guint i; \
-	char* str = g_strndup(buf,len); \
-	const char* cstr; \
-	((rec_t*)rec)->field_name = default_val; \
-	for(i=0; ( cstr = ((const value_string*)vs)[i].strptr ) ;i++) { \
-		if (g_str_equal(cstr,str)) { \
-			((rec_t*)rec)->field_name = (default_t)((const value_string*)vs)[i].value; \
-			g_free(str); \
-			return; \
-		} \
-	} \
-	g_free(str); } \
+static void basename ## _ ## field_name ## _set_cb(void* rec, const char* buf, unsigned len, const void* vs, const void* UNUSED_PARAMETER(u2)) {\
+    unsigned i; \
+    char* str = g_strndup(buf,len); \
+    const char* cstr; \
+    ((rec_t*)rec)->field_name = default_val; \
+    for(i=0; ( cstr = ((const value_string*)vs)[i].strptr ) ;i++) { \
+        if (g_str_equal(cstr,str)) { \
+            ((rec_t*)rec)->field_name = (default_t)((const value_string*)vs)[i].value; \
+            g_free(str); \
+            return; \
+        } \
+    } \
+    g_free(str); } \
 static void basename ## _ ## field_name ## _tostr_cb(void* rec, char** out_ptr, unsigned* out_len, const void* vs, const void* UNUSED_PARAMETER(u2)) {\
-	guint i; \
-	for(i=0;((const value_string*)vs)[i].strptr;i++) { \
-		if ( ((const value_string*)vs)[i].value == ((rec_t*)rec)->field_name ) { \
-			*out_ptr = g_strdup(((const value_string*)vs)[i].strptr); \
-			*out_len = (unsigned)strlen(*out_ptr); \
-			return; \
-		} \
-	} \
-	*out_ptr = g_strdup(default_str); \
-	*out_len = (unsigned)strlen(default_str); }
+    unsigned i; \
+    for(i=0;((const value_string*)vs)[i].strptr;i++) { \
+        if ( ((const value_string*)vs)[i].value == ((rec_t*)rec)->field_name ) { \
+            *out_ptr = g_strdup(((const value_string*)vs)[i].strptr); \
+            *out_len = (unsigned)strlen(*out_ptr); \
+            return; \
+        } \
+    } \
+    *out_ptr = g_strdup(default_str); \
+    *out_len = (unsigned)strlen(default_str); }
 
 #define UAT_VS_CSTRING_DEF(basename,field_name,rec_t,default_val,default_str) \
-static void basename ## _ ## field_name ## _set_cb(void* rec, const char* buf, guint len, const void* vs, const void* UNUSED_PARAMETER(u2)) {\
-	guint i; \
-	char* str = g_strndup(buf,len); \
-	const char* cstr; \
-	((rec_t*)rec)->field_name = default_val; \
-	for(i=0; ( cstr = ((const value_string*)vs)[i].strptr ) ;i++) { \
-		if (g_str_equal(cstr,str)) { \
-		  ((rec_t*)rec)->field_name = g_strdup(((const value_string*)vs)[i].strptr); \
-		  g_free(str); \
-		  return; \
-		} \
-	} \
-	g_free(str);} \
+static void basename ## _ ## field_name ## _set_cb(void* rec, const char* buf, unsigned len, const void* vs, const void* UNUSED_PARAMETER(u2)) {\
+    unsigned i; \
+    char* str = g_strndup(buf,len); \
+    const char* cstr; \
+    ((rec_t*)rec)->field_name = default_val; \
+    for(i=0; ( cstr = ((const value_string*)vs)[i].strptr ) ;i++) { \
+        if (g_str_equal(cstr,str)) { \
+          ((rec_t*)rec)->field_name = g_strdup(((const value_string*)vs)[i].strptr); \
+          g_free(str); \
+          return; \
+        } \
+    } \
+    g_free(str);} \
 static void basename ## _ ## field_name ## _tostr_cb(void* rec, char** out_ptr, unsigned* out_len, const void* UNUSED_PARAMETER(vs), const void* UNUSED_PARAMETER(u2)) {\
-		if (((rec_t*)rec)->field_name ) { \
-			*out_ptr = g_strdup((((rec_t*)rec)->field_name)); \
-			*out_len = (unsigned)strlen((((rec_t*)rec)->field_name)); \
-		} else { \
-			*out_ptr = g_strdup(""); *out_len = 0; } }
+    if (((rec_t*)rec)->field_name ) { \
+        *out_ptr = g_strdup((((rec_t*)rec)->field_name)); \
+        *out_len = (unsigned)strlen((((rec_t*)rec)->field_name)); \
+    } else { \
+        *out_ptr = g_strdup(""); *out_len = 0; } }
 
 #define UAT_FLD_VS(basename,field_name,title,enum,desc) \
-	{#field_name, title, PT_TXTMOD_ENUM,{uat_fld_chk_enum,basename ## _ ## field_name ## _set_cb,basename ## _ ## field_name ## _tostr_cb},{&(enum),&(enum),&(enum)},&(enum),desc,FLDFILL}
+    {#field_name, title, PT_TXTMOD_ENUM,{uat_fld_chk_enum,basename ## _ ## field_name ## _set_cb,basename ## _ ## field_name ## _tostr_cb},{&(enum),&(enum),&(enum)},&(enum),desc,FLDFILL}
 
 
 /*
@@ -711,17 +730,17 @@ static void basename ## _ ## field_name ## _tostr_cb(void* rec, char** out_ptr, 
  *   an #RRGGBB color value contained in (((rec_t*)rec)->(field_name))
  */
 #define UAT_COLOR_CB_DEF(basename,field_name,rec_t) \
-static void basename ## _ ## field_name ## _set_cb(void* rec, const char* buf, guint len, const void* UNUSED_PARAMETER(u1), const void* UNUSED_PARAMETER(u2)) {\
-	if (len < 1) { \
-		((rec_t*)rec)->field_name = 0; \
-		return; \
-	} \
-	char* tmp_str = g_strndup(buf+1,len-1); \
-	((rec_t*)rec)->field_name = (guint)strtol(tmp_str,NULL,16); \
-	g_free(tmp_str); } \
+static void basename ## _ ## field_name ## _set_cb(void* rec, const char* buf, unsigned len, const void* UNUSED_PARAMETER(u1), const void* UNUSED_PARAMETER(u2)) {\
+    if (len < 1) { \
+        ((rec_t*)rec)->field_name = 0; \
+        return; \
+    } \
+    char* tmp_str = g_strndup(buf+1,len-1); \
+    ((rec_t*)rec)->field_name = (unsigned)strtol(tmp_str,NULL,16); \
+    g_free(tmp_str); } \
 static void basename ## _ ## field_name ## _tostr_cb(void* rec, char** out_ptr, unsigned* out_len, const void* UNUSED_PARAMETER(u1), const void* UNUSED_PARAMETER(u2)) {\
-	*out_ptr = ws_strdup_printf("#%06X",((rec_t*)rec)->field_name); \
-	*out_len = (unsigned)strlen(*out_ptr); }
+    *out_ptr = ws_strdup_printf("#%06X",((rec_t*)rec)->field_name); \
+    *out_len = (unsigned)strlen(*out_ptr); }
 
 #define UAT_FLD_COLOR(basename,field_name,title,desc) \
 {#field_name, title, PT_TXTMOD_COLOR,{uat_fld_chk_color,basename ## _ ## field_name ## _set_cb,basename ## _ ## field_name ## _tostr_cb},{0,0,0},0,desc,FLDFILL}
@@ -732,52 +751,65 @@ static void basename ## _ ## field_name ## _tostr_cb(void* rec, char** out_ptr, 
  */
 
 #define UAT_DISSECTOR_DEF(basename, field_name, dissector_field, name_field, rec_t) \
-static void basename ## _ ## field_name ## _set_cb(void* rec, const char* buf, guint len, const void* UNUSED_PARAMETER(u1), const void* UNUSED_PARAMETER(u2)) {\
-	if (len) { \
-		gchar *tmp = g_strndup(buf,len); \
-		((rec_t*)rec)->name_field = g_ascii_strdown(tmp, -1); \
-		g_free(tmp); \
-		g_strchug(((rec_t*)rec)->name_field); \
-		((rec_t*)rec)->dissector_field = find_dissector(((rec_t*)rec)->name_field); \
-	} else { \
-		((rec_t*)rec)->dissector_field = find_dissector("data"); \
-		((rec_t*)rec)->name_field = NULL; \
-		} } \
+static void basename ## _ ## field_name ## _set_cb(void* rec, const char* buf, unsigned len, const void* UNUSED_PARAMETER(u1), const void* UNUSED_PARAMETER(u2)) {\
+    if (len) { \
+        ((rec_t*)rec)->name_field = g_strndup(buf, len); \
+        g_strstrip(((rec_t*)rec)->name_field); \
+        ((rec_t*)rec)->dissector_field = find_dissector(((rec_t*)rec)->name_field); \
+    } else { \
+        ((rec_t*)rec)->dissector_field = find_dissector("data"); \
+        ((rec_t*)rec)->name_field = NULL; \
+    } } \
 static void basename ## _ ## field_name ## _tostr_cb(void* rec, char** out_ptr, unsigned* out_len, const void* UNUSED_PARAMETER(u1), const void* UNUSED_PARAMETER(u2)) {\
-	if ( ((rec_t*)rec)->name_field ) { \
-		*out_ptr = g_strdup((((rec_t*)rec)->name_field)); \
-		*out_len = (unsigned)strlen(*out_ptr); \
-	} else { \
-		*out_ptr = g_strdup(""); *out_len = 0; } }
+    if ( ((rec_t*)rec)->name_field ) { \
+        *out_ptr = g_strdup((((rec_t*)rec)->name_field)); \
+        *out_len = (unsigned)strlen(*out_ptr); \
+    } else { \
+        *out_ptr = g_strdup(""); *out_len = 0; \
+    } }
 
 
 #define UAT_FLD_DISSECTOR(basename,field_name,title,desc) \
-	{#field_name, title, PT_TXTMOD_DISSECTOR,{uat_fld_chk_proto,basename ## _ ## field_name ## _set_cb,basename ## _ ## field_name ## _tostr_cb},{0,0,0},0,desc,FLDFILL}
+    {#field_name, title, PT_TXTMOD_DISSECTOR,{uat_fld_chk_proto,basename ## _ ## field_name ## _set_cb,basename ## _ ## field_name ## _tostr_cb},{0,0,0},0,desc,FLDFILL}
 
 /*
  * RANGE macros
  */
 
 #define UAT_RANGE_CB_DEF(basename,field_name,rec_t) \
-static void basename ## _ ## field_name ## _set_cb(void* rec, const char* buf, guint len, const void* UNUSED_PARAMETER(u1), const void* u2) {\
-	char* rng = g_strndup(buf,len);\
-		range_convert_str(NULL, &(((rec_t*)rec)->field_name), rng,GPOINTER_TO_UINT(u2)); \
-		g_free(rng); \
-	} \
+static void basename ## _ ## field_name ## _set_cb(void* rec, const char* buf, unsigned len, const void* UNUSED_PARAMETER(u1), const void* u2) {\
+    char* rng = g_strndup(buf,len);\
+        range_convert_str(NULL, &(((rec_t*)rec)->field_name), rng,GPOINTER_TO_UINT(u2)); \
+        g_free(rng); \
+    } \
 static void basename ## _ ## field_name ## _tostr_cb(void* rec, char** out_ptr, unsigned* out_len, const void* UNUSED_PARAMETER(u1), const void* UNUSED_PARAMETER(u2)) {\
-	if ( ((rec_t*)rec)->field_name ) { \
-		*out_ptr = range_convert_range(NULL, ((rec_t*)rec)->field_name); \
-		*out_len = (unsigned)strlen(*out_ptr); \
-	} else { \
-		*out_ptr = g_strdup(""); *out_len = 0; } }
+    if ( ((rec_t*)rec)->field_name ) { \
+        *out_ptr = range_convert_range(NULL, ((rec_t*)rec)->field_name); \
+        *out_len = (unsigned)strlen(*out_ptr); \
+    } else { \
+        *out_ptr = g_strdup(""); *out_len = 0; \
+    } }
 
 
 #define UAT_FLD_RANGE(basename,field_name,title,max,desc) \
-	{#field_name, title, PT_TXTMOD_STRING,{uat_fld_chk_range,basename ## _ ## field_name ## _set_cb,basename ## _ ## field_name ## _tostr_cb},\
-	  {0,0,0},GUINT_TO_POINTER(max),desc,FLDFILL}
+    {#field_name, title, PT_TXTMOD_STRING,{uat_fld_chk_range,basename ## _ ## field_name ## _set_cb,basename ## _ ## field_name ## _tostr_cb},\
+      {0,0,0},GUINT_TO_POINTER(max),desc,FLDFILL}
 
 #ifdef __cplusplus
 }
 #endif /* __cplusplus */
 
 #endif /* __UAT_H__ */
+
+/*
+ * Editor modelines
+ *
+ * Local Variables:
+ * c-basic-offset: 4
+ * tab-width: 8
+ * indent-tabs-mode: nil
+ * End:
+ *
+ * ex: set shiftwidth=4 tabstop=8 expandtab:
+ * :indentSize=4:tabSize=8:noTabs=true:
+ */

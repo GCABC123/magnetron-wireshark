@@ -20,10 +20,15 @@ cmake \
 
 ## Quick Start
 
-1. Create a directory named "falco" at the same level as the "epan" plugin folder.
+1. Create a directory named "falco" one level above the "epan" plugin folder.
 You can find the global and per-user plugin folder locations on your system in About → Folders or in the [User's Guide](https://www.wireshark.org/docs/wsug_html_chunked/ChPluginFolders.html).
 
 1. Build your desired [Falco plugin](https://github.com/falcosecurity/plugins/) and place it in the "falco" plugin directory.
+
+## Conversations
+
+Falco plugins can mark individual fields with a conversation flag (EPF_CONVERSATION).
+The Falco Bridge dissector treats each of these as separate conversations, and for features such as navigation and packet list marking, the _first_ conversation field is used for matching packets.
 
 ## Licensing
 
@@ -44,7 +49,7 @@ They depend on the following libraries:
 - zlib: zlib
 
 Wireshark is released under the GPL version 2 (GPL-2.0-or-later). It and the Apache-2.0 license are compatible via the "any later version" provision in the GPL version 2.
-As discussed at https://www.wireshark.org/lists/wireshark-dev/202203/msg00020.html, combining Wireshark and libsinsp+libscap should be OK, but that in effect invokes the GPLv2's "any later version" provision, making the Wireshark portion of the combined work GPLv3+.
+As discussed at https://lists.wireshark.org/archives/wireshark-dev/202203/msg00020.html, combining Wireshark and libsinsp+libscap should be OK, but that in effect invokes the GPLv2's "any later version" provision, making the Wireshark portion of the combined work GPLv3+.
 
 Debian would appear to concur: https://lists.debian.org/debian-legal/2014/08/msg00102.html.
 

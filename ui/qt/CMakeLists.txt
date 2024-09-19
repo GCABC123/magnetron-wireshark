@@ -22,10 +22,12 @@ set(WIRESHARK_WIDGET_HEADERS
 	widgets/capture_filter_combo.h
 	widgets/capture_filter_edit.h
 	widgets/clickable_label.h
+	widgets/compression_group_box.h
 	widgets/copy_from_profile_button.h
 	widgets/detachable_tabwidget.h
 	widgets/display_filter_combo.h
 	widgets/display_filter_edit.h
+	widgets/dissector_syntax_line_edit.h
 	widgets/dissector_tables_view.h
 	widgets/drag_drop_toolbar.h
 	widgets/drag_label.h
@@ -44,7 +46,13 @@ set(WIRESHARK_WIDGET_HEADERS
 	widgets/path_selection_edit.h
 	widgets/pref_module_view.h
 	widgets/profile_tree_view.h
+	widgets/qcp_axis_ticker_elided.h
+	widgets/qcp_axis_ticker_si.h
+	widgets/qcp_string_legend_item.h
 	widgets/range_syntax_lineedit.h
+	widgets/resize_header_view.h
+	widgets/resolved_addresses_view.h
+	widgets/rowmove_tree_view.h
 	widgets/rtp_audio_graph.h
 	widgets/splash_overlay.h
 	widgets/stock_icon_tool_button.h
@@ -72,6 +80,7 @@ set(WIRESHARK_UTILS_HEADERS
 	utils/field_information.h
 	utils/frame_information.h
 	utils/idata_printable.h
+	utils/profile_switcher.h
 	utils/proto_node.h
 	utils/qt_ui_utils.h
 	utils/rtp_audio_file.h
@@ -106,6 +115,7 @@ set(WIRESHARK_MODEL_HEADERS
 	models/interface_sort_filter_model.h
 	models/interface_tree_cache_model.h
 	models/interface_tree_model.h
+	models/manuf_table_model.h
 	models/numeric_value_chooser_delegate.h
 	models/packet_list_model.h
 	models/packet_list_record.h
@@ -138,6 +148,7 @@ set(WIRESHARK_QT_HEADERS
 	bluetooth_devices_dialog.h
 	bluetooth_hci_summary_dialog.h
 	byte_view_tab.h
+	capture_comment_dialog.h
 	capture_file_dialog.h
 	capture_file_properties_dialog.h
 	capture_file.h
@@ -169,7 +180,6 @@ set(WIRESHARK_QT_HEADERS
 	file_set_dialog.h
 	filter_action.h
 	filter_dialog.h
-	filter_dialog.h
 	filter_expression_frame.h
 	firewall_rules_dialog.h
 	follow_stream_action.h
@@ -186,6 +196,8 @@ set(WIRESHARK_QT_HEADERS
 	interface_frame.h
 	interface_toolbar_reader.h
 	interface_toolbar.h
+	io_console_dialog.h
+	io_graph_action.h
 	io_graph_dialog.h
 	layout_preferences_frame.h
 	lbm_lbtrm_transport_dialog.h
@@ -199,6 +211,7 @@ set(WIRESHARK_QT_HEADERS
 	main_window_preferences_frame.h
 	main_window.h
 	manage_interfaces_dialog.h
+	manuf_dialog.h
 	module_preferences_scroll_area.h
 	mtp3_summary_dialog.h
 	multicast_statistics_dialog.h
@@ -238,6 +251,7 @@ set(WIRESHARK_QT_HEADERS
 	service_response_time_dialog.h
 	show_packet_bytes_dialog.h
 	simple_statistics_dialog.h
+	tlskeylog_launcher_dialog.h
 	stats_tree_dialog.h
 	strip_headers_dialog.h
 	supported_protocols_dialog.h
@@ -277,10 +291,12 @@ set(WIRESHARK_WIDGET_SRCS
 	widgets/capture_filter_combo.cpp
 	widgets/capture_filter_edit.cpp
 	widgets/clickable_label.cpp
+	widgets/compression_group_box.cpp
 	widgets/copy_from_profile_button.cpp
 	widgets/detachable_tabwidget.cpp
 	widgets/display_filter_combo.cpp
 	widgets/display_filter_edit.cpp
+	widgets/dissector_syntax_line_edit.cpp
 	widgets/dissector_tables_view.cpp
 	widgets/drag_drop_toolbar.cpp
 	widgets/drag_label.cpp
@@ -299,7 +315,13 @@ set(WIRESHARK_WIDGET_SRCS
 	widgets/path_selection_edit.cpp
 	widgets/pref_module_view.cpp
 	widgets/profile_tree_view.cpp
+	widgets/qcp_axis_ticker_elided.cpp
+	widgets/qcp_axis_ticker_si.cpp
+	widgets/qcp_string_legend_item.cpp
 	widgets/range_syntax_lineedit.cpp
+	widgets/resize_header_view.cpp
+	widgets/resolved_addresses_view.cpp
+	widgets/rowmove_tree_view.cpp
 	widgets/rtp_audio_graph.cpp
 	widgets/splash_overlay.cpp
 	widgets/stock_icon_tool_button.cpp
@@ -326,6 +348,7 @@ set(WIRESHARK_UTILS_SRCS
 	utils/data_printer.cpp
 	utils/field_information.cpp
 	utils/frame_information.cpp
+	utils/profile_switcher.cpp
 	utils/proto_node.cpp
 	utils/qt_ui_utils.cpp
 	utils/rtp_audio_file.cpp
@@ -358,6 +381,7 @@ set(WIRESHARK_MODEL_SRCS
 	models/interface_sort_filter_model.cpp
 	models/interface_tree_cache_model.cpp
 	models/interface_tree_model.cpp
+	models/manuf_table_model.cpp
 	models/numeric_value_chooser_delegate.cpp
 	models/packet_list_model.cpp
 	models/packet_list_record.cpp
@@ -387,6 +411,7 @@ set(WIRESHARK_QT_SRC
 	bluetooth_devices_dialog.cpp
 	bluetooth_hci_summary_dialog.cpp
 	byte_view_tab.cpp
+	capture_comment_dialog.cpp
 	capture_file_dialog.cpp
 	capture_file_properties_dialog.cpp
 	capture_file.cpp
@@ -431,6 +456,8 @@ set(WIRESHARK_QT_SRC
 	interface_frame.cpp
 	interface_toolbar_reader.cpp
 	interface_toolbar.cpp
+	io_console_dialog.cpp
+	io_graph_action.cpp
 	layout_preferences_frame.cpp
 	lbm_lbtrm_transport_dialog.cpp
 	lbm_lbtru_transport_dialog.cpp
@@ -445,6 +472,7 @@ set(WIRESHARK_QT_SRC
 	main_window.cpp
 	main.cpp
 	manage_interfaces_dialog.cpp
+	manuf_dialog.cpp
 	module_preferences_scroll_area.cpp
 	packet_comment_dialog.cpp
 	packet_diagram.cpp
@@ -483,8 +511,9 @@ set(WIRESHARK_QT_SRC
 	show_packet_bytes_dialog.cpp
 	simple_dialog.cpp
 	simple_statistics_dialog.cpp
-	supported_protocols_dialog.cpp
+	tlskeylog_launcher_dialog.cpp
 	strip_headers_dialog.cpp
+	supported_protocols_dialog.cpp
 	tabnav_tree_widget.cpp
 	tap_parameter_dialog.cpp
 	tcp_stream_dialog.cpp
@@ -548,6 +577,7 @@ set(WIRESHARK_QT_UI
 	bluetooth_device_dialog.ui
 	bluetooth_devices_dialog.ui
 	bluetooth_hci_summary_dialog.ui
+	capture_comment_dialog.ui
 	capture_file_properties_dialog.ui
 	capture_info_dialog.ui
 	capture_options_dialog.ui
@@ -579,6 +609,7 @@ set(WIRESHARK_QT_UI
 	import_text_dialog.ui
 	interface_frame.ui
 	interface_toolbar.ui
+	io_console_dialog.ui
 	io_graph_dialog.ui
 	layout_preferences_frame.ui
 	lbm_lbtrm_transport_dialog.ui
@@ -587,6 +618,7 @@ set(WIRESHARK_QT_UI
 	lte_rlc_graph_dialog.ui
 	main_window_preferences_frame.ui
 	manage_interfaces_dialog.ui
+	manuf_dialog.ui
 	module_preferences_scroll_area.ui
 	mtp3_summary_dialog.ui
 	packet_comment_dialog.ui
@@ -613,6 +645,7 @@ set(WIRESHARK_QT_UI
 	search_frame.ui
 	sequence_dialog.ui
 	show_packet_bytes_dialog.ui
+	tlskeylog_launcher_dialog.ui
 	strip_headers_dialog.ui
 	supported_protocols_dialog.ui
 	tap_parameter_dialog.ui
@@ -640,8 +673,10 @@ set(WIRESHARK_QT_TS
 	wireshark_en.ts # lupdate -pluralonly
 	wireshark_es.ts
 	wireshark_fr.ts
+	wireshark_hu.ts
 	wireshark_it.ts
 	wireshark_ja_JP.ts
+	wireshark_ko.ts
 	wireshark_pl.ts
 	wireshark_ru.ts
 	wireshark_sv.ts
@@ -667,7 +702,7 @@ file(WRITE "${CMAKE_CURRENT_BINARY_DIR}/authors.qrc"
 
 add_custom_command(
 	OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/authors.csv
-	COMMAND ${PYTHON_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tools/make-authors-csv.py
+	COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tools/make-authors-csv.py
 			< ${CMAKE_SOURCE_DIR}/AUTHORS
 			> ${CMAKE_CURRENT_BINARY_DIR}/authors.csv
 	DEPENDS
@@ -710,6 +745,15 @@ else()
 	QT5_ADD_TRANSLATION(WIRESHARK_QT_QM ${WIRESHARK_QT_TS})
 endif()
 
+if (WIN32)
+	add_custom_target(copy_qt_translations ALL)
+	add_custom_command(TARGET copy_qt_translations
+		POST_BUILD
+		COMMAND ${CMAKE_COMMAND} -E make_directory $<TARGET_FILE_DIR:wireshark>/translations
+		COMMAND ${CMAKE_COMMAND} -E copy_if_different ${WIRESHARK_QT_QM} $<TARGET_FILE_DIR:wireshark>/translations
+	)
+endif()
+
 add_custom_target(
 	translations
 	DEPENDS
@@ -729,7 +773,7 @@ set_source_files_properties(
 	SKIP_AUTOGEN ON
 )
 
-add_definitions(${QT_DEFINITIONS})
+add_definitions(${QT5_DEFINITIONS})
 
 register_tap_files(wireshark-tap-register.c
 	${WIRESHARK_QT_TAP_SRC}
@@ -766,15 +810,31 @@ add_library(qtui OBJECT
 	wireshark-tap-register.c
 )
 
+if(USE_qt6)
+	target_link_libraries(qtui PUBLIC
+		Qt6::Widgets
+		Qt6::Core5Compat
+		Qt6::Concurrent
+		Qt6::PrintSupport
+	)
+	if(Qt6Multimedia_FOUND)
+		target_link_libraries(qtui PUBLIC Qt6::Multimedia)
+	endif()
+	if(Qt6DBus_FOUND)
+		target_link_libraries(qtui PUBLIC Qt6::DBus)
+	endif()
+endif()
+
 target_include_directories(qtui
 	SYSTEM PRIVATE
 		# Include Qt before anything else, see the comment about
-		# QT_INCLUDE_DIRS in the top-level CMakeLists.txt
+		# QT5_INCLUDE_DIRS in the top-level CMakeLists.txt
 		# Basically, qt@5 headers should be prioritized over qt@6 which
 		# would be found due to GCRYPT_INCLUDE_DIRS=/usr/local/include
-		${QT_INCLUDE_DIRS}
+		${QT5_INCLUDE_DIRS}
 		${GCRYPT_INCLUDE_DIRS}
 		${MINIZIP_INCLUDE_DIRS}
+		${MINIZIPNG_INCLUDE_DIRS}
 		${PCAP_INCLUDE_DIRS}
 		${SPEEXDSP_INCLUDE_DIRS}
 		${WINSPARKLE_INCLUDE_DIRS}
@@ -785,7 +845,7 @@ target_include_directories(qtui
 
 target_compile_definitions(qtui
 	PUBLIC
-		${QT_COMPILE_DEFINITIONS}
+		${QT5_COMPILE_DEFINITIONS}
 )
 
 set_target_properties(qtui PROPERTIES

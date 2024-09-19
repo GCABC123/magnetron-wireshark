@@ -19,16 +19,16 @@
 #include <epan/packet.h>
 #include "wimax-int.h"
 
-static int proto_wimax_cdma_code_decoder = -1;
-static gint ett_wimax_cdma_code_decoder = -1;
+static int proto_wimax_cdma_code_decoder;
+static int ett_wimax_cdma_code_decoder;
 
-static int hf_wimax_ranging_code = -1;
-static int hf_wimax_ranging_symbol_offset = -1;
-static int hf_wimax_ranging_subchannel_offset = -1;
+static int hf_wimax_ranging_code;
+static int hf_wimax_ranging_symbol_offset;
+static int hf_wimax_ranging_subchannel_offset;
 
 static int dissect_wimax_cdma_code_decoder(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, void* data _U_)
 {
-	gint offset = 0;
+	int offset = 0;
 	proto_item *cdma_item;
 	proto_tree *cdma_tree;
 
@@ -83,7 +83,7 @@ void wimax_proto_register_wimax_cdma(void)
 	};
 
 	/* Setup protocol subtree array */
-	static gint *ett[] =
+	static int *ett[] =
 		{
 			&ett_wimax_cdma_code_decoder,
 		};
@@ -98,7 +98,7 @@ void wimax_proto_register_wimax_cdma(void)
 	proto_register_field_array(proto_wimax_cdma_code_decoder, hf, array_length(hf));
 	proto_register_subtree_array(ett, array_length(ett));
 
-	register_dissector("wimax_cdma_code_burst_handler", dissect_wimax_cdma_code_decoder, -1);
+	register_dissector("wimax_cdma_code_burst_handler", dissect_wimax_cdma_code_decoder, proto_wimax_cdma_code_decoder);
 }
 
 

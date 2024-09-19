@@ -9,6 +9,7 @@
  */
 
 #include <config.h>
+#include "version_info.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -31,9 +32,11 @@
 #include <zlib.h>
 #endif
 
-#include "vcs_version.h"
+//#ifdef HAVE_ZLIBNG
+//#include <zlib-ng.h>
+//#endif
 
-#include "version_info.h"
+#include "vcs_version.h"
 
 #include <wsutil/cpu_info.h>
 #include <wsutil/os_version_info.h>
@@ -105,9 +108,9 @@ ws_init_version_info(const char *appname,
  * get_compiled_version_info() and get_runtime_version_info().
  */
 static void
-feature_to_gstring(gpointer data, gpointer user_data)
+feature_to_gstring(void * data, void * user_data)
 {
-	gchar *feature = (gchar *)data;
+	char *feature = (char *)data;
 	GString *str = (GString *)user_data;
 	if (str->len > 0) {
 		g_string_append(str, ", ");
@@ -163,7 +166,7 @@ gather_zlib_compile_info(feature_list l)
 {
 #ifdef HAVE_ZLIB
 #ifdef ZLIB_VERSION
-	with_feature(l, "zlib "ZLIB_VERSION);
+	with_feature(l, "zlib " ZLIB_VERSION);
 #else
 	with_feature(l, "zlib (version unknown)");
 #endif /* ZLIB_VERSION */
@@ -171,6 +174,17 @@ gather_zlib_compile_info(feature_list l)
 	without_feature(l, "zlib");
 #endif /* HAVE_ZLIB */
 }
+
+void
+gather_zlib_ng_compile_info(feature_list l)
+{
+#ifdef HAVE_ZLIBNG
+	with_feature(l, "zlib-ng " ZLIBNG_VERSION_STRING);
+#else
+	without_feature(l, "zlib-ng");
+#endif /* HAVE_ZLIB */
+}
+
 
 /*
  * Get various library compile-time versions, put them in a GString,
@@ -213,12 +227,6 @@ get_compiled_version_info(gather_feature_func gather_compile)
 
 #ifdef WS_DEBUG
 	g_string_append(str, ", debug build");
-#else
-	g_string_append(str, ", release build");
-#endif
-
-#ifdef WS_DEBUG_UTF_8
-	g_string_append(str, " (+utf8)");
 #endif
 
 	g_string_append(str, ".");
@@ -231,7 +239,7 @@ get_compiled_version_info(gather_feature_func gather_compile)
 static void
 get_mem_info(GString *str)
 {
-	gint64 memsize = 0;
+	int64_t memsize = 0;
 
 #ifdef _WIN32
 	MEMORYSTATUSEX statex;
@@ -250,7 +258,7 @@ get_mem_info(GString *str)
 #endif
 
 	if (memsize > 0)
-		g_string_append_printf(str, ", with %" G_GINT64_FORMAT " MB of physical memory", memsize/(1024*1024));
+		g_string_append_printf(str, ", with %" PRId64 " MB of physical memory", memsize/(1024*1024));
 }
 
 /*
@@ -373,7 +381,7 @@ get_compiler_info(GString *str)
 		 */
 		#if defined(__clang__)
 			/* clang */
-			gchar *version; /* clang's version string has a trailing space. */
+			char *version; /* clang's version string has a trailing space. */
 			#if defined(__clang_version__)
 				version = g_strdup(__clang_version__);
 				g_string_append_printf(str, "Clang %s", g_strstrip(version));
@@ -467,7 +475,7 @@ GString *
 get_runtime_version_info(gather_feature_func gather_runtime)
 {
 	GString *str;
-	gchar *lc;
+	char *lc;
 	GList *l = NULL;
 
 	str = g_string_new("Running on ");
@@ -520,18 +528,28 @@ get_runtime_version_info(gather_feature_func gather_runtime)
 const char *
 get_ws_vcs_version_info(void)
 {
-#ifdef VCSVERSION
-	return VERSION " (" VCSVERSION ")";
+#ifdef VCS_VERSION
+	return VERSION " (" VCS_VERSION ")";
 #else
 	return VERSION;
 #endif
 }
 
 const char *
+get_lr_vcs_version_info(void)
+{
+#ifdef VCS_COMMIT_ID
+	return LOG_VERSION " (" VCS_NUM_COMMITS "-" VCS_COMMIT_ID ")";
+#else
+	return LOG_VERSION;
+#endif
+}
+
+const char *
 get_ws_vcs_version_info_short(void)
 {
-#ifdef VCSVERSION
-	return VCSVERSION;
+#ifdef VCS_VERSION
+	return VCS_VERSION;
 #else
 	return VERSION;
 #endif
@@ -580,7 +598,7 @@ const char *
 get_copyright_info(void)
 {
 	return
-		"Copyright 1998-2023 Gerald Combs <gerald@wireshark.org> and contributors.";
+		"Copyright 1998-2024 Gerald Combs <gerald@wireshark.org> and contributors.";
 }
 
 const char *

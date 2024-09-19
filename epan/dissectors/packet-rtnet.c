@@ -18,7 +18,8 @@
 #include <epan/packet.h>
 #include <epan/addr_resolv.h>
 #include <epan/etypes.h>
-
+#include <epan/tfs.h>
+#include <wsutil/array.h>
 /*
  * See
  *
@@ -30,6 +31,9 @@
 
 void proto_register_rtmac(void);
 void proto_reg_handoff_rtmac(void);
+
+static dissector_handle_t rtmac_handle;
+static dissector_handle_t rtcfg_handle;
 
 void proto_register_rtcfg(void);
 void proto_reg_handoff_rtcfg(void);
@@ -116,121 +120,121 @@ static dissector_table_t ethertype_table;
 static dissector_handle_t data_handle;
 
 /* Define the rtnet proto */
-static int proto_rtmac = -1;
-static int proto_tdma = -1;
-static int proto_rtcfg = -1;
+static int proto_rtmac;
+static int proto_tdma;
+static int proto_rtcfg;
 
 /* RTmac Header */
-static int hf_rtmac_header_type = -1;
-static int hf_rtmac_header_ver = -1;
-static int hf_rtmac_header_flags = -1;
-static int hf_rtmac_header_flags_tunnel = -1;
-static int hf_rtmac_header_flags_res = -1;
-static int hf_rtmac_header_res_v1 = -1;
+static int hf_rtmac_header_type;
+static int hf_rtmac_header_ver;
+static int hf_rtmac_header_flags;
+static int hf_rtmac_header_flags_tunnel;
+static int hf_rtmac_header_flags_res;
+static int hf_rtmac_header_res_v1;
 
 
 /* RTcfg */
-static int hf_rtcfg_vers_id = -1;
-static int hf_rtcfg_vers = -1;
-static int hf_rtcfg_id = -1;
-static int hf_rtcfg_address_type = -1;
-static int hf_rtcfg_client_ip_address = -1;
-static int hf_rtcfg_server_ip_address = -1;
-static int hf_rtcfg_burst_rate = -1;
-static int hf_rtcfg_padding = -1;
-static int hf_rtcfg_s1_config_length = -1;
-static int hf_rtcfg_config_data = -1;
-static int hf_rtcfg_client_flags = -1;
-static int hf_rtcfg_client_flags_available = -1;
-static int hf_rtcfg_client_flags_ready = -1;
-static int hf_rtcfg_client_flags_res = -1;
-static int hf_rtcfg_server_flags = -1;
-static int hf_rtcfg_server_flags_res0 = -1;
-static int hf_rtcfg_server_flags_ready = -1;
-static int hf_rtcfg_server_flags_res2 = -1;
-static int hf_rtcfg_active_stations = -1;
-static int hf_rtcfg_heartbeat_period = -1;
-static int hf_rtcfg_s2_config_length = -1;
-static int hf_rtcfg_config_offset = -1;
-static int hf_rtcfg_ack_length = -1;
-static int hf_rtcfg_client_hw_address = -1;
+static int hf_rtcfg_vers_id;
+static int hf_rtcfg_vers;
+static int hf_rtcfg_id;
+static int hf_rtcfg_address_type;
+static int hf_rtcfg_client_ip_address;
+static int hf_rtcfg_server_ip_address;
+static int hf_rtcfg_burst_rate;
+static int hf_rtcfg_padding;
+static int hf_rtcfg_s1_config_length;
+static int hf_rtcfg_config_data;
+static int hf_rtcfg_client_flags;
+static int hf_rtcfg_client_flags_available;
+static int hf_rtcfg_client_flags_ready;
+static int hf_rtcfg_client_flags_res;
+static int hf_rtcfg_server_flags;
+static int hf_rtcfg_server_flags_res0;
+static int hf_rtcfg_server_flags_ready;
+static int hf_rtcfg_server_flags_res2;
+static int hf_rtcfg_active_stations;
+static int hf_rtcfg_heartbeat_period;
+static int hf_rtcfg_s2_config_length;
+static int hf_rtcfg_config_offset;
+static int hf_rtcfg_ack_length;
+static int hf_rtcfg_client_hw_address;
 
 
 /* TDMA-V1 */
-static int hf_tdma_v1_msg = -1;
+static int hf_tdma_v1_msg;
 
 /* TDMA REQUEST_CONF */
-static int hf_tdma_v1_msg_request_conf_station = -1;
-static int hf_tdma_v1_msg_request_conf_padding = -1;
-static int hf_tdma_v1_msg_request_conf_mtu = -1;
-static int hf_tdma_v1_msg_request_conf_cycle = -1;
+static int hf_tdma_v1_msg_request_conf_station;
+static int hf_tdma_v1_msg_request_conf_padding;
+static int hf_tdma_v1_msg_request_conf_mtu;
+static int hf_tdma_v1_msg_request_conf_cycle;
 
 /* TDMA ACK_CONF */
-static int hf_tdma_v1_msg_ack_conf_station = -1;
-static int hf_tdma_v1_msg_ack_conf_padding = -1;
-static int hf_tdma_v1_msg_ack_conf_mtu = -1;
-static int hf_tdma_v1_msg_ack_conf_cycle = -1;
+static int hf_tdma_v1_msg_ack_conf_station;
+static int hf_tdma_v1_msg_ack_conf_padding;
+static int hf_tdma_v1_msg_ack_conf_mtu;
+static int hf_tdma_v1_msg_ack_conf_cycle;
 
 /* TDMA ACK_ACK_CONF */
-static int hf_tdma_v1_msg_ack_ack_conf_station = -1;
-static int hf_tdma_v1_msg_ack_ack_conf_padding = -1;
+static int hf_tdma_v1_msg_ack_ack_conf_station;
+static int hf_tdma_v1_msg_ack_ack_conf_padding;
 
 /* TDMA REQUEST_TEST */
-static int hf_tdma_v1_msg_request_test_counter = -1;
-static int hf_tdma_v1_msg_request_test_tx = -1;
+static int hf_tdma_v1_msg_request_test_counter;
+static int hf_tdma_v1_msg_request_test_tx;
 
 /* TDMA ACK_TEST */
-static int hf_tdma_v1_msg_ack_test_counter = -1;
-static int hf_tdma_v1_msg_ack_test_tx = -1;
+static int hf_tdma_v1_msg_ack_test_counter;
+static int hf_tdma_v1_msg_ack_test_tx;
 
 /* TDMA STATION_LIST */
-static int hf_tdma_v1_msg_station_list_nr_stations = -1;
-static int hf_tdma_v1_msg_station_list_padding = -1;
+static int hf_tdma_v1_msg_station_list_nr_stations;
+static int hf_tdma_v1_msg_station_list_padding;
 
-static int hf_tdma_v1_msg_station_list_ip = -1;
-static int hf_tdma_v1_msg_station_list_nr = -1;
+static int hf_tdma_v1_msg_station_list_ip;
+static int hf_tdma_v1_msg_station_list_nr;
 
 /* TDMA CHANGE_OFFSET */
-static int hf_tdma_v1_msg_request_change_offset_offset = -1;
+static int hf_tdma_v1_msg_request_change_offset_offset;
 
 /* TDMA START_OF_FRAME */
-static int hf_tdma_v1_msg_start_of_frame_timestamp = -1;
+static int hf_tdma_v1_msg_start_of_frame_timestamp;
 
 
 /* TDMA since version 2 */
-static int hf_tdma_ver = -1;
-static int hf_tdma_id = -1;
+static int hf_tdma_ver;
+static int hf_tdma_id;
 
 /* TDMA Sync */
-static int hf_tdma_sync_cycle = -1;
-static int hf_tdma_sync_xmit_stamp = -1;
-static int hf_tdma_sync_sched_xmit = -1;
+static int hf_tdma_sync_cycle;
+static int hf_tdma_sync_xmit_stamp;
+static int hf_tdma_sync_sched_xmit;
 
 /* TDMA Request Calibration */
-static int hf_tdma_req_cal_xmit_stamp = -1;
-static int hf_tdma_req_cal_rpl_cycle = -1;
-static int hf_tdma_req_cal_rpl_slot = -1;
+static int hf_tdma_req_cal_xmit_stamp;
+static int hf_tdma_req_cal_rpl_cycle;
+static int hf_tdma_req_cal_rpl_slot;
 
 /* TDMA Reply Calibration */
-static int hf_tdma_rpl_cal_req_stamp = -1;
-static int hf_tdma_rpl_cal_rcv_stamp = -1;
-static int hf_tdma_rpl_cal_xmit_stamp = -1;
+static int hf_tdma_rpl_cal_req_stamp;
+static int hf_tdma_rpl_cal_rcv_stamp;
+static int hf_tdma_rpl_cal_xmit_stamp;
 
 
 /* Define the tree for rtnet */
-static int ett_rtmac = -1;
-static int ett_rtmac_flags = -1;
-static int ett_tdma = -1;
-static int ett_rtcfg = -1;
+static int ett_rtmac;
+static int ett_rtmac_flags;
+static int ett_tdma;
+static int ett_rtcfg;
 
-static guint
-dissect_rtnet_tdma_notify_master(tvbuff_t *tvb _U_, guint offset, proto_tree *tree _U_)
+static unsigned
+dissect_rtnet_tdma_notify_master(tvbuff_t *tvb _U_, unsigned offset, proto_tree *tree _U_)
 {
   return offset;
 }
 
-static guint
-dissect_rtnet_tdma_request_test(tvbuff_t *tvb, guint offset, proto_tree *tree)
+static unsigned
+dissect_rtnet_tdma_request_test(tvbuff_t *tvb, unsigned offset, proto_tree *tree)
 {
   proto_tree_add_item(tree, hf_tdma_v1_msg_request_test_counter, tvb,
                        offset, 4, ENC_LITTLE_ENDIAN );
@@ -243,8 +247,8 @@ dissect_rtnet_tdma_request_test(tvbuff_t *tvb, guint offset, proto_tree *tree)
   return offset;
 }
 
-static guint
-dissect_rtnet_tdma_ack_test(tvbuff_t *tvb, guint offset, proto_tree *tree)
+static unsigned
+dissect_rtnet_tdma_ack_test(tvbuff_t *tvb, unsigned offset, proto_tree *tree)
 {
   proto_tree_add_item(tree, hf_tdma_v1_msg_ack_test_counter, tvb,
                        offset, 4, ENC_LITTLE_ENDIAN );
@@ -257,8 +261,8 @@ dissect_rtnet_tdma_ack_test(tvbuff_t *tvb, guint offset, proto_tree *tree)
   return offset;
 }
 
-static guint
-dissect_rtnet_tdma_request_conf(tvbuff_t *tvb, guint offset, proto_tree *tree)
+static unsigned
+dissect_rtnet_tdma_request_conf(tvbuff_t *tvb, unsigned offset, proto_tree *tree)
 {
   proto_tree_add_item(tree, hf_tdma_v1_msg_request_conf_station, tvb,
                        offset, 1, ENC_BIG_ENDIAN );
@@ -280,8 +284,8 @@ dissect_rtnet_tdma_request_conf(tvbuff_t *tvb, guint offset, proto_tree *tree)
 }
 
 
-static guint
-dissect_rtnet_tdma_ack_conf(tvbuff_t *tvb, guint offset, proto_tree *tree)
+static unsigned
+dissect_rtnet_tdma_ack_conf(tvbuff_t *tvb, unsigned offset, proto_tree *tree)
 {
   proto_tree_add_item(tree, hf_tdma_v1_msg_ack_conf_station, tvb,
                        offset, 1, ENC_BIG_ENDIAN );
@@ -302,8 +306,8 @@ dissect_rtnet_tdma_ack_conf(tvbuff_t *tvb, guint offset, proto_tree *tree)
   return offset;
 }
 
-static guint
-dissect_rtnet_tdma_ack_ack_conf(tvbuff_t *tvb, guint offset, proto_tree *tree) {
+static unsigned
+dissect_rtnet_tdma_ack_ack_conf(tvbuff_t *tvb, unsigned offset, proto_tree *tree) {
 
   proto_tree_add_item(tree, hf_tdma_v1_msg_ack_ack_conf_station, tvb,
                        offset, 1, ENC_BIG_ENDIAN );
@@ -317,13 +321,13 @@ dissect_rtnet_tdma_ack_ack_conf(tvbuff_t *tvb, guint offset, proto_tree *tree) {
   return offset;
 }
 
-static guint
-dissect_rtnet_tdma_station_list(tvbuff_t *tvb, guint offset, proto_tree *tree)
+static unsigned
+dissect_rtnet_tdma_station_list(tvbuff_t *tvb, unsigned offset, proto_tree *tree)
 {
-  guint8 nr_stations;
-  guint8 i;
+  uint8_t nr_stations;
+  uint8_t i;
 
-  nr_stations = tvb_get_guint8(tvb, offset);
+  nr_stations = tvb_get_uint8(tvb, offset);
   proto_tree_add_uint(tree, hf_tdma_v1_msg_station_list_nr_stations, tvb,
                       offset, 1, nr_stations);
 
@@ -354,8 +358,8 @@ dissect_rtnet_tdma_station_list(tvbuff_t *tvb, guint offset, proto_tree *tree)
   return offset;
 }
 
-static guint
-dissect_rtnet_tdma_request_change_offset(tvbuff_t *tvb, guint offset, proto_tree *tree)
+static unsigned
+dissect_rtnet_tdma_request_change_offset(tvbuff_t *tvb, unsigned offset, proto_tree *tree)
 {
   proto_tree_add_item(tree, hf_tdma_v1_msg_request_change_offset_offset, tvb,
                        offset, 4, ENC_BIG_ENDIAN );
@@ -365,8 +369,8 @@ dissect_rtnet_tdma_request_change_offset(tvbuff_t *tvb, guint offset, proto_tree
   return offset;
 }
 
-static guint
-dissect_rtnet_tdma_start_of_frame(tvbuff_t *tvb, guint offset, proto_tree *tree)
+static unsigned
+dissect_rtnet_tdma_start_of_frame(tvbuff_t *tvb, unsigned offset, proto_tree *tree)
 {
   proto_tree_add_item(tree, hf_tdma_v1_msg_start_of_frame_timestamp, tvb,
                        offset, 8, ENC_BIG_ENDIAN );
@@ -377,8 +381,8 @@ dissect_rtnet_tdma_start_of_frame(tvbuff_t *tvb, guint offset, proto_tree *tree)
 
 static void
 dissect_rtnet_tdma_v1(tvbuff_t *tvb, packet_info *pinfo, proto_tree *root) {
-  guint offset = 0;
-  guint32 msg;
+  unsigned offset = 0;
+  uint32_t msg;
   proto_tree *tree;
   proto_item *ti;
 
@@ -388,7 +392,7 @@ dissect_rtnet_tdma_v1(tvbuff_t *tvb, packet_info *pinfo, proto_tree *root) {
   col_set_str(pinfo->cinfo, COL_PROTOCOL, "TDMA-V1");
 
   /* set the info column */
-  col_add_fstr(pinfo->cinfo, COL_INFO, "%s",
+  col_add_str(pinfo->cinfo, COL_INFO,
       val_to_str(msg, tdma_v1_msg_vals, "Unknown (0x%04x)"));
 
   if (root) {
@@ -446,8 +450,8 @@ dissect_rtnet_tdma_v1(tvbuff_t *tvb, packet_info *pinfo, proto_tree *root) {
 }
 
 static void
-dissect_tdma_sync(tvbuff_t *tvb, guint offset, proto_tree *tree) {
-  gint64 timestamp;
+dissect_tdma_sync(tvbuff_t *tvb, unsigned offset, proto_tree *tree) {
+  int64_t timestamp;
   proto_item *ti;
 
   proto_tree_add_item(tree, hf_tdma_sync_cycle, tvb, offset, 4, ENC_BIG_ENDIAN);
@@ -462,7 +466,7 @@ dissect_tdma_sync(tvbuff_t *tvb, guint offset, proto_tree *tree) {
 }
 
 static void
-dissect_tdma_request_cal(tvbuff_t *tvb, guint offset, proto_tree *tree) {
+dissect_tdma_request_cal(tvbuff_t *tvb, unsigned offset, proto_tree *tree) {
 
   proto_tree_add_item(tree, hf_tdma_req_cal_xmit_stamp, tvb, offset, 8, ENC_BIG_ENDIAN);
   offset += 8;
@@ -474,8 +478,8 @@ dissect_tdma_request_cal(tvbuff_t *tvb, guint offset, proto_tree *tree) {
 }
 
 static void
-dissect_tdma_reply_cal(tvbuff_t *tvb, guint offset, proto_tree *tree) {
-  gint64 timestamp;
+dissect_tdma_reply_cal(tvbuff_t *tvb, unsigned offset, proto_tree *tree) {
+  int64_t timestamp;
   proto_item *ti;
 
   proto_tree_add_item(tree, hf_tdma_rpl_cal_req_stamp, tvb, offset, 8, ENC_BIG_ENDIAN);
@@ -492,8 +496,8 @@ dissect_tdma_reply_cal(tvbuff_t *tvb, guint offset, proto_tree *tree) {
 
 static void
 dissect_rtnet_tdma(tvbuff_t *tvb, packet_info *pinfo, proto_tree *root) {
-  guint offset = 0;
-  guint16 msg;
+  unsigned offset = 0;
+  uint16_t msg;
   proto_item *ti;
   proto_tree *tree;
 
@@ -503,7 +507,7 @@ dissect_rtnet_tdma(tvbuff_t *tvb, packet_info *pinfo, proto_tree *root) {
   col_set_str(pinfo->cinfo, COL_PROTOCOL, "TDMA");
 
   /* Set the info column */
-  col_add_fstr(pinfo->cinfo, COL_INFO, "%s",
+  col_add_str(pinfo->cinfo, COL_INFO,
                  val_to_str(msg, tdma_msg_vals, "Unknown (0x%04x)"));
 
   if (root) {
@@ -539,19 +543,19 @@ dissect_rtnet_tdma(tvbuff_t *tvb, packet_info *pinfo, proto_tree *root) {
 
 static int
 dissect_rtmac(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, void* data _U_) {
-  gint offset = 0;
-  guint8 ver,flags;
-  guint16 type;
+  int offset = 0;
+  uint8_t ver,flags;
+  uint16_t type;
   tvbuff_t *next_tvb;
   proto_tree *ti=NULL, *rtmac_tree=NULL;
   proto_item *item;
   dissector_handle_t dissector=NULL;
-  const gchar *type_str=NULL;
+  const char *type_str=NULL;
 
   /* Read the header */
   type = tvb_get_ntohs(tvb, offset);
-  ver = tvb_get_guint8(tvb, offset+2);
-  flags = tvb_get_guint8(tvb, offset+3);
+  ver = tvb_get_uint8(tvb, offset+2);
+  flags = tvb_get_uint8(tvb, offset+3);
 
   if (ver == 1) {
     type_str = try_val_to_str(type, rtmac_type_vals);
@@ -649,11 +653,11 @@ dissect_rtmac(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, void* data _U
 
 static int
 dissect_rtcfg(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, void* data _U_) {
-  gint offset = 0;
+  int offset = 0;
   proto_tree *vers_id_tree, *vers_id_item, *flags_tree, *flags_item;
-  guint8 vers_id;
-  guint8 addr_type;
-  guint32 config_length,len;
+  uint8_t vers_id;
+  uint8_t addr_type;
+  uint32_t config_length,len;
   proto_tree *ti=NULL,*rtcfg_tree=NULL;
 
   /* Set the protocol column */
@@ -667,9 +671,9 @@ dissect_rtcfg(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, void* data _U
     rtcfg_tree = proto_item_add_subtree(ti, ett_rtcfg);
   }
 
-  vers_id = tvb_get_guint8(tvb, offset);
+  vers_id = tvb_get_uint8(tvb, offset);
 
-  col_add_fstr(pinfo->cinfo, COL_INFO, "%s",
+  col_add_str(pinfo->cinfo, COL_INFO,
            val_to_str(vers_id, rtcfg_msg_vals, "Unknown (0x%04x)"));
 
   if( rtcfg_tree )
@@ -689,7 +693,7 @@ dissect_rtcfg(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, void* data _U
     switch( vers_id & 0x1f )
     {
        case RTCFG_MSG_S1_CONFIG:
-         addr_type = tvb_get_guint8(tvb, offset);
+         addr_type = tvb_get_uint8(tvb, offset);
          proto_tree_add_item( rtcfg_tree, hf_rtcfg_address_type, tvb, offset, 1, ENC_BIG_ENDIAN );
          offset += 1;
 
@@ -724,7 +728,7 @@ dissect_rtcfg(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, void* data _U
          break;
 
        case RTCFG_MSG_ANN_NEW:
-         addr_type = tvb_get_guint8(tvb, offset);
+         addr_type = tvb_get_uint8(tvb, offset);
          proto_tree_add_item( rtcfg_tree, hf_rtcfg_address_type, tvb, offset, 1, ENC_BIG_ENDIAN );
          offset += 1;
 
@@ -755,7 +759,7 @@ dissect_rtcfg(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, void* data _U
          break;
 
        case RTCFG_MSG_ANN_REPLY:
-         addr_type = tvb_get_guint8(tvb, offset);
+         addr_type = tvb_get_uint8(tvb, offset);
          proto_tree_add_item( rtcfg_tree, hf_rtcfg_address_type, tvb, offset, 1, ENC_BIG_ENDIAN );
          offset += 1;
 
@@ -835,7 +839,7 @@ dissect_rtcfg(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, void* data _U
          break;
 
        case RTCFG_MSG_DEAD_STN:
-         addr_type = tvb_get_guint8(tvb, offset);
+         addr_type = tvb_get_uint8(tvb, offset);
          proto_tree_add_item( rtcfg_tree, hf_rtcfg_address_type, tvb, offset, 1, ENC_BIG_ENDIAN );
          offset += 1;
 
@@ -1140,18 +1144,20 @@ proto_register_rtmac(void) {
         "TDMA Reply Calibration Transmission Time Stamp", HFILL }},
   };
 
-  static gint *ett_array_rtmac[] = {
+  static int *ett_array_rtmac[] = {
     &ett_rtmac,
     &ett_rtmac_flags,
   };
 
-  static gint *ett_array_tdma[] = {
+  static int *ett_array_tdma[] = {
     &ett_tdma,
   };
 
   proto_rtmac = proto_register_protocol("Real-Time Media Access Control", "RTmac", "rtmac");
   proto_register_field_array(proto_rtmac, hf_array_rtmac, array_length(hf_array_rtmac));
   proto_register_subtree_array(ett_array_rtmac, array_length(ett_array_rtmac));
+
+  rtmac_handle = register_dissector("rtmac", dissect_rtmac, proto_rtmac);
 
   proto_tdma = proto_register_protocol("TDMA RTmac Discipline", "TDMA", "tdma");
   proto_register_field_array(proto_rtmac, hf_array_tdma, array_length(hf_array_tdma));
@@ -1307,32 +1313,28 @@ proto_register_rtcfg(void) {
         "RTcfg Client Hardware Address", HFILL }}
   };
 
-  static gint *ett[] = {
+  static int *ett[] = {
     &ett_rtcfg,
   };
 
   proto_rtcfg = proto_register_protocol("RTcfg","RTcfg","rtcfg");
   proto_register_field_array(proto_rtcfg,hf,array_length(hf));
   proto_register_subtree_array(ett,array_length(ett));
+
+  rtcfg_handle = register_dissector("rtcfg", dissect_rtcfg, proto_rtcfg);
 }
 
 /* The registration hand-off routing */
 
 void
 proto_reg_handoff_rtmac(void) {
-  dissector_handle_t rtmac_handle;
-
-  rtmac_handle = create_dissector_handle(dissect_rtmac, proto_rtmac);
   dissector_add_uint("ethertype", ETHERTYPE_RTMAC, rtmac_handle);
   ethertype_table = find_dissector_table("ethertype");
 }
 
 void
 proto_reg_handoff_rtcfg(void) {
-  dissector_handle_t rtcfg_handle;
-
   data_handle = find_dissector("data");
-  rtcfg_handle = create_dissector_handle(dissect_rtcfg, proto_rtcfg);
   dissector_add_uint("ethertype", ETHERTYPE_RTCFG, rtcfg_handle);
 }
 

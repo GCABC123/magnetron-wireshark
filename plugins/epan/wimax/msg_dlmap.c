@@ -22,11 +22,12 @@
 #include "crc.h"
 #include "wimax_bits.h"
 #include "wimax_utils.h"
-
-extern	gboolean include_cor2_changes;
+#include "wimax_prefs.h"
 
 void proto_register_mac_mgmt_msg_dlmap(void);
 void proto_reg_handoff_mac_mgmt_msg_dlmap(void);
+
+static dissector_handle_t dlmap_handle;
 
 #define MAC_MGMT_MSG_DLMAP 2
 
@@ -54,67 +55,67 @@ void proto_reg_handoff_mac_mgmt_msg_dlmap(void);
 	nib += nibs; \
 	} while(0)
 
-gint harq = 0; /* 1 if HARQ enabled (TODO) */
-gint fusc = 0; /* 1 if current zone permutation is FUSC or optional FUSC (TODO) */
-gint tusc = 0; /* 1 if current zone permutation is AMC, TUSC1 or TUSC2 (TODO) */
-gint ir_type = 0; /* reduced AAS map (TODO) */
-gint RCID_Type = 0;
-gint N_layer = 0;
-gint STC_Zone_Dedicated_Pilots = 0;
-gint STC_Zone_Matrix = 0;
-gint INC_CID = 0;
-gint sub_dl_ul_map = 0;
+int harq; /* 1 if HARQ enabled (TODO) */
+int fusc; /* 1 if current zone permutation is FUSC or optional FUSC (TODO) */
+int tusc; /* 1 if current zone permutation is AMC, TUSC1 or TUSC2 (TODO) */
+int ir_type; /* reduced AAS map (TODO) */
+int RCID_Type;
+int N_layer;
+int STC_Zone_Dedicated_Pilots;
+int STC_Zone_Matrix;
+int INC_CID;
+int sub_dl_ul_map;
 
-static gint proto_mac_mgmt_msg_dlmap_decoder = -1;
+static int proto_mac_mgmt_msg_dlmap_decoder;
 
-static gint ett_dlmap = -1;
-static gint ett_dlmap_ie = -1;
-/* static gint ett_dlmap_c_ie = -1; */
-static gint ett_109x = -1; /* SUB-DL-UL-MAP */
-static gint ett_109x_dl = -1;
-static gint ett_109x_ul = -1;
-static gint ett_275_phy = -1;
-static gint ett_275_1 = -1;
-static gint ett_277 = -1;
-static gint ett_277b = -1;
-static gint ett_278 = -1;
-static gint ett_279 = -1;
-static gint ett_280 = -1;
-static gint ett_281 = -1;
-static gint ett_282 = -1;
-static gint ett_283 = -1;
-static gint ett_284 = -1;
-static gint ett_285 = -1;
-static gint ett_286 = -1;
-static gint ett_286a = -1;
-static gint ett_286b = -1;
-static gint ett_286c = -1;
-static gint ett_286d = -1;
-static gint ett_286e = -1;
-static gint ett_286f = -1;
-static gint ett_286g = -1;
-static gint ett_286h = -1;
-static gint ett_286i = -1;
-static gint ett_286j = -1;
-static gint ett_286k = -1;
-static gint ett_286l = -1;
-static gint ett_286m = -1;
-static gint ett_286n = -1;
-static gint ett_286o = -1;
-static gint ett_286p = -1;
-static gint ett_286q = -1;
-static gint ett_286r = -1;
-static gint ett_286s = -1;
-static gint ett_286t = -1;
-static gint ett_286u = -1;
-static gint ett_286v = -1;
-static gint ett_286w = -1;
-static gint ett_286x = -1;
-static gint ett_286y = -1;
-static gint ett_286z = -1;
-static gint ett_305  = -1;
-/* static gint ett_305_dl = -1; */
-static gint ett_308a = -1;
+static int ett_dlmap;
+static int ett_dlmap_ie;
+/* static int ett_dlmap_c_ie; */
+static int ett_109x; /* SUB-DL-UL-MAP */
+static int ett_109x_dl;
+static int ett_109x_ul;
+static int ett_275_phy;
+static int ett_275_1;
+static int ett_277;
+static int ett_277b;
+static int ett_278;
+static int ett_279;
+static int ett_280;
+static int ett_281;
+static int ett_282;
+static int ett_283;
+static int ett_284;
+static int ett_285;
+static int ett_286;
+static int ett_286a;
+static int ett_286b;
+static int ett_286c;
+static int ett_286d;
+static int ett_286e;
+static int ett_286f;
+static int ett_286g;
+static int ett_286h;
+static int ett_286i;
+static int ett_286j;
+static int ett_286k;
+static int ett_286l;
+static int ett_286m;
+static int ett_286n;
+static int ett_286o;
+static int ett_286p;
+static int ett_286q;
+static int ett_286r;
+static int ett_286s;
+static int ett_286t;
+static int ett_286u;
+static int ett_286v;
+static int ett_286w;
+static int ett_286x;
+static int ett_286y;
+static int ett_286z;
+static int ett_305;
+/* static int ett_305_dl; */
+static int ett_308a;
 
 #define DCD_DOWNLINK_BURST_PROFILE	  1
 #define DCD_BS_EIRP			  2
@@ -232,368 +233,368 @@ static const value_string frames_per_second[] =
 };
 
 /* dl-map fields */
-static gint hf_dlmap_phy_fdur = -1;
-static gint hf_dlmap_phy_fdur_ms = -1;
-static gint hf_dlmap_phy_fdur_per_sec = -1;
-static gint hf_dlmap_phy_fnum = -1;
-/* static gint hf_dlmap_fch_expected = -1; */
-static gint hf_dlmap_dcd = -1;
-static gint hf_dlmap_bsid = -1;
-static gint hf_dlmap_ofdma_sym = -1;
-/* static gint hf_dlmap_ie = -1; */
-static gint hf_dlmap_ie_diuc = -1;
-static gint hf_dlmap_ie_reserved_extended2_duic = -1;
-static gint hf_dlmap_ie_reserved_extended_duic = -1;
-static gint hf_dlmap_ie_diuc_ext = -1;
-static gint hf_dlmap_ie_diuc_ext2 = -1;
-static gint hf_dlmap_ie_length = -1;
-static gint hf_dlmap_ie_bitmap = -1;
-static gint hf_dlmap_ie_bitmap_cqi = -1;
-static gint hf_dlmap_ie_bitmap_pusc = -1;
-static gint hf_dlmap_ie_bitmap_opt_pusc = -1;
-static gint hf_dlmap_ie_bitmap_amc = -1;
-static gint hf_dlmap_ie_bitmap_aas = -1;
-static gint hf_dlmap_ie_bitmap_periodic_ranging = -1;
-static gint hf_dlmap_ie_bitmap_sounding = -1;
-static gint hf_dlmap_ie_bitmap_mimo = -1;
-static gint hf_dlmap_ie_ncid = -1;
-static gint hf_dlmap_ie_cid = -1;
-static gint hf_dlmap_ie_offsym = -1;
-static gint hf_dlmap_ie_offsub = -1;
-static gint hf_dlmap_ie_boosting = -1;
-static gint hf_dlmap_ie_numsym = -1;
-static gint hf_dlmap_ie_numsub = -1;
-static gint hf_dlmap_ie_rep = -1;
-static gint hf_dlmap_ie_offsym2 = -1;
-static gint hf_dlmap_ie_offsub2 = -1;
-static gint hf_dlmap_ie_boosting2 = -1;
-static gint hf_dlmap_ie_numsym2 = -1;
-static gint hf_dlmap_ie_numsub2 = -1;
-static gint hf_dlmap_ie_rep2 = -1;
+static int hf_dlmap_phy_fdur;
+static int hf_dlmap_phy_fdur_ms;
+static int hf_dlmap_phy_fdur_per_sec;
+static int hf_dlmap_phy_fnum;
+/* static int hf_dlmap_fch_expected; */
+static int hf_dlmap_dcd;
+static int hf_dlmap_bsid;
+static int hf_dlmap_ofdma_sym;
+/* static int hf_dlmap_ie; */
+static int hf_dlmap_ie_diuc;
+static int hf_dlmap_ie_reserved_extended2_duic;
+static int hf_dlmap_ie_reserved_extended_duic;
+static int hf_dlmap_ie_diuc_ext;
+static int hf_dlmap_ie_diuc_ext2;
+static int hf_dlmap_ie_length;
+static int hf_dlmap_ie_bitmap;
+static int hf_dlmap_ie_bitmap_cqi;
+static int hf_dlmap_ie_bitmap_pusc;
+static int hf_dlmap_ie_bitmap_opt_pusc;
+static int hf_dlmap_ie_bitmap_amc;
+static int hf_dlmap_ie_bitmap_aas;
+static int hf_dlmap_ie_bitmap_periodic_ranging;
+static int hf_dlmap_ie_bitmap_sounding;
+static int hf_dlmap_ie_bitmap_mimo;
+static int hf_dlmap_ie_ncid;
+static int hf_dlmap_ie_cid;
+static int hf_dlmap_ie_offsym;
+static int hf_dlmap_ie_offsub;
+static int hf_dlmap_ie_boosting;
+static int hf_dlmap_ie_numsym;
+static int hf_dlmap_ie_numsub;
+static int hf_dlmap_ie_rep;
+static int hf_dlmap_ie_offsym2;
+static int hf_dlmap_ie_offsub2;
+static int hf_dlmap_ie_boosting2;
+static int hf_dlmap_ie_numsym2;
+static int hf_dlmap_ie_numsub2;
+static int hf_dlmap_ie_rep2;
 
-/* static gint hf_dlmap_xie_diuc = -1; */
-/* static gint hf_dlmap_xie_len = -1; */
+/* static int hf_dlmap_xie_diuc; */
+/* static int hf_dlmap_xie_len; */
 
-static gint hf_dlmapc_compr = -1;
-static gint hf_dlmapc_ulmap = -1;
-static gint hf_dlmapc_rsv = -1;
-static gint hf_dlmapc_len = -1;
-/* static gint hf_dlmapc_sync = -1; */
-static gint hf_dlmapc_opid = -1;
-static gint hf_dlmapc_secid = -1;
-static gint hf_dlmapc_count = -1;
+static int hf_dlmapc_compr;
+static int hf_dlmapc_ulmap;
+static int hf_dlmapc_rsv;
+static int hf_dlmapc_len;
+/* static int hf_dlmapc_sync; */
+static int hf_dlmapc_opid;
+static int hf_dlmapc_secid;
+static int hf_dlmapc_count;
 
 #if 0
-static gint hf_109x_cmi = -1;
-static gint hf_109x_len = -1;
-static gint hf_109x_rcid = -1;
-static gint hf_109x_haoi = -1;
-static gint hf_109x_dl = -1;
-static gint hf_109x_ul = -1;
-static gint hf_109x_dlie = -1;
-static gint hf_109x_symofs = -1;
-static gint hf_109x_subofs = -1;
-static gint hf_109x_rsv = -1;
+static int hf_109x_cmi;
+static int hf_109x_len;
+static int hf_109x_rcid;
+static int hf_109x_haoi;
+static int hf_109x_dl;
+static int hf_109x_ul;
+static int hf_109x_dlie;
+static int hf_109x_symofs;
+static int hf_109x_subofs;
+static int hf_109x_rsv;
 #endif
 
-static gint hf_308a_cmi = -1;
-static gint hf_308a_ulmap = -1;
-static gint hf_308a_type = -1;
-static gint hf_308a_mult = -1;
-static gint hf_308a_rsv = -1;
-static gint hf_mac_header_compress_dlmap_crc = -1;
-static gint hf_mac_header_compress_dlmap_crc_status = -1;
-static gint hf_crc16 = -1;
-static gint hf_crc16_status = -1;
-static gint hf_padding = -1;
-static gint hf_cid_mask = -1;
-static gint hf_reserved = -1;
+static int hf_308a_cmi;
+static int hf_308a_ulmap;
+static int hf_308a_type;
+static int hf_308a_mult;
+static int hf_308a_rsv;
+static int hf_mac_header_compress_dlmap_crc;
+static int hf_mac_header_compress_dlmap_crc_status;
+static int hf_crc16;
+static int hf_crc16_status;
+static int hf_padding;
+static int hf_cid_mask;
+static int hf_reserved;
 
 /* Generated via "one time" script to help create filterable fields */
-static int hf_dlmap_rcid_ie_cid = -1;
-static int hf_dlmap_rcid_ie_prefix = -1;
-static int hf_dlmap_rcid_ie_cid11 = -1;
-static int hf_dlmap_rcid_ie_cid7 = -1;
-static int hf_dlmap_rcid_ie_cid3 = -1;
-static int hf_dlmap_dedicated_dl_control_length = -1;
-static int hf_dlmap_dedicated_dl_control_control_header = -1;
-static int hf_dlmap_dedicated_dl_control_num_sdma_layers = -1;
-static int hf_dlmap_dedicated_mimo_dl_control_length = -1;
-static int hf_dlmap_dedicated_mimo_dl_control_control_header_mimo_control_info = -1;
-static int hf_dlmap_dedicated_mimo_dl_control_control_header_cqi_control_info = -1;
-static int hf_dlmap_dedicated_mimo_dl_control_control_header_closed_mimo_control_info = -1;
-static int hf_dlmap_dedicated_mimo_dl_control_n_layer = -1;
-static int hf_dlmap_dedicated_mimo_dl_control_matrix = -1;
-static int hf_dlmap_dedicated_mimo_dl_control_num_beamformed_streams = -1;
-static int hf_dlmap_dedicated_mimo_dl_control_period = -1;
-static int hf_dlmap_dedicated_mimo_dl_control_frame_offset = -1;
-static int hf_dlmap_dedicated_mimo_dl_control_duration = -1;
-static int hf_dlmap_dedicated_mimo_dl_control_allocation_index = -1;
-static int hf_dlmap_dedicated_mimo_dl_control_cqich_num = -1;
-static int hf_dlmap_dedicated_mimo_dl_control_feedback_type = -1;
-static int hf_dlmap_dedicated_mimo_dl_control_antenna_grouping_index = -1;
-static int hf_dlmap_dedicated_mimo_dl_control_num_stream = -1;
-static int hf_dlmap_dedicated_mimo_dl_control_antenna_selection_index = -1;
-static int hf_dlmap_dedicated_mimo_dl_control_codebook_precoding_index = -1;
-static int hf_dlmap_n_sub_burst_isi = -1;
-static int hf_dlmap_harq_chase_n_ack_channel = -1;
-static int hf_dlmap_harq_chase_duration = -1;
-static int hf_dlmap_harq_chase_sub_burst_diuc_indicator = -1;
-static int hf_dlmap_reserved_uint = -1;
-static int hf_dlmap_harq_chase_diuc = -1;
-static int hf_dlmap_harq_chase_repetition_coding_indication = -1;
-static int hf_dlmap_harq_chase_acid = -1;
-static int hf_dlmap_harq_chase_ai_sn = -1;
-static int hf_dlmap_harq_chase_ack_disable = -1;
-static int hf_dlmap_harq_chase_dedicated_dl_control_indicator = -1;
-static int hf_dlmap_harq_chase_allocation_index = -1;
-static int hf_dlmap_harq_chase_period = -1;
-static int hf_dlmap_harq_chase_frame_offset = -1;
-static int hf_dlmap_harq_ir_ctc_n_ack_channel = -1;
-static int hf_dlmap_harq_ir_ctc_nep = -1;
-static int hf_dlmap_harq_ir_ctc_nsch = -1;
-static int hf_dlmap_harq_ir_ctc_spid = -1;
-static int hf_dlmap_harq_ir_ctc_acid = -1;
-static int hf_dlmap_harq_ir_ctc_ai_sn = -1;
-static int hf_dlmap_harq_ir_ctc_ack_disable = -1;
-static int hf_dlmap_harq_ir_ctc_dedicated_dl_control_indicator = -1;
-static int hf_dlmap_harq_ir_ctc_duration = -1;
-static int hf_dlmap_harq_ir_ctc_allocation_index = -1;
-static int hf_dlmap_harq_ir_ctc_period = -1;
-static int hf_dlmap_harq_ir_ctc_frame_offset = -1;
-static int hf_dlmap_harq_ir_cc_n_ack_channel = -1;
-static int hf_dlmap_harq_ir_cc_duration = -1;
-static int hf_dlmap_harq_ir_cc_sub_burst_diuc_indicator = -1;
-static int hf_dlmap_harq_ir_cc_diuc = -1;
-static int hf_dlmap_harq_ir_cc_repetition_coding_indication = -1;
-static int hf_dlmap_harq_ir_cc_acid = -1;
-static int hf_dlmap_harq_ir_cc_ai_sn = -1;
-static int hf_dlmap_harq_ir_cc_spid = -1;
-static int hf_dlmap_harq_ir_cc_ack_disable = -1;
-static int hf_dlmap_harq_ir_cc_dedicated_dl_control_indicator = -1;
-static int hf_dlmap_harq_ir_cc_allocation_index = -1;
-static int hf_dlmap_harq_ir_cc_period = -1;
-static int hf_dlmap_harq_ir_cc_frame_offset = -1;
-static int hf_dlmap_mimo_dl_chase_harq_n_ack_channel = -1;
-static int hf_dlmap_mimo_dl_chase_harq_mu_indicator = -1;
-static int hf_dlmap_mimo_dl_chase_harq_dedicated_mimo_dl_control_indicator = -1;
-static int hf_dlmap_mimo_dl_chase_harq_ack_disable = -1;
-static int hf_dlmap_mimo_dl_chase_harq_duration = -1;
-static int hf_dlmap_mimo_dl_chase_harq_diuc = -1;
-static int hf_dlmap_mimo_dl_chase_harq_repetition_coding_indication = -1;
-static int hf_dlmap_mimo_dl_chase_harq_acid = -1;
-static int hf_dlmap_mimo_dl_chase_harq_ai_sn = -1;
-static int hf_dlmap_mimo_dl_ir_harq_n_ack_channel = -1;
-static int hf_dlmap_mimo_dl_ir_harq_mu_indicator = -1;
-static int hf_dlmap_mimo_dl_ir_harq_dedicated_mimo_dl_control_indicator = -1;
-static int hf_dlmap_mimo_dl_ir_harq_ack_disable = -1;
-static int hf_dlmap_mimo_dl_ir_harq_nsch = -1;
-static int hf_dlmap_mimo_dl_ir_harq_nep = -1;
-static int hf_dlmap_mimo_dl_ir_harq_spid = -1;
-static int hf_dlmap_mimo_dl_ir_harq_acid = -1;
-static int hf_dlmap_mimo_dl_ir_harq_ai_sn = -1;
-static int hf_dlmap_mimo_dl_ir_harq_cc_n_ack_channel = -1;
-static int hf_dlmap_mimo_dl_ir_harq_cc_mu_indicator = -1;
-static int hf_dlmap_mimo_dl_ir_harq_cc_dedicated_mimo_dl_control_indicator = -1;
-static int hf_dlmap_mimo_dl_ir_harq_cc_ack_disable = -1;
-static int hf_dlmap_mimo_dl_ir_harq_cc_duration = -1;
-static int hf_dlmap_mimo_dl_ir_harq_cc_diuc = -1;
-static int hf_dlmap_mimo_dl_ir_harq_cc_repetition_coding_indication = -1;
-static int hf_dlmap_mimo_dl_ir_harq_cc_acid = -1;
-static int hf_dlmap_mimo_dl_ir_harq_cc_ai_sn = -1;
-static int hf_dlmap_mimo_dl_ir_harq_cc_spid = -1;
-static int hf_dlmap_mimo_dl_stc_harq_n_ack_channel = -1;
-static int hf_dlmap_mimo_dl_stc_harq_tx_count = -1;
-static int hf_dlmap_mimo_dl_stc_harq_duration = -1;
-static int hf_dlmap_mimo_dl_stc_harq_sub_burst_offset_indication = -1;
-static int hf_dlmap_mimo_dl_stc_harq_sub_burst_offset = -1;
-static int hf_dlmap_mimo_dl_stc_harq_ack_disable = -1;
-static int hf_dlmap_mimo_dl_stc_harq_dedicated_mimo_dl_control_indicator = -1;
-static int hf_dlmap_mimo_dl_stc_harq_diuc = -1;
-static int hf_dlmap_mimo_dl_stc_harq_repetition_coding_indication = -1;
-static int hf_dlmap_mimo_dl_stc_harq_acid = -1;
-static int hf_dlmap_mbs_map_extended_2_diuc = -1;
-static int hf_dlmap_mbs_map_mbs_zone_identifier = -1;
-static int hf_dlmap_mbs_map_macro_diversity_enhanced = -1;
-static int hf_dlmap_mbs_map_permutation = -1;
-static int hf_dlmap_mbs_map_dl_permbase = -1;
-static int hf_dlmap_mbs_map_prbs_id = -1;
-static int hf_dlmap_mbs_map_ofdma_symbol_offset = -1;
-static int hf_dlmap_mbs_map_diuc_change_indication = -1;
-static int hf_dlmap_mbs_map_boosting = -1;
-static int hf_dlmap_mbs_map_diuc = -1;
-static int hf_dlmap_mbs_map_num_subchannels = -1;
-static int hf_dlmap_mbs_map_num_ofdma_symbols = -1;
-static int hf_dlmap_mbs_map_repetition_coding_indication = -1;
-static int hf_dlmap_mbs_map_cid = -1;
-static int hf_dlmap_mbs_map_ofdma_symbols_offset = -1;
-static int hf_dlmap_mbs_map_subchannel_offset = -1;
-static int hf_dlmap_mbs_map_slc_3_indication = -1;
-static int hf_dlmap_mbs_map_next_mbs_map_ie_frame_offset = -1;
-static int hf_dlmap_skip_extended_2_diuc = -1;
-static int hf_dlmap_skip_mode = -1;
-static int hf_dlmap_harq_dl_map_extended_2_diuc = -1;
-static int hf_dlmap_harq_dl_map_rcid_type = -1;
-static int hf_dlmap_harq_dl_map_boosting = -1;
-static int hf_dlmap_harq_dl_map_region_id_use_indicator = -1;
-static int hf_dlmap_harq_dl_map_ofdma_symbol_offset = -1;
-static int hf_dlmap_harq_dl_map_subchannel_offset = -1;
-static int hf_dlmap_harq_dl_map_number_of_ofdma_symbols = -1;
-static int hf_dlmap_harq_dl_map_number_of_subchannels = -1;
-static int hf_dlmap_harq_dl_map_rectangular_sub_burst_indicator = -1;
-static int hf_dlmap_harq_dl_map_region_id = -1;
-static int hf_dlmap_harq_dl_map_mode = -1;
-static int hf_dlmap_harq_dl_map_sub_burst_ie_length = -1;
-static int hf_dlmap_harq_dl_map_reserved_mode = -1;
-static int hf_dlmap_harq_ack_bitmap_data = -1;
-static int hf_dlmap_enhanced_dl_map_extended_2_diuc = -1;
-static int hf_dlmap_enhanced_dl_map_num_assignment = -1;
-static int hf_dlmap_enhanced_dl_map_n_cid = -1;
-static int hf_dlmap_enhanced_dl_map_cid = -1;
-static int hf_dlmap_enhanced_dl_map_diuc = -1;
-static int hf_dlmap_enhanced_dl_map_boosting = -1;
-static int hf_dlmap_enhanced_dl_map_repetition_coding_indication = -1;
-static int hf_dlmap_enhanced_dl_map_region_id = -1;
-static int hf_dlmap_aas_sdma_dl_extended_2_diuc = -1;
-static int hf_dlmap_aas_sdma_dl_rcid_type = -1;
-static int hf_dlmap_aas_sdma_dl_num_burst_region = -1;
-static int hf_dlmap_aas_sdma_dl_ofdma_symbol_offset = -1;
-static int hf_dlmap_aas_sdma_dl_subchannel_offset = -1;
-static int hf_dlmap_aas_sdma_dl_num_ofdma_triple_symbols = -1;
-static int hf_dlmap_aas_sdma_dl_num_subchannels = -1;
-static int hf_dlmap_aas_sdma_dl_number_of_users = -1;
-static int hf_dlmap_aas_sdma_dl_encoding_mode = -1;
-static int hf_dlmap_aas_sdma_dl_cqich_allocation = -1;
-static int hf_dlmap_aas_sdma_dl_ackch_allocation = -1;
-static int hf_dlmap_aas_sdma_dl_pilot_pattern_modifier = -1;
-static int hf_dlmap_aas_sdma_dl_preamble_modifier_index = -1;
-static int hf_dlmap_aas_sdma_dl_pilot_pattern = -1;
-static int hf_dlmap_aas_sdma_dl_diuc = -1;
-static int hf_dlmap_aas_sdma_dl_repetition_coding_indication = -1;
-static int hf_dlmap_aas_sdma_dl_ack_ch_index = -1;
-static int hf_dlmap_aas_sdma_dl_acid = -1;
-static int hf_dlmap_aas_sdma_dl_ai_sn = -1;
-static int hf_dlmap_aas_sdma_dl_nep = -1;
-static int hf_dlmap_aas_sdma_dl_nsch = -1;
-static int hf_dlmap_aas_sdma_dl_spid = -1;
-static int hf_dlmap_aas_sdma_dl_allocation_index = -1;
-static int hf_dlmap_aas_sdma_dl_period = -1;
-static int hf_dlmap_aas_sdma_dl_frame_offset = -1;
-static int hf_dlmap_aas_sdma_dl_duration = -1;
-static int hf_dlmap_channel_measurement_channel_nr = -1;
-static int hf_dlmap_channel_measurement_ofdma_symbol_offset = -1;
-static int hf_dlmap_channel_measurement_cid = -1;
-static int hf_dlmap_stc_zone_ofdma_symbol_offset = -1;
-static int hf_dlmap_stc_zone_permutations = -1;
-static int hf_dlmap_stc_zone_use_all_sc_indicator = -1;
-static int hf_dlmap_stc_zone_stc = -1;
-static int hf_dlmap_stc_zone_matrix_indicator = -1;
-static int hf_dlmap_stc_zone_dl_permbase = -1;
-static int hf_dlmap_stc_zone_prbs_id = -1;
-static int hf_dlmap_stc_zone_amc_type = -1;
-static int hf_dlmap_stc_zone_midamble_presence = -1;
-static int hf_dlmap_stc_zone_midamble_boosting = -1;
-static int hf_dlmap_stc_zone_2_3_antenna_select = -1;
-static int hf_dlmap_stc_zone_dedicated_pilots = -1;
-static int hf_dlmap_aas_dl_ofdma_symbol_offset = -1;
-static int hf_dlmap_aas_dl_permutation = -1;
-static int hf_dlmap_aas_dl_dl_permbase = -1;
-static int hf_dlmap_aas_dl_downlink_preamble_config = -1;
-static int hf_dlmap_aas_dl_preamble_type = -1;
-static int hf_dlmap_aas_dl_prbs_id = -1;
-static int hf_dlmap_aas_dl_diversity_map = -1;
-static int hf_dlmap_data_location_another_bs_segment = -1;
-static int hf_dlmap_data_location_another_bs_used_subchannels = -1;
-static int hf_dlmap_data_location_another_bs_diuc = -1;
-static int hf_dlmap_data_location_another_bs_frame_advance = -1;
-static int hf_dlmap_data_location_another_bs_ofdma_symbol_offset = -1;
-static int hf_dlmap_data_location_another_bs_subchannel_offset = -1;
-static int hf_dlmap_data_location_another_bs_boosting = -1;
-static int hf_dlmap_data_location_another_bs_preamble_index = -1;
-static int hf_dlmap_data_location_another_bs_num_ofdma_symbols = -1;
-static int hf_dlmap_data_location_another_bs_num_subchannels = -1;
-static int hf_dlmap_data_location_another_bs_repetition_coding_indication = -1;
-static int hf_dlmap_data_location_another_bs_cid = -1;
-static int hf_dlmap_harq_map_pointer_diuc = -1;
-static int hf_dlmap_harq_map_pointer_num_slots = -1;
-static int hf_dlmap_harq_map_pointer_repetition_coding_indication = -1;
-static int hf_dlmap_harq_map_pointer_map_version = -1;
-static int hf_dlmap_harq_map_pointer_idle_users = -1;
-static int hf_dlmap_harq_map_pointer_sleep_users = -1;
-static int hf_dlmap_harq_map_pointer_cid_mask_length = -1;
-static int hf_dlmap_phymod_dl_preamble_modifier_type = -1;
-static int hf_dlmap_phymod_dl_preamble_frequency_shift_index = -1;
-static int hf_dlmap_phymod_dl_preamble_time_shift_index = -1;
-static int hf_dlmap_phymod_dl_pilot_pattern_modifier = -1;
-static int hf_dlmap_phymod_dl_pilot_pattern_index = -1;
-static int hf_dlmap_broadcast_ctrl_ptr_dcd_ucd_transmission_frame = -1;
-static int hf_dlmap_broadcast_ctrl_ptr_skip_broadcast_system_update = -1;
-static int hf_dlmap_broadcast_ctrl_ptr_broadcast_system_update_type = -1;
-static int hf_dlmap_broadcast_ctrl_ptr_broadcast_system_update_transmission_frame = -1;
-static int hf_dlmap_dl_pusc_burst_allocation_cid = -1;
-static int hf_dlmap_dl_pusc_burst_allocation_diuc = -1;
-static int hf_dlmap_dl_pusc_burst_allocation_segment = -1;
-static int hf_dlmap_dl_pusc_burst_allocation_boosting = -1;
-static int hf_dlmap_dl_pusc_burst_allocation_idcell = -1;
-static int hf_dlmap_dl_pusc_burst_allocation_dl_permbase = -1;
-static int hf_dlmap_dl_pusc_burst_allocation_prbs_id = -1;
-static int hf_dlmap_dl_pusc_burst_allocation_repetition_coding_indication = -1;
-static int hf_dlmap_dl_pusc_burst_allocation_used_subchannels = -1;
-static int hf_dlmap_dl_pusc_burst_allocation_ofdma_symbol_offset = -1;
-static int hf_dlmap_dl_pusc_burst_allocation_num_ofdma_symbols = -1;
-static int hf_dlmap_dl_pusc_burst_allocation_subchannel_offset = -1;
-static int hf_dlmap_dl_pusc_burst_allocation_num_subchannels = -1;
-static int hf_dlmap_pusc_asca_alloc_diuc = -1;
-static int hf_dlmap_pusc_asca_alloc_short_basic_cid = -1;
-static int hf_dlmap_pusc_asca_alloc_ofdma_symbol_offset = -1;
-static int hf_dlmap_pusc_asca_alloc_subchannel_offset = -1;
-static int hf_dlmap_pusc_asca_alloc_num_ofdma_symbols = -1;
-static int hf_dlmap_pusc_asca_alloc_num_symbols = -1;
-static int hf_dlmap_pusc_asca_alloc_repetition_coding_information = -1;
-static int hf_dlmap_pusc_asca_alloc_permutation_id = -1;
-static int hf_dlmap_reduced_aas_num_ie = -1;
-static int hf_dlmap_reduced_aas_periodicity = -1;
-static int hf_dlmap_reduced_aas_cid_included = -1;
-static int hf_dlmap_reduced_aas_dcd_count_included = -1;
-static int hf_dlmap_reduced_aas_phy_modification_included = -1;
-static int hf_dlmap_reduced_aas_cqich_control_indicator = -1;
-static int hf_dlmap_reduced_aas_encoding_mode = -1;
-static int hf_dlmap_reduced_aas_separate_mcs_enabled = -1;
-static int hf_dlmap_reduced_aas_duration = -1;
-static int hf_dlmap_reduced_aas_diuc = -1;
-static int hf_dlmap_reduced_aas_repetition_coding_indication = -1;
-static int hf_dlmap_reduced_aas_cid = -1;
-static int hf_dlmap_reduced_aas_allocation_index = -1;
-static int hf_dlmap_reduced_aas_report_period = -1;
-static int hf_dlmap_reduced_aas_frame_offset = -1;
-static int hf_dlmap_reduced_aas_report_duration = -1;
-static int hf_dlmap_reduced_aas_cqi_measurement_type = -1;
-static int hf_dlmap_reduced_aas_dcd_count = -1;
-static int hf_dlmap_reduced_aas_preamble_select = -1;
-static int hf_dlmap_reduced_aas_preamble_shift_index = -1;
-static int hf_dlmap_reduced_aas_pilot_pattern_modifier = -1;
-static int hf_dlmap_reduced_aas_pilot_pattern_index = -1;
-static int hf_dlmap_reduced_aas_dl_frame_offset = -1;
-static int hf_dlmap_reduced_aas_zone_symbol_offset = -1;
-static int hf_dlmap_reduced_aas_ofdma_symbol_offset = -1;
-static int hf_dlmap_reduced_aas_subchannel_offset = -1;
-static int hf_dlmap_reduced_aas_num_ofdma_triple_symbol = -1;
-static int hf_dlmap_reduced_aas_num_subchannels = -1;
-static int hf_dlmap_reduced_aas_num_ofdma_symbols = -1;
-static int hf_dlmap_reduced_aas_diuc_nep = -1;
-static int hf_dlmap_reduced_aas_dl_harq_ack_bitmap = -1;
-static int hf_dlmap_reduced_aas_ack_allocation_index = -1;
-static int hf_dlmap_reduced_aas_acid = -1;
-static int hf_dlmap_reduced_aas_ai_sn = -1;
-static int hf_dlmap_reduced_aas_nsch = -1;
-static int hf_dlmap_reduced_aas_spid = -1;
+static int hf_dlmap_rcid_ie_cid;
+static int hf_dlmap_rcid_ie_prefix;
+static int hf_dlmap_rcid_ie_cid11;
+static int hf_dlmap_rcid_ie_cid7;
+static int hf_dlmap_rcid_ie_cid3;
+static int hf_dlmap_dedicated_dl_control_length;
+static int hf_dlmap_dedicated_dl_control_control_header;
+static int hf_dlmap_dedicated_dl_control_num_sdma_layers;
+static int hf_dlmap_dedicated_mimo_dl_control_length;
+static int hf_dlmap_dedicated_mimo_dl_control_control_header_mimo_control_info;
+static int hf_dlmap_dedicated_mimo_dl_control_control_header_cqi_control_info;
+static int hf_dlmap_dedicated_mimo_dl_control_control_header_closed_mimo_control_info;
+static int hf_dlmap_dedicated_mimo_dl_control_n_layer;
+static int hf_dlmap_dedicated_mimo_dl_control_matrix;
+static int hf_dlmap_dedicated_mimo_dl_control_num_beamformed_streams;
+static int hf_dlmap_dedicated_mimo_dl_control_period;
+static int hf_dlmap_dedicated_mimo_dl_control_frame_offset;
+static int hf_dlmap_dedicated_mimo_dl_control_duration;
+static int hf_dlmap_dedicated_mimo_dl_control_allocation_index;
+static int hf_dlmap_dedicated_mimo_dl_control_cqich_num;
+static int hf_dlmap_dedicated_mimo_dl_control_feedback_type;
+static int hf_dlmap_dedicated_mimo_dl_control_antenna_grouping_index;
+static int hf_dlmap_dedicated_mimo_dl_control_num_stream;
+static int hf_dlmap_dedicated_mimo_dl_control_antenna_selection_index;
+static int hf_dlmap_dedicated_mimo_dl_control_codebook_precoding_index;
+static int hf_dlmap_n_sub_burst_isi;
+static int hf_dlmap_harq_chase_n_ack_channel;
+static int hf_dlmap_harq_chase_duration;
+static int hf_dlmap_harq_chase_sub_burst_diuc_indicator;
+static int hf_dlmap_reserved_uint;
+static int hf_dlmap_harq_chase_diuc;
+static int hf_dlmap_harq_chase_repetition_coding_indication;
+static int hf_dlmap_harq_chase_acid;
+static int hf_dlmap_harq_chase_ai_sn;
+static int hf_dlmap_harq_chase_ack_disable;
+static int hf_dlmap_harq_chase_dedicated_dl_control_indicator;
+static int hf_dlmap_harq_chase_allocation_index;
+static int hf_dlmap_harq_chase_period;
+static int hf_dlmap_harq_chase_frame_offset;
+static int hf_dlmap_harq_ir_ctc_n_ack_channel;
+static int hf_dlmap_harq_ir_ctc_nep;
+static int hf_dlmap_harq_ir_ctc_nsch;
+static int hf_dlmap_harq_ir_ctc_spid;
+static int hf_dlmap_harq_ir_ctc_acid;
+static int hf_dlmap_harq_ir_ctc_ai_sn;
+static int hf_dlmap_harq_ir_ctc_ack_disable;
+static int hf_dlmap_harq_ir_ctc_dedicated_dl_control_indicator;
+static int hf_dlmap_harq_ir_ctc_duration;
+static int hf_dlmap_harq_ir_ctc_allocation_index;
+static int hf_dlmap_harq_ir_ctc_period;
+static int hf_dlmap_harq_ir_ctc_frame_offset;
+static int hf_dlmap_harq_ir_cc_n_ack_channel;
+static int hf_dlmap_harq_ir_cc_duration;
+static int hf_dlmap_harq_ir_cc_sub_burst_diuc_indicator;
+static int hf_dlmap_harq_ir_cc_diuc;
+static int hf_dlmap_harq_ir_cc_repetition_coding_indication;
+static int hf_dlmap_harq_ir_cc_acid;
+static int hf_dlmap_harq_ir_cc_ai_sn;
+static int hf_dlmap_harq_ir_cc_spid;
+static int hf_dlmap_harq_ir_cc_ack_disable;
+static int hf_dlmap_harq_ir_cc_dedicated_dl_control_indicator;
+static int hf_dlmap_harq_ir_cc_allocation_index;
+static int hf_dlmap_harq_ir_cc_period;
+static int hf_dlmap_harq_ir_cc_frame_offset;
+static int hf_dlmap_mimo_dl_chase_harq_n_ack_channel;
+static int hf_dlmap_mimo_dl_chase_harq_mu_indicator;
+static int hf_dlmap_mimo_dl_chase_harq_dedicated_mimo_dl_control_indicator;
+static int hf_dlmap_mimo_dl_chase_harq_ack_disable;
+static int hf_dlmap_mimo_dl_chase_harq_duration;
+static int hf_dlmap_mimo_dl_chase_harq_diuc;
+static int hf_dlmap_mimo_dl_chase_harq_repetition_coding_indication;
+static int hf_dlmap_mimo_dl_chase_harq_acid;
+static int hf_dlmap_mimo_dl_chase_harq_ai_sn;
+static int hf_dlmap_mimo_dl_ir_harq_n_ack_channel;
+static int hf_dlmap_mimo_dl_ir_harq_mu_indicator;
+static int hf_dlmap_mimo_dl_ir_harq_dedicated_mimo_dl_control_indicator;
+static int hf_dlmap_mimo_dl_ir_harq_ack_disable;
+static int hf_dlmap_mimo_dl_ir_harq_nsch;
+static int hf_dlmap_mimo_dl_ir_harq_nep;
+static int hf_dlmap_mimo_dl_ir_harq_spid;
+static int hf_dlmap_mimo_dl_ir_harq_acid;
+static int hf_dlmap_mimo_dl_ir_harq_ai_sn;
+static int hf_dlmap_mimo_dl_ir_harq_cc_n_ack_channel;
+static int hf_dlmap_mimo_dl_ir_harq_cc_mu_indicator;
+static int hf_dlmap_mimo_dl_ir_harq_cc_dedicated_mimo_dl_control_indicator;
+static int hf_dlmap_mimo_dl_ir_harq_cc_ack_disable;
+static int hf_dlmap_mimo_dl_ir_harq_cc_duration;
+static int hf_dlmap_mimo_dl_ir_harq_cc_diuc;
+static int hf_dlmap_mimo_dl_ir_harq_cc_repetition_coding_indication;
+static int hf_dlmap_mimo_dl_ir_harq_cc_acid;
+static int hf_dlmap_mimo_dl_ir_harq_cc_ai_sn;
+static int hf_dlmap_mimo_dl_ir_harq_cc_spid;
+static int hf_dlmap_mimo_dl_stc_harq_n_ack_channel;
+static int hf_dlmap_mimo_dl_stc_harq_tx_count;
+static int hf_dlmap_mimo_dl_stc_harq_duration;
+static int hf_dlmap_mimo_dl_stc_harq_sub_burst_offset_indication;
+static int hf_dlmap_mimo_dl_stc_harq_sub_burst_offset;
+static int hf_dlmap_mimo_dl_stc_harq_ack_disable;
+static int hf_dlmap_mimo_dl_stc_harq_dedicated_mimo_dl_control_indicator;
+static int hf_dlmap_mimo_dl_stc_harq_diuc;
+static int hf_dlmap_mimo_dl_stc_harq_repetition_coding_indication;
+static int hf_dlmap_mimo_dl_stc_harq_acid;
+static int hf_dlmap_mbs_map_extended_2_diuc;
+static int hf_dlmap_mbs_map_mbs_zone_identifier;
+static int hf_dlmap_mbs_map_macro_diversity_enhanced;
+static int hf_dlmap_mbs_map_permutation;
+static int hf_dlmap_mbs_map_dl_permbase;
+static int hf_dlmap_mbs_map_prbs_id;
+static int hf_dlmap_mbs_map_ofdma_symbol_offset;
+static int hf_dlmap_mbs_map_diuc_change_indication;
+static int hf_dlmap_mbs_map_boosting;
+static int hf_dlmap_mbs_map_diuc;
+static int hf_dlmap_mbs_map_num_subchannels;
+static int hf_dlmap_mbs_map_num_ofdma_symbols;
+static int hf_dlmap_mbs_map_repetition_coding_indication;
+static int hf_dlmap_mbs_map_cid;
+static int hf_dlmap_mbs_map_ofdma_symbols_offset;
+static int hf_dlmap_mbs_map_subchannel_offset;
+static int hf_dlmap_mbs_map_slc_3_indication;
+static int hf_dlmap_mbs_map_next_mbs_map_ie_frame_offset;
+static int hf_dlmap_skip_extended_2_diuc;
+static int hf_dlmap_skip_mode;
+static int hf_dlmap_harq_dl_map_extended_2_diuc;
+static int hf_dlmap_harq_dl_map_rcid_type;
+static int hf_dlmap_harq_dl_map_boosting;
+static int hf_dlmap_harq_dl_map_region_id_use_indicator;
+static int hf_dlmap_harq_dl_map_ofdma_symbol_offset;
+static int hf_dlmap_harq_dl_map_subchannel_offset;
+static int hf_dlmap_harq_dl_map_number_of_ofdma_symbols;
+static int hf_dlmap_harq_dl_map_number_of_subchannels;
+static int hf_dlmap_harq_dl_map_rectangular_sub_burst_indicator;
+static int hf_dlmap_harq_dl_map_region_id;
+static int hf_dlmap_harq_dl_map_mode;
+static int hf_dlmap_harq_dl_map_sub_burst_ie_length;
+static int hf_dlmap_harq_dl_map_reserved_mode;
+static int hf_dlmap_harq_ack_bitmap_data;
+static int hf_dlmap_enhanced_dl_map_extended_2_diuc;
+static int hf_dlmap_enhanced_dl_map_num_assignment;
+static int hf_dlmap_enhanced_dl_map_n_cid;
+static int hf_dlmap_enhanced_dl_map_cid;
+static int hf_dlmap_enhanced_dl_map_diuc;
+static int hf_dlmap_enhanced_dl_map_boosting;
+static int hf_dlmap_enhanced_dl_map_repetition_coding_indication;
+static int hf_dlmap_enhanced_dl_map_region_id;
+static int hf_dlmap_aas_sdma_dl_extended_2_diuc;
+static int hf_dlmap_aas_sdma_dl_rcid_type;
+static int hf_dlmap_aas_sdma_dl_num_burst_region;
+static int hf_dlmap_aas_sdma_dl_ofdma_symbol_offset;
+static int hf_dlmap_aas_sdma_dl_subchannel_offset;
+static int hf_dlmap_aas_sdma_dl_num_ofdma_triple_symbols;
+static int hf_dlmap_aas_sdma_dl_num_subchannels;
+static int hf_dlmap_aas_sdma_dl_number_of_users;
+static int hf_dlmap_aas_sdma_dl_encoding_mode;
+static int hf_dlmap_aas_sdma_dl_cqich_allocation;
+static int hf_dlmap_aas_sdma_dl_ackch_allocation;
+static int hf_dlmap_aas_sdma_dl_pilot_pattern_modifier;
+static int hf_dlmap_aas_sdma_dl_preamble_modifier_index;
+static int hf_dlmap_aas_sdma_dl_pilot_pattern;
+static int hf_dlmap_aas_sdma_dl_diuc;
+static int hf_dlmap_aas_sdma_dl_repetition_coding_indication;
+static int hf_dlmap_aas_sdma_dl_ack_ch_index;
+static int hf_dlmap_aas_sdma_dl_acid;
+static int hf_dlmap_aas_sdma_dl_ai_sn;
+static int hf_dlmap_aas_sdma_dl_nep;
+static int hf_dlmap_aas_sdma_dl_nsch;
+static int hf_dlmap_aas_sdma_dl_spid;
+static int hf_dlmap_aas_sdma_dl_allocation_index;
+static int hf_dlmap_aas_sdma_dl_period;
+static int hf_dlmap_aas_sdma_dl_frame_offset;
+static int hf_dlmap_aas_sdma_dl_duration;
+static int hf_dlmap_channel_measurement_channel_nr;
+static int hf_dlmap_channel_measurement_ofdma_symbol_offset;
+static int hf_dlmap_channel_measurement_cid;
+static int hf_dlmap_stc_zone_ofdma_symbol_offset;
+static int hf_dlmap_stc_zone_permutations;
+static int hf_dlmap_stc_zone_use_all_sc_indicator;
+static int hf_dlmap_stc_zone_stc;
+static int hf_dlmap_stc_zone_matrix_indicator;
+static int hf_dlmap_stc_zone_dl_permbase;
+static int hf_dlmap_stc_zone_prbs_id;
+static int hf_dlmap_stc_zone_amc_type;
+static int hf_dlmap_stc_zone_midamble_presence;
+static int hf_dlmap_stc_zone_midamble_boosting;
+static int hf_dlmap_stc_zone_2_3_antenna_select;
+static int hf_dlmap_stc_zone_dedicated_pilots;
+static int hf_dlmap_aas_dl_ofdma_symbol_offset;
+static int hf_dlmap_aas_dl_permutation;
+static int hf_dlmap_aas_dl_dl_permbase;
+static int hf_dlmap_aas_dl_downlink_preamble_config;
+static int hf_dlmap_aas_dl_preamble_type;
+static int hf_dlmap_aas_dl_prbs_id;
+static int hf_dlmap_aas_dl_diversity_map;
+static int hf_dlmap_data_location_another_bs_segment;
+static int hf_dlmap_data_location_another_bs_used_subchannels;
+static int hf_dlmap_data_location_another_bs_diuc;
+static int hf_dlmap_data_location_another_bs_frame_advance;
+static int hf_dlmap_data_location_another_bs_ofdma_symbol_offset;
+static int hf_dlmap_data_location_another_bs_subchannel_offset;
+static int hf_dlmap_data_location_another_bs_boosting;
+static int hf_dlmap_data_location_another_bs_preamble_index;
+static int hf_dlmap_data_location_another_bs_num_ofdma_symbols;
+static int hf_dlmap_data_location_another_bs_num_subchannels;
+static int hf_dlmap_data_location_another_bs_repetition_coding_indication;
+static int hf_dlmap_data_location_another_bs_cid;
+static int hf_dlmap_harq_map_pointer_diuc;
+static int hf_dlmap_harq_map_pointer_num_slots;
+static int hf_dlmap_harq_map_pointer_repetition_coding_indication;
+static int hf_dlmap_harq_map_pointer_map_version;
+static int hf_dlmap_harq_map_pointer_idle_users;
+static int hf_dlmap_harq_map_pointer_sleep_users;
+static int hf_dlmap_harq_map_pointer_cid_mask_length;
+static int hf_dlmap_phymod_dl_preamble_modifier_type;
+static int hf_dlmap_phymod_dl_preamble_frequency_shift_index;
+static int hf_dlmap_phymod_dl_preamble_time_shift_index;
+static int hf_dlmap_phymod_dl_pilot_pattern_modifier;
+static int hf_dlmap_phymod_dl_pilot_pattern_index;
+static int hf_dlmap_broadcast_ctrl_ptr_dcd_ucd_transmission_frame;
+static int hf_dlmap_broadcast_ctrl_ptr_skip_broadcast_system_update;
+static int hf_dlmap_broadcast_ctrl_ptr_broadcast_system_update_type;
+static int hf_dlmap_broadcast_ctrl_ptr_broadcast_system_update_transmission_frame;
+static int hf_dlmap_dl_pusc_burst_allocation_cid;
+static int hf_dlmap_dl_pusc_burst_allocation_diuc;
+static int hf_dlmap_dl_pusc_burst_allocation_segment;
+static int hf_dlmap_dl_pusc_burst_allocation_boosting;
+static int hf_dlmap_dl_pusc_burst_allocation_idcell;
+static int hf_dlmap_dl_pusc_burst_allocation_dl_permbase;
+static int hf_dlmap_dl_pusc_burst_allocation_prbs_id;
+static int hf_dlmap_dl_pusc_burst_allocation_repetition_coding_indication;
+static int hf_dlmap_dl_pusc_burst_allocation_used_subchannels;
+static int hf_dlmap_dl_pusc_burst_allocation_ofdma_symbol_offset;
+static int hf_dlmap_dl_pusc_burst_allocation_num_ofdma_symbols;
+static int hf_dlmap_dl_pusc_burst_allocation_subchannel_offset;
+static int hf_dlmap_dl_pusc_burst_allocation_num_subchannels;
+static int hf_dlmap_pusc_asca_alloc_diuc;
+static int hf_dlmap_pusc_asca_alloc_short_basic_cid;
+static int hf_dlmap_pusc_asca_alloc_ofdma_symbol_offset;
+static int hf_dlmap_pusc_asca_alloc_subchannel_offset;
+static int hf_dlmap_pusc_asca_alloc_num_ofdma_symbols;
+static int hf_dlmap_pusc_asca_alloc_num_symbols;
+static int hf_dlmap_pusc_asca_alloc_repetition_coding_information;
+static int hf_dlmap_pusc_asca_alloc_permutation_id;
+static int hf_dlmap_reduced_aas_num_ie;
+static int hf_dlmap_reduced_aas_periodicity;
+static int hf_dlmap_reduced_aas_cid_included;
+static int hf_dlmap_reduced_aas_dcd_count_included;
+static int hf_dlmap_reduced_aas_phy_modification_included;
+static int hf_dlmap_reduced_aas_cqich_control_indicator;
+static int hf_dlmap_reduced_aas_encoding_mode;
+static int hf_dlmap_reduced_aas_separate_mcs_enabled;
+static int hf_dlmap_reduced_aas_duration;
+static int hf_dlmap_reduced_aas_diuc;
+static int hf_dlmap_reduced_aas_repetition_coding_indication;
+static int hf_dlmap_reduced_aas_cid;
+static int hf_dlmap_reduced_aas_allocation_index;
+static int hf_dlmap_reduced_aas_report_period;
+static int hf_dlmap_reduced_aas_frame_offset;
+static int hf_dlmap_reduced_aas_report_duration;
+static int hf_dlmap_reduced_aas_cqi_measurement_type;
+static int hf_dlmap_reduced_aas_dcd_count;
+static int hf_dlmap_reduced_aas_preamble_select;
+static int hf_dlmap_reduced_aas_preamble_shift_index;
+static int hf_dlmap_reduced_aas_pilot_pattern_modifier;
+static int hf_dlmap_reduced_aas_pilot_pattern_index;
+static int hf_dlmap_reduced_aas_dl_frame_offset;
+static int hf_dlmap_reduced_aas_zone_symbol_offset;
+static int hf_dlmap_reduced_aas_ofdma_symbol_offset;
+static int hf_dlmap_reduced_aas_subchannel_offset;
+static int hf_dlmap_reduced_aas_num_ofdma_triple_symbol;
+static int hf_dlmap_reduced_aas_num_subchannels;
+static int hf_dlmap_reduced_aas_num_ofdma_symbols;
+static int hf_dlmap_reduced_aas_diuc_nep;
+static int hf_dlmap_reduced_aas_dl_harq_ack_bitmap;
+static int hf_dlmap_reduced_aas_ack_allocation_index;
+static int hf_dlmap_reduced_aas_acid;
+static int hf_dlmap_reduced_aas_ai_sn;
+static int hf_dlmap_reduced_aas_nsch;
+static int hf_dlmap_reduced_aas_spid;
 
 
 
-static expert_field ei_dlmap_not_implemented = EI_INIT;
-static expert_field ei_crc16 = EI_INIT;
-static expert_field ei_mac_header_compress_dlmap_crc = EI_INIT;
-static expert_field ei_mac_header_invalid_length = EI_INIT;
+static expert_field ei_dlmap_not_implemented;
+static expert_field ei_crc16;
+static expert_field ei_mac_header_compress_dlmap_crc;
+static expert_field ei_mac_header_invalid_length;
 
 /* Copied and renamed from proto.c because global value_strings don't work for plugins */
 static const value_string plugin_proto_checksum_vals[] = {
@@ -609,15 +610,15 @@ static const value_string plugin_proto_checksum_vals[] = {
  * DL-MAP Miscellaneous IEs and TLVs
  *******************************************************************/
 
-gint RCID_IE(proto_tree *diuc_tree, gint offset, gint length, tvbuff_t *tvb, gint RCID_Type_lcl)
+int RCID_IE(proto_tree *diuc_tree, int offset, int length, tvbuff_t *tvb, int RCID_Type_lcl)
 {
 	/* RCID_IE 8.4.5.3 and 8.4.5.3.20.1 */
 	/* offset of IE in bits, length is variable  */
-	gint bit = offset;
+	int bit = offset;
 	proto_item *ti = NULL;
 	proto_tree *tree = NULL;
-	gint Prefix = 0;
-	gint cid = 0;
+	int Prefix = 0;
+	int cid = 0;
 
 	if (RCID_Type_lcl == 0)
 		length = 16;
@@ -662,14 +663,14 @@ gint RCID_IE(proto_tree *diuc_tree, gint offset, gint length, tvbuff_t *tvb, gin
  * DL-MAP Extended-2 HARQ sub-burst IEs (8.4.5.3.21)
  *******************************************************************/
 
-static gint Dedicated_DL_Control_IE(proto_tree *diuc_tree, gint offset, gint length, tvbuff_t *tvb)
+static int Dedicated_DL_Control_IE(proto_tree *diuc_tree, int offset, int length, tvbuff_t *tvb)
 {
 	/* 8.4.5.3.20 */
 	/* offset of IE in nibbles, length is variable */
-	gint nib;
-	gint nibble;
+	int nib;
+	int nibble;
 	proto_tree *tree;
-	gint len;
+	int len;
 
 	nib = offset;
 
@@ -698,13 +699,13 @@ static gint Dedicated_DL_Control_IE(proto_tree *diuc_tree, gint offset, gint len
 	return (length + 1);
 }
 
-static gint Dedicated_MIMO_DL_Control_IE(proto_tree *diuc_tree, gint offset, gint length _U_, tvbuff_t *tvb)
+static int Dedicated_MIMO_DL_Control_IE(proto_tree *diuc_tree, int offset, int length _U_, tvbuff_t *tvb)
 {
 	/* offset of IE in bits, length is variable */
-	gint bit;
+	int bit;
 	proto_tree *tree;
-	gint mci, cqi, cmi, matrix = 0, pad, CQICH_num, mimo_mode;
-	gint j;
+	int mci, cqi, cmi, matrix = 0, pad, CQICH_num, mimo_mode;
+	int j;
 
 	bit = offset;
 
@@ -768,14 +769,14 @@ static gint Dedicated_MIMO_DL_Control_IE(proto_tree *diuc_tree, gint offset, gin
 	return (bit - offset);
 }
 
-static gint DL_HARQ_Chase_sub_burst_IE(proto_tree *diuc_tree, gint offset, gint length, tvbuff_t *tvb)
+static int DL_HARQ_Chase_sub_burst_IE(proto_tree *diuc_tree, int offset, int length, tvbuff_t *tvb)
 {
 	/* 8.4.5.3.21 DL_HARQ_Chase_sub_burst_IE */
 	/* offset of IE in nibbles, length is variable */
-	gint bit;
+	int bit;
 	proto_tree *tree;
-	gint nsub, ddci, dur, sbi;
-	gint j;
+	int nsub, ddci, dur, sbi;
+	int j;
 
 	bit = NIB_TO_BIT(offset);
 
@@ -821,14 +822,14 @@ static gint DL_HARQ_Chase_sub_burst_IE(proto_tree *diuc_tree, gint offset, gint 
 	return (BIT_TO_NIB(bit) - offset);
 }
 
-static gint DL_HARQ_IR_CTC_sub_burst_IE(proto_tree *diuc_tree, packet_info *pinfo, gint offset, gint length, tvbuff_t *tvb)
+static int DL_HARQ_IR_CTC_sub_burst_IE(proto_tree *diuc_tree, packet_info *pinfo, int offset, int length, tvbuff_t *tvb)
 {
 	/* offset of IE in nibbles, length is variable */
-	gint bit;
+	int bit;
 	proto_tree *tree;
-	gint nsub, ddci, dur;
-	gint j;
-	guint32 calculated_crc;
+	int nsub, ddci, dur;
+	int j;
+	uint32_t calculated_crc;
 
 	bit = NIB_TO_BIT(offset);
 
@@ -877,14 +878,14 @@ static gint DL_HARQ_IR_CTC_sub_burst_IE(proto_tree *diuc_tree, packet_info *pinf
 	return (BIT_TO_NIB(bit) - offset);
 }
 
-static gint DL_HARQ_IR_CC_sub_burst_IE(proto_tree *diuc_tree, packet_info *pinfo, gint offset, gint length, tvbuff_t *tvb)
+static int DL_HARQ_IR_CC_sub_burst_IE(proto_tree *diuc_tree, packet_info *pinfo, int offset, int length, tvbuff_t *tvb)
 {
 	/* offset of IE in nibbles, length is variable */
-	gint bit;
+	int bit;
 	proto_tree *tree;
-	gint nsub, sbdi, ddci, dur;
-	gint j;
-	guint16 calculated_crc;
+	int nsub, sbdi, ddci, dur;
+	int j;
+	uint16_t calculated_crc;
 
 	bit = NIB_TO_BIT(offset);
 
@@ -941,15 +942,15 @@ static gint DL_HARQ_IR_CC_sub_burst_IE(proto_tree *diuc_tree, packet_info *pinfo
 	return (BIT_TO_NIB(bit) - offset);
 }
 
-static gint MIMO_DL_Chase_HARQ_sub_burst_IE(proto_tree *diuc_tree, packet_info *pinfo, gint offset, gint length, tvbuff_t *tvb)
+static int MIMO_DL_Chase_HARQ_sub_burst_IE(proto_tree *diuc_tree, packet_info *pinfo, int offset, int length, tvbuff_t *tvb)
 {
 	/* offset of IE in nibbles, length is variable */
-	gint bit;
-	gint data;
+	int bit;
+	int data;
 	proto_tree *tree;
-	gint nsub, mui, dci, akd;
-	gint i, j;
-	guint16 calculated_crc;
+	int nsub, mui, dci, akd;
+	int i, j;
+	uint16_t calculated_crc;
 
 	bit = NIB_TO_BIT(offset);
 
@@ -1002,14 +1003,14 @@ static gint MIMO_DL_Chase_HARQ_sub_burst_IE(proto_tree *diuc_tree, packet_info *
 	return (BIT_TO_NIB(bit) - offset);
 }
 
-static gint MIMO_DL_IR_HARQ_sub_burst_IE(proto_tree *diuc_tree, packet_info *pinfo, gint offset, gint length, tvbuff_t *tvb)
+static int MIMO_DL_IR_HARQ_sub_burst_IE(proto_tree *diuc_tree, packet_info *pinfo, int offset, int length, tvbuff_t *tvb)
 {
 	/* offset of IE in nibbles, length is variable */
-	gint bit;
+	int bit;
 	proto_tree *tree;
-	gint nsub, mui, dci, akd;
-	gint i, j;
-	guint16 calculated_crc;
+	int nsub, mui, dci, akd;
+	int i, j;
+	uint16_t calculated_crc;
 
 	bit = NIB_TO_BIT(offset);
 
@@ -1056,14 +1057,14 @@ static gint MIMO_DL_IR_HARQ_sub_burst_IE(proto_tree *diuc_tree, packet_info *pin
 	return (BIT_TO_NIB(bit) - offset);
 }
 
-static gint MIMO_DL_IR_HARQ_for_CC_sub_burst_IE(proto_tree *diuc_tree, packet_info *pinfo, gint offset, gint length, tvbuff_t *tvb)
+static int MIMO_DL_IR_HARQ_for_CC_sub_burst_IE(proto_tree *diuc_tree, packet_info *pinfo, int offset, int length, tvbuff_t *tvb)
 {
 	/* offset of IE in nibbles, length is variable */
-	gint bit;
+	int bit;
 	proto_tree *tree;
-	gint nsub, mui, dci, akd;
-	gint i, j;
-	guint16 calculated_crc;
+	int nsub, mui, dci, akd;
+	int i, j;
+	uint16_t calculated_crc;
 
 	bit = NIB_TO_BIT(offset);
 
@@ -1111,14 +1112,14 @@ static gint MIMO_DL_IR_HARQ_for_CC_sub_burst_IE(proto_tree *diuc_tree, packet_in
 	return (BIT_TO_NIB(bit) - offset);
 }
 
-static gint MIMO_DL_STC_HARQ_sub_burst_IE(proto_tree *diuc_tree, packet_info *pinfo, gint offset, gint length, tvbuff_t *tvb)
+static int MIMO_DL_STC_HARQ_sub_burst_IE(proto_tree *diuc_tree, packet_info *pinfo, int offset, int length, tvbuff_t *tvb)
 {
 	/* offset of IE in nibbles, length is variable */
-	gint bit;
+	int bit;
 	proto_tree *tree;
-	gint nsub, sbi, txc, akd, dmci;
-	gint j;
-	guint16 calculated_crc;
+	int nsub, sbi, txc, akd, dmci;
+	int j;
+	uint16_t calculated_crc;
 
 	bit = NIB_TO_BIT(offset);
 
@@ -1168,15 +1169,15 @@ static gint MIMO_DL_STC_HARQ_sub_burst_IE(proto_tree *diuc_tree, packet_info *pi
  * DL-MAP Extended-2 IEs
  *******************************************************************/
 
-static gint MBS_MAP_IE(proto_tree *diuc_tree, gint offset, gint length, tvbuff_t *tvb)
+static int MBS_MAP_IE(proto_tree *diuc_tree, int offset, int length, tvbuff_t *tvb)
 {
 	/* DL-MAP Extended-2 IE = 0 */
 	/* 8.4.5.3.12 MBS_MAP_IE */
 	/* offset of TLV in nibbles, length of TLV in nibbles */
-	gint bit;
-	gint data;
+	int bit;
+	int data;
 	proto_tree *tree;
-	gint mde, dci, s3i;
+	int mde, dci, s3i;
 
 	bit = NIB_TO_BIT(offset);
 
@@ -1225,13 +1226,13 @@ static gint MBS_MAP_IE(proto_tree *diuc_tree, gint offset, gint length, tvbuff_t
 	return BIT_TO_NIB(bit);
 }
 
-static gint HO_Anchor_Active_DL_MAP_IE(proto_tree *diuc_tree, packet_info *pinfo, gint offset, gint length, tvbuff_t *tvb)
+static int HO_Anchor_Active_DL_MAP_IE(proto_tree *diuc_tree, packet_info *pinfo, int offset, int length, tvbuff_t *tvb)
 {
 	/* DL-MAP Extended-2 IE = 1 */
 	/* 8.4.5.3.14 [2] HO_Anchor_Active_DL-MAP_IE TODO 1.1 */
 	/* offset of TLV in nibbles, length of TLV in nibbles */
-	gint nib;
-	gint data;
+	int nib;
+	int data;
 	proto_tree *tree;
 
 	nib = offset;
@@ -1244,13 +1245,13 @@ static gint HO_Anchor_Active_DL_MAP_IE(proto_tree *diuc_tree, packet_info *pinfo
 	return nib;
 }
 
-static gint HO_Active_Anchor_DL_MAP_IE(proto_tree *diuc_tree, packet_info *pinfo, gint offset, gint length, tvbuff_t *tvb)
+static int HO_Active_Anchor_DL_MAP_IE(proto_tree *diuc_tree, packet_info *pinfo, int offset, int length, tvbuff_t *tvb)
 {
 	/* DL-MAP Extended-2 IE = 2 */
 	/* 8.4.5.3.15 HO_Active_Anchor_DL_MAP_IE TODO 1.1 */
 	/* offset of TLV in nibbles, length of TLV in nibbles */
-	gint nib;
-	gint data;
+	int nib;
+	int data;
 	proto_tree *tree;
 
 	nib = offset;
@@ -1263,13 +1264,13 @@ static gint HO_Active_Anchor_DL_MAP_IE(proto_tree *diuc_tree, packet_info *pinfo
 	return nib;
 }
 
-static gint HO_CID_Translation_MAP_IE(proto_tree *diuc_tree, packet_info *pinfo, gint offset, gint length, tvbuff_t *tvb)
+static int HO_CID_Translation_MAP_IE(proto_tree *diuc_tree, packet_info *pinfo, int offset, int length, tvbuff_t *tvb)
 {
 	/* DL-MAP Extended-2 IE = 3 */
 	/* 8.4.5.3.16 HO_CID_Translation_MAP_IE TODO 1.1 */
 	/* offset of TLV in nibbles, length of TLV in nibbles */
-	gint nib;
-	gint data;
+	int nib;
+	int data;
 	proto_tree *tree;
 
 	nib = offset;
@@ -1282,13 +1283,13 @@ static gint HO_CID_Translation_MAP_IE(proto_tree *diuc_tree, packet_info *pinfo,
 	return nib;
 }
 
-static gint MIMO_in_another_BS_IE(proto_tree *diuc_tree, packet_info *pinfo, gint offset, gint length, tvbuff_t *tvb)
+static int MIMO_in_another_BS_IE(proto_tree *diuc_tree, packet_info *pinfo, int offset, int length, tvbuff_t *tvb)
 {
 	/* DL-MAP Extended-2 IE = 4 */
 	/* 8.4.5.3.17 [2] MIMO_in_another_BS_IE (not implemented)*/
 	/* offset of TLV in nibbles, length of TLV in nibbles */
-	gint nib;
-	gint data;
+	int nib;
+	int data;
 	proto_tree *tree;
 
 	nib = offset;
@@ -1301,13 +1302,13 @@ static gint MIMO_in_another_BS_IE(proto_tree *diuc_tree, packet_info *pinfo, gin
 	return nib;
 }
 
-static gint Macro_MIMO_DL_Basic_IE(proto_tree *diuc_tree, packet_info *pinfo, gint offset, gint length, tvbuff_t *tvb)
+static int Macro_MIMO_DL_Basic_IE(proto_tree *diuc_tree, packet_info *pinfo, int offset, int length, tvbuff_t *tvb)
 {
 	/* dl-map extended-2 ie = 5 */
 	/* 8.4.5.3.18 [2] Macro-MIMO_DL_Basic_IE (not implemented) */
 	/* offset of tlv in nibbles, length of tlv in nibbles */
-	gint nib;
-	gint data;
+	int nib;
+	int data;
 	proto_tree *tree;
 
 	nib = offset;
@@ -1320,13 +1321,13 @@ static gint Macro_MIMO_DL_Basic_IE(proto_tree *diuc_tree, packet_info *pinfo, gi
 	return nib;
 }
 
-static gint Skip_IE(proto_tree *diuc_tree, gint offset, gint length, tvbuff_t *tvb)
+static int Skip_IE(proto_tree *diuc_tree, int offset, int length, tvbuff_t *tvb)
 {
 	/* DL-MAP Extended-2 IE = 6 */
 	/* 8.4.5.3.20.2 Skip_IE */
 	/* offset of TLV in nibbles, length of TLV in nibbles */
-	gint bit;
-	gint data;
+	int bit;
+	int data;
 	proto_tree *tree;
 
 	bit = NIB_TO_BIT(offset);
@@ -1342,14 +1343,14 @@ static gint Skip_IE(proto_tree *diuc_tree, gint offset, gint length, tvbuff_t *t
 	return BIT_TO_NIB(bit);
 }
 
-static gint HARQ_DL_MAP_IE(proto_tree *diuc_tree, packet_info *pinfo, gint offset, gint length, tvbuff_t *tvb)
+static int HARQ_DL_MAP_IE(proto_tree *diuc_tree, packet_info *pinfo, int offset, int length, tvbuff_t *tvb)
 {
 	/* DL-MAP Extended-2 IE = 7 */
 	/* 8.4.5.3.21 [2] HARQ_DL_MAP_IE */
 	/* offset of TLV in nibbles, length of TLV in nibbles */
-	gint bit;
+	int bit;
 	proto_tree *tree;
-	gint len, lastbit, rui, mode, sub_len, pad;
+	int len, lastbit, rui, mode, sub_len, pad;
 
 	bit = NIB_TO_BIT(offset);
 
@@ -1421,13 +1422,13 @@ static gint HARQ_DL_MAP_IE(proto_tree *diuc_tree, packet_info *pinfo, gint offse
 	return BIT_TO_NIB(bit);
 }
 
-static gint HARQ_ACK_IE(proto_tree *diuc_tree, gint offset, gint length, tvbuff_t *tvb)
+static int HARQ_ACK_IE(proto_tree *diuc_tree, int offset, int length, tvbuff_t *tvb)
 {
 	/* DL-MAP Extended-2 IE = 8 */
 	/* 8.4.5.3.22 HARQ_ACK IE */
 	/* offset of TLV in nibbles, length of TLV in nibbles */
-	gint data;
-	gint nib;
+	int data;
+	int nib;
 	proto_tree *tree;
 
 	nib = offset;
@@ -1442,16 +1443,16 @@ static gint HARQ_ACK_IE(proto_tree *diuc_tree, gint offset, gint length, tvbuff_
 	return nib;
 }
 
-static gint Enhanced_DL_MAP_IE(proto_tree *diuc_tree, gint offset, gint length, tvbuff_t *tvb)
+static int Enhanced_DL_MAP_IE(proto_tree *diuc_tree, int offset, int length, tvbuff_t *tvb)
 {
 	/* DL-MAP Extended-2 IE = 9 */
 	/* 8.4.5.3.23 Enhanced DL MAP IE */
 	/* offset of TLV in nibbles, length of TLV in nibbles */
-	gint bit;
-	gint data;
+	int bit;
+	int data;
 	proto_tree *tree;
-	gint numass, n_cid;
-	gint i, n;
+	int numass, n_cid;
+	int i, n;
 
 	bit = NIB_TO_BIT(offset);
 
@@ -1477,13 +1478,13 @@ static gint Enhanced_DL_MAP_IE(proto_tree *diuc_tree, gint offset, gint length, 
 	return BIT_TO_NIB(bit);
 }
 
-static gint Closed_loop_MIMO_DL_Enhanced_IE(proto_tree *diuc_tree, packet_info *pinfo, gint offset, gint length, tvbuff_t *tvb)
+static int Closed_loop_MIMO_DL_Enhanced_IE(proto_tree *diuc_tree, packet_info *pinfo, int offset, int length, tvbuff_t *tvb)
 {
 	/* DL-MAP Extended-2 IE = 0xA */
 	/* 8.4.5.3.24 Closed-loop MIMO DL Enhanced IE (not implemented) */
 	/* offset of TLV in nibbles, length of TLV in nibbles */
-	gint nib;
-	gint data;
+	int nib;
+	int data;
 	proto_tree *tree;
 
 	nib = offset;
@@ -1496,18 +1497,18 @@ static gint Closed_loop_MIMO_DL_Enhanced_IE(proto_tree *diuc_tree, packet_info *
 	return nib;
 }
 
-static gint AAS_SDMA_DL_IE(proto_tree *diuc_tree, gint offset, gint length, tvbuff_t *tvb)
+static int AAS_SDMA_DL_IE(proto_tree *diuc_tree, int offset, int length, tvbuff_t *tvb)
 {
 	/* DL-MAP Extended-2 IE = 0xE */
 	/* 8.4.5.3.26 AAS_SDMA_DL_IE */
 	/* offset of TLV in nibbles, length of TLV in nibbles */
-	gint bit;
-	gint data;
+	int bit;
+	int data;
 	proto_tree *tree;
-	gint num_region, num_users, pilot_pattern, encoding_mode, ackch_alloc, cqich_alloc;
-	gint aas_preamble = 1;
-	gint zone_permut = 0; /* TODO */
-	gint i, j;
+	int num_region, num_users, pilot_pattern, encoding_mode, ackch_alloc, cqich_alloc;
+	int aas_preamble = 1;
+	int zone_permut = 0; /* TODO */
+	int i, j;
 
 	bit = NIB_TO_BIT(offset);
 
@@ -1610,13 +1611,13 @@ static gint AAS_SDMA_DL_IE(proto_tree *diuc_tree, gint offset, gint length, tvbu
  * DL-MAP Extended IEs
  *******************************************************************/
 
-static gint Channel_Measurement_IE(proto_tree *diuc_tree, gint offset, gint length, tvbuff_t *tvb)
+static int Channel_Measurement_IE(proto_tree *diuc_tree, int offset, int length, tvbuff_t *tvb)
 {
 	/* DL-MAP Extended IE = 0 */
 	/* 8.4.5.3.5 [1] Channel_Measurement_IE */
 	/* offset of TLV in nibbles, length of TLV in nibbles */
-	gint nib;
-	gint data;
+	int nib;
+	int data;
 	proto_tree *tree;
 
 	nib = offset;
@@ -1632,15 +1633,15 @@ static gint Channel_Measurement_IE(proto_tree *diuc_tree, gint offset, gint leng
 	return nib;
 }
 
-static gint STC_Zone_IE(proto_tree *diuc_tree, gint offset, gint length, tvbuff_t *tvb)
+static int STC_Zone_IE(proto_tree *diuc_tree, int offset, int length, tvbuff_t *tvb)
 {
 	/* DL-MAP Extended IE = 1 */
 	/* 8.4.5.3.4 STC_Zone_IE */
 	/* offset of TLV in nibbles, length of TLV in nibbles */
 	/* set globals: STC_Zone_Dedicated_Pilots, STC_Zone_Matrix
 	 * used in 8.4.5.3.21.1 Dedicated MIMO Control IE 286t */
-	gint bit;
-	gint data;
+	int bit;
+	int data;
 	proto_tree *tree;
 
 	bit = NIB_TO_BIT(offset);
@@ -1667,13 +1668,13 @@ static gint STC_Zone_IE(proto_tree *diuc_tree, gint offset, gint length, tvbuff_
 	return BIT_TO_NIB(bit);
 }
 
-static gint AAS_DL_IE(proto_tree *diuc_tree, gint offset, gint length, tvbuff_t *tvb)
+static int AAS_DL_IE(proto_tree *diuc_tree, int offset, int length, tvbuff_t *tvb)
 {
 	/* DL-MAP Extended IE = 2 */
 	/* 8.4.5.3.3 AAS_DL_IE */
 	/* offset of TLV in nibbles, length of TLV in nibbles */
-	gint bit;
-	gint data;
+	int bit;
+	int data;
 	proto_tree *tree;
 
 	bit = NIB_TO_BIT(offset);
@@ -1695,13 +1696,13 @@ static gint AAS_DL_IE(proto_tree *diuc_tree, gint offset, gint length, tvbuff_t 
 	return BIT_TO_NIB(bit);
 }
 
-static gint Data_location_in_another_BS_IE(proto_tree *diuc_tree, gint offset, gint length, tvbuff_t *tvb)
+static int Data_location_in_another_BS_IE(proto_tree *diuc_tree, int offset, int length, tvbuff_t *tvb)
 {
 	/* DL-MAP Extended IE = 3 */
 	/* 8.4.5.3.6 Data_location_in_another_BS_IE */
 	/* offset of TLV in nibbles, length of TLV in nibbles */
-	gint bit;
-	gint data;
+	int bit;
+	int data;
 	proto_tree *tree;
 
 	bit = NIB_TO_BIT(offset);
@@ -1728,13 +1729,13 @@ static gint Data_location_in_another_BS_IE(proto_tree *diuc_tree, gint offset, g
 	return BIT_TO_NIB(bit);
 }
 
-static gint CID_Switch_IE(proto_tree *diuc_tree, gint offset, gint length, tvbuff_t *tvb)
+static int CID_Switch_IE(proto_tree *diuc_tree, int offset, int length, tvbuff_t *tvb)
 {
 	/* DL-MAP Extended IE = 4 */
 	/* 8.4.5.3.7 [1] CID_Switch_IE */
 	/* offset of TLV in nibbles, length of TLV in nibbles */
-	gint nib;
-	gint data;
+	int nib;
+	int data;
 	proto_tree *tree;
 
 	nib = offset;
@@ -1749,13 +1750,13 @@ static gint CID_Switch_IE(proto_tree *diuc_tree, gint offset, gint length, tvbuf
 	return nib;
 }
 
-static gint MIMO_DL_Basic_IE(proto_tree *diuc_tree, packet_info *pinfo, gint offset, gint length, tvbuff_t *tvb)
+static int MIMO_DL_Basic_IE(proto_tree *diuc_tree, packet_info *pinfo, int offset, int length, tvbuff_t *tvb)
 {
 	/* DL-MAP Extended IE = 5 */
 	/* 8.4.5.3.8 MIMO_DL_Basic_IE (not implemented) */
 	/* offset of TLV in nibbles, length of TLV in nibbles */
-	gint nib;
-	gint data;
+	int nib;
+	int data;
 	proto_tree *tree;
 
 	nib = offset;
@@ -1768,13 +1769,13 @@ static gint MIMO_DL_Basic_IE(proto_tree *diuc_tree, packet_info *pinfo, gint off
 	return nib;
 }
 
-static gint MIMO_DL_Enhanced_IE(proto_tree *diuc_tree, packet_info *pinfo, gint offset, gint length, tvbuff_t *tvb)
+static int MIMO_DL_Enhanced_IE(proto_tree *diuc_tree, packet_info *pinfo, int offset, int length, tvbuff_t *tvb)
 {
 	/* DL-MAP Extended IE = 6 */
 	/* 8.4.5.3.9 MIMO_DL_Enhanced_IE (not implemented) */
 	/* offset of TLV in nibbles, length of TLV in nibbles */
-	gint nib;
-	gint data;
+	int nib;
+	int data;
 	proto_tree *tree;
 
 	nib = offset;
@@ -1787,15 +1788,15 @@ static gint MIMO_DL_Enhanced_IE(proto_tree *diuc_tree, packet_info *pinfo, gint 
 	return nib;
 }
 
-static gint HARQ_Map_Pointer_IE(proto_tree *diuc_tree, gint offset, gint length, tvbuff_t *tvb)
+static int HARQ_Map_Pointer_IE(proto_tree *diuc_tree, int offset, int length, tvbuff_t *tvb)
 {
 	/* DL-MAP Extended IE = 7 */
 	/* 8.4.5.3.10 [2] HARQ_Map_Pointer_IE */
 	/* offset of TLV in nibbles, length of TLV in nibbles */
-	gint bit;
-	gint data;
+	int bit;
+	int data;
 	proto_tree *tree;
-	gint length_in_bits, map, mask_len;
+	int length_in_bits, map, mask_len;
 
 	bit = NIB_TO_BIT(offset);
 
@@ -1836,15 +1837,15 @@ static gint HARQ_Map_Pointer_IE(proto_tree *diuc_tree, gint offset, gint length,
 	return BIT_TO_NIB(bit);
 }
 
-static gint PHYMOD_DL_IE(proto_tree *diuc_tree, gint offset, gint length, tvbuff_t *tvb)
+static int PHYMOD_DL_IE(proto_tree *diuc_tree, int offset, int length, tvbuff_t *tvb)
 {
 	/* DL-MAP Extended IE = 8 */
 	/* 8.4.5.3.11 PHYMOD_DL_IE */
 	/* offset of TLV in nibbles, length of TLV in nibbles */
-	gint bit;
-	gint data;
+	int bit;
+	int data;
 	proto_tree *tree;
-	gint pmt;
+	int pmt;
 
 	bit = NIB_TO_BIT(offset);
 
@@ -1865,15 +1866,15 @@ static gint PHYMOD_DL_IE(proto_tree *diuc_tree, gint offset, gint length, tvbuff
 	return BIT_TO_NIB(bit);
 }
 
-static gint Broadcast_Control_Pointer_IE(proto_tree *diuc_tree, gint offset, gint length, tvbuff_t *tvb)
+static int Broadcast_Control_Pointer_IE(proto_tree *diuc_tree, int offset, int length, tvbuff_t *tvb)
 {
 	/* DL-MAP Extended IE = 0xA */
 	/* 8.4.5.3.25 Broadcast Control Pointer IE */
 	/* offset of TLV in nibbles, length of TLV in nibbles */
-	gint bit;
-	gint data;
+	int bit;
+	int data;
 	proto_tree *tree;
-	gint skip;
+	int skip;
 
 	bit = NIB_TO_BIT(offset);
 
@@ -1891,13 +1892,13 @@ static gint Broadcast_Control_Pointer_IE(proto_tree *diuc_tree, gint offset, gin
 	return BIT_TO_NIB(bit);
 }
 
-static gint DL_PUSC_Burst_Allocation_in_Other_Segment_IE(proto_tree *diuc_tree, gint offset, gint length, tvbuff_t *tvb)
+static int DL_PUSC_Burst_Allocation_in_Other_Segment_IE(proto_tree *diuc_tree, int offset, int length, tvbuff_t *tvb)
 {
 	/* DL-MAP Extended IE = 0xB */
 	/* 8.4.5.3.13 DL PUSC Burst Allocation in Other Segment IE */
 	/* offset of TLV in nibbles, length of TLV in nibbles */
-	gint bit;
-	gint data;
+	int bit;
+	int data;
 	proto_tree *tree;
 
 	bit = NIB_TO_BIT(offset);
@@ -1925,13 +1926,13 @@ static gint DL_PUSC_Burst_Allocation_in_Other_Segment_IE(proto_tree *diuc_tree, 
 	return BIT_TO_NIB(bit);
 }
 
-static gint PUSC_ASCA_Alloc_IE(proto_tree *diuc_tree, gint offset, gint length, tvbuff_t *tvb)
+static int PUSC_ASCA_Alloc_IE(proto_tree *diuc_tree, int offset, int length, tvbuff_t *tvb)
 {
 	/* DL-MAP Extended IE = 0xC */
 	/* 8.4.5.3.27 PUSC_ASCA_Alloc_IE */
 	/* offset of TLV in nibbles, length of TLV in nibbles */
-	gint bit;
-	gint data;
+	int bit;
+	int data;
 	proto_tree *tree;
 
 	bit = NIB_TO_BIT(offset);
@@ -1953,14 +1954,14 @@ static gint PUSC_ASCA_Alloc_IE(proto_tree *diuc_tree, gint offset, gint length, 
 	return BIT_TO_NIB(bit);
 }
 
-static gint UL_interference_and_noise_level_IE(proto_tree *diuc_tree, gint offset, gint length, tvbuff_t *tvb)
+static int UL_interference_and_noise_level_IE(proto_tree *diuc_tree, int offset, int length, tvbuff_t *tvb)
 {
 	/* DL-MAP Extended IE = 0xF */
 	/* 8.4.5.3.19 UL_interference_and_noise_level_IE */
 	/* offset of TLV in nibbles, length of TLV in nibbles */
 	proto_tree *tree;
-	gint nib = offset;
-	gint bitmap, data;
+	int nib = offset;
+	int bitmap, data;
 
 	tree = proto_tree_add_subtree(diuc_tree, tvb, NIBHI(offset, length), ett_286h, NULL, "UL_interference_and_noise_level_IE");
 
@@ -2000,7 +2001,7 @@ static gint UL_interference_and_noise_level_IE(proto_tree *diuc_tree, gint offse
  * DL-MAP Plugin
  *******************************************************************/
 
-static gint dissect_dlmap_ie(proto_tree *ie_tree, packet_info *pinfo, gint offset, gint length, tvbuff_t *tvb)
+static int dissect_dlmap_ie(proto_tree *ie_tree, packet_info *pinfo, int offset, int length, tvbuff_t *tvb)
 {
 	/* decode a single DL-MAP IE and return the
 	 * length of the IE in nibbles
@@ -2009,19 +2010,19 @@ static gint dissect_dlmap_ie(proto_tree *ie_tree, packet_info *pinfo, gint offse
 	proto_item *ti = NULL;
 	proto_tree *tree = NULL;
 
-	gint nibble = offset;
-	gint diuc;
-	gint ext2_diuc;
-	gint len;
-	gint ext_diuc;
+	int nibble = offset;
+	int diuc;
+	int ext2_diuc;
+	int len;
+	int ext_diuc;
 
-	gint alt_format = 0;
-	guint data = 0;
-	gint i;
-	/*gint papr = 0;*/
-	gint ie_len = 9;
+	int alt_format = 0;
+	unsigned data = 0;
+	int i;
+	/*int papr = 0;*/
+	int ie_len = 9;
 
-	gint n_cid;
+	int n_cid;
 
 	/* 8.4.5.3 DL-MAP IE format - table 275 */
 	diuc = TVB_NIB_NIBBLE(nibble, tvb);
@@ -2245,13 +2246,13 @@ static gint dissect_dlmap_ie(proto_tree *ie_tree, packet_info *pinfo, gint offse
 static int dissect_mac_mgmt_msg_dlmap_decoder(tvbuff_t *tvb, packet_info *pinfo, proto_tree *base_tree, void* data _U_)
 {
 	/* 6.3.2.3.2 [2] DL-MAP table 16 */
-	guint offset = 0;
-	gint length, nib, pad;
+	unsigned offset = 0;
+	int length, nib, pad;
 	proto_item *ti = NULL;
 	proto_tree *dlmap_tree = NULL;
 	proto_tree *ie_tree = NULL;
 	proto_tree *phy_tree = NULL;
-	gint tvb_len = tvb_reported_length(tvb);
+	int tvb_len = tvb_reported_length(tvb);
 
 	INC_CID = 0;
 
@@ -2294,24 +2295,24 @@ static int dissect_mac_mgmt_msg_dlmap_decoder(tvbuff_t *tvb, packet_info *pinfo,
 	return tvb_captured_length(tvb);
 }
 
-gint wimax_decode_dlmapc(tvbuff_t *tvb, packet_info *pinfo, proto_tree *base_tree)
+int wimax_decode_dlmapc(tvbuff_t *tvb, packet_info *pinfo, proto_tree *base_tree)
 {
 	/* 8.4.5.6.1 [2] Compressed DL-MAP */
 	/* decode a compressed dl-map and return the length in bytes; */
 	/* if there is a compressed ul-map, also decode that and include in the length */
-	guint offset = 0;
+	unsigned offset = 0;
 	proto_item *ti = NULL;
 	proto_item *ti_phy = NULL;
 	proto_item *ti_dlmap_ies = NULL;
 	proto_tree *tree = NULL;
 	proto_tree *ie_tree = NULL;
 	proto_tree *phy_tree = NULL;
-	gint ulmap_appended;
-	guint length, lennib, pad;
-	guint mac_len, dl_ie_count;
-	guint tvb_len = tvb_reported_length(tvb);
-	guint nib = 0;
-	guint32 mac_crc, calculated_crc;
+	int ulmap_appended;
+	unsigned length, lennib, pad;
+	unsigned mac_len, dl_ie_count;
+	unsigned tvb_len = tvb_reported_length(tvb);
+	unsigned nib = 0;
+	uint32_t mac_crc, calculated_crc;
 
 	/* update the info column */
 	col_append_sep_str(pinfo->cinfo, COL_INFO, NULL, "Compressed DL-MAP");
@@ -2322,7 +2323,7 @@ gint wimax_decode_dlmapc(tvbuff_t *tvb, packet_info *pinfo, proto_tree *base_tre
 	mac_len = length;
 	lennib = BYTE_TO_NIB(length);
 
-	ulmap_appended = (tvb_get_guint8(tvb, offset) >> 4) & 1; /* UL MAP appended? */
+	ulmap_appended = (tvb_get_uint8(tvb, offset) >> 4) & 1; /* UL MAP appended? */
 
 	/* display MAC Compressed DL-MAP and create subtree */
 	ti = proto_tree_add_protocol_format(base_tree, proto_mac_mgmt_msg_dlmap_decoder, tvb, offset, length, "Compressed DL-MAP (%u bytes)", length);
@@ -2345,7 +2346,7 @@ gint wimax_decode_dlmapc(tvbuff_t *tvb, packet_info *pinfo, proto_tree *base_tre
 	proto_tree_add_item(tree, hf_dlmapc_secid,	tvb, offset+8, 1, ENC_BIG_ENDIAN);
 	proto_tree_add_item(tree, hf_dlmap_ofdma_sym, tvb, offset+9, 1, ENC_BIG_ENDIAN); /* 2005 */
 	proto_tree_add_item(tree, hf_dlmapc_count,	tvb, offset+10,1, ENC_BIG_ENDIAN);
-	dl_ie_count = tvb_get_guint8(tvb, offset + 10);
+	dl_ie_count = tvb_get_uint8(tvb, offset + 10);
 	offset += 11;
 	nib = BYTE_TO_NIB(offset);
 
@@ -2405,20 +2406,20 @@ gint wimax_decode_dlmapc(tvbuff_t *tvb, packet_info *pinfo, proto_tree *base_tre
 	return mac_len;
 }
 #if 0
-static gint wimax_decode_sub_dl_ul_map(tvbuff_t *tvb, packet_info *pinfo, proto_tree *base_tree)
+static int wimax_decode_sub_dl_ul_map(tvbuff_t *tvb, packet_info *pinfo, proto_tree *base_tree)
 {
 	/* decode a SUB-DL-UL-MAP message 6.3.2.3.60 and return the length in bytes */
 	/* first three bits are 0x7, which following a compressed DL map indicates this message */
 	proto_tree *tree = NULL;
 	proto_tree *ie_tree = NULL;
 	proto_item *generic_item = NULL;
-	gint data;
-	gint i, numie;
-	guint16 calculated_crc;
+	int data;
+	int i, numie;
+	uint16_t calculated_crc;
 
-	gint length = tvb_reported_length(tvb);
-	gint nib = 0;
-	gint lennib = BYTE_TO_NIB(length);
+	int length = tvb_reported_length(tvb);
+	int nib = 0;
+	int lennib = BYTE_TO_NIB(length);
 
 	sub_dl_ul_map = 1; /* set flag */
 
@@ -2483,22 +2484,22 @@ static gint wimax_decode_sub_dl_ul_map(tvbuff_t *tvb, packet_info *pinfo, proto_
 }
 #endif
 
-gint wimax_decode_dlmap_reduced_aas(tvbuff_t *tvb, packet_info *pinfo _U_, proto_tree *base_tree)
+int wimax_decode_dlmap_reduced_aas(tvbuff_t *tvb, packet_info *pinfo _U_, proto_tree *base_tree)
 {
 	/* 8.4.5.8.1 [2] Reduced AAS private DL-MAP */
 	/* if there is an appended UL-MAP, also decode that */
-	guint offset = 0;
+	unsigned offset = 0;
 	proto_item *ti = NULL;
 	proto_tree *tree = NULL;
-	gint ulmap_appended;
-	gint length;
-	gint tvb_len = tvb_reported_length(tvb);
-	gint bit = 0;
-	guint data, pad, mult;
-	gint numie = 1;
-	gint i;
-	guint16 calculated_crc;
-	gint smcs,cidi,dcdi,phyi,cqci;
+	int ulmap_appended;
+	int length;
+	int tvb_len = tvb_reported_length(tvb);
+	int bit = 0;
+	unsigned data, pad, mult;
+	int numie = 1;
+	int i;
+	uint16_t calculated_crc;
+	int smcs,cidi,dcdi,phyi,cqci;
 
 	length = tvb_len;
 
@@ -3387,7 +3388,7 @@ void proto_register_mac_mgmt_msg_dlmap(void)
 	};
 
 	/* Setup protocol subtree array */
-	static gint *ett[] =
+	static int *ett[] =
 		{
 			&ett_dlmap,
 			&ett_dlmap_ie,
@@ -3458,13 +3459,11 @@ void proto_register_mac_mgmt_msg_dlmap(void)
 	proto_register_subtree_array(ett, array_length(ett));
 	expert_mac_mgmt_msg_dlmap = expert_register_protocol(proto_mac_mgmt_msg_dlmap_decoder);
 	expert_register_field_array(expert_mac_mgmt_msg_dlmap, ei, array_length(ei));
+	dlmap_handle = register_dissector("mac_mgmt_msg_dlmap_handler", dissect_mac_mgmt_msg_dlmap_decoder, proto_mac_mgmt_msg_dlmap_decoder);
 }
 
 void proto_reg_handoff_mac_mgmt_msg_dlmap(void)
 {
-	dissector_handle_t dlmap_handle;
-
-	dlmap_handle = create_dissector_handle(dissect_mac_mgmt_msg_dlmap_decoder, proto_mac_mgmt_msg_dlmap_decoder);
 	dissector_add_uint("wmx.mgmtmsg", MAC_MGMT_MSG_DL_MAP, dlmap_handle);
 }
 

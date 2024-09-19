@@ -26,15 +26,17 @@
 
 #include <config.h>
 #include <epan/packet.h>
-#include <epan/conversation.h>
 #include <epan/proto_data.h>
-#include <epan/tvbuff.h>
-#include <string.h>
+#include <wsutil/array.h>
 #include "packet-tcp.h"
-
+#include <stdio.h>
+#include <stdbool.h>
+#include <stdint.h>
 /* Prototypes */
 void proto_reg_handoff_FiveCoLegacy(void);
 void proto_register_FiveCoLegacy(void);
+
+static dissector_handle_t FiveCoLegacy_handle;
 
 /****************************************************************************/
 /* Definition declaration */
@@ -44,7 +46,7 @@ void proto_register_FiveCoLegacy(void);
 #define FIVECO_LEGACY_HEADER_LENGTH 6
 #define FIVECO_LEGACY_MIN_LENGTH FIVECO_LEGACY_HEADER_LENGTH + 2 // Checksum is 16 bits
 
-#define PROTO_TAG_FIVECO "5co-legacy"
+#define PSNAME "5co-legacy"
 
 /* Global sample ports preferences */
 #define FIVECO_PORT1 8010     /* TCP port of the FiveCo protocol */
@@ -76,49 +78,49 @@ enum fiveco_functions
 };
 
 /* Forward references to functions */
-static guint16
-checksum_fiveco(tvbuff_t * byte_tab, guint16 start_offset, guint16 size);
-static gint fiveco_hash_equal(gconstpointer v, gconstpointer w);
+static uint16_t
+checksum_fiveco(tvbuff_t * byte_tab, uint16_t start_offset, uint16_t size);
+static int fiveco_hash_equal(const void *v, const void *w);
 
 /* Register decoding functions prototypes */
-static void dispType( gchar *result, guint32 type);
-static void dispVersion( gchar *result, guint32 type);
-static void dispMAC( gchar *result, guint64 type);
-static void dispIP( gchar *result, guint32 type);
-static void dispMask( gchar *result, guint32 type);
-static void dispTimeout( gchar *result, guint32 type);
+static void dispType( char *result, uint32_t type);
+static void dispVersion( char *result, uint32_t type);
+static void dispMAC( char *result, uint64_t type);
+static void dispIP( char *result, uint32_t type);
+static void dispMask( char *result, uint32_t type);
+static void dispTimeout( char *result, uint32_t type);
 
 /* Initialize the protocol and registered fields */
-static int proto_FiveCoLegacy = -1; /* Wireshark ID of the FiveCo protocol */
+static int proto_FiveCoLegacy; /* Wireshark ID of the FiveCo protocol */
 
 /* static dissector_handle_t data_handle = NULL; */
-static gint hf_fiveco_header = -1;       /* The following hf_* variables are used to hold the Wireshark IDs of */
-static gint hf_fiveco_fct = -1;          /* our header fields; they are filled out when we call */
-static gint hf_fiveco_id = -1;           /* proto_register_field_array() in proto_register_fiveco() */
-static gint hf_fiveco_length = -1;
-static gint hf_fiveco_data = -1;
-static gint hf_fiveco_cks = -1;
-static gint hf_fiveco_i2cadd = -1;
-static gint hf_fiveco_i2c2write = -1;
-static gint hf_fiveco_i2cwrite = -1;
-static gint hf_fiveco_i2c2read = -1;
-static gint hf_fiveco_i2c2scan = -1;
-static gint hf_fiveco_i2canswer = -1;
-static gint hf_fiveco_i2cwriteanswer = -1;
-static gint hf_fiveco_i2cscaned = -1;
-static gint hf_fiveco_i2cerror = -1;
-static gint hf_fiveco_i2cack = -1;
-static gint hf_fiveco_regread = -1;
-static gint hf_fiveco_regreadunknown = -1;
-static gint hf_fiveco_regreaduk = -1;
-static gint hf_fiveco_EasyIPMAC = -1;
-static gint hf_fiveco_EasyIPIP = -1;
-static gint hf_fiveco_EasyIPSM = -1;
+static int hf_fiveco_header;       /* The following hf_* variables are used to hold the Wireshark IDs of */
+static int hf_fiveco_fct;          /* our header fields; they are filled out when we call */
+static int hf_fiveco_id;           /* proto_register_field_array() in proto_register_fiveco() */
+static int hf_fiveco_length;
+static int hf_fiveco_data;
+static int hf_fiveco_cks;
+static int hf_fiveco_i2cadd;
+static int hf_fiveco_i2c2write;
+static int hf_fiveco_i2cwrite;
+static int hf_fiveco_i2c2read;
+static int hf_fiveco_i2c2scan;
+static int hf_fiveco_i2canswer;
+static int hf_fiveco_i2cwriteanswer;
+static int hf_fiveco_i2cscaned;
+static int hf_fiveco_i2cerror;
+static int hf_fiveco_i2cack;
+static int hf_fiveco_regread;
+static int hf_fiveco_regreadunknown;
+static int hf_fiveco_regreaduk;
+static int hf_fiveco_EasyIPMAC;
+static int hf_fiveco_EasyIPIP;
+static int hf_fiveco_EasyIPSM;
 
-static gint ett_fiveco_header = -1; /* These are the ids of the subtrees that we may be creating */
-static gint ett_fiveco_data = -1;   /* for the header fields. */
-static gint ett_fiveco = -1;
-static gint ett_fiveco_checksum = -1;
+static int ett_fiveco_header; /* These are the ids of the subtrees that we may be creating */
+static int ett_fiveco_data;   /* for the header fields. */
+static int ett_fiveco;
+static int ett_fiveco_checksum;
 
 /* Constants declaration */
 static const value_string packettypenames[] = {
@@ -146,88 +148,88 @@ static const value_string packettypenames[] = {
 /* Conversation request key structure */
 typedef struct
 {
-    guint32 conversation;
-    guint64 unInternalID;
-    guint16 usExpCmd;
+    uint32_t conversation;
+    uint64_t unInternalID;
+    uint16_t usExpCmd;
 } FCOSConvRequestKey;
 
 /* Conversation request value structure */
 typedef struct
 {
-    guint16 usParaLen;
-    guint16 isReplied;
-    tvbuff_t *pData;
+    uint16_t usParaLen;
+    uint16_t isReplied;
+    uint8_t *pDataBuffer;
 } FCOSConvRequestVal;
 
 /* Conversation hash tables */
-static GHashTable *FiveCo_requests_hash = NULL;
+static wmem_map_t *FiveCo_requests_hash;
 
 /* Internal unique ID (used to match answer with question
    since some software set always 0 as packet ID in protocol header)
 */
-static guint64 g_unInternalID = 0;
+static uint64_t g_unInternalID;
 
 /* Register definition structure (used to detect known registers when it is possible) */
 typedef struct
 {
-    guint32 unValue;                                        // Register address
-    guint32 unSize;                                         // Register size (in bytes)
+    uint32_t unValue;                                        // Register address
+    uint32_t unSize;                                         // Register size (in bytes)
     const char *name;                                       // Register name
-    const char *abbrev;                                     // Abreviation for header fill
+    const char *abbrev;                                     // Abbreviation for header fill
     const enum ftenum ft;                                   // Field type
-    gint nsWsHeaderID;                                      // Wireshark ID for header fill
+    int nsWsHeaderID;                                      // Wireshark ID for header fill
     const void *pFct;                                       // Conversion function
 } FCOSRegisterDef;
 
 /* Known (common on every product) registers */
 static FCOSRegisterDef aRegisters[] = {
-    {0x00, 4, "Register Type/Model", "5co-legacy.RegTypeModel", FT_UINT32, -1, CF_FUNC(dispType)},
-    {0x01, 4, "Register Version", "5co-legacy.RegVersion", FT_UINT32, -1, CF_FUNC(dispVersion)},
-    {0x02, 0, "Function Reset device", "5co-legacy.RegReset", FT_NONE, -1, NULL},
-    {0x03, 0, "Function Save user parameters", "5co-legacy.RegSave", FT_NONE, -1, NULL},
-    {0x04, 0, "Function Restore user parameters", "5co-legacy.RegRestore", FT_NONE, -1, NULL},
-    {0x05, 0, "Function Restore factory parameters", "5co-legacy.RegRestoreFact", FT_NONE, -1, NULL},
-    {0x06, 0, "Function Save factory parameters", "5co-legacy.SaveFact", FT_NONE, -1, NULL},
-    {0x07, 0, "Register unknown", "5co-legacy.RegUnknown07", FT_NONE, -1, NULL},
-    {0x08, 0, "Register unknown", "5co-legacy.RegUnknown08", FT_NONE, -1, NULL},
-    {0x09, 0, "Register unknown", "5co-legacy.RegUnknown09", FT_NONE, -1, NULL},
-    {0x0A, 0, "Register unknown", "5co-legacy.RegUnknown0A", FT_NONE, -1, NULL},
-    {0x0B, 0, "Register unknown", "5co-legacy.RegUnknown0B", FT_NONE, -1, NULL},
-    {0x0C, 0, "Register unknown", "5co-legacy.RegUnknown0C", FT_NONE, -1, NULL},
-    {0x0D, 0, "Register unknown", "5co-legacy.RegUnknown0D", FT_NONE, -1, NULL},
-    {0x0E, 0, "Register unknown", "5co-legacy.RegUnknown0E", FT_NONE, -1, NULL},
-    {0x0F, 0, "Register unknown", "5co-legacy.RegUnknown0F", FT_NONE, -1, NULL},
-    {0x10, 4, "Register Communication options", "5co-legacy.RegComOption", FT_UINT32, -1, NULL},
-    {0x11, 6, "Register Ethernet MAC Address", "5co-legacy.RegMAC", FT_UINT48, -1, CF_FUNC(dispMAC)},
-    {0x12, 4, "Register IP Address", "5co-legacy.RegIPAdd", FT_UINT32, -1, CF_FUNC(dispIP)},
-    {0x13, 4, "Register IP Mask", "5co-legacy.RegIPMask", FT_UINT32, -1, CF_FUNC(dispMask)},
-    {0x14, 1, "Register TCP Timeout", "5co-legacy.RegTCPTimeout", FT_UINT8, -1, CF_FUNC(dispTimeout)},
-    {0x15, 16, "Register Module name", "5co-legacy.RegName", FT_STRING, -1, NULL}};
+    {0x00, 4, "Register Type/Model", "5co_legacy.RegTypeModel", FT_UINT32, -1, CF_FUNC(dispType)},
+    {0x01, 4, "Register Version", "5co_legacy.RegVersion", FT_UINT32, -1, CF_FUNC(dispVersion)},
+    {0x02, 0, "Function Reset device", "5co_legacy.RegReset", FT_NONE, -1, NULL},
+    {0x03, 0, "Function Save user parameters", "5co_legacy.RegSave", FT_NONE, -1, NULL},
+    {0x04, 0, "Function Restore user parameters", "5co_legacy.RegRestore", FT_NONE, -1, NULL},
+    {0x05, 0, "Function Restore factory parameters", "5co_legacy.RegRestoreFact", FT_NONE, -1, NULL},
+    {0x06, 0, "Function Save factory parameters", "5co_legacy.SaveFact", FT_NONE, -1, NULL},
+    {0x07, 0, "Register unknown", "5co_legacy.RegUnknown07", FT_NONE, -1, NULL},
+    {0x08, 0, "Register unknown", "5co_legacy.RegUnknown08", FT_NONE, -1, NULL},
+    {0x09, 0, "Register unknown", "5co_legacy.RegUnknown09", FT_NONE, -1, NULL},
+    {0x0A, 0, "Register unknown", "5co_legacy.RegUnknown0A", FT_NONE, -1, NULL},
+    {0x0B, 0, "Register unknown", "5co_legacy.RegUnknown0B", FT_NONE, -1, NULL},
+    {0x0C, 0, "Register unknown", "5co_legacy.RegUnknown0C", FT_NONE, -1, NULL},
+    {0x0D, 0, "Register unknown", "5co_legacy.RegUnknown0D", FT_NONE, -1, NULL},
+    {0x0E, 0, "Register unknown", "5co_legacy.RegUnknown0E", FT_NONE, -1, NULL},
+    {0x0F, 0, "Register unknown", "5co_legacy.RegUnknown0F", FT_NONE, -1, NULL},
+    {0x10, 4, "Register Communication options", "5co_legacy.RegComOption", FT_UINT32, -1, NULL},
+    {0x11, 6, "Register Ethernet MAC Address", "5co_legacy.RegMAC", FT_UINT48, -1, CF_FUNC(dispMAC)},
+    {0x12, 4, "Register IP Address", "5co_legacy.RegIPAdd", FT_UINT32, -1, CF_FUNC(dispIP)},
+    {0x13, 4, "Register IP Mask", "5co_legacy.RegIPMask", FT_UINT32, -1, CF_FUNC(dispMask)},
+    {0x14, 1, "Register TCP Timeout", "5co_legacy.RegTCPTimeout", FT_UINT8, -1, CF_FUNC(dispTimeout)},
+    {0x15, 16, "Register Module name", "5co_legacy.RegName", FT_STRING, -1, NULL}};
 
     /* List of static header fields */
 static hf_register_info hf_base[] = {
-    {&hf_fiveco_header, {"Header", "5co-legacy.header", FT_NONE, BASE_NONE, NULL, 0x0, "Header of the packet", HFILL}},
-    {&hf_fiveco_fct, {"Function", "5co-legacy.fct", FT_UINT16, BASE_HEX, VALS(packettypenames), 0x0, "Function type", HFILL}},
-    {&hf_fiveco_id, {"Frame ID", "5co-legacy.id", FT_UINT16, BASE_DEC, NULL, 0x0, "Packet ID", HFILL}},
-    {&hf_fiveco_length, {"Data length", "5co-legacy.length", FT_UINT16, BASE_DEC, NULL, 0x0, "Parameters length of the packet", HFILL}},
-    {&hf_fiveco_data, {"Data", "5co-legacy.data", FT_NONE, BASE_NONE, NULL, 0x0, "Data (parameters)", HFILL}},
-    {&hf_fiveco_cks, {"Checksum", "5co-legacy.checksum", FT_UINT16, BASE_HEX, NULL, 0x0, "Checksum of the packet", HFILL}},
-    {&hf_fiveco_i2cadd, {"I2C Address", "5co-legacy.i2cadd", FT_UINT8, BASE_DEC, NULL, 0x0, NULL, HFILL}},
-    {&hf_fiveco_i2c2write, {"I2C number of bytes to write", "5co-legacy.i2c2write", FT_UINT8, BASE_DEC, NULL, 0x0, NULL, HFILL}},
-    {&hf_fiveco_i2cwrite, {"I2C bytes to write", "5co-legacy.i2cwrite", FT_NONE, BASE_NONE, NULL, 0x0, NULL, HFILL}},
-    {&hf_fiveco_i2c2read, {"I2C number of bytes to read", "5co-legacy.i2c2read", FT_UINT8, BASE_DEC, NULL, 0x0, NULL, HFILL}},
-    {&hf_fiveco_i2canswer, {"I2C bytes read", "5co-legacy.i2cread", FT_NONE, BASE_NONE, NULL, 0x0, NULL, HFILL}},
-    {&hf_fiveco_i2cwriteanswer, {"I2C bytes write", "5co-legacy.i2writeanswer", FT_NONE, BASE_NONE, NULL, 0x0, NULL, HFILL}},
-    {&hf_fiveco_i2cack, {"I2C ack state", "5co-legacy.i2cack", FT_UINT8, BASE_HEX, NULL, 0x0, NULL, HFILL}},
-    {&hf_fiveco_i2c2scan, {"I2C addresses to scan", "5co-legacy.i2c2scan", FT_NONE, BASE_NONE, NULL, 0x0, NULL, HFILL}},
-    {&hf_fiveco_i2cscaned, {"I2C addresses present", "5co-legacy.i2cscaned", FT_NONE, BASE_NONE, NULL, 0x0, NULL, HFILL}},
-    {&hf_fiveco_i2cerror, {"I2C error", "5co-legacy.i2cerror", FT_NONE, BASE_NONE, NULL, 0x0, NULL, HFILL}},
-    {&hf_fiveco_regread, {"Read", "5co-legacy.regread", FT_NONE, BASE_NONE, NULL, 0x0, NULL, HFILL}},
-    {&hf_fiveco_regreadunknown, {"Read Register unknown", "5co-legacy.hf_fiveco_regreadunknown", FT_NONE, BASE_NONE, NULL, 0x0, NULL, HFILL}},
-    {&hf_fiveco_regreaduk, {"Data not decoded", "5co-legacy.regreaduk", FT_NONE, BASE_NONE, NULL, 0x0, "Data not decoded because there are unable to map to a known register", HFILL}},
-    {&hf_fiveco_EasyIPMAC, {"MAC address", "5co-legacy.EasyIPMAC", FT_ETHER, BASE_NONE, NULL, 0x0, NULL, HFILL}},
-    {&hf_fiveco_EasyIPIP, {"New IP address", "5co-legacy.EasyIPIP", FT_IPv4, BASE_NONE, NULL, 0x0, NULL, HFILL}},
-    {&hf_fiveco_EasyIPSM, {"New subnet mask", "5co-legacy.EasyIPSM", FT_IPv4, BASE_NONE, NULL, 0x0, NULL, HFILL}}
+    {&hf_fiveco_header, {"Header", "5co_legacy.header", FT_NONE, BASE_NONE, NULL, 0x0, "Header of the packet", HFILL}},
+    {&hf_fiveco_fct, {"Function", "5co_legacy.fct", FT_UINT16, BASE_HEX, VALS(packettypenames), 0x0, "Function type", HFILL}},
+    {&hf_fiveco_id, {"Frame ID", "5co_legacy.id", FT_UINT16, BASE_DEC, NULL, 0x0, "Packet ID", HFILL}},
+    {&hf_fiveco_length, {"Data length", "5co_legacy.length", FT_UINT16, BASE_DEC, NULL, 0x0, "Parameters length of the packet", HFILL}},
+    {&hf_fiveco_data, {"Data", "5co_legacy.data", FT_NONE, BASE_NONE, NULL, 0x0, "Data (parameters)", HFILL}},
+    {&hf_fiveco_cks, {"Checksum", "5co_legacy.checksum", FT_UINT16, BASE_HEX, NULL, 0x0, "Checksum of the packet", HFILL}},
+    {&hf_fiveco_i2cadd, {"I2C Address", "5co_legacy.i2cadd", FT_UINT8, BASE_DEC, NULL, 0x0, NULL, HFILL}},
+    {&hf_fiveco_i2c2write, {"I2C number of bytes to write", "5co_legacy.i2c2write", FT_UINT8, BASE_DEC, NULL, 0x0, NULL, HFILL}},
+    {&hf_fiveco_i2cwrite, {"I2C bytes to write", "5co_legacy.i2cwrite", FT_NONE, BASE_NONE, NULL, 0x0, NULL, HFILL}},
+    {&hf_fiveco_i2c2read, {"I2C number of bytes to read", "5co_legacy.i2c2read", FT_UINT8, BASE_DEC, NULL, 0x0, NULL, HFILL}},
+    {&hf_fiveco_i2canswer, {"I2C bytes read", "5co_legacy.i2cread", FT_NONE, BASE_NONE, NULL, 0x0, NULL, HFILL}},
+    {&hf_fiveco_i2cwriteanswer, {"I2C bytes write", "5co_legacy.i2writeanswer", FT_NONE, BASE_NONE, NULL, 0x0, NULL, HFILL}},
+    {&hf_fiveco_i2cack, {"I2C ack state", "5co_legacy.i2cack", FT_UINT8, BASE_HEX, NULL, 0x0, NULL, HFILL}},
+    {&hf_fiveco_i2c2scan, {"I2C addresses to scan", "5co_legacy.i2c2scan", FT_NONE, BASE_NONE, NULL, 0x0, NULL, HFILL}},
+    {&hf_fiveco_i2cscaned, {"I2C addresses present", "5co_legacy.i2cscaned", FT_NONE, BASE_NONE, NULL, 0x0, NULL, HFILL}},
+    {&hf_fiveco_i2cerror, {"I2C error", "5co_legacy.i2cerror", FT_NONE, BASE_NONE, NULL, 0x0, NULL, HFILL}},
+    {&hf_fiveco_regread, {"Read", "5co_legacy.regread", FT_NONE, BASE_NONE, NULL, 0x0, NULL, HFILL}},
+    {&hf_fiveco_regreadunknown, {"Read Register unknown", "5co_legacy.hf_fiveco_regreadunknown", FT_NONE, BASE_NONE, NULL, 0x0, NULL, HFILL}},
+    {&hf_fiveco_regreaduk, {"Data not decoded", "5co_legacy.regreaduk", FT_NONE, BASE_NONE, NULL, 0x0, "Data not decoded because there are unable to map to a known register", HFILL}},
+    {&hf_fiveco_EasyIPMAC, {"MAC address", "5co_legacy.EasyIPMAC", FT_ETHER, BASE_NONE, NULL, 0x0, NULL, HFILL}},
+    {&hf_fiveco_EasyIPIP, {"New IP address", "5co_legacy.EasyIPIP", FT_IPv4, BASE_NONE, NULL, 0x0, NULL, HFILL}},
+    {&hf_fiveco_EasyIPSM, {"New subnet mask", "5co_legacy.EasyIPSM", FT_IPv4, BASE_NONE, NULL, 0x0, NULL, HFILL}}
  };
 
 /*****************************************************************************/
@@ -237,14 +239,14 @@ static hf_register_info hf_base[] = {
 static int
 dissect_FiveCoLegacy(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, void *data _U_)
 {
-    guint16 checksum_cal, checksum_rx;
-    guint16 i, j, y;
-    guint16 tcp_data_offset = 0;
-    guint32 tcp_data_length = 0;
-    guint16 header_type = 0;
-    guint16 header_id = 0;
-    guint16 header_data_length = 0;
-    guint8 data_i2c_length = 0;
+    uint16_t checksum_cal, checksum_rx;
+    uint16_t i, j, y;
+    uint16_t tcp_data_offset = 0;
+    uint32_t tcp_data_length = 0;
+    uint16_t header_type = 0;
+    uint16_t header_id = 0;
+    uint16_t header_data_length = 0;
+    uint8_t data_i2c_length = 0;
     proto_item *fiveco_item = NULL;
     proto_item *fiveco_header_item = NULL;
     proto_item *fiveco_data_item = NULL;
@@ -252,15 +254,15 @@ dissect_FiveCoLegacy(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, void *
     proto_tree *fiveco_header_tree = NULL;
     proto_tree *fiveco_data_tree = NULL;
     conversation_t *conversation;
-    gboolean isRequest = FALSE;
-    guint64 *pulInternalID = NULL;
+    bool isRequest = false;
+    uint64_t *pulInternalID = NULL;
     FCOSConvRequestKey requestKey, *pNewRequestKey;
     FCOSConvRequestVal *pRequestVal = NULL;
-    guint8 *pNewDataBuffer = NULL;
-    guint8 ucAdd, ucBytesToWrite, ucBytesToRead;
-    guint8 ucRegAdd, ucRegSize;
-    guint32 unOffset;
-    guint32 unSize;
+    tvbuff_t *pRequestTvb = NULL;
+    uint8_t ucAdd, ucBytesToWrite, ucBytesToRead;
+    uint8_t ucRegAdd, ucRegSize;
+    uint32_t unOffset;
+    uint32_t unSize;
 
     /* Load protocol payload length (including checksum) */
     tcp_data_length = tvb_captured_length(tvb);
@@ -268,7 +270,7 @@ dissect_FiveCoLegacy(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, void *
         return 0;
 
     /* Display fiveco in protocol column */
-    col_set_str(pinfo->cinfo, COL_PROTOCOL, PROTO_TAG_FIVECO);
+    col_set_str(pinfo->cinfo, COL_PROTOCOL, PSNAME);
     /* Clear out stuff in the info column */
     col_clear(pinfo->cinfo, COL_INFO);
 
@@ -297,7 +299,7 @@ dissect_FiveCoLegacy(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, void *
         }
 
         /* Get/Set internal ID for this packet number */
-        pulInternalID = (guint64 *)p_get_proto_data(wmem_file_scope(), pinfo, proto_FiveCoLegacy, pinfo->num);
+        pulInternalID = (uint64_t *)p_get_proto_data(wmem_file_scope(), pinfo, proto_FiveCoLegacy, pinfo->num);
         /* If internal ID is not set (null), create it */
         if (!pulInternalID)
         {
@@ -305,12 +307,12 @@ dissect_FiveCoLegacy(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, void *
             if ((header_type == I2C_READ) || (header_type == I2C_WRITE) || (header_type == I2C_SCAN) ||
                 (header_type == I2C_READ_WRITE_ACK) || (header_type == READ_REGISTER) || (header_type == WRITE_REGISTER))
             {
-                isRequest = TRUE;
+                isRequest = true;
                 g_unInternalID++;   // Increment unique request ID and record it in the new request
                 /* Note: Since some software do not increment packet id located in frame header
                 we use an internal ID to match answers to request. */
             }
-            pulInternalID = wmem_new(wmem_file_scope(), guint64);
+            pulInternalID = wmem_new(wmem_file_scope(), uint64_t);
             *pulInternalID = g_unInternalID;
             p_add_proto_data(wmem_file_scope(), pinfo, proto_FiveCoLegacy, pinfo->num, pulInternalID);
         }
@@ -318,7 +320,7 @@ dissect_FiveCoLegacy(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, void *
         /* Get info about the request */
         requestKey.usExpCmd = header_type;
         requestKey.unInternalID = *pulInternalID;
-        pRequestVal = (FCOSConvRequestVal *)g_hash_table_lookup(FiveCo_requests_hash, &requestKey);
+        pRequestVal = (FCOSConvRequestVal *)wmem_map_lookup(FiveCo_requests_hash, &requestKey);
         if ((!pinfo->fd->visited) && (!pRequestVal) && (isRequest))
         {
             /* If unknown and if it is a request, allocate new hash element that we want to handle later in answer */
@@ -346,12 +348,15 @@ dissect_FiveCoLegacy(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, void *
 
             pRequestVal = wmem_new(wmem_file_scope(), FCOSConvRequestVal);
             pRequestVal->usParaLen = header_data_length;
-            pRequestVal->isReplied = FALSE;
-            pNewDataBuffer = (guint8 *)wmem_alloc(wmem_file_scope(), header_data_length);
-            pRequestVal->pData = tvb_new_real_data(pNewDataBuffer, header_data_length, header_data_length);
-            tvb_memcpy(tvb, pNewDataBuffer, tcp_data_offset + 6, header_data_length);
+            pRequestVal->isReplied = false;
+            pRequestVal->pDataBuffer = (uint8_t *)wmem_alloc(wmem_file_scope(), header_data_length);
+            tvb_memcpy(tvb, pRequestVal->pDataBuffer, tcp_data_offset + 6, header_data_length);
 
-            g_hash_table_insert(FiveCo_requests_hash, pNewRequestKey, pRequestVal);
+            wmem_map_insert(FiveCo_requests_hash, pNewRequestKey, pRequestVal);
+        }
+
+        if (pRequestVal) {
+            pRequestTvb = tvb_new_child_real_data(tvb, pRequestVal->pDataBuffer, pRequestVal->usParaLen, pRequestVal->usParaLen);
         }
 
         /* Compute checksum of the packet and read one received */
@@ -410,7 +415,7 @@ dissect_FiveCoLegacy(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, void *
                 {
                     proto_tree_add_item(fiveco_data_tree, hf_fiveco_i2cadd, tvb, tcp_data_offset + i, 1, ENC_BIG_ENDIAN);
                     i += 1;
-                    data_i2c_length = tvb_get_guint8(tvb, tcp_data_offset + i);
+                    data_i2c_length = tvb_get_uint8(tvb, tcp_data_offset + i);
                     proto_tree_add_item(fiveco_data_tree, hf_fiveco_i2c2write, tvb, tcp_data_offset + i, 1, ENC_BIG_ENDIAN);
                     i += 1;
                     fiveco_data_item = proto_tree_add_item(fiveco_data_tree, hf_fiveco_i2cwrite,
@@ -419,7 +424,7 @@ dissect_FiveCoLegacy(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, void *
                     for (j = 0; j < data_i2c_length; j++)
                     {
                         proto_item_append_text(fiveco_data_item, "0x%.2X ",
-                                            tvb_get_guint8(tvb, tcp_data_offset + i));
+                                            tvb_get_uint8(tvb, tcp_data_offset + i));
                         i += 1;
                     }
                     proto_tree_add_item(fiveco_data_tree, hf_fiveco_i2c2read, tvb, tcp_data_offset + i, 1, ENC_BIG_ENDIAN);
@@ -432,7 +437,7 @@ dissect_FiveCoLegacy(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, void *
                 {
                     proto_tree_add_item(fiveco_data_tree, hf_fiveco_i2cadd, tvb, tcp_data_offset + i, 1, ENC_BIG_ENDIAN);
                     i += 1;
-                    data_i2c_length = tvb_get_guint8(tvb, tcp_data_offset + i);
+                    data_i2c_length = tvb_get_uint8(tvb, tcp_data_offset + i);
                     proto_tree_add_item(fiveco_data_tree, hf_fiveco_i2c2write, tvb, tcp_data_offset + i, 1, ENC_BIG_ENDIAN);
                     i += 1;
                     fiveco_data_item = proto_tree_add_item(fiveco_data_tree, hf_fiveco_i2cwrite,
@@ -441,7 +446,7 @@ dissect_FiveCoLegacy(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, void *
                     for (j = 0; j < data_i2c_length; j++)
                     {
                         proto_item_append_text(fiveco_data_item, "0x%.2X ",
-                                            tvb_get_guint8(tvb, tcp_data_offset + i));
+                                            tvb_get_uint8(tvb, tcp_data_offset + i));
                         i += 1;
                     }
                 }
@@ -454,7 +459,7 @@ dissect_FiveCoLegacy(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, void *
                 for (i = 0; i < header_data_length; i++)
                 {
                     proto_item_append_text(fiveco_data_item, "0x%.2X ",
-                                        tvb_get_guint8(tvb, tcp_data_offset + i));
+                                        tvb_get_uint8(tvb, tcp_data_offset + i));
                 }
                 break;
             case I2C_SCAN_ANSWER:
@@ -465,7 +470,7 @@ dissect_FiveCoLegacy(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, void *
                 for (i = 0; i < header_data_length; i++)
                 {
                     proto_item_append_text(fiveco_data_item, "0x%.2X ",
-                                        tvb_get_guint8(tvb, tcp_data_offset + i));
+                                        tvb_get_uint8(tvb, tcp_data_offset + i));
                 }
                 break;
             case I2C_READ_WRITE_ACK_ERROR:
@@ -473,13 +478,13 @@ dissect_FiveCoLegacy(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, void *
                                                     tvb, tcp_data_offset + 0, header_data_length, ENC_NA);
                 proto_item_append_text(fiveco_data_item, ": ");
                 proto_item_append_text(fiveco_data_item, "0x%.2X ",
-                                    tvb_get_guint8(tvb, tcp_data_offset));
+                                    tvb_get_uint8(tvb, tcp_data_offset));
                 break;
             case READ_REGISTER:
                 // List registers asked for read
                 for (i = 0; i < header_data_length; i++)
                 {
-                    ucRegAdd = tvb_get_guint8(tvb, tcp_data_offset + i);
+                    ucRegAdd = tvb_get_uint8(tvb, tcp_data_offset + i);
                     if ((ucRegAdd < array_length(aRegisters)) &&
                         (aRegisters[ucRegAdd].unValue == ucRegAdd))
                     {
@@ -500,7 +505,7 @@ dissect_FiveCoLegacy(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, void *
                 // List register asked to write with data to fill in until an unknown one is found
                 for (i = tcp_data_offset; i < tcp_data_offset + header_data_length;)
                 {
-                    ucRegAdd = tvb_get_guint8(tvb, i++);
+                    ucRegAdd = tvb_get_uint8(tvb, i++);
                     // If register address is known & found
                     if ((ucRegAdd < array_length(aRegisters)) &&
                         (aRegisters[ucRegAdd].unValue == ucRegAdd))
@@ -532,7 +537,7 @@ dissect_FiveCoLegacy(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, void *
                                 aRegisters[ucRegAdd].name, ucRegAdd, ucRegSize);
                             for (j = 0; j < ucRegSize; j++)
                             {
-                                proto_item_append_text(fiveco_data_item, "0x%.2X ", tvb_get_guint8(tvb, i++));
+                                proto_item_append_text(fiveco_data_item, "0x%.2X ", tvb_get_uint8(tvb, i++));
                             }
                         }
                     }
@@ -568,13 +573,13 @@ dissect_FiveCoLegacy(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, void *
                         while ((y < pRequestVal->usParaLen) && (i < tcp_data_offset + header_data_length))
                         {
                             // I2C address in first byte of request
-                            ucAdd = tvb_get_guint8(pRequestVal->pData, y++);
+                            ucAdd = tvb_get_uint8(pRequestTvb, y++);
                             // Read number of bytes to write
-                            ucBytesToWrite = tvb_get_guint8(pRequestVal->pData, y);
+                            ucBytesToWrite = tvb_get_uint8(pRequestTvb, y);
                             // Skip number of bytes to write and those bytes
                             y += 1 + ucBytesToWrite;
                             // Read number of bytes to read
-                            ucBytesToRead = tvb_get_guint8(pRequestVal->pData, y++);
+                            ucBytesToRead = tvb_get_uint8(pRequestTvb, y++);
                             if (ucBytesToRead > 0)
                             {
                                 fiveco_data_item = proto_tree_add_item(fiveco_data_tree, hf_fiveco_i2canswer,
@@ -585,7 +590,7 @@ dissect_FiveCoLegacy(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, void *
                                 for (j = 0; j < ucBytesToRead; j++)
                                 {
                                     proto_item_append_text(fiveco_data_item, "0x%.2X ",
-                                                        tvb_get_guint8(tvb, i++));
+                                                        tvb_get_uint8(tvb, i++));
                                 }
                                 if (header_type == 0x08)
                                     proto_tree_add_item(fiveco_data_tree, hf_fiveco_i2cack, tvb, i++, 1, ENC_BIG_ENDIAN);
@@ -624,11 +629,11 @@ dissect_FiveCoLegacy(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, void *
                         while ((y < pRequestVal->usParaLen) && (i < tcp_data_offset + header_data_length))
                         {
                             // Register address in first byte of request
-                            ucRegAdd = tvb_get_guint8(pRequestVal->pData, y++);
+                            ucRegAdd = tvb_get_uint8(pRequestTvb, y++);
                             // If register address is known & found in answer
                             if ((ucRegAdd < array_length(aRegisters)) &&
                                 (aRegisters[ucRegAdd].unValue == ucRegAdd) &&
-                                (ucRegAdd == tvb_get_guint8(tvb, i++)))
+                                (ucRegAdd == tvb_get_uint8(tvb, i++)))
                             {
                                 // Retrieve register size and display it with address
                                 ucRegSize = aRegisters[ucRegAdd].unSize;
@@ -660,7 +665,7 @@ dissect_FiveCoLegacy(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, void *
                                     for (j = 0; j < ucRegSize; j++)
                                     {
                                         proto_item_append_text(fiveco_data_item,
-                                                            "0x%.2X ", tvb_get_guint8(tvb, i++));
+                                                            "0x%.2X ", tvb_get_uint8(tvb, i++));
                                     }
                                 }
                             }
@@ -680,8 +685,8 @@ dissect_FiveCoLegacy(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, void *
                 }
                 break;
             case FLASH_AREA_LOAD:
-                unOffset = tvb_get_guint24(tvb, tcp_data_offset, ENC_BIG_ENDIAN);
-                unSize = tvb_get_guint24(tvb, tcp_data_offset + 3, ENC_BIG_ENDIAN);
+                unOffset = tvb_get_uint24(tvb, tcp_data_offset, ENC_BIG_ENDIAN);
+                unSize = tvb_get_uint24(tvb, tcp_data_offset + 3, ENC_BIG_ENDIAN);
                 proto_item_append_text(fiveco_data_item,
                                     " (%d bytes to load into flash at offset %d)", unSize, unOffset);
                 break;
@@ -716,17 +721,17 @@ dissect_FiveCoLegacy(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, void *
 /*****************************************************************************/
 /* This function returns the calculated checksum (IP based)                  */
 /*****************************************************************************/
-static guint16 checksum_fiveco(tvbuff_t *byte_tab, guint16 start_offset, guint16 size)
+static uint16_t checksum_fiveco(tvbuff_t *byte_tab, uint16_t start_offset, uint16_t size)
 {
-	guint32 Sum			= 0;
-	guint8	AddHighByte = 1;
-	guint32 ChecksumCalculated;
-	guint16 i;
-	guint8	temp;
+	uint32_t Sum			= 0;
+	uint8_t	AddHighByte = 1;
+	uint32_t ChecksumCalculated;
+	uint16_t i;
+	uint8_t	temp;
 
 	for (i = 0; i < size; i++)
     {
-        tvb_memcpy(byte_tab, (guint8 *)&temp, start_offset + i, 1);
+        tvb_memcpy(byte_tab, (uint8_t *)&temp, start_offset + i, 1);
         if (AddHighByte)
         {
             Sum += (temp << 8) ^ 0xFF00;
@@ -744,16 +749,16 @@ static guint16 checksum_fiveco(tvbuff_t *byte_tab, guint16 start_offset, guint16
 
     ChecksumCalculated = ((Sum >> 16) & 0xFFFF) + (Sum & 0xFFFF);
     ChecksumCalculated = ((ChecksumCalculated >> 16) & 0xFFFF) + (ChecksumCalculated & 0xFFFF);
-    return (guint16)ChecksumCalculated;
+    return (uint16_t)ChecksumCalculated;
 }
 
 /*****************************************************************************/
 /* Compute an unique hash value                                              */
 /*****************************************************************************/
-static guint fiveco_hash(gconstpointer v)
+static unsigned fiveco_hash(const void *v)
 {
     const FCOSConvRequestKey *key = (const FCOSConvRequestKey *)v;
-    guint val;
+    unsigned val;
 
     val = key->conversation + (((key->usExpCmd) & 0xFFFF) << 16) +
             (key->unInternalID & 0xFFFFFFFF) + ((key->unInternalID >>32) & 0xFFFFFFFF);
@@ -764,7 +769,7 @@ static guint fiveco_hash(gconstpointer v)
 /*****************************************************************************/
 /* Check hash equal                                                          */
 /*****************************************************************************/
-static gint fiveco_hash_equal(gconstpointer v, gconstpointer w)
+static int fiveco_hash_equal(const void *v, const void *w)
 {
     const FCOSConvRequestKey *v1 = (const FCOSConvRequestKey *)v;
     const FCOSConvRequestKey *v2 = (const FCOSConvRequestKey *)w;
@@ -779,16 +784,6 @@ static gint fiveco_hash_equal(gconstpointer v, gconstpointer w)
 }
 
 /*****************************************************************************/
-/* Protocol initialization function                                          */
-/*****************************************************************************/
-static void fiveco_protocol_init(void)
-{
-    if (FiveCo_requests_hash)
-        g_hash_table_destroy(FiveCo_requests_hash);
-    FiveCo_requests_hash = g_hash_table_new(fiveco_hash, fiveco_hash_equal);
-}
-
-/*****************************************************************************/
 /* Register the protocol with Wireshark.
  *
  * This format is required because a script is used to build the C function that
@@ -799,10 +794,10 @@ void proto_register_FiveCoLegacy(void)
 {
     /* Setup list of header fields (based on static table and specific table) */
     static hf_register_info hf[array_length(hf_base) + array_length(aRegisters)];
-    for (guint32 i = 0; i < array_length(hf_base); i++) {
+    for (uint32_t i = 0; i < array_length(hf_base); i++) {
         hf[i] = hf_base[i];
     }
-    for (guint32 i = 0; i < array_length(aRegisters); i++) {
+    for (uint32_t i = 0; i < array_length(aRegisters); i++) {
         if (aRegisters[i].pFct != NULL){
             hf_register_info hfx = { &(aRegisters[i].nsWsHeaderID),{aRegisters[i].name, aRegisters[i].abbrev, aRegisters[i].ft, BASE_CUSTOM, aRegisters[i].pFct, 0x0, NULL, HFILL}};
             hf[array_length(hf_base) + i] = hfx;
@@ -813,25 +808,25 @@ void proto_register_FiveCoLegacy(void)
     }
 
     /* Setup protocol subtree array */
-    static gint *ett[] = {
+    static int *ett[] = {
         &ett_fiveco_header,
         &ett_fiveco_data,
         &ett_fiveco,
         &ett_fiveco_checksum};
 
-    /* Register the dissector */
     /* Register the protocol name and description */
     proto_FiveCoLegacy = proto_register_protocol("FiveCo's Legacy Register Access Protocol",
-                                                 PROTO_TAG_FIVECO, "5co_legacy");
+                                                 PSNAME, "5co_legacy");
 
     /* Required function calls to register the header fields and subtrees */
     proto_register_field_array(proto_FiveCoLegacy, hf, array_length(hf));
     proto_register_subtree_array(ett, array_length(ett));
 
-    /* Register hash init function
-        * Protocol hash is used to follow conversation.
-        */
-    register_init_routine(&fiveco_protocol_init);
+    /* Register the dissector */
+    FiveCoLegacy_handle = register_dissector("5co_legacy", dissect_FiveCoLegacy,
+                                                    proto_FiveCoLegacy);
+
+    FiveCo_requests_hash = wmem_map_new_autoreset(wmem_epan_scope(), wmem_file_scope(), fiveco_hash, fiveco_hash_equal);
 
     /* Set preference callback to NULL since it is not used */
     prefs_register_protocol(proto_FiveCoLegacy, NULL);
@@ -845,21 +840,14 @@ void proto_register_FiveCoLegacy(void)
  * no prefs-dependent registration function calls. */
 void proto_reg_handoff_FiveCoLegacy(void)
 {
-    static gboolean initialized = FALSE;
-    static dissector_handle_t FiveCoLegacy_handle;
+    static bool initialized = false;
 
     if (!initialized)
     {
-        /* Use create_dissector_handle() to indicate that
-         * dissect_FiveCoLegacy() returns the number of bytes it dissected (or 0
-         * if it thinks the packet does not belong to PROTONAME).
-         */
-        FiveCoLegacy_handle = create_dissector_handle(dissect_FiveCoLegacy,
-                                                      proto_FiveCoLegacy);
         dissector_add_uint("tcp.port", FIVECO_PORT1, FiveCoLegacy_handle);
         dissector_add_uint("tcp.port", FIVECO_PORT2, FiveCoLegacy_handle);
         dissector_add_uint("udp.port", FIVECO_UDP_PORT1, FiveCoLegacy_handle);
-        initialized = TRUE;
+        initialized = true;
     }
 }
 
@@ -867,21 +855,21 @@ void proto_reg_handoff_FiveCoLegacy(void)
 /* Registers decoding functions                                              */
 /*****************************************************************************/
 static void
-dispType( gchar *result, guint32 type)
+dispType( char *result, uint32_t type)
 {
     int nValueH = (type>>16) & 0xFFFF;
     int nValueL = (type & 0xFFFF);
-    snprintf( result, 18, "%d.%d (%.4X.%.4X)", nValueH, nValueL, nValueH, nValueL);
+    snprintf( result, ITEM_LABEL_LENGTH, "%d.%d (%.4X.%.4X)", nValueH, nValueL, nValueH, nValueL);
 }
 
 static void
-dispVersion( gchar *result, guint32 version)
+dispVersion( char *result, uint32_t version)
 {
     if ((version & 0xFF000000) == 0)
     {
         int nValueH = (version>>16) & 0xFFFF;
         int nValueL = (version & 0xFFFF);
-        snprintf( result, 11, "FW: %d.%d", nValueH, nValueL);
+        snprintf( result, ITEM_LABEL_LENGTH, "FW: %d.%d", nValueH, nValueL);
     }
     else
     {
@@ -889,38 +877,38 @@ dispVersion( gchar *result, guint32 version)
         int nHWLow = (version>>16) & 0xFF;
         int nFWHigh = (version>>8) & 0xFF;
         int nFWLow = (version>>8) & 0xFF;
-        snprintf( result, 25, "HW: %d.%d / FW: %d.%d", nHWHigh, nHWLow, nFWHigh, nFWLow);
+        snprintf( result, ITEM_LABEL_LENGTH, "HW: %d.%d / FW: %d.%d", nHWHigh, nHWLow, nFWHigh, nFWLow);
     }
 }
 
-static void dispMAC( gchar *result, guint64 mac)
+static void dispMAC( char *result, uint64_t mac)
 {
-    guint8 *pData = (guint8*)(&mac);
+    uint8_t *pData = (uint8_t*)(&mac);
 
-    snprintf( result, 18, "%.2X-%.2X-%.2X-%.2X-%.2X-%.2X", pData[5], pData[4], pData[3], pData[2],
+    snprintf( result, ITEM_LABEL_LENGTH, "%.2X-%.2X-%.2X-%.2X-%.2X-%.2X", pData[5], pData[4], pData[3], pData[2],
                            pData[1], pData[0]);
 }
 
-static void dispIP( gchar *result, guint32 ip)
+static void dispIP( char *result, uint32_t ip)
 {
-    guint8 *pData = (guint8*)(&ip);
+    uint8_t *pData = (uint8_t*)(&ip);
 
-    snprintf( result, 15, "%d.%d.%d.%d", pData[3], pData[2], pData[1], pData[0]);
+    snprintf( result, ITEM_LABEL_LENGTH, "%d.%d.%d.%d", pData[3], pData[2], pData[1], pData[0]);
 }
 
-static void dispMask( gchar *result, guint32 mask)
+static void dispMask( char *result, uint32_t mask)
 {
-    guint8 *pData = (guint8*)(&mask);
+    uint8_t *pData = (uint8_t*)(&mask);
 
-    snprintf( result, 15, "%d.%d.%d.%d", pData[3], pData[2], pData[1], pData[0]);
+    snprintf( result, ITEM_LABEL_LENGTH, "%d.%d.%d.%d", pData[3], pData[2], pData[1], pData[0]);
 }
 
-static void dispTimeout( gchar *result, guint32 timeout)
+static void dispTimeout( char *result, uint32_t timeout)
 {
     if (timeout != 0)
-        snprintf( result, 12, "%d secondes", timeout);
+        snprintf( result, ITEM_LABEL_LENGTH, "%d seconds", timeout);
     else
-        snprintf( result, 8, "Disabled");
+        snprintf( result, ITEM_LABEL_LENGTH, "Disabled");
 }
 
 /*

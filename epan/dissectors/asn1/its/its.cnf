@@ -15,6 +15,8 @@ DENM
 DENMv1
 CAM
 CAMv1
+CPM
+CollectivePerceptionMessage
 SSEM
 SREM
 IVIM
@@ -22,10 +24,10 @@ MAPEM
 SPATEM
 EV-RSR
 RTCMEM
-CPM
+VAM
+ItsPduHeaderVam
+IMZM
 EvcsnPdu
-
-# Could be Language but size of Language bit string is 10 and DriverLanguage max is 15...
 DriverLanguage
 ChargingPower
 StatusResponseCode
@@ -33,14 +35,55 @@ CurrentVehicleConfiguration
 TpgLocation
 CS5
 DSRCmsgID
+VehicleLengthV2
+TrailerPresenceInformation
+CartesianAngularAccelerationComponent
+CartesianAngularAccelerationComponentValue
+AngularAccelerationConfidence
+PrecipitationIntensity
+ObjectFace
+BogiesCount
+BarometricPressure
+AxlesCount
+AirHumidity
+TracesExtended
+RoadConfigurationSection
+RoadConfigurationSectionList
+RoadSectionDefinition
+PathPredictedList
+PathPredicted2
+PathExtended
+PathReferences
+OccupiedLanesWithConfidence
+MapReferences
+IvimReference
+IvimReferences
+GeneralizedLanePositions
+UsageIndication
+MapemConfiguration
+MapemElementReference
+BasicLaneConfiguration
+OrdinalNumber1B
+Position1d
+ProviderId
+MapemConnectionList
+MapemLaneList
+GeoPosition
+BasicLaneInformation
+StandardLength2B
+RoadSectionId
+PathId
+IssuerIdentifier
+
 #.NO_EMIT
 Code-Units WITHOUT_VALS
+
 
 #.MODULE
 CAMv1-PDU-Descriptions					camv1
 CAM-PDU-Descriptions					cam
 DENMv1-PDU-Descriptions					denmv1
-DENM-PDU-Descriptions					denm
+DENM-PDU-Description					denm
 EVCSN-PDU-Descriptions					evcsn
 EV-RechargingSpotReservation-PDU-Descriptions		evrsr
 IVIM-PDU-Descriptions					ivim
@@ -50,22 +93,32 @@ MAPEM-PDU-Descriptions					mapem
 SREM-PDU-Descriptions					srem
 SSEM-PDU-Descriptions					ssem
 AVIAEINumberingAndDataStructures			anads
-ITS-Container						its
+ITS-Container						itsv2
 ITS-ContainerV1						itsv1
-ElectronicRegistrationIdentificationVehicleDataModule	erivdm
-CITSapplMgmtIDs						csmid
+#ElectronicRegistrationIdentificationVehicleDataModule	erivdm
+#CITSapplMgmtIDs						csmid
 EfcDsrcApplication					dsrc_app
 IVI							ivi
 GDD							gdd
 DSRC						dsrc
-RTCMEM-PDU-Descriptions   rtcmem
-CPM-PDU-Descriptions        cpm
+RTCMEM-PDU-Descriptions                         rtcmem
+ETSI-ITS-CDDv1                                  itsv1
+ETSI-ITS-CDD                                    its
+CPM-OriginatingStationContainers                cpm
+CPM-PDU-Descriptionsv1                          cpmv1
+CPM-PDU-Descriptions                            cpm
+CPM-PerceivedObjectContainer                    cpm
+CPM-PerceptionRegionContainer                   cpm
+CPM-SensorInformationContainer                  cpm
+VAM-PDU-Descriptions                            vam
+IMZM-PDU-Descriptions                           imzm
+#VAM-Temp-Imports                                vam
 #.END
 
 #.PDU
-CoopAwareness
+CamPayload
 CoopAwarenessV1
-DecentralizedEnvironmentalNotificationMessage
+DenmPayload
 DecentralizedEnvironmentalNotificationMessageV1
 EVChargingSpotNotificationPOIMessage
 EV-RSR-MessageBody
@@ -76,8 +129,11 @@ MapData
 SignalRequestMessage
 SignalStatusMessage
 RTCMcorrections
-CollectivePerceptionMessage
+CpmPayload
+CollectivePerceptionMessagev1
 ItsPduHeader
+VruAwareness
+InterferenceManagementZoneMessage
 # AddGrpC regional extension
 ConnectionManeuverAssist-addGrpC
 ConnectionTrajectory-addGrpC
@@ -90,6 +146,12 @@ SignalStatusPackage-addGrpC
 LaneAttributes-addGrpC
 MovementEvent-addGrpC
 RequestorDescription-addGrpC
+#CpmContainers
+OriginatingVehicleContainer
+OriginatingRsuContainer
+SensorInformationContainer
+PerceptionRegionContainer
+PerceivedObjectContainer
 
 #.TYPE_RENAME
 
@@ -132,9 +194,18 @@ SignalRequestPackage/regional     T_SignalRequestPackageRegional
 SignalRequest/regional            T_SignalRequestRegional
 SignalStatusPackage/regional      T_SignalStatusPackageRegional
 SignalStatus/regional             T_SignalStatusRegional
+PerceptionRegion/numberOfPerceivedObjects T_PerceptionRegionNumberOfPerceivedObjects
+PerceptionRegion/shadowingApplies T_PerceptionRegionShadowingApplies
+
+
 #.END
 
 #.FIELD_RENAME
+PerceptionRegion/perceptionRegionShape perceptionRegionPerceptionRegionShape
+PerceptionRegion/shadowingApplies perceptionRegionShadowingApplies
+PerceptionRegion/numberOfPerceivedObjects perceptionRegionNumberOfPerceivedObjects
+PerceptionRegion/perceptionRegionConfidence perceptionRegionPerceptionRegionConfidence
+
 TisTpgDRM/location                drmLocation
 TisTpgTRM/location                trmLocation
 TisTpgTCM/location                tcmLocation
@@ -331,10 +402,10 @@ ObjectConfidence           DISPLAY=BASE_CUSTOM STRINGS=CF_FUNC(cpm_general_confi
 DistanceValue              DISPLAY=BASE_CUSTOM STRINGS=CF_FUNC(cpm_distance_value_fmt)
 DistanceConfidence         DISPLAY=BASE_CUSTOM STRINGS=CF_FUNC(cpm_distance_confidence_fmt)
 SpeedValueExtended         DISPLAY=BASE_CUSTOM STRINGS=CF_FUNC(cpm_speed_value_ext_fmt)
-CartesianAngleValue        DISPLAY=BASE_CUSTOM STRINGS=CF_FUNC(cpm_cartesian_angle_value_fmt)
-AngleConfidence            DISPLAY=BASE_CUSTOM STRINGS=CF_FUNC(cpm_angle_confidence_fmt)
 ObjectDimensionValue       DISPLAY=BASE_CUSTOM STRINGS=CF_FUNC(cpm_object_dimension_value_fmt)
 ObjectDimensionConfidence  DISPLAY=BASE_CUSTOM STRINGS=CF_FUNC(cpm_object_dimension_confidence_fmt)
+AngleConfidence            DISPLAY=BASE_CUSTOM STRINGS=CF_FUNC(cpm_angle_confidence_fmt)
+CartesianAngleValue        DISPLAY=BASE_CUSTOM STRINGS=CF_FUNC(cpm_cartesian_angle_value_fmt)
 
 #.END
 
@@ -349,14 +420,14 @@ Position3D/elevation              ABBREV=position3D.elevation
 #.END
 
 #.MAKE_DEFINES
-ItsPduHeader/messageID
+MessageId
 #.END
 
 #.MAKE_ENUM
 RegionId
 CauseCodeType
 
-#.FN_HDR CoopAwareness
+#.FN_HDR CamPayload
   actx->private_data = (void*)wmem_new0(actx->pinfo->pool, its_private_data_t);
   col_set_str(actx->pinfo->cinfo, COL_PROTOCOL, "CAM");
   col_set_str(actx->pinfo->cinfo, COL_INFO, "CAM");
@@ -368,7 +439,7 @@ CauseCodeType
   col_set_str(actx->pinfo->cinfo, COL_INFO, "CAMv1");
 #.END
 
-#.FN_HDR DecentralizedEnvironmentalNotificationMessage
+#.FN_HDR DenmPayload
   actx->private_data = (void*)wmem_new0(actx->pinfo->pool, its_private_data_t);
   col_set_str(actx->pinfo->cinfo, COL_PROTOCOL, "DENM");
   col_set_str(actx->pinfo->cinfo, COL_INFO, "DENM");
@@ -445,12 +516,29 @@ CauseCodeType
   regext->type = Reg_RTCMcorrections;
 #.END
 
-#.FN_HDR CollectivePerceptionMessage
+#.FN_HDR CpmPayload
   actx->private_data = (void*)wmem_new0(actx->pinfo->pool, its_private_data_t);
   col_set_str(actx->pinfo->cinfo, COL_PROTOCOL, "CPM");
   col_set_str(actx->pinfo->cinfo, COL_INFO, "CPM");
 #.END
 
+#.FN_HDR CollectivePerceptionMessagev1
+  actx->private_data = (void*)wmem_new0(actx->pinfo->pool, its_private_data_t);
+  col_set_str(actx->pinfo->cinfo, COL_PROTOCOL, "CPMv1");
+  col_set_str(actx->pinfo->cinfo, COL_INFO, "CPMv1");
+#.END
+
+#.FN_HDR InterferenceManagementZoneMessage
+  actx->private_data = (void*)wmem_new0(actx->pinfo->pool, its_private_data_t);
+  col_set_str(actx->pinfo->cinfo, COL_PROTOCOL, "IMZM");
+  col_set_str(actx->pinfo->cinfo, COL_INFO, "IMZM");
+#.END
+
+#.FN_HDR VruAwareness
+  actx->private_data = (void*)wmem_new0(actx->pinfo->pool, its_private_data_t);
+  col_set_str(actx->pinfo->cinfo, COL_PROTOCOL, "VAM");
+  col_set_str(actx->pinfo->cinfo, COL_INFO, "VAM");
+#.END
 
 #.FN_HDR ConnectionManeuverAssist-addGrpC
   actx->private_data = wmem_new0(actx->pinfo->pool, its_private_data_t);
@@ -706,23 +794,42 @@ CauseCodeType
 
 #.FN_PARS RegionId VAL_PTR = &((its_private_data_t*)actx->private_data)->region_id
 
-#.FN_PARS ItsPduHeader/protocolVersion VAL_PTR = &((its_header_t*)actx->private_data)->version
-#.FN_PARS ItsPduHeader/messageID VAL_PTR = &((its_header_t*)actx->private_data)->msgId
-#.FN_PARS StationID VAL_PTR = actx->private_data?&((its_header_t*)actx->private_data)->stationId:NULL
+#.FN_BODY ProtocolVersion VAL_PTR = &version
+    uint32_t version;
+%(DEFAULT_BODY)s
+    its_header_t *its_hdr = its_get_private_data(actx->pinfo);
+    its_hdr->version = version;
+
+#.FN_BODY MessageId VAL_PTR = &msgId
+    uint32_t msgId;
+%(DEFAULT_BODY)s
+    its_header_t *its_hdr = its_get_private_data(actx->pinfo);
+    its_hdr->msgId = msgId;
+
+#.FN_BODY StationId VAL_PTR = &stationId
+    uint32_t stationId;
+%(DEFAULT_BODY)s
+    its_header_t *its_hdr = its_get_private_data(actx->pinfo);
+    its_hdr->stationId = stationId;
+
+#.FN_BODY CpmContainerId VAL_PTR = &CpmContainerId
+    uint32_t CpmContainerId;
+%(DEFAULT_BODY)s
+    its_header_t *its_hdr = its_get_private_data(actx->pinfo);
+    its_hdr->CpmContainerId = CpmContainerId;
 
 #.FN_BODY ItsPduHeader
-  guint8 version = tvb_get_guint8(tvb, 0);
+  uint8_t version = tvb_get_uint8(tvb, 0);
   int test_offset = offset;
   if ((test_offset = dissector_try_uint(its_version_subdissector_table, version, tvb, actx->pinfo, tree))) {
     return test_offset;
   }
   // Lets try it that way, regarless of version value...
-  its_header_t *hdr = wmem_new0(actx->pinfo->pool, its_header_t);
-  actx->private_data = (void*)hdr;
 %(DEFAULT_BODY)s
   tap_queue_packet(its_tap, actx->pinfo, actx->private_data);
   tvbuff_t *next_tvb = tvb_new_subset_length(tvb, offset >> 3, -1);
-  int data_offset = dissector_try_uint(its_msgid_subdissector_table, (hdr->version << 16)+hdr->msgId, next_tvb, actx->pinfo, tree);
+  its_header_t *its_hdr = its_get_private_data(actx->pinfo);
+  int data_offset = dissector_try_uint(its_msgid_subdissector_table, (its_hdr->version << 16)+its_hdr->msgId, next_tvb, actx->pinfo, tree);
   if (!data_offset) {
     proto_tree_add_expert(tree, actx->pinfo, &ei_its_no_sub_dis, next_tvb, 0,  - 1);
     data_offset = call_data_dissector(next_tvb, actx->pinfo, tree);
@@ -745,6 +852,8 @@ addGrpC      RegionId
 #.END
 
 #.FN_PARS RegionalExtension/regExtValue FN_VARIANT=_pdu_new  TYPE_REF_FN=dissect_regextval_pdu
+
+#.FN_PARS WrappedCpmContainer/containerData FN_VARIANT=_pdu_new  TYPE_REF_FN=dissect_cpmcontainers_pdu
 
 
 #.FN_BODY TypeOfReceptacle VAL_PTR=&parameter_tvb LEN_PTR=&len
@@ -778,6 +887,20 @@ addGrpC      RegionId
    * 1111  Cable for    Reserved
            DC charging
    */
+#.END
+
+#.FN_BODY CountryCode VAL_PTR=&val_tvb
+  tvbuff_t *val_tvb = NULL;
+%(DEFAULT_BODY)s
+  append_country_code_fmt(actx->created_item, val_tvb);
+#.END
+
+#.FN_BODY Text/language VAL_PTR=&val_tvb
+  tvbuff_t *val_tvb = NULL;
+%(DEFAULT_BODY)s
+  append_country_code_fmt(actx->created_item, val_tvb);
+#.END
+
 
 #.NO_EMIT WITH_VALS
 #.END
@@ -805,9 +928,9 @@ AccelerationConfidence
 CurvatureValue
 YawRateValue
 SteeringWheelAngleValue
+ValidityDuration
 SteeringWheelAngleConfidence
 TimestampIts
-ValidityDuration
 GenerationDeltaTime
 TimeOfMeasurement
 ClassConfidence
@@ -816,38 +939,17 @@ ObjectConfidence
 DistanceValue
 DistanceConfidence
 SpeedValueExtended
-CartesianAngleValue
-AngleConfidence
 ObjectDimensionValue
 ObjectDimensionConfidence
+AngleConfidence
+CartesianAngleValue
 #.END
 
 #.NO_EMIT WITHOUT_VALS
 # Just keep the vals. hf are made manually and used in cause/subcause decoding
-PostCrashSubCauseCode
-VehicleBreakdownSubCauseCode
-DangerousSituationSubCauseCode
-DangerousEndOfQueueSubCauseCode
-RescueAndRecoveryWorkInProgressSubCauseCode
-SignalViolationSubCauseCode
-CollisionRiskSubCauseCode
-HazardousLocation-AnimalOnTheRoadSubCauseCode
-HazardousLocation-ObstacleOnTheRoadSubCauseCode
-HazardousLocation-SurfaceConditionSubCauseCode
-HazardousLocation-DangerousCurveSubCauseCode
-EmergencyVehicleApproachingSubCauseCode
-HumanProblemSubCauseCode
-StationaryVehicleSubCauseCode
-SlowVehicleSubCauseCode
-AdverseWeatherCondition-PrecipitationSubCauseCode
-AdverseWeatherCondition-VisibilitySubCauseCode
-AdverseWeatherCondition-AdhesionSubCauseCode
-AdverseWeatherCondition-ExtremeWeatherConditionSubCauseCode
-WrongWayDrivingSubCauseCode
-HumanPresenceOnTheRoadSubCauseCode
-AccidentSubCauseCode
-TrafficConditionSubCauseCode
+
 #.END
+
 
 #.FN_PARS CauseCodeType VAL_PTR = &((its_private_data_t*)actx->private_data)->cause_code
 
@@ -855,30 +957,6 @@ TrafficConditionSubCauseCode
   // Overwrite hf_index
   hf_index = *find_subcause_from_cause((CauseCodeType_enum) ((its_private_data_t*)actx->private_data)->cause_code);
 %(DEFAULT_BODY)s
-#.END
-
-#
-# RCUnit subtypes bodies implemented manually as asn2wrs is not able to handle subtype constraint
-#
-
-#.FN_BODY InternationalSign-speedLimits/unit
-  offset = dissect_per_constrained_integer(%(TVB)s, %(OFFSET)s, %(ACTX)s, %(TREE)s, %(HF_INDEX)s,
-                                           0U, 1U, %(VAL_PTR)s, FALSE);
-#.END
-
-#.FN_BODY Weight/unit
-  offset = dissect_per_constrained_integer(%(TVB)s, %(OFFSET)s, %(ACTX)s, %(TREE)s, %(HF_INDEX)s,
-                                           10U, 12U, %(VAL_PTR)s, FALSE);
-#.END
-
-#.FN_BODY DistOrDuration-Units
-  offset = dissect_per_constrained_integer(%(TVB)s, %(OFFSET)s, %(ACTX)s, %(TREE)s, %(HF_INDEX)s,
-                                           2U, 9U, %(VAL_PTR)s, FALSE);
-#.END
-
-#.FN_BODY Distance/unit
-  offset = dissect_per_constrained_integer(%(TVB)s, %(OFFSET)s, %(ACTX)s, %(TREE)s, %(HF_INDEX)s,
-                                           2U, 8U, %(VAL_PTR)s, FALSE);
 #.END
 
 #=== PtActivation =======================================================
@@ -890,11 +968,11 @@ TrafficConditionSubCauseCode
   pta = wmem_new0(actx->pinfo->pool, its_pt_activation_data_t);
   actx->private_data = pta;
 #.FN_FTR
-  dissector_try_uint_new(cam_pt_activation_table, pta->type, pta->data, actx->pinfo, tree, TRUE, NULL);
+  dissector_try_uint_new(cam_pt_activation_table, pta->type, pta->data, actx->pinfo, tree, true, NULL);
   actx->private_data = priv_data;
 #.END
 
-#.FN_PARS 
+#.FN_PARS
 PtActivationType VAL_PTR = &((its_pt_activation_data_t*)actx->private_data)->type
 PtActivationData VAL_PTR = &((its_pt_activation_data_t*)actx->private_data)->data
 #.END

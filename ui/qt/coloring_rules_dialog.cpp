@@ -96,7 +96,7 @@ ColoringRulesDialog::ColoringRulesDialog(QWidget *parent, QString add_filter) :
     ui->buttonBox->addButton(copy_button, QDialogButtonBox::ActionRole);
     connect(copy_button, &CopyFromProfileButton::copyProfile, this, &ColoringRulesDialog::copyFromProfile);
 
-    QString abs_path = gchar_free_to_qstring(get_persconffile_path(COLORFILTERS_FILE_NAME, TRUE));
+    QString abs_path = gchar_free_to_qstring(get_persconffile_path(COLORFILTERS_FILE_NAME, true));
     if (file_exists(abs_path.toUtf8().constData())) {
         ui->pathLabel->setText(abs_path);
         ui->pathLabel->setUrl(QUrl::fromLocalFile(abs_path).toString());
@@ -164,7 +164,7 @@ bool ColoringRulesDialog::isValidFilter(QString filter, QString * error)
     if (df_err)
     {
         error->append(df_err->msg);
-        dfilter_error_free(df_err);
+        df_error_free(&df_err);
     }
 
     return false;
@@ -229,7 +229,7 @@ void ColoringRulesDialog::updateHint(QModelIndex idx)
 
     if (errors_.count() > 0) {
         //take the list of QModelIndexes and sort them so first color rule error is displayed
-        //This isn't the most efficent algorithm, but the list shouldn't be large to matter
+        //This isn't the most efficient algorithm, but the list shouldn't be large to matter
         QList<QModelIndex> keys = errors_.keys();
 
         //list is not guaranteed to be sorted, so force it
@@ -315,7 +315,7 @@ void ColoringRulesDialog::changeColor(bool foreground)
     if (!current.isValid())
         return;
 
-    QColorDialog *color_dlg = new QColorDialog();
+    QColorDialog *color_dlg = new QColorDialog(this);
     color_dlg->setCurrentColor(colorRuleModel_.data(current, foreground ? Qt::ForegroundRole : Qt::BackgroundRole).toString());
 
     connect(color_dlg, &QColorDialog::colorSelected, std::bind(&ColoringRulesDialog::colorChanged, this, foreground, std::placeholders::_1));
@@ -415,7 +415,7 @@ void ColoringRulesDialog::on_buttonBox_clicked(QAbstractButton *button)
 
     if (button == import_button_) {
         QString file_name = WiresharkFileDialog::getOpenFileName(this, mainApp->windowTitleString(tr("Import Coloring Rules")),
-                                                         mainApp->lastOpenDir().path());
+                                                         mainApp->openDialogInitialDir().path());
         if (!file_name.isEmpty()) {
             if (!colorRuleModel_.importColors(file_name, err)) {
                 simple_dialog(ESD_TYPE_ERROR, ESD_BTN_OK, "%s", err.toUtf8().constData());
@@ -433,7 +433,7 @@ void ColoringRulesDialog::on_buttonBox_clicked(QAbstractButton *button)
 
         QString caption = mainApp->windowTitleString(tr("Export %1 Coloring Rules").arg(num_items));
         QString file_name = WiresharkFileDialog::getSaveFileName(this, caption,
-                                                         mainApp->lastOpenDir().path());
+                                                         mainApp->openDialogInitialDir().path());
         if (!file_name.isEmpty()) {
             if (!colorRuleModel_.exportColors(file_name, err)) {
                 simple_dialog(ESD_TYPE_ERROR, ESD_BTN_OK, "%s", err.toUtf8().constData());

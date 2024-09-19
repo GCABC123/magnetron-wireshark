@@ -17,6 +17,7 @@
 
 #include "extcap-base.h"
 
+#include <wsutil/array.h>
 #include <wsutil/strtoi.h>
 #include <wsutil/filesystem.h>
 #include <wsutil/privileges.h>
@@ -41,7 +42,7 @@
 #define DPAUXMON_VERSION_MINOR "1"
 #define DPAUXMON_VERSION_RELEASE "0"
 
-FILE* pcap_fp = NULL;
+FILE* pcap_fp;
 
 enum {
 	EXTCAP_BASE_OPTIONS_ENUM,
@@ -50,7 +51,7 @@ enum {
 	OPT_INTERFACE_ID,
 };
 
-static struct ws_option longopts[] = {
+static const struct ws_option longopts[] = {
 	EXTCAP_BASE_OPTIONS,
 	/* Generic application options */
 	{ "help", ws_no_argument, NULL, OPT_HELP},
@@ -96,7 +97,7 @@ static int list_config(char *interface)
 
 static int setup_dumpfile(const char* fifo, FILE** fp)
 {
-	guint64 bytes_written = 0;
+	uint64_t bytes_written = 0;
 	int err;
 
 	if (!g_strcmp0(fifo, "-")) {
@@ -110,17 +111,19 @@ static int setup_dumpfile(const char* fifo, FILE** fp)
 		return EXIT_FAILURE;
 	}
 
-	if (!libpcap_write_file_header(*fp, 275, PCAP_SNAPLEN, FALSE, &bytes_written, &err)) {
+	if (!libpcap_write_file_header(*fp, 275, PCAP_SNAPLEN, false, &bytes_written, &err)) {
 		ws_warning("Can't write pcap file header");
 		return EXIT_FAILURE;
 	}
 
+        fflush(*fp);
+
 	return EXIT_SUCCESS;
 }
 
-static int dump_packet(FILE* fp, const char* buf, const guint32 buflen, guint64 ts_usecs)
+static int dump_packet(FILE* fp, const char* buf, const uint32_t buflen, uint64_t ts_usecs)
 {
-	guint64 bytes_written = 0;
+	uint64_t bytes_written = 0;
 	int err;
 	int ret = EXIT_SUCCESS;
 
@@ -326,9 +329,9 @@ static int handle_data(struct nl_cache_ops *unused _U_, struct genl_cmd *cmd _U_
 			 struct genl_info *info, void *arg _U_)
 {
 	unsigned char *data;
-	guint32 data_size;
-	guint64 ts = 0;
-	guint8 packet[21] = { 0x00 };
+	uint32_t data_size;
+	uint64_t ts = 0;
+	uint8_t packet[21] = { 0x00 };
 
 	if (!info->attrs[DPAUXMON_ATTR_DATA])
 		return NL_SKIP;
@@ -349,7 +352,7 @@ static int handle_data(struct nl_cache_ops *unused _U_, struct genl_cmd *cmd _U_
 	memcpy(&packet[2], data, data_size);
 
 	if (dump_packet(pcap_fp, packet, data_size + 2, ts) == EXIT_FAILURE)
-		extcap_end_application = TRUE;
+		extcap_end_application = true;
 
 	return NL_OK;
 }
@@ -385,12 +388,10 @@ static struct genl_cmd cmds[] = {
 	},
 };
 
-#define ARRAY_SIZE(X) (sizeof(X) / sizeof((X)[0]))
-
 static struct genl_ops ops = {
 	.o_name = "dpauxmon",
 	.o_cmds = cmds,
-	.o_ncmds = ARRAY_SIZE(cmds),
+	.o_ncmds = array_length(cmds),
 };
 
 struct nl_sock *sock;

@@ -57,18 +57,18 @@ def make_dissectors(outfile, infiles):
     output += """\
 #include "dissectors.h"
 
-const gulong dissector_reg_proto_count = {0};
-const gulong dissector_reg_handoff_count = {1};
+const unsigned long dissector_reg_proto_count = {0};
+const unsigned long dissector_reg_handoff_count = {1};
 
 """.format(len(protos), len(handoffs))
 
     output += gen_prototypes(protos)
     output += "\n"
-    output += gen_array(protos, "dissector_reg_t dissector_reg_proto")
+    output += gen_array(protos, "dissector_reg_t const dissector_reg_proto")
     output += "\n"
     output += gen_prototypes(handoffs)
     output += "\n"
-    output += gen_array(handoffs, "dissector_reg_t dissector_reg_handoff")
+    output += gen_array(handoffs, "dissector_reg_t const dissector_reg_handoff")
 
     with open(outfile, "w") as f:
         f.write(output)
@@ -90,13 +90,13 @@ def make_wtap_modules(outfile, infiles):
     output += """\
 #include "wtap_modules.h"
 
-const guint wtap_module_count = {0};
+const unsigned wtap_module_count = {0};
 
 """.format(len(wtap_modules))
 
     output += gen_prototypes(wtap_modules)
     output += "\n"
-    output += gen_array(wtap_modules, "wtap_module_reg_t wtap_module_reg")
+    output += gen_array(wtap_modules, "wtap_module_reg_t const wtap_module_reg")
 
     with open(outfile, "w") as f:
         f.write(output)
@@ -118,13 +118,13 @@ def make_taps(outfile, infiles):
     output += """\
 #include "ui/taps.h"
 
-const gulong tap_reg_listener_count = {0};
+const unsigned long tap_reg_listener_count = {0};
 
 """.format(len(taps))
 
     output += gen_prototypes(taps)
     output += "\n"
-    output += gen_array(taps, "tap_reg_t tap_reg_listener")
+    output += gen_array(taps, "tap_reg_t const tap_reg_listener")
 
     with open(outfile, "w") as f:
         f.write(output)
@@ -143,7 +143,7 @@ if __name__ == "__main__":
     outfile = sys.argv[2]
     if sys.argv[3].startswith("@"):
         with open(sys.argv[3][1:]) as f:
-            infiles = [l.strip() for l in f.readlines()]
+            infiles = [line.strip() for line in f.readlines()]
     else:
         infiles = sys.argv[3:]
 

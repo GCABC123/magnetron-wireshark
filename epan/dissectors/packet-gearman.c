@@ -19,59 +19,62 @@
 #include <epan/packet.h>
 #include <epan/prefs.h>
 #include <epan/expert.h>
+#include <wsutil/array.h>
 #include "packet-tcp.h"
 
 void proto_register_gearman(void);
 void proto_reg_handoff_gearman(void);
 
-static int proto_gearman = -1;
+static dissector_handle_t gearman_handle;
 
-static int hf_gearman_mgr_cmd = -1;
-static int hf_gearman_magic_code = -1;
-static int hf_gearman_pkt_type = -1;
-static int hf_gearman_data_size = -1;
-static int hf_gearman_data_content = -1;
-static int hf_gearman_option_name = -1;
-static int hf_gearman_func_name = -1;
-static int hf_gearman_func_namez = -1;
-static int hf_gearman_client_id = -1;
-static int hf_gearman_client_count = -1;
-static int hf_gearman_uniq_id = -1;
-static int hf_gearman_uniq_idz = -1;
-static int hf_gearman_argument = -1;
-static int hf_gearman_job_handle = -1;
-static int hf_gearman_job_handlez = -1;
-static int hf_gearman_complete_numerator = -1;
-static int hf_gearman_complete_denominator = -1;
-static int hf_gearman_submit_job_sched_minute = -1;
-static int hf_gearman_submit_job_sched_hour = -1;
-static int hf_gearman_submit_job_sched_day_of_month = -1;
-static int hf_gearman_submit_job_sched_month = -1;
-static int hf_gearman_submit_job_sched_day_of_week = -1;
-static int hf_gearman_submit_job_epoch_time = -1;
-static int hf_gearman_reducer = -1;
-static int hf_gearman_result = -1;
-static int hf_gearman_known_status = -1;
-static int hf_gearman_running_status = -1;
-static int hf_gearman_timeout_value = -1;
-static int hf_gearman_echo_text = -1;
-static int hf_gearman_err_code = -1;
-static int hf_gearman_err_text = -1;
+static int proto_gearman;
 
-static gint ett_gearman = -1;
-static gint ett_gearman_command = -1;
-static gint ett_gearman_content = -1;
+static int hf_gearman_mgr_cmd;
+static int hf_gearman_magic_code;
+static int hf_gearman_pkt_type;
+static int hf_gearman_data_size;
+static int hf_gearman_data_content;
+static int hf_gearman_option_name;
+static int hf_gearman_func_name;
+static int hf_gearman_func_namez;
+static int hf_gearman_client_id;
+static int hf_gearman_client_count;
+static int hf_gearman_uniq_id;
+static int hf_gearman_uniq_idz;
+static int hf_gearman_argument;
+static int hf_gearman_job_handle;
+static int hf_gearman_job_handlez;
+static int hf_gearman_complete_numerator;
+static int hf_gearman_complete_denominator;
+static int hf_gearman_submit_job_sched_minute;
+static int hf_gearman_submit_job_sched_hour;
+static int hf_gearman_submit_job_sched_day_of_month;
+static int hf_gearman_submit_job_sched_month;
+static int hf_gearman_submit_job_sched_day_of_week;
+static int hf_gearman_submit_job_epoch_time;
+static int hf_gearman_reducer;
+static int hf_gearman_result;
+static int hf_gearman_known_status;
+static int hf_gearman_running_status;
+static int hf_gearman_timeout_value;
+static int hf_gearman_echo_text;
+static int hf_gearman_err_code;
+static int hf_gearman_err_text;
 
-static expert_field ei_gearman_pkt_type_unknown = EI_INIT;
+static int ett_gearman;
+static int ett_gearman_command;
+static int ett_gearman_content;
 
-static gboolean gearman_desegment  = TRUE;
+static expert_field ei_gearman_pkt_type_unknown;
+
+static bool gearman_desegment  = true;
 
 static const int GEARMAN_COMMAND_HEADER_SIZE = 12;
 static const int GEARMAN_PORT = 4730;
-static const guchar *GEARMAN_MAGIC_CODE_REQUEST = "\0REQ";
-static const guchar *GEARMAN_MAGIC_CODE_RESPONSE = "\0RES";
+static const unsigned char *GEARMAN_MAGIC_CODE_REQUEST = "\0REQ";
+static const unsigned char *GEARMAN_MAGIC_CODE_RESPONSE = "\0RES";
 
-static const gchar *GEARMAN_MGR_CMDS[] = {
+static const char *GEARMAN_MGR_CMDS[] = {
   "workers",
   "status",
   "maxqueue",
@@ -79,7 +82,7 @@ static const gchar *GEARMAN_MGR_CMDS[] = {
   "version"
 };
 
-static const int GEARMAN_MGR_CMDS_COUNT = sizeof(GEARMAN_MGR_CMDS)/sizeof(GEARMAN_MGR_CMDS[0]);
+static const int GEARMAN_MGR_CMDS_COUNT = array_length(GEARMAN_MGR_CMDS);
 
 typedef enum
 {
@@ -176,7 +179,7 @@ static const value_string gearman_command_names[] = {
   { 0, NULL}
 };
 
-static guint
+static unsigned
 get_gearman_pdu_len(packet_info *pinfo _U_, tvbuff_t *tvb, int offset, void *data _U_)
 {
     return tvb_get_ntohl(tvb, offset+8)+GEARMAN_COMMAND_HEADER_SIZE;
@@ -185,10 +188,10 @@ get_gearman_pdu_len(packet_info *pinfo _U_, tvbuff_t *tvb, int offset, void *dat
 static int
 dissect_binary_packet(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, void* data _U_)
 {
-  gint curr_offset;
+  int curr_offset;
   char *magic_code;
-  guint32 type, size;
-  guint len;
+  uint32_t type, size;
+  unsigned len;
   proto_item *content_item = NULL;
   proto_tree *content_tree = NULL;
 
@@ -551,7 +554,7 @@ dissect_management_packet(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree)
   ti = proto_tree_add_item(tree, proto_gearman, tvb, 0, -1, ENC_NA);
   gearman_tree = proto_item_add_subtree(ti, ett_gearman);
 
-  while ((linelen = tvb_find_line_end(tvb, offset, -1, &next_offset, FALSE)) > 0)
+  while ((linelen = tvb_find_line_end(tvb, offset, -1, &next_offset, false)) > 0)
   {
     for (i=0; i<GEARMAN_MGR_CMDS_COUNT; i++)
     {
@@ -561,7 +564,7 @@ dissect_management_packet(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree)
 
       if (cmdlen == linelen && 0 == tvb_strneql(tvb, offset, GEARMAN_MGR_CMDS[i], cmdlen))
       {
-        const guint8* cmdstr;
+        const uint8_t* cmdstr;
         proto_tree_add_item_ret_string(gearman_tree, hf_gearman_mgr_cmd, tvb, offset, cmdlen, ENC_ASCII|ENC_NA, pinfo->pool, &cmdstr);
         col_add_fstr(pinfo->cinfo, COL_INFO, "[MGR] %s", cmdstr);
         type = 1;
@@ -642,7 +645,7 @@ proto_register_gearman(void)
   };
 
   /* Setup protocol subtree array */
-  static gint *ett[] = {
+  static int *ett[] = {
     &ett_gearman,
     &ett_gearman_command,
     &ett_gearman_content
@@ -668,14 +671,12 @@ proto_register_gearman(void)
                                   "Whether the Gearman dissector should desegment all messages spanning multiple TCP segments",
                                   &gearman_desegment);
 
+  gearman_handle = register_dissector("gearman", dissect_gearman, proto_gearman);
 }
 
 void
 proto_reg_handoff_gearman(void)
 {
-  dissector_handle_t gearman_handle;
-
-  gearman_handle = create_dissector_handle(dissect_gearman, proto_gearman);
   dissector_add_uint_with_preference("tcp.port", GEARMAN_PORT, gearman_handle);
 }
 

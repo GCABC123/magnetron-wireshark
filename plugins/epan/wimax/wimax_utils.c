@@ -20,36 +20,39 @@
 
 #include <epan/packet.h>
 #include <epan/expert.h>
-#include "wimax-int.h"
+#include <epan/tfs.h>
+#include <epan/unit_strings.h>
+
+#include <wsutil/array.h>
 #include "wimax_tlv.h"
 #include "wimax_mac.h"
+#include "wimax_prefs.h"
 
 #include "wimax_utils.h"
 
-extern gint proto_mac_mgmt_msg_rng_req_decoder;
-extern gint proto_mac_mgmt_msg_reg_req_decoder;
+extern int proto_mac_mgmt_msg_rng_req_decoder;
+extern int proto_mac_mgmt_msg_reg_req_decoder;
 
-extern gint mac_sdu_length;                   /* declared in packet-wmx.c */
-extern gboolean include_cor2_changes;
+extern int mac_sdu_length;                   /* declared in packet-wmx.c */
 
-static gint proto_wimax_utility_decoders = -1;
-static gint ett_wimax_service_flow_encodings = -1;
-static gint ett_wimax_cst_encoding_rules = -1;
-static gint ett_wimax_error_parameter_set = -1;
-static gint ett_wimax_hmac_tuple = -1;
-static gint ett_wimax_cmac_tuple = -1;
-static gint ett_wimax_short_hmac_tuple = -1;
-static gint ett_security_negotiation_parameters = -1;
-static gint ett_pkm_tlv_encoded_attributes_decoder = -1;
-static gint ett_sa_descriptor_decoder = -1;
-static gint ett_cryptographic_suite_list_decoder = -1;
-static gint ett_security_capabilities_decoder = -1;
-static gint ett_vendor_specific_info_decoder = -1;
-static gint ett_vendor_id_encoding_decoder = -1;
-static gint ett_ul_service_flow_decoder = -1;
-static gint ett_dl_service_flow_decoder = -1;
+static int proto_wimax_utility_decoders;
+static int ett_wimax_service_flow_encodings;
+static int ett_wimax_cst_encoding_rules;
+static int ett_wimax_error_parameter_set;
+static int ett_wimax_hmac_tuple;
+static int ett_wimax_cmac_tuple;
+static int ett_wimax_short_hmac_tuple;
+static int ett_security_negotiation_parameters;
+static int ett_pkm_tlv_encoded_attributes_decoder;
+static int ett_sa_descriptor_decoder;
+static int ett_cryptographic_suite_list_decoder;
+static int ett_security_capabilities_decoder;
+static int ett_vendor_specific_info_decoder;
+static int ett_vendor_id_encoding_decoder;
+static int ett_ul_service_flow_decoder;
+static int ett_dl_service_flow_decoder;
 
-static dissector_handle_t eap_handle = NULL;
+static dissector_handle_t eap_handle;
 
 const unit_name_string wimax_units_byte_bytes = { " byte", " bytes" };
 const unit_name_string wimax_units_bit_sec = { "bits/s", NULL };
@@ -67,16 +70,16 @@ const unit_name_string wimax_units_ps = { "PS", NULL };
    the Grant Management subheader dissector and track whether or not
    one has been seen.
    */
-static guint scheduling_service_type = -1;
-gint seen_a_service_type = 0;
+static unsigned scheduling_service_type = -1;
+int seen_a_service_type;
 
 /* The following two functions set and access the variables above */
-guint get_service_type( void )
+unsigned get_service_type( void )
 {
 	return scheduling_service_type;
 }
 
-static void set_service_type( guint set_to )
+static void set_service_type( unsigned set_to )
 {
 	if( seen_a_service_type == 0 ){
 		scheduling_service_type = set_to;
@@ -85,7 +88,7 @@ static void set_service_type( guint set_to )
 }
 
 /* Setup protocol subtree array */
-static gint *ett[] =
+static int *ett[] =
 {
 	&ett_wimax_service_flow_encodings,
 	&ett_wimax_cst_encoding_rules,
@@ -400,155 +403,155 @@ static const value_string vals_dcd_mac_version[] =
 };
 
 /* fix fields */
-static gint hf_sfe_unknown_type = -1;
-static gint hf_sfe_sf_id = -1;
-static gint hf_sfe_cid = -1;
-static gint hf_sfe_service_class_name = -1;
-static gint hf_sfe_mbs_service = -1;
-static gint hf_sfe_qos_params_set = -1;
-static gint hf_sfe_set_provisioned = -1;
-static gint hf_sfe_set_admitted = -1;
-static gint hf_sfe_set_active = -1;
-static gint hf_sfe_set_rsvd = -1;
-static gint hf_sfe_traffic_priority = -1;
-static gint hf_sfe_max_str = -1;
-static gint hf_sfe_max_traffic_burst = -1;
-static gint hf_sfe_min_rtr = -1;
-static gint hf_sfe_reserved_10 = -1;
-static gint hf_sfe_ul_grant_scheduling = -1;
-static gint hf_sfe_req_tx_policy = -1;
-static gint hf_sfe_policy_broadcast_bwr = -1;
-static gint hf_sfe_policy_multicast_bwr = -1;
-static gint hf_sfe_policy_piggyback = -1;
-static gint hf_sfe_policy_fragment = -1;
-static gint hf_sfe_policy_headers = -1;
-static gint hf_sfe_policy_packing = -1;
-static gint hf_sfe_policy_crc = -1;
-static gint hf_sfe_policy_rsvd1 = -1;
-static gint hf_sfe_jitter = -1;
-static gint hf_sfe_max_latency = -1;
-static gint hf_sfe_fixed_len_sdu = -1;
-static gint hf_sfe_sdu_size = -1;
-static gint hf_sfe_target_said = -1;
-static gint hf_sfe_cs_specification = -1;
-static gint hf_sfe_type_of_data_delivery_services = -1;
-static gint hf_sfe_sdu_inter_arrival_interval = -1;
-static gint hf_sfe_time_base = -1;
-static gint hf_sfe_paging_preference = -1;
-static gint hf_sfe_mbs_zone_identifier_assignment = -1;
-static gint hf_sfe_sn_feedback_enabled = -1;
-static gint hf_sfe_harq_service_flows = -1;
-static gint hf_sfe_harq_channel_mapping_index = -1;
-static gint hf_sfe_fsn_size = -1;
-static gint hf_sfe_unsolicited_grant_interval = -1;
-static gint hf_sfe_unsolicited_polling_interval = -1;
-/* static gint hf_sfe_harq_channel_mapping = -1; */
-static gint hf_sfe_global_service_class_name = -1;
-static gint hf_sfe_reserved_36 = -1;
-static gint hf_sfe_reserved_34 = -1;
+static int hf_sfe_unknown_type;
+static int hf_sfe_sf_id;
+static int hf_sfe_cid;
+static int hf_sfe_service_class_name;
+static int hf_sfe_mbs_service;
+static int hf_sfe_qos_params_set;
+static int hf_sfe_set_provisioned;
+static int hf_sfe_set_admitted;
+static int hf_sfe_set_active;
+static int hf_sfe_set_rsvd;
+static int hf_sfe_traffic_priority;
+static int hf_sfe_max_str;
+static int hf_sfe_max_traffic_burst;
+static int hf_sfe_min_rtr;
+static int hf_sfe_reserved_10;
+static int hf_sfe_ul_grant_scheduling;
+static int hf_sfe_req_tx_policy;
+static int hf_sfe_policy_broadcast_bwr;
+static int hf_sfe_policy_multicast_bwr;
+static int hf_sfe_policy_piggyback;
+static int hf_sfe_policy_fragment;
+static int hf_sfe_policy_headers;
+static int hf_sfe_policy_packing;
+static int hf_sfe_policy_crc;
+static int hf_sfe_policy_rsvd1;
+static int hf_sfe_jitter;
+static int hf_sfe_max_latency;
+static int hf_sfe_fixed_len_sdu;
+static int hf_sfe_sdu_size;
+static int hf_sfe_target_said;
+static int hf_sfe_cs_specification;
+static int hf_sfe_type_of_data_delivery_services;
+static int hf_sfe_sdu_inter_arrival_interval;
+static int hf_sfe_time_base;
+static int hf_sfe_paging_preference;
+static int hf_sfe_mbs_zone_identifier_assignment;
+static int hf_sfe_sn_feedback_enabled;
+static int hf_sfe_harq_service_flows;
+static int hf_sfe_harq_channel_mapping_index;
+static int hf_sfe_fsn_size;
+static int hf_sfe_unsolicited_grant_interval;
+static int hf_sfe_unsolicited_polling_interval;
+/* static int hf_sfe_harq_channel_mapping; */
+static int hf_sfe_global_service_class_name;
+static int hf_sfe_reserved_36;
+static int hf_sfe_reserved_34;
 
-static gint hf_sfe_arq_enable = -1;
-static gint hf_sfe_arq_transmitter_delay = -1;
-static gint hf_sfe_arq_receiver_delay = -1;
-static gint hf_sfe_arq_block_lifetime = -1;
-static gint hf_sfe_arq_sync_loss_timeout = -1;
-static gint hf_sfe_arq_transmitter_delay_cor2 = -1;
-static gint hf_sfe_arq_receiver_delay_cor2 = -1;
-static gint hf_sfe_arq_block_lifetime_cor2 = -1;
-static gint hf_sfe_arq_sync_loss_timeout_cor2 = -1;
-static gint hf_sfe_arq_deliver_in_order = -1;
-static gint hf_sfe_arq_rx_purge_timeout = -1;
-static gint hf_sfe_arq_window_size = -1;
-static gint hf_sfe_arq_block_size = -1;
-static gint hf_sfe_arq_block_size_cor2 = -1;
-static gint hf_sfe_arq_min_block_size = -1;
-static gint hf_sfe_arq_max_block_size = -1;
+static int hf_sfe_arq_enable;
+static int hf_sfe_arq_transmitter_delay;
+static int hf_sfe_arq_receiver_delay;
+static int hf_sfe_arq_block_lifetime;
+static int hf_sfe_arq_sync_loss_timeout;
+static int hf_sfe_arq_transmitter_delay_cor2;
+static int hf_sfe_arq_receiver_delay_cor2;
+static int hf_sfe_arq_block_lifetime_cor2;
+static int hf_sfe_arq_sync_loss_timeout_cor2;
+static int hf_sfe_arq_deliver_in_order;
+static int hf_sfe_arq_rx_purge_timeout;
+static int hf_sfe_arq_window_size;
+static int hf_sfe_arq_block_size;
+static int hf_sfe_arq_block_size_cor2;
+static int hf_sfe_arq_min_block_size;
+static int hf_sfe_arq_max_block_size;
 
-/* static gint hf_sfe_cid_alloc_for_active_bs = -1; */
-static gint hf_sfe_cid_alloc_for_active_bs_cid = -1;
-static gint hf_sfe_pdu_sn_ext_subheader_reorder = -1;
-static gint hf_sfe_mbs_contents_ids = -1;
-static gint hf_sfe_mbs_contents_ids_id = -1;
-static gint hf_sfe_authorization_token = -1;
+/* static int hf_sfe_cid_alloc_for_active_bs; */
+static int hf_sfe_cid_alloc_for_active_bs_cid;
+static int hf_sfe_pdu_sn_ext_subheader_reorder;
+static int hf_sfe_mbs_contents_ids;
+static int hf_sfe_mbs_contents_ids_id;
+static int hf_sfe_authorization_token;
 
-static gint hf_cst_classifier_dsc_action = -1;
-static gint hf_cst_error_set_errored_param = -1;
-static gint hf_cst_error_set_error_code = -1;
-static gint hf_cst_error_set_error_msg = -1;
+static int hf_cst_classifier_dsc_action;
+static int hf_cst_error_set_errored_param;
+static int hf_cst_error_set_error_code;
+static int hf_cst_error_set_error_msg;
 
-static gint hf_cst_pkt_class_rule = -1;
+static int hf_cst_pkt_class_rule;
 
-static gint hf_cst_pkt_class_rule_priority = -1;
-static gint hf_cst_pkt_class_rule_range_mask = -1;
-static gint hf_cst_pkt_class_rule_tos_low = -1;
-static gint hf_cst_pkt_class_rule_tos_high = -1;
-static gint hf_cst_pkt_class_rule_tos_mask = -1;
-static gint hf_cst_pkt_class_rule_protocol = -1;
-/*static gint hf_cst_pkt_class_rule_protocol_number = -1;*/
-static gint hf_cst_pkt_class_rule_ip_masked_src_address = -1;
-static gint hf_cst_pkt_class_rule_ip_masked_dest_address = -1;
-static gint hf_cst_pkt_class_rule_src_ipv4 = -1;
-static gint hf_cst_pkt_class_rule_dest_ipv4 = -1;
-static gint hf_cst_pkt_class_rule_mask_ipv4 = -1;
-static gint hf_cst_pkt_class_rule_src_ipv6 = -1;
-static gint hf_cst_pkt_class_rule_dest_ipv6 = -1;
-static gint hf_cst_pkt_class_rule_mask_ipv6 = -1;
-static gint hf_cst_pkt_class_rule_prot_src_port_range = -1;
-static gint hf_cst_pkt_class_rule_src_port_low = -1;
-static gint hf_cst_pkt_class_rule_src_port_high = -1;
-static gint hf_cst_pkt_class_rule_prot_dest_port_range = -1;
-static gint hf_cst_pkt_class_rule_dest_port_low = -1;
-static gint hf_cst_pkt_class_rule_dest_port_high = -1;
-static gint hf_cst_pkt_class_rule_dest_mac_address = -1;
-static gint hf_cst_pkt_class_rule_dest_mac = -1;
-static gint hf_cst_pkt_class_rule_src_mac_address = -1;
-static gint hf_cst_pkt_class_rule_src_mac = -1;
-static gint hf_cst_pkt_class_rule_mask_mac = -1;
-static gint hf_cst_pkt_class_rule_ethertype = -1;
-static gint hf_cst_pkt_class_rule_etype = -1;
-static gint hf_cst_pkt_class_rule_eprot1 = -1;
-static gint hf_cst_pkt_class_rule_eprot2 = -1;
-static gint hf_cst_pkt_class_rule_user_priority          = -1;
-static gint hf_cst_pkt_class_rule_pri_low                = -1;
-static gint hf_cst_pkt_class_rule_pri_high               = -1;
-static gint hf_cst_pkt_class_rule_vlan_id                = -1;
-static gint hf_cst_pkt_class_rule_vlan_id1               = -1;
-static gint hf_cst_pkt_class_rule_vlan_id2               = -1;
-static gint hf_cst_pkt_class_rule_phsi                   = -1;
-static gint hf_cst_pkt_class_rule_index                  = -1;
-static gint hf_cst_pkt_class_rule_ipv6_flow_label        = -1;
-static gint hf_cst_pkt_class_rule_vendor_spec            = -1;
-static gint hf_cst_pkt_class_rule_classifier_action_rule = -1;
-static gint hf_cst_pkt_class_rule_classifier_action_rule_bit0 = -1;
-static gint hf_cst_pkt_class_rule_classifier_action_rule_bit1 = -1;
+static int hf_cst_pkt_class_rule_priority;
+static int hf_cst_pkt_class_rule_range_mask;
+static int hf_cst_pkt_class_rule_tos_low;
+static int hf_cst_pkt_class_rule_tos_high;
+static int hf_cst_pkt_class_rule_tos_mask;
+static int hf_cst_pkt_class_rule_protocol;
+/*static int hf_cst_pkt_class_rule_protocol_number;*/
+static int hf_cst_pkt_class_rule_ip_masked_src_address;
+static int hf_cst_pkt_class_rule_ip_masked_dest_address;
+static int hf_cst_pkt_class_rule_src_ipv4;
+static int hf_cst_pkt_class_rule_dest_ipv4;
+static int hf_cst_pkt_class_rule_mask_ipv4;
+static int hf_cst_pkt_class_rule_src_ipv6;
+static int hf_cst_pkt_class_rule_dest_ipv6;
+static int hf_cst_pkt_class_rule_mask_ipv6;
+static int hf_cst_pkt_class_rule_prot_src_port_range;
+static int hf_cst_pkt_class_rule_src_port_low;
+static int hf_cst_pkt_class_rule_src_port_high;
+static int hf_cst_pkt_class_rule_prot_dest_port_range;
+static int hf_cst_pkt_class_rule_dest_port_low;
+static int hf_cst_pkt_class_rule_dest_port_high;
+static int hf_cst_pkt_class_rule_dest_mac_address;
+static int hf_cst_pkt_class_rule_dest_mac;
+static int hf_cst_pkt_class_rule_src_mac_address;
+static int hf_cst_pkt_class_rule_src_mac;
+static int hf_cst_pkt_class_rule_mask_mac;
+static int hf_cst_pkt_class_rule_ethertype;
+static int hf_cst_pkt_class_rule_etype;
+static int hf_cst_pkt_class_rule_eprot1;
+static int hf_cst_pkt_class_rule_eprot2;
+static int hf_cst_pkt_class_rule_user_priority;
+static int hf_cst_pkt_class_rule_pri_low;
+static int hf_cst_pkt_class_rule_pri_high;
+static int hf_cst_pkt_class_rule_vlan_id;
+static int hf_cst_pkt_class_rule_vlan_id1;
+static int hf_cst_pkt_class_rule_vlan_id2;
+static int hf_cst_pkt_class_rule_phsi;
+static int hf_cst_pkt_class_rule_index;
+static int hf_cst_pkt_class_rule_ipv6_flow_label;
+static int hf_cst_pkt_class_rule_vendor_spec;
+static int hf_cst_pkt_class_rule_classifier_action_rule;
+static int hf_cst_pkt_class_rule_classifier_action_rule_bit0;
+static int hf_cst_pkt_class_rule_classifier_action_rule_bit1;
 
-static gint hf_cst_large_context_id = -1;
-static gint hf_cst_short_format_context_id = -1;
+static int hf_cst_large_context_id;
+static int hf_cst_short_format_context_id;
 
-static gint hf_cst_phs_dsc_action = -1;
-static gint hf_cst_phs_rule = -1;
-static gint hf_cst_phs_phsi = -1;
-static gint hf_cst_phs_phsf = -1;
-static gint hf_cst_phs_phsm = -1;
-static gint hf_cst_phs_phss = -1;
-static gint hf_cst_phs_phsv = -1;
-static gint hf_cst_phs_vendor_spec = -1;
-static gint hf_cst_invalid_tlv = -1;
+static int hf_cst_phs_dsc_action;
+static int hf_cst_phs_rule;
+static int hf_cst_phs_phsi;
+static int hf_cst_phs_phsf;
+static int hf_cst_phs_phsm;
+static int hf_cst_phs_phss;
+static int hf_cst_phs_phsv;
+static int hf_cst_phs_vendor_spec;
+static int hf_cst_invalid_tlv;
 
-static gint hf_csper_atm_switching_encoding = -1;
-static gint hf_csper_atm_classifier = -1;
-static gint hf_csper_atm_classifier_vpi = -1;
-static gint hf_csper_atm_classifier_vci = -1;
-static gint hf_csper_atm_classifier_id = -1;
-/*static gint hf_csper_atm_classifier_dsc_action = -1;*/
-static gint hf_csper_unknown_type = -1;
+static int hf_csper_atm_switching_encoding;
+static int hf_csper_atm_classifier;
+static int hf_csper_atm_classifier_vpi;
+static int hf_csper_atm_classifier_vci;
+static int hf_csper_atm_classifier_id;
+/*static int hf_csper_atm_classifier_dsc_action;*/
+static int hf_csper_unknown_type;
 
-static gint hf_xmac_tuple_rsvd = -1;
-static gint hf_xmac_tuple_key_seq_num = -1;
-static gint hf_hmac_tuple_hmac_digest = -1;
-static gint hf_packet_number_counter = -1;
-static gint hf_cmac_tuple_cmac_value = -1;
-static gint hf_cmac_tuple_bsid = -1;
+static int hf_xmac_tuple_rsvd;
+static int hf_xmac_tuple_key_seq_num;
+static int hf_hmac_tuple_hmac_digest;
+static int hf_packet_number_counter;
+static int hf_cmac_tuple_cmac_value;
+static int hf_cmac_tuple_bsid;
 
 /* bit masks */
 /* 11.13.4 */
@@ -577,33 +580,33 @@ static gint hf_cmac_tuple_bsid = -1;
 #define XMAC_TUPLE_KEY_SEQ_NUM     0x0F
 
 /* WiMax Security Negotiation Parameters display */
-static gint hf_snp_pkm_version_support = -1;
-static gint hf_snp_pkm_version_support_bit0 = -1;
-static gint hf_snp_pkm_version_support_bit1 = -1;
-static gint hf_snp_pkm_version_support_reserved = -1;
-static gint hf_snp_auth_policy_support = -1;
-static gint hf_snp_auth_policy_support_bit0 = -1;
-static gint hf_snp_auth_policy_support_bit1 = -1;
-static gint hf_snp_auth_policy_support_bit2 = -1;
-static gint hf_snp_auth_policy_support_bit3 = -1;
-static gint hf_snp_auth_policy_support_bit4 = -1;
-static gint hf_snp_auth_policy_support_bit5 = -1;
-static gint hf_snp_auth_policy_support_bit6 = -1;
-static gint hf_snp_auth_policy_support_bit7 = -1;
-static gint hf_snp_mac_mode = -1;
-static gint hf_snp_mac_mode_bit0 = -1;
-static gint hf_snp_mac_mode_bit1 = -1;
-static gint hf_snp_mac_mode_bit1_rsvd = -1;
-static gint hf_snp_mac_mode_bit2 = -1;
-static gint hf_snp_mac_mode_bit3 = -1;
-static gint hf_snp_mac_mode_bit4 = -1;
-static gint hf_snp_mac_mode_bit5 = -1;
-static gint hf_snp_mac_mode_reserved = -1;
-static gint hf_snp_mac_mode_reserved1 = -1;
-static gint hf_snp_pn_window_size = -1;
-static gint hf_snp_max_conc_transactions = -1;
-static gint hf_snp_max_suppt_sec_assns = -1;
-static gint hf_snp_unknown_type = -1;
+static int hf_snp_pkm_version_support;
+static int hf_snp_pkm_version_support_bit0;
+static int hf_snp_pkm_version_support_bit1;
+static int hf_snp_pkm_version_support_reserved;
+static int hf_snp_auth_policy_support;
+static int hf_snp_auth_policy_support_bit0;
+static int hf_snp_auth_policy_support_bit1;
+static int hf_snp_auth_policy_support_bit2;
+static int hf_snp_auth_policy_support_bit3;
+static int hf_snp_auth_policy_support_bit4;
+static int hf_snp_auth_policy_support_bit5;
+static int hf_snp_auth_policy_support_bit6;
+static int hf_snp_auth_policy_support_bit7;
+static int hf_snp_mac_mode;
+static int hf_snp_mac_mode_bit0;
+static int hf_snp_mac_mode_bit1;
+static int hf_snp_mac_mode_bit1_rsvd;
+static int hf_snp_mac_mode_bit2;
+static int hf_snp_mac_mode_bit3;
+static int hf_snp_mac_mode_bit4;
+static int hf_snp_mac_mode_bit5;
+static int hf_snp_mac_mode_reserved;
+static int hf_snp_mac_mode_reserved1;
+static int hf_snp_pn_window_size;
+static int hf_snp_max_conc_transactions;
+static int hf_snp_max_suppt_sec_assns;
+static int hf_snp_unknown_type;
 
 /* bit masks */
 /* 11.8.4.1 */
@@ -630,65 +633,65 @@ static gint hf_snp_unknown_type = -1;
 #define SNP_MAC_MODE_RSV1 0xC0
 
 /* PKM display */
-static gint hf_pkm_msg_unknown_type = -1;
-static gint hf_pkm_msg_attr_display = -1;
-static gint hf_pkm_config_settings_authorize_waitout = -1;
-static gint hf_pkm_config_settings_reauthorize_waitout = -1;
-static gint hf_pkm_config_settings_grace_time = -1;
-static gint hf_pkm_config_settings_operational_waittime = -1;
-static gint hf_pkm_msg_attr_auth_key = -1;
-static gint hf_pkm_msg_attr_tek = -1;
-static gint hf_pkm_msg_attr_key_life_time = -1;
-static gint hf_pkm_msg_attr_key_seq_num = -1;
-static gint hf_pkm_msg_attr_hmac_digest = -1;
-static gint hf_pkm_msg_attr_said = -1;
-static gint hf_pkm_msg_attr_cbc_iv = -1;
-static gint hf_pkm_msg_attr_error_code = -1;
-static gint hf_pkm_msg_attr_ca_certificate = -1;
-static gint hf_pkm_msg_attr_ss_certificate = -1;
-static gint hf_pkm_attr_auth_result_code = -1;
-static gint hf_pkm_attr_sa_service_type = -1;
-static gint hf_pkm_attr_frame_number = -1;
-static gint hf_pkm_attr_ss_random = -1;
-static gint hf_pkm_attr_bs_random = -1;
-static gint hf_pkm_attr_pre_pak = -1;
-static gint hf_pkm_attr_bs_certificate = -1;
-static gint hf_pkm_attr_sig_bs = -1;
-static gint hf_pkm_attr_ms_mac_address = -1;
-static gint hf_pkm_attr_cmac_digest = -1;
-static gint hf_pkm_attr_cmac_digest_pn = -1;
-static gint hf_pkm_attr_cmac_digest_value = -1;
-static gint hf_pkm_attr_eap_payload = -1;
-static gint hf_pkm_attr_nonce = -1;
-static gint hf_pkm_sa_type = -1;
-static gint hf_pkm_msg_crypto_suite = -1;
-static gint hf_pkm_msg_crypto_suite_msb = -1;
-static gint hf_pkm_msg_crypto_suite_middle = -1;
-static gint hf_pkm_msg_crypto_suite_lsb = -1;
-/*static gint hf_pkm_msg_version = -1;*/
-static gint hf_pkm_attr_push_modes = -1;
-static gint hf_pkm_attr_key_push_counter = -1;
-static gint hf_pkm_attr_gkek = -1;
-static gint hf_pkm_attr_sig_ss = -1;
-static gint hf_pkm_attr_akid = -1;
-static gint hf_pkm_config_settings_rekey_wait_timeout = -1;
-static gint hf_pkm_config_settings_tek_grace_time = -1;
-static gint hf_pkm_config_settings_authorize_reject_wait_timeout = -1;
+static int hf_pkm_msg_unknown_type;
+static int hf_pkm_msg_attr_display;
+static int hf_pkm_config_settings_authorize_waitout;
+static int hf_pkm_config_settings_reauthorize_waitout;
+static int hf_pkm_config_settings_grace_time;
+static int hf_pkm_config_settings_operational_waittime;
+static int hf_pkm_msg_attr_auth_key;
+static int hf_pkm_msg_attr_tek;
+static int hf_pkm_msg_attr_key_life_time;
+static int hf_pkm_msg_attr_key_seq_num;
+static int hf_pkm_msg_attr_hmac_digest;
+static int hf_pkm_msg_attr_said;
+static int hf_pkm_msg_attr_cbc_iv;
+static int hf_pkm_msg_attr_error_code;
+static int hf_pkm_msg_attr_ca_certificate;
+static int hf_pkm_msg_attr_ss_certificate;
+static int hf_pkm_attr_auth_result_code;
+static int hf_pkm_attr_sa_service_type;
+static int hf_pkm_attr_frame_number;
+static int hf_pkm_attr_ss_random;
+static int hf_pkm_attr_bs_random;
+static int hf_pkm_attr_pre_pak;
+static int hf_pkm_attr_bs_certificate;
+static int hf_pkm_attr_sig_bs;
+static int hf_pkm_attr_ms_mac_address;
+static int hf_pkm_attr_cmac_digest;
+static int hf_pkm_attr_cmac_digest_pn;
+static int hf_pkm_attr_cmac_digest_value;
+static int hf_pkm_attr_eap_payload;
+static int hf_pkm_attr_nonce;
+static int hf_pkm_sa_type;
+static int hf_pkm_msg_crypto_suite;
+static int hf_pkm_msg_crypto_suite_msb;
+static int hf_pkm_msg_crypto_suite_middle;
+static int hf_pkm_msg_crypto_suite_lsb;
+/*static int hf_pkm_msg_version;*/
+static int hf_pkm_attr_push_modes;
+static int hf_pkm_attr_key_push_counter;
+static int hf_pkm_attr_gkek;
+static int hf_pkm_attr_sig_ss;
+static int hf_pkm_attr_akid;
+static int hf_pkm_config_settings_rekey_wait_timeout;
+static int hf_pkm_config_settings_tek_grace_time;
+static int hf_pkm_config_settings_authorize_reject_wait_timeout;
 
-/* static gint hf_pkm_attr_pak_ak_seq_number = -1; */
-static gint hf_pkm_attr_associated_gkek_seq_number = -1;
-/* static gint hf_pkm_attr_gkek_params = -1; */
+/* static int hf_pkm_attr_pak_ak_seq_number; */
+static int hf_pkm_attr_associated_gkek_seq_number;
+/* static int hf_pkm_attr_gkek_params; */
 
-/* static gint hf_common_tlv_unknown_type = -1; */
-static gint hf_common_tlv_mac_version = -1;
-static gint hf_common_tlv_vendor_id = -1;
-static gint hf_common_tlv_vendor_specific_type = -1;
-static gint hf_common_tlv_vendor_specific_length = -1;
-static gint hf_common_tlv_vendor_specific_length_size = -1;
-static gint hf_common_tlv_vendor_specific_value = -1;
-static gint hf_common_current_transmitted_power = -1;
+/* static int hf_common_tlv_unknown_type; */
+static int hf_common_tlv_mac_version;
+static int hf_common_tlv_vendor_id;
+static int hf_common_tlv_vendor_specific_type;
+static int hf_common_tlv_vendor_specific_length;
+static int hf_common_tlv_vendor_specific_length_size;
+static int hf_common_tlv_vendor_specific_value;
+static int hf_common_current_transmitted_power;
 
-static expert_field ei_common_tlv_info = EI_INIT;
+static expert_field ei_common_tlv_info;
 
 /* Register WiMax Utility Routines */
 void wimax_proto_register_wimax_utility_decoders(void)
@@ -738,15 +741,15 @@ void wimax_proto_register_wimax_utility_decoders(void)
 		},
 		{	/* 7 Maximum Sustained Traffic Rate */
 			&hf_sfe_max_str,
-			{"Maximum Sustained Traffic Rate", "wmx.sfe.msr", FT_UINT32, BASE_DEC|BASE_UNIT_STRING, &wimax_units_bit_sec, 0x0, NULL, HFILL}
+			{"Maximum Sustained Traffic Rate", "wmx.sfe.msr", FT_UINT32, BASE_DEC|BASE_UNIT_STRING, UNS(&wimax_units_bit_sec), 0x0, NULL, HFILL}
 		},
 		{	/* 8 Maximum Traffic Burst */
 			&hf_sfe_max_traffic_burst,
-			{"Maximum Traffic Burst", "wmx.sfe.max_traffic_burst", FT_UINT32, BASE_DEC|BASE_UNIT_STRING, &wimax_units_byte_bytes, 0x0, NULL, HFILL}
+			{"Maximum Traffic Burst", "wmx.sfe.max_traffic_burst", FT_UINT32, BASE_DEC|BASE_UNIT_STRING, UNS(&wimax_units_byte_bytes), 0x0, NULL, HFILL}
 		},
 		{	/* 9 Minimum Reserved Traffic Rate */
 			&hf_sfe_min_rtr,
-			{"Minimum Reserved Traffic Rate", "wmx.sfe.mrr", FT_UINT32, BASE_DEC|BASE_UNIT_STRING, &wimax_units_bit_sec, 0x0, NULL, HFILL}
+			{"Minimum Reserved Traffic Rate", "wmx.sfe.mrr", FT_UINT32, BASE_DEC|BASE_UNIT_STRING, UNS(&wimax_units_bit_sec), 0x0, NULL, HFILL}
 		},
 		{
 			/* 10 Reserved */
@@ -801,11 +804,11 @@ void wimax_proto_register_wimax_utility_decoders(void)
 		},
 		{	/* 13 Tolerated Jitter */
 			&hf_sfe_jitter,
-			{"Tolerated Jitter", "wmx.sfe.jitter", FT_UINT32, BASE_DEC|BASE_UNIT_STRING, &wimax_units_ms, 0x0, NULL, HFILL}
+			{"Tolerated Jitter", "wmx.sfe.jitter", FT_UINT32, BASE_DEC|BASE_UNIT_STRING, UNS(&wimax_units_ms), 0x0, NULL, HFILL}
 		},
 		{	/* 14 Maximum Latency */
 			&hf_sfe_max_latency,
-			{"Maximum Latency", "wmx.sfe.max_latency", FT_UINT32, BASE_DEC|BASE_UNIT_STRING, &wimax_units_ms, 0x0, NULL, HFILL}
+			{"Maximum Latency", "wmx.sfe.max_latency", FT_UINT32, BASE_DEC|BASE_UNIT_STRING, UNS(&wimax_units_ms), 0x0, NULL, HFILL}
 		},
 		{	/* 15 Fixed/Variable Length SDU */
 			&hf_sfe_fixed_len_sdu,
@@ -813,7 +816,7 @@ void wimax_proto_register_wimax_utility_decoders(void)
 		},
 		{	/* 16 SDU Size */
 			&hf_sfe_sdu_size,
-			{"SDU Size", "wmx.sfe.sdu_size", FT_UINT8, BASE_DEC|BASE_UNIT_STRING, &wimax_units_byte_bytes, 0x0, NULL, HFILL}
+			{"SDU Size", "wmx.sfe.sdu_size", FT_UINT8, BASE_DEC|BASE_UNIT_STRING, UNS(&wimax_units_byte_bytes), 0x0, NULL, HFILL}
 		},
 		{	/* 17 SAID Onto Which SF Is Mapped */
 			&hf_sfe_target_said,
@@ -898,7 +901,7 @@ void wimax_proto_register_wimax_utility_decoders(void)
 		},
 			{	/* 31 Time Base */
 			&hf_sfe_time_base,
-			{"Time Base", "wmx.sfe.time_base", FT_UINT16, BASE_DEC|BASE_UNIT_STRING, &wimax_units_ms, 0x0, NULL, HFILL}
+			{"Time Base", "wmx.sfe.time_base", FT_UINT16, BASE_DEC|BASE_UNIT_STRING, UNS(&wimax_units_ms), 0x0, NULL, HFILL}
 		},
 			{	/* 32 Paging Preference */
 			&hf_sfe_paging_preference,
@@ -942,11 +945,11 @@ void wimax_proto_register_wimax_utility_decoders(void)
 		},
 			{	/* 40 Unsolicited Grant Interval */
 			&hf_sfe_unsolicited_grant_interval,
-			{"Unsolicited Grant Interval", "wmx.sfe.unsolicited_grant_interval", FT_UINT16, BASE_DEC|BASE_UNIT_STRING, &wimax_units_ms, 0x0, NULL, HFILL}
+			{"Unsolicited Grant Interval", "wmx.sfe.unsolicited_grant_interval", FT_UINT16, BASE_DEC|BASE_UNIT_STRING, UNS(&wimax_units_ms), 0x0, NULL, HFILL}
 		},
 			{	/* 41 Unsolicited Polling Interval */
 			&hf_sfe_unsolicited_polling_interval,
-			{"Unsolicited Polling Interval", "wmx.sfe.unsolicited_polling_interval", FT_UINT16, BASE_DEC|BASE_UNIT_STRING, &wimax_units_ms, 0x0, NULL, HFILL}
+			{"Unsolicited Polling Interval", "wmx.sfe.unsolicited_polling_interval", FT_UINT16, BASE_DEC|BASE_UNIT_STRING, UNS(&wimax_units_ms), 0x0, NULL, HFILL}
 		},
 		{	/* 42 PDU SN extended subheader for HARQ reordering */
 			&hf_sfe_pdu_sn_ext_subheader_reorder,
@@ -1033,10 +1036,6 @@ void wimax_proto_register_wimax_utility_decoders(void)
 			{"Protocol", "wmx.cst.pkt_class_rule.protocol", FT_UINT8, BASE_HEX, NULL, 0x0, NULL, HFILL}
 		},
 #if 0 /* Removed by the changes of 802.16E 2005 */
-		{	/* Protocol */
-			&hf_cst_pkt_class_rule_protocol,
-			{"Protocol", "wmx.cst.pkt_class_rule.protocol", FT_BYTES, BASE_HEX, NULL, 0x0, "", HFILL}
-		},
 		{	/* Protocol Number */
 			&hf_cst_pkt_class_rule_protocol_number,
 			{"Protocol Number", "wmx.cst.pkt_class_rule.protocol.number", FT_UINT8, BASE_DEC, NULL, 0x0, "", HFILL}
@@ -1612,12 +1611,6 @@ void wimax_proto_register_wimax_utility_decoders(void)
 			&hf_pkm_attr_sa_service_type,
 			{"SA Service Type", "wmx.pkm_msg.pkm_attr.sa_service_type", FT_UINT8, BASE_DEC, VALS(vs_sa_service_type), 0x0, NULL, HFILL}
 		},
-#if 0	/* same as 11.9.19 */
-		{	/* 11.9.36 - type 27 */
-			&hf_pkm_attr_config_settings,
-			{"PKMv2 Configuration Settings", "wmx.pkm_msg.pkm_attr.config_settings", FT_BYTES, BASE_HEX, NULL, 0x0, "", HFILL}
-		},
-#endif
 		{	/* 11.9.37 - type 32 */
 			&hf_pkm_attr_frame_number,
 			{"Frame Number", "wmx.pkm_msg.pkm_attr.frame_number", FT_UINT24, BASE_DEC, NULL, 0x0, NULL, HFILL}
@@ -1689,7 +1682,7 @@ void wimax_proto_register_wimax_utility_decoders(void)
 
 	expert_module_t* expert_wimax_utility;
 
-	if(proto_wimax_utility_decoders == -1)
+	if(proto_wimax_utility_decoders <= 0)
 	{
 		proto_wimax_utility_decoders = proto_register_protocol (
 							"WiMax Sub-TLV Messages",
@@ -1722,9 +1715,9 @@ void wimax_proto_register_wimax_utility_decoders(void)
 /**************************************************************/
 void wimax_error_parameter_set_decoder(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree)
 {
-	guint offset;
-	guint tvb_len, tlv_len;
-	gint  tlv_type;
+	unsigned offset;
+	unsigned tvb_len, tlv_len;
+	int   tlv_type;
 	proto_item *ceps_item = NULL;
 	proto_tree *ceps_tree = NULL;
 	tlv_info_t tlv_info;
@@ -1790,17 +1783,17 @@ void wimax_error_parameter_set_decoder(tvbuff_t *tvb, packet_info *pinfo, proto_
 /*   pinfo - pointer of Wireshark packet information structure  */
 /****************************************************************/
 /* CS Parameter Encoding Rules handling function */
-void wimax_convengence_service_parameter_encoding_rules_decoder(guint sfe_type, tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree)
+void wimax_convengence_service_parameter_encoding_rules_decoder(unsigned sfe_type, tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree)
 {
-	guint offset, tlv_offset;
-	guint tvb_len, tlv_len, length;
-	gint  tlv_type;
+	unsigned offset, tlv_offset;
+	unsigned tvb_len, tlv_len, length;
+	int   tlv_type;
 	proto_item *csper_item;
 	proto_tree *csper_tree;
 	proto_tree *tlv_tree, *ti_tree;
 	proto_item *tlv_item, *ti_item;
 	tlv_info_t tlv_info;
-	gboolean ipv6 = ((sfe_type == SFE_CSPER_PACKET_IPV6) || (sfe_type == SFE_CSPER_PACKET_IPV6_802_3) || (sfe_type == SFE_CSPER_PACKET_IPV6_802_1Q));
+	bool ipv6 = ((sfe_type == SFE_CSPER_PACKET_IPV6) || (sfe_type == SFE_CSPER_PACKET_IPV6_802_3) || (sfe_type == SFE_CSPER_PACKET_IPV6_802_1Q));
 
 	/* sanity check */
 	if((sfe_type < SFE_CSPER_ATM) || (sfe_type > SFE_CSPER_PACKET_IP_802_3_ECRTP_COMPRESSION))
@@ -2139,10 +2132,10 @@ void wimax_convengence_service_parameter_encoding_rules_decoder(guint sfe_type, 
 /**************************************************************/
 void wimax_service_flow_encodings_decoder(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree)
 {
-	guint offset, i;
-	guint tvb_len, tlv_len, tlv_value_offset, tlv_value;
-	gint  tlv_type;
-	guint value;
+	unsigned offset, i;
+	unsigned tvb_len, tlv_len, tlv_value_offset, tlv_value;
+	int   tlv_type;
+	unsigned value;
 	proto_item *tlv_item = NULL;
 	proto_tree *tlv_tree = NULL;
 	tlv_info_t tlv_info;
@@ -2226,7 +2219,7 @@ void wimax_service_flow_encodings_decoder(tvbuff_t *tvb, packet_info *pinfo, pro
 			break;
 			case SFE_UL_SCHEDULING:
 				/* TODO: Find a way to get the correct service type from the TLV */
-				tlv_value = tvb_get_guint8(tvb, offset);
+				tlv_value = tvb_get_uint8(tvb, offset);
 				set_service_type( tlv_value );
 				add_tlv_subtree(&tlv_info, tree, hf_sfe_ul_grant_scheduling, tvb, offset-tlv_value_offset, ENC_BIG_ENDIAN);
 			break;
@@ -2254,7 +2247,7 @@ void wimax_service_flow_encodings_decoder(tvbuff_t *tvb, packet_info *pinfo, pro
 			break;
 			case SFE_SDU_SIZE:
 				/* save the SDU size */
-				mac_sdu_length = tvb_get_guint8(tvb, offset);
+				mac_sdu_length = tvb_get_uint8(tvb, offset);
 				add_tlv_subtree(&tlv_info, tree, hf_sfe_sdu_size, tvb, offset-tlv_value_offset, ENC_BIG_ENDIAN);
 			break;
 			case SFE_TARGET_SAID:
@@ -2318,7 +2311,7 @@ void wimax_service_flow_encodings_decoder(tvbuff_t *tvb, packet_info *pinfo, pro
 					tlv_item = add_tlv_subtree(&tlv_info, tree, hf_sfe_arq_block_size_cor2, tvb, offset-tlv_value_offset, ENC_BIG_ENDIAN);
 					/* add TLV subtree */
 					tlv_tree = proto_item_add_subtree(tlv_item, ett_wimax_service_flow_encodings);
-					value = tvb_get_guint8(tvb, offset);
+					value = tvb_get_uint8(tvb, offset);
 					tlv_item = proto_tree_add_item(tlv_tree, hf_sfe_arq_min_block_size, tvb, offset, 1, ENC_BIG_ENDIAN);
 					/* Size is 2^((value & 0x0F) + 4)) */
 					proto_item_append_text(tlv_item, " ( %d bytes )", 0x10 << (value & 0x0F));
@@ -2435,9 +2428,9 @@ void wimax_service_flow_encodings_decoder(tvbuff_t *tvb, packet_info *pinfo, pro
 /*   offset - the HMAC Tuple offset in the tvb                */
 /*   length - length of the HMAC Tuple                        */
 /**************************************************************/
-void wimax_hmac_tuple_decoder(proto_tree *tree, tvbuff_t *tvb, guint offset, guint length)
+void wimax_hmac_tuple_decoder(proto_tree *tree, tvbuff_t *tvb, unsigned offset, unsigned length)
 {
-	guint hmac_offset;
+	unsigned hmac_offset;
 	proto_item *hmac_item = NULL;
 	proto_tree *hmac_tree = NULL;
 
@@ -2463,9 +2456,9 @@ void wimax_hmac_tuple_decoder(proto_tree *tree, tvbuff_t *tvb, guint offset, gui
 /*   offset - the CMAC Tuple offset in the tvb                */
 /*   length - length of the CMAC Tuple                        */
 /**************************************************************/
-void wimax_cmac_tuple_decoder(proto_tree *tree, tvbuff_t *tvb, guint offset, guint length)
+void wimax_cmac_tuple_decoder(proto_tree *tree, tvbuff_t *tvb, unsigned offset, unsigned length)
 {
-	guint cmac_offset;
+	unsigned cmac_offset;
 	proto_item *cmac_item = NULL;
 	proto_tree *cmac_tree = NULL;
 
@@ -2498,9 +2491,9 @@ void wimax_cmac_tuple_decoder(proto_tree *tree, tvbuff_t *tvb, guint offset, gui
 /*   offset - the Short-HMAC Tuple offset in the tvb              */
 /*   length - length of the Short-HMAC Tuple                      */
 /******************************************************************/
-void wimax_short_hmac_tuple_decoder(proto_tree *tree, tvbuff_t *tvb, guint offset, guint length)
+void wimax_short_hmac_tuple_decoder(proto_tree *tree, tvbuff_t *tvb, unsigned offset, unsigned length)
 {
-	guint hmac_offset;
+	unsigned hmac_offset;
 	proto_item *hmac_item = NULL;
 	proto_tree *hmac_tree = NULL;
 
@@ -2529,9 +2522,9 @@ void wimax_short_hmac_tuple_decoder(proto_tree *tree, tvbuff_t *tvb, guint offse
 /******************************************************************/
 void wimax_security_negotiation_parameters_decoder(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree)
 {
-	guint offset;
-	guint tvb_len, tlv_len, tlv_value_offset;
-	gint  tlv_type;
+	unsigned offset;
+	unsigned tvb_len, tlv_len, tlv_value_offset;
+	int   tlv_type;
 	proto_tree *tlv_tree;
 	proto_item *tlv_item;
 	tlv_info_t tlv_info;
@@ -2646,9 +2639,9 @@ void wimax_security_negotiation_parameters_decoder(tvbuff_t *tvb, packet_info *p
 /******************************************************************/
 void wimax_cryptographic_suite_list_decoder(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree)
 {
-	guint offset;
-	guint tvb_len, tlv_len, tlv_value_offset;
-	gint  tlv_type;
+	unsigned offset;
+	unsigned tvb_len, tlv_len, tlv_value_offset;
+	int   tlv_type;
 	proto_tree *tlv_tree;
 	proto_item *tlv_item;
 	tlv_info_t tlv_info;
@@ -2714,9 +2707,9 @@ void wimax_cryptographic_suite_list_decoder(tvbuff_t *tvb, packet_info *pinfo, p
 /******************************************************************/
 void wimax_pkm_tlv_encoded_attributes_decoder(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree)
 {
-	guint offset;
-	guint tvb_len, tlv_len, tlv_value_offset;
-	gint  tlv_type;
+	unsigned offset;
+	unsigned tvb_len, tlv_len, tlv_value_offset;
+	int   tlv_type;
 	proto_tree *tlv_tree;
 	proto_item *tlv_item;
 	tlv_info_t tlv_info;
@@ -2813,7 +2806,7 @@ void wimax_pkm_tlv_encoded_attributes_decoder(tvbuff_t *tvb, packet_info *pinfo,
 				/* add subtree */
 				wimax_cryptographic_suite_list_decoder(tvb_new_subset_length(tvb, offset, tlv_len), pinfo, tlv_tree);
 			break;
-#if 0 /* rserved by IEE 802.16E */
+#if 0 /* reserved by IEE 802.16E */
 			case PKM_ATTR_VERSION:
 				proto_tree_add_item(tree, hf_pkm_msg_version, tvb, offset, tlv_len, ENC_BIG_ENDIAN);
 			break;
@@ -2912,9 +2905,9 @@ void wimax_pkm_tlv_encoded_attributes_decoder(tvbuff_t *tvb, packet_info *pinfo,
 /******************************************************************/
 void wimax_tek_parameters_decoder(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree)
 {
-	guint offset;
-	guint tvb_len, tlv_len, tlv_value_offset;
-	gint  tlv_type;
+	unsigned offset;
+	unsigned tvb_len, tlv_len, tlv_value_offset;
+	int   tlv_type;
 	tlv_info_t tlv_info;
 
 	/* get the tvb reported length */
@@ -2984,9 +2977,9 @@ void wimax_tek_parameters_decoder(tvbuff_t *tvb, packet_info *pinfo, proto_tree 
 /******************************************************************/
 void wimax_pkm_configuration_settings_decoder(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree)
 {
-	guint offset;
-	guint tvb_len, tlv_len, tlv_value_offset;
-	gint  tlv_type;
+	unsigned offset;
+	unsigned tvb_len, tlv_len, tlv_value_offset;
+	int   tlv_type;
 	tlv_info_t tlv_info;
 
 	/* get the tvb reported length */
@@ -3062,9 +3055,9 @@ void wimax_pkm_configuration_settings_decoder(tvbuff_t *tvb, packet_info *pinfo,
 /******************************************************************/
 void wimax_sa_descriptor_decoder(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree)
 {
-	guint offset;
-	guint tvb_len, tlv_len, tlv_value_offset;
-	gint  tlv_type;
+	unsigned offset;
+	unsigned tvb_len, tlv_len, tlv_value_offset;
+	int   tlv_type;
 	proto_tree *tlv_tree;
 	proto_item *tlv_item;
 	tlv_info_t tlv_info;
@@ -3140,9 +3133,9 @@ void wimax_sa_descriptor_decoder(tvbuff_t *tvb, packet_info *pinfo, proto_tree *
 /******************************************************************/
 void wimax_security_capabilities_decoder(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree)
 {
-	guint offset;
-	guint tvb_len, tlv_len, tlv_value_offset;
-	gint  tlv_type;
+	unsigned offset;
+	unsigned tvb_len, tlv_len, tlv_value_offset;
+	int   tlv_type;
 	proto_tree *tlv_tree = NULL;
 	tlv_info_t tlv_info;
 
@@ -3203,9 +3196,9 @@ void wimax_security_capabilities_decoder(tvbuff_t *tvb, packet_info *pinfo, prot
 /******************************************************************/
 void wimax_vendor_specific_information_decoder(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree)
 {
-	guint offset;
-	guint tvb_len, tlv_len, tlv_value_offset;
-	gint  tlv_type;
+	unsigned offset;
+	unsigned tvb_len, tlv_len, tlv_value_offset;
+	int   tlv_type;
 	tlv_info_t tlv_info;
 
 	/* get the tvb reported length */
@@ -3282,14 +3275,14 @@ void wimax_vendor_specific_information_decoder(tvbuff_t *tvb, packet_info *pinfo
 /*   tree - pointer of Wireshark display tree                     */
 /*   pinfo - pointer of Wireshark packet information structure    */
 /******************************************************************/
-guint wimax_common_tlv_encoding_decoder(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree)
+unsigned wimax_common_tlv_encoding_decoder(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree)
 {
-	guint offset, value;
-	guint tvb_len, tlv_len, tlv_value_offset;
-	gint  tlv_type;
+	unsigned offset, value;
+	unsigned tvb_len, tlv_len, tlv_value_offset;
+	int   tlv_type;
 	proto_tree *tlv_tree = NULL;
 	tlv_info_t tlv_info;
-	gfloat current_power;
+	float current_power;
 
 	/* get the tvb reported length */
 	tvb_len = tvb_reported_length(tvb);
@@ -3354,8 +3347,8 @@ guint wimax_common_tlv_encoding_decoder(tvbuff_t *tvb, packet_info *pinfo, proto
 			break;
 			case CURRENT_TX_POWER:
 				tlv_tree = add_tlv_subtree_no_item(&tlv_info, tree, hf_common_current_transmitted_power, tvb, offset-tlv_value_offset);
-				value = tvb_get_guint8(tvb, offset);
-				current_power = (gfloat)((value - 128) / 2.0);
+				value = tvb_get_uint8(tvb, offset);
+				current_power = (float)((value - 128) / 2.0);
 				proto_tree_add_float_format_value(tlv_tree, hf_common_current_transmitted_power, tvb, offset, tvb_len, current_power, "%.2f dBm (Value: 0x%x)", current_power, value);
 			break;
 			case MAC_VERSION_ENCODING:

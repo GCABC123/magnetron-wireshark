@@ -39,7 +39,7 @@ srt_init(const char *args, void*) {
 }
 }
 
-gboolean register_service_response_tables(const void *, void *value, void*)
+bool register_service_response_tables(const void *, void *value, void*)
 {
     register_srt_t *srt = (register_srt_t*)value;
     const char* short_name = proto_get_protocol_short_name(find_protocol_by_id(get_srt_proto_id(srt)));
@@ -66,7 +66,7 @@ gboolean register_service_response_tables(const void *, void *value, void*)
                 srt_init,
                 tpd_creator);
     g_free(cfg_abbr);
-    return FALSE;
+    return false;
 }
 
 enum {
@@ -205,7 +205,7 @@ ServiceResponseTimeDialog::~ServiceResponseTimeDialog()
 {
     if (srt_data_.srt_array) {
         free_srt_table(srt_, srt_data_.srt_array);
-        g_array_free(srt_data_.srt_array, TRUE);
+        g_array_free(srt_data_.srt_array, true);
     }
 }
 
@@ -259,7 +259,7 @@ void ServiceResponseTimeDialog::tapDraw(void *srtd_ptr)
 
 void ServiceResponseTimeDialog::endRetapPackets()
 {
-    for (guint i = 0; i < srt_data_.srt_array->len; i++) {
+    for (unsigned i = 0; i < srt_data_.srt_array->len; i++) {
         srt_stat_table *srt_table = g_array_index(srt_data_.srt_array, srt_stat_table*, i);
         addSrtTable(srt_table);
     }
@@ -270,9 +270,9 @@ void ServiceResponseTimeDialog::fillTree()
 {
     if (srt_data_.srt_array) {
         free_srt_table(srt_, srt_data_.srt_array);
-        g_array_free(srt_data_.srt_array, TRUE);
+        g_array_free(srt_data_.srt_array, true);
     }
-    srt_data_.srt_array = g_array_new(FALSE, TRUE, sizeof(srt_stat_table*));
+    srt_data_.srt_array = g_array_new(false, true, sizeof(srt_stat_table*));
     srt_data_.user_data = this;
 
     provideParameterData();

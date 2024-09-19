@@ -67,14 +67,16 @@
 void proto_register_bofl(void);
 void proto_reg_handoff_bofl(void);
 
+static dissector_handle_t bofl_handle;
+
 /* Initialize the protocol and registered fields */
-static int proto_bofl       = -1;
-static int hf_bofl_pdu      = -1;
-static int hf_bofl_sequence = -1;
-static int hf_bofl_padding  = -1;
+static int proto_bofl;
+static int hf_bofl_pdu;
+static int hf_bofl_sequence;
+static int hf_bofl_padding;
 
 /* Initialize the subtree pointers */
-static gint ett_bofl = -1;
+static int ett_bofl;
 
 /* Code to actually dissect the packets */
 static int
@@ -82,8 +84,8 @@ dissect_bofl(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, void* data _U_
 {
     proto_item  *ti;
     proto_tree  *bofl_tree;
-    gint        len;
-    guint32     pdu, sequence;
+    int         len;
+    uint32_t    pdu, sequence;
 
     col_set_str(pinfo->cinfo, COL_PROTOCOL, "BOFL");
 
@@ -133,7 +135,7 @@ proto_register_bofl(void)
         }
     };
 
-    static gint *ett[] = {
+    static int *ett[] = {
         &ett_bofl,
     };
 
@@ -141,15 +143,14 @@ proto_register_bofl(void)
                                          "BOFL", "bofl");
     proto_register_field_array(proto_bofl, hf, array_length(hf));
     proto_register_subtree_array(ett, array_length(ett));
+
+    bofl_handle = register_dissector("bofl", dissect_bofl, proto_bofl);
 }
 
 
 void
 proto_reg_handoff_bofl(void)
 {
-    dissector_handle_t bofl_handle;
-
-    bofl_handle = create_dissector_handle(dissect_bofl, proto_bofl);
     dissector_add_uint("ethertype", ETHER_TYPE_SLPP, bofl_handle);
 }
 

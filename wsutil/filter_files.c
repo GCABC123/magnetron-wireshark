@@ -16,23 +16,11 @@
 #include <string.h>
 #include <errno.h>
 
-#include <glib.h>
-
 #include <wsutil/file_util.h>
 #include <wsutil/filesystem.h>
 #include <wsutil/report_message.h>
 #include <wsutil/wslog.h>
 #include <wsutil/ws_assert.h>
-
-/*
- * List of capture filters - saved.
- */
-static GList *capture_filters = NULL;
-
-/*
- * List of display filters - saved.
- */
-static GList *display_filters = NULL;
 
 /*
  * Read in a list of filters.
@@ -54,7 +42,7 @@ add_filter_entry(GList *fl, const char *filt_name, const char *filt_expr)
 }
 
 static void
-free_filter_entry(gpointer data)
+free_filter_entry(void * data)
 {
     filter_def *filt = (filter_def*)data;
     g_free(filt->name);
@@ -62,16 +50,10 @@ free_filter_entry(gpointer data)
     g_free(filt);
 }
 
-void free_filter_lists(void)
+void ws_filter_list_free(filter_list_t *fl)
 {
-    if (capture_filters) {
-        g_list_free_full(capture_filters, free_filter_entry);
-        capture_filters = NULL;
-    }
-    if (display_filters) {
-        g_list_free_full(display_filters, free_filter_entry);
-        display_filters = NULL;
-    }
+    g_list_free_full(fl->list, free_filter_entry);
+    g_free(fl);
 }
 
 static GList *
@@ -116,40 +98,46 @@ getc_crlf(FILE *ff)
     return c;
 }
 
-void
-read_filter_list(filter_list_type_t list_type)
+filter_list_t *
+ws_filter_list_read(filter_list_type_t list_type)
 {
     const char *ff_name, *ff_description;
     char       *ff_path;
     FILE       *ff;
-    GList      **flpp;
+    GList      *flp = NULL;
     int         c;
     char       *filt_name, *filt_expr;
     int         filt_name_len, filt_expr_len;
     int         filt_name_index, filt_expr_index;
     int         line = 1;
 
+    filter_list_t *list = g_new(filter_list_t, 1);
+    list->type = list_type;
+    list->list = NULL;
+
     switch (list_type) {
 
         case CFILTER_LIST:
             ff_name = CFILTER_FILE_NAME;
             ff_description = "capture";
-            flpp = &capture_filters;
             break;
 
         case DFILTER_LIST:
             ff_name = DFILTER_FILE_NAME;
             ff_description = "display";
-            flpp = &display_filters;
+            break;
+
+        case DMACROS_LIST:
+            ff_name = DMACROS_FILE_NAME;
+            ff_description = "display filter macro";
             break;
 
         default:
             ws_assert_not_reached();
-            return;
     }
 
     /* try to open personal "cfilters"/"dfilters" file */
-    ff_path = get_persconffile_path(ff_name, TRUE);
+    ff_path = get_persconffile_path(ff_name, true);
     if ((ff = ws_fopen(ff_path, "r")) == NULL) {
         /*
          * Did that fail because the file didn't exist?
@@ -161,57 +149,26 @@ read_filter_list(filter_list_type_t list_type)
             report_warning("Could not open your %s filter file\n\"%s\": %s.",
                     ff_description, ff_path, g_strerror(errno));
             g_free(ff_path);
-            return;
+            return list;
         }
 
         /*
-         * Yes.  See if there's an "old style" personal "filters" file; if so, read it.
-         * This means that a user will start out with their capture and
-         * display filter lists being identical; each list may contain
-         * filters that don't belong in that list.  The user can edit
-         * the filter lists, and delete the ones that don't belong in
-         * a particular list.
+         * Yes. Try to open the global "cfilters/dfilters" file.
          */
         g_free(ff_path);
-        ff_path = get_persconffile_path(FILTER_FILE_NAME, FALSE);
+        ff_path = get_datafile_path(ff_name);
         if ((ff = ws_fopen(ff_path, "r")) == NULL) {
             /*
-             * Did that fail because the file didn't exist?
+             * Well, that didn't work, either.  Just give up.
+             * Report an error if the file existed but we couldn't open it.
              */
             if (errno != ENOENT) {
-                /*
-                 * No.  Just give up.
-                 */
                 report_warning("Could not open your %s filter file\n\"%s\": %s.",
                         ff_description, ff_path, g_strerror(errno));
-                g_free(ff_path);
-                return;
             }
-
-            /*
-             * Try to open the global "cfilters/dfilters" file.
-             */
             g_free(ff_path);
-            ff_path = get_datafile_path(ff_name);
-            if ((ff = ws_fopen(ff_path, "r")) == NULL) {
-                /*
-                 * Well, that didn't work, either.  Just give up.
-                 * Report an error if the file existed but we couldn't open it.
-                 */
-                if (errno != ENOENT) {
-                    report_warning("Could not open your %s filter file\n\"%s\": %s.",
-                            ff_description, ff_path, g_strerror(errno));
-                }
-                g_free(ff_path);
-                return;
-            }
+            return list;
         }
-    }
-
-    /* If we already have a list of filters, discard it. */
-    /* this should never happen - this function is called only once for each list! */
-    while(*flpp) {
-        *flpp = remove_filter_entry(*flpp, g_list_first(*flpp));
     }
 
     /* Allocate the filter name buffer. */
@@ -237,6 +194,12 @@ read_filter_list(filter_list_type_t list_type)
             break;    /* Nothing more to read */
         if (c == '\n')
             continue; /* Blank line. */
+        if (c == '#') {
+            /* Comment. */
+            while (c != '\n')
+                c = getc(ff);   /* skip to the end of the line */
+            continue;
+        }
 
         /* "c" is the first non-white-space character.
            If it's not a quote, it's an error. */
@@ -321,7 +284,7 @@ read_filter_list(filter_list_type_t list_type)
         for (;;) {
             /* Add this character to the filter expression string. */
             if (filt_expr_index >= filt_expr_len) {
-                /* Filter expressioin buffer isn't long enough; double its length. */
+                /* Filter expression buffer isn't long enough; double its length. */
                 filt_expr_len *= 2;
                 filt_expr = (char *)g_realloc(filt_expr, filt_expr_len + 1);
             }
@@ -345,14 +308,14 @@ read_filter_list(filter_list_type_t list_type)
 
         /* We saw the ending newline; terminate the filter expression string */
         if (filt_expr_index >= filt_expr_len) {
-            /* Filter expressioin buffer isn't long enough; double its length. */
+            /* Filter expression buffer isn't long enough; double its length. */
             filt_expr_len *= 2;
             filt_expr = (char *)g_realloc(filt_expr, filt_expr_len + 1);
         }
         filt_expr[filt_expr_index] = '\0';
 
         /* Add the new filter to the list of filters */
-        *flpp = add_filter_entry(*flpp, filt_name, filt_expr);
+        flp = add_filter_entry(flp, filt_name, filt_expr);
     }
     if (ferror(ff)) {
         report_warning("Error reading your %s filter file\n\"%s\": %s.",
@@ -362,71 +325,44 @@ read_filter_list(filter_list_type_t list_type)
     fclose(ff);
     g_free(filt_name);
     g_free(filt_expr);
-}
-
-/*
- * Get a pointer to a list of filters.
- */
-static GList **
-get_filter_list(filter_list_type_t list_type)
-{
-    GList **flpp;
-
-    switch (list_type) {
-
-        case CFILTER_LIST:
-            flpp = &capture_filters;
-            break;
-
-        case DFILTER_LIST:
-            flpp = &display_filters;
-            break;
-
-        default:
-            ws_assert_not_reached();
-            flpp = NULL;
-    }
-    return flpp;
-}
-
-/*
- * Get a pointer to the first entry in a filter list.
- */
-GList *
-get_filter_list_first(filter_list_type_t list_type)
-{
-    GList      **flpp;
-
-    flpp = get_filter_list(list_type);
-    return g_list_first(*flpp);
+    list->list = flp;
+    return list;
 }
 
 /*
  * Add a new filter to the end of a list.
- * Returns a pointer to the newly-added entry.
  */
-GList *
-add_to_filter_list(filter_list_type_t list_type, const char *name,
-    const char *expression)
+void
+ws_filter_list_add(filter_list_t *fl, const char *name,
+                    const char *expression)
 {
-    GList      **flpp;
+    fl->list = add_filter_entry(fl->list, name, expression);
+}
 
-    flpp  = get_filter_list(list_type);
-    *flpp = add_filter_entry(*flpp, name, expression);
+static int
+compare_def(const void *def, const void *name)
+{
+    return g_strcmp0(((filter_def *)def)->name, name);
+}
 
-    return g_list_last(*flpp);
+GList *ws_filter_list_find(filter_list_t *list, const char *name)
+{
+    return g_list_find_custom(list->list, name, compare_def);
 }
 
 /*
  * Remove a filter from a list.
  */
-void
-remove_from_filter_list(filter_list_type_t list_type, GList *fl_entry)
+bool
+ws_filter_list_remove(filter_list_t *list, const char *name)
 {
-    GList      **flpp;
+    GList      *p;
 
-    flpp  = get_filter_list(list_type);
-    *flpp = remove_filter_entry(*flpp, fl_entry);
+    p = g_list_find_custom(list->list, name, compare_def);
+    if (p == NULL)
+        return false;
+    list->list = remove_filter_entry(list->list, p);
+    return true;
 }
 
 /*
@@ -435,35 +371,39 @@ remove_from_filter_list(filter_list_type_t list_type, GList *fl_entry)
  * On error, report the error via the UI.
  */
 void
-save_filter_list(filter_list_type_t list_type)
+ws_filter_list_write(filter_list_t *list)
 {
     char        *pf_dir_path;
-    const gchar *ff_name, *ff_description;
-    gchar       *ff_path, *ff_path_new;
+    const char *ff_name, *ff_description;
+    char        *ff_path, *ff_path_new;
     GList       *fl;
     GList       *flpp;
     filter_def  *filt;
     FILE        *ff;
-    guchar      *p, c;
+    unsigned char      *p, c;
 
-    switch (list_type) {
+    switch (list->type) {
 
         case CFILTER_LIST:
             ff_name = CFILTER_FILE_NAME;
             ff_description = "capture";
-            fl = capture_filters;
             break;
 
         case DFILTER_LIST:
             ff_name = DFILTER_FILE_NAME;
             ff_description = "display";
-            fl = display_filters;
+            break;
+
+        case DMACROS_LIST:
+            ff_name = DMACROS_FILE_NAME;
+            ff_description = "display filter macros";
             break;
 
         default:
             ws_assert_not_reached();
             return;
     }
+    fl = list->list;
 
     /* Create the directory that holds personal configuration files,
        if necessary.  */
@@ -474,7 +414,7 @@ save_filter_list(filter_list_type_t list_type)
         return;
     }
 
-    ff_path = get_persconffile_path(ff_name, TRUE);
+    ff_path = get_persconffile_path(ff_name, true);
 
     /* Write to "XXX.new", and rename if that succeeds.
        That means we don't trash the file if we fail to write it out
@@ -496,7 +436,7 @@ save_filter_list(filter_list_type_t list_type)
         /* Write out the filter name as a quoted string; escape any quotes
            or backslashes. */
         putc('"', ff);
-        for (p = (guchar *)filt->name; (c = *p) != '\0'; p++) {
+        for (p = (unsigned char *)filt->name; (c = *p) != '\0'; p++) {
             if (c == '"' || c == '\\')
                 putc('\\', ff);
             putc(c, ff);

@@ -1,7 +1,7 @@
 /* Do not modify this file. Changes will be overwritten.                      */
 /* Generated automatically by the ASN.1 to Wireshark dissector compiler       */
 /* packet-disp.c                                                              */
-/* asn2wrs.py -b -L -p disp -c ./disp.cnf -s ./packet-disp-template -D . -O ../.. disp.asn */
+/* asn2wrs.py -b -q -L -p disp -c ./disp.cnf -s ./packet-disp-template -D . -O ../.. disp.asn */
 
 /* packet-disp.c
  * Routines for X.525 (X.500 Directory Shadow Asbtract Service) and X.519 DISP packet dissection
@@ -21,6 +21,8 @@
 #include <epan/prefs.h>
 #include <epan/oids.h>
 #include <epan/asn1.h>
+#include <epan/proto_data.h>
+#include <wsutil/array.h>
 
 #include "packet-ber.h"
 #include "packet-acse.h"
@@ -48,193 +50,193 @@ void proto_register_disp(void);
 void proto_reg_handoff_disp(void);
 
 /* Initialize the protocol and registered fields */
-static int proto_disp = -1;
+static int proto_disp;
 
-static int hf_disp_EstablishParameter_PDU = -1;   /* EstablishParameter */
-static int hf_disp_ModificationParameter_PDU = -1;  /* ModificationParameter */
-static int hf_disp_ShadowingAgreementInfo_PDU = -1;  /* ShadowingAgreementInfo */
-static int hf_disp_modifiedSecondaryShadows = -1;  /* SET_OF_SupplierAndConsumers */
-static int hf_disp_modifiedSecondaryShadows_item = -1;  /* SupplierAndConsumers */
-static int hf_disp_shadowSubject = -1;            /* UnitOfReplication */
-static int hf_disp_updateMode = -1;               /* UpdateMode */
-static int hf_disp_master = -1;                   /* AccessPoint */
-static int hf_disp_secondaryShadows = -1;         /* BOOLEAN */
-static int hf_disp_area = -1;                     /* AreaSpecification */
-static int hf_disp_replication_attributes = -1;   /* AttributeSelection */
-static int hf_disp_knowledge = -1;                /* Knowledge */
-static int hf_disp_subordinates = -1;             /* BOOLEAN */
-static int hf_disp_contextSelection = -1;         /* ContextSelection */
-static int hf_disp_supplyContexts = -1;           /* T_supplyContexts */
-static int hf_disp_allContexts = -1;              /* NULL */
-static int hf_disp_selectedContexts = -1;         /* T_selectedContexts */
-static int hf_disp_selectedContexts_item = -1;    /* OBJECT_IDENTIFIER */
-static int hf_disp_contextPrefix = -1;            /* DistinguishedName */
-static int hf_disp_replicationArea = -1;          /* SubtreeSpecification */
-static int hf_disp_knowledgeType = -1;            /* T_knowledgeType */
-static int hf_disp_extendedKnowledge = -1;        /* BOOLEAN */
-static int hf_disp_AttributeSelection_item = -1;  /* ClassAttributeSelection */
-static int hf_disp_class = -1;                    /* OBJECT_IDENTIFIER */
-static int hf_disp_classAttributes = -1;          /* ClassAttributes */
-static int hf_disp_allAttributes = -1;            /* NULL */
-static int hf_disp_include = -1;                  /* AttributeTypes */
-static int hf_disp_exclude = -1;                  /* AttributeTypes */
-static int hf_disp_AttributeTypes_item = -1;      /* AttributeType */
-static int hf_disp_supplierInitiated = -1;        /* SupplierUpdateMode */
-static int hf_disp_consumerInitiated = -1;        /* ConsumerUpdateMode */
-static int hf_disp_onChange = -1;                 /* BOOLEAN */
-static int hf_disp_scheduled = -1;                /* SchedulingParameters */
-static int hf_disp_periodic = -1;                 /* PeriodicStrategy */
-static int hf_disp_othertimes = -1;               /* BOOLEAN */
-static int hf_disp_beginTime = -1;                /* Time */
-static int hf_disp_windowSize = -1;               /* INTEGER */
-static int hf_disp_updateInterval = -1;           /* INTEGER */
-static int hf_disp_agreementID = -1;              /* AgreementID */
-static int hf_disp_lastUpdate = -1;               /* Time */
-static int hf_disp_updateStrategy = -1;           /* T_updateStrategy */
-static int hf_disp_standardUpdate = -1;           /* StandardUpdate */
-static int hf_disp_other = -1;                    /* EXTERNAL */
-static int hf_disp_securityParameters = -1;       /* SecurityParameters */
-static int hf_disp_unsignedCoordinateShadowUpdateArgument = -1;  /* CoordinateShadowUpdateArgumentData */
-static int hf_disp_signedCoordinateShadowUpdateArgument = -1;  /* T_signedCoordinateShadowUpdateArgument */
-static int hf_disp_coordinateShadowUpdateArgument = -1;  /* CoordinateShadowUpdateArgumentData */
-static int hf_disp_algorithmIdentifier = -1;      /* AlgorithmIdentifier */
-static int hf_disp_encrypted = -1;                /* BIT_STRING */
-static int hf_disp_null = -1;                     /* NULL */
-static int hf_disp_information = -1;              /* Information */
-static int hf_disp_performer = -1;                /* DistinguishedName */
-static int hf_disp_aliasDereferenced = -1;        /* BOOLEAN */
-static int hf_disp_notification = -1;             /* SEQUENCE_OF_Attribute */
-static int hf_disp_notification_item = -1;        /* Attribute */
-static int hf_disp_unsignedInformation = -1;      /* InformationData */
-static int hf_disp_signedInformation = -1;        /* T_signedInformation */
-static int hf_disp_information_data = -1;         /* InformationData */
-static int hf_disp_requestedStrategy = -1;        /* T_requestedStrategy */
-static int hf_disp_standard = -1;                 /* T_standard */
-static int hf_disp_unsignedRequestShadowUpdateArgument = -1;  /* RequestShadowUpdateArgumentData */
-static int hf_disp_signedRequestShadowUpdateArgument = -1;  /* T_signedRequestShadowUpdateArgument */
-static int hf_disp_requestShadowUpdateArgument = -1;  /* RequestShadowUpdateArgumentData */
-static int hf_disp_updateTime = -1;               /* Time */
-static int hf_disp_updateWindow = -1;             /* UpdateWindow */
-static int hf_disp_updatedInfo = -1;              /* RefreshInformation */
-static int hf_disp_unsignedUpdateShadowArgument = -1;  /* UpdateShadowArgumentData */
-static int hf_disp_signedUpdateShadowArgument = -1;  /* T_signedUpdateShadowArgument */
-static int hf_disp_updateShadowArgument = -1;     /* UpdateShadowArgumentData */
-static int hf_disp_start = -1;                    /* Time */
-static int hf_disp_stop = -1;                     /* Time */
-static int hf_disp_noRefresh = -1;                /* NULL */
-static int hf_disp_total = -1;                    /* TotalRefresh */
-static int hf_disp_incremental = -1;              /* IncrementalRefresh */
-static int hf_disp_otherStrategy = -1;            /* EXTERNAL */
-static int hf_disp_sDSE = -1;                     /* SDSEContent */
-static int hf_disp_subtree = -1;                  /* SET_OF_Subtree */
-static int hf_disp_subtree_item = -1;             /* Subtree */
-static int hf_disp_sDSEType = -1;                 /* SDSEType */
-static int hf_disp_subComplete = -1;              /* BOOLEAN */
-static int hf_disp_attComplete = -1;              /* BOOLEAN */
-static int hf_disp_attributes = -1;               /* SET_OF_Attribute */
-static int hf_disp_attributes_item = -1;          /* Attribute */
-static int hf_disp_attValIncomplete = -1;         /* SET_OF_AttributeType */
-static int hf_disp_attValIncomplete_item = -1;    /* AttributeType */
-static int hf_disp_rdn = -1;                      /* RelativeDistinguishedName */
-static int hf_disp_IncrementalRefresh_item = -1;  /* IncrementalStepRefresh */
-static int hf_disp_sDSEChanges = -1;              /* T_sDSEChanges */
-static int hf_disp_add = -1;                      /* SDSEContent */
-static int hf_disp_remove = -1;                   /* NULL */
-static int hf_disp_modify = -1;                   /* ContentChange */
-static int hf_disp_subordinateUpdates = -1;       /* SEQUENCE_OF_SubordinateChanges */
-static int hf_disp_subordinateUpdates_item = -1;  /* SubordinateChanges */
-static int hf_disp_rename = -1;                   /* T_rename */
-static int hf_disp_newRDN = -1;                   /* RelativeDistinguishedName */
-static int hf_disp_newDN = -1;                    /* DistinguishedName */
-static int hf_disp_attributeChanges = -1;         /* T_attributeChanges */
-static int hf_disp_replace = -1;                  /* SET_OF_Attribute */
-static int hf_disp_replace_item = -1;             /* Attribute */
-static int hf_disp_changes = -1;                  /* SEQUENCE_OF_EntryModification */
-static int hf_disp_changes_item = -1;             /* EntryModification */
-static int hf_disp_subordinate = -1;              /* RelativeDistinguishedName */
-static int hf_disp_subordinate_changes = -1;      /* IncrementalStepRefresh */
-static int hf_disp_problem = -1;                  /* ShadowProblem */
-static int hf_disp_unsignedShadowError = -1;      /* ShadowErrorData */
-static int hf_disp_signedShadowError = -1;        /* T_signedShadowError */
-static int hf_disp_shadowError = -1;              /* ShadowErrorData */
+static int hf_disp_EstablishParameter_PDU;        /* EstablishParameter */
+static int hf_disp_ModificationParameter_PDU;     /* ModificationParameter */
+static int hf_disp_ShadowingAgreementInfo_PDU;    /* ShadowingAgreementInfo */
+static int hf_disp_modifiedSecondaryShadows;      /* SET_OF_SupplierAndConsumers */
+static int hf_disp_modifiedSecondaryShadows_item;  /* SupplierAndConsumers */
+static int hf_disp_shadowSubject;                 /* UnitOfReplication */
+static int hf_disp_updateMode;                    /* UpdateMode */
+static int hf_disp_master;                        /* AccessPoint */
+static int hf_disp_secondaryShadows;              /* BOOLEAN */
+static int hf_disp_area;                          /* AreaSpecification */
+static int hf_disp_replication_attributes;        /* AttributeSelection */
+static int hf_disp_knowledge;                     /* Knowledge */
+static int hf_disp_subordinates;                  /* BOOLEAN */
+static int hf_disp_contextSelection;              /* ContextSelection */
+static int hf_disp_supplyContexts;                /* T_supplyContexts */
+static int hf_disp_allContexts;                   /* NULL */
+static int hf_disp_selectedContexts;              /* T_selectedContexts */
+static int hf_disp_selectedContexts_item;         /* OBJECT_IDENTIFIER */
+static int hf_disp_contextPrefix;                 /* DistinguishedName */
+static int hf_disp_replicationArea;               /* SubtreeSpecification */
+static int hf_disp_knowledgeType;                 /* T_knowledgeType */
+static int hf_disp_extendedKnowledge;             /* BOOLEAN */
+static int hf_disp_AttributeSelection_item;       /* ClassAttributeSelection */
+static int hf_disp_class;                         /* OBJECT_IDENTIFIER */
+static int hf_disp_classAttributes;               /* ClassAttributes */
+static int hf_disp_allAttributes;                 /* NULL */
+static int hf_disp_include;                       /* AttributeTypes */
+static int hf_disp_exclude;                       /* AttributeTypes */
+static int hf_disp_AttributeTypes_item;           /* AttributeType */
+static int hf_disp_supplierInitiated;             /* SupplierUpdateMode */
+static int hf_disp_consumerInitiated;             /* ConsumerUpdateMode */
+static int hf_disp_onChange;                      /* BOOLEAN */
+static int hf_disp_scheduled;                     /* SchedulingParameters */
+static int hf_disp_periodic;                      /* PeriodicStrategy */
+static int hf_disp_othertimes;                    /* BOOLEAN */
+static int hf_disp_beginTime;                     /* Time */
+static int hf_disp_windowSize;                    /* INTEGER */
+static int hf_disp_updateInterval;                /* INTEGER */
+static int hf_disp_agreementID;                   /* AgreementID */
+static int hf_disp_lastUpdate;                    /* Time */
+static int hf_disp_updateStrategy;                /* T_updateStrategy */
+static int hf_disp_standardUpdate;                /* StandardUpdate */
+static int hf_disp_other;                         /* EXTERNAL */
+static int hf_disp_securityParameters;            /* SecurityParameters */
+static int hf_disp_unsignedCoordinateShadowUpdateArgument;  /* CoordinateShadowUpdateArgumentData */
+static int hf_disp_signedCoordinateShadowUpdateArgument;  /* T_signedCoordinateShadowUpdateArgument */
+static int hf_disp_coordinateShadowUpdateArgument;  /* CoordinateShadowUpdateArgumentData */
+static int hf_disp_algorithmIdentifier;           /* AlgorithmIdentifier */
+static int hf_disp_encrypted;                     /* BIT_STRING */
+static int hf_disp_null;                          /* NULL */
+static int hf_disp_information;                   /* Information */
+static int hf_disp_performer;                     /* DistinguishedName */
+static int hf_disp_aliasDereferenced;             /* BOOLEAN */
+static int hf_disp_notification;                  /* SEQUENCE_OF_Attribute */
+static int hf_disp_notification_item;             /* Attribute */
+static int hf_disp_unsignedInformation;           /* InformationData */
+static int hf_disp_signedInformation;             /* T_signedInformation */
+static int hf_disp_information_data;              /* InformationData */
+static int hf_disp_requestedStrategy;             /* T_requestedStrategy */
+static int hf_disp_standard;                      /* T_standard */
+static int hf_disp_unsignedRequestShadowUpdateArgument;  /* RequestShadowUpdateArgumentData */
+static int hf_disp_signedRequestShadowUpdateArgument;  /* T_signedRequestShadowUpdateArgument */
+static int hf_disp_requestShadowUpdateArgument;   /* RequestShadowUpdateArgumentData */
+static int hf_disp_updateTime;                    /* Time */
+static int hf_disp_updateWindow;                  /* UpdateWindow */
+static int hf_disp_updatedInfo;                   /* RefreshInformation */
+static int hf_disp_unsignedUpdateShadowArgument;  /* UpdateShadowArgumentData */
+static int hf_disp_signedUpdateShadowArgument;    /* T_signedUpdateShadowArgument */
+static int hf_disp_updateShadowArgument;          /* UpdateShadowArgumentData */
+static int hf_disp_start;                         /* Time */
+static int hf_disp_stop;                          /* Time */
+static int hf_disp_noRefresh;                     /* NULL */
+static int hf_disp_total;                         /* TotalRefresh */
+static int hf_disp_incremental;                   /* IncrementalRefresh */
+static int hf_disp_otherStrategy;                 /* EXTERNAL */
+static int hf_disp_sDSE;                          /* SDSEContent */
+static int hf_disp_subtree;                       /* SET_OF_Subtree */
+static int hf_disp_subtree_item;                  /* Subtree */
+static int hf_disp_sDSEType;                      /* SDSEType */
+static int hf_disp_subComplete;                   /* BOOLEAN */
+static int hf_disp_attComplete;                   /* BOOLEAN */
+static int hf_disp_attributes;                    /* SET_OF_Attribute */
+static int hf_disp_attributes_item;               /* Attribute */
+static int hf_disp_attValIncomplete;              /* SET_OF_AttributeType */
+static int hf_disp_attValIncomplete_item;         /* AttributeType */
+static int hf_disp_rdn;                           /* RelativeDistinguishedName */
+static int hf_disp_IncrementalRefresh_item;       /* IncrementalStepRefresh */
+static int hf_disp_sDSEChanges;                   /* T_sDSEChanges */
+static int hf_disp_add;                           /* SDSEContent */
+static int hf_disp_remove;                        /* NULL */
+static int hf_disp_modify;                        /* ContentChange */
+static int hf_disp_subordinateUpdates;            /* SEQUENCE_OF_SubordinateChanges */
+static int hf_disp_subordinateUpdates_item;       /* SubordinateChanges */
+static int hf_disp_rename;                        /* T_rename */
+static int hf_disp_newRDN;                        /* RelativeDistinguishedName */
+static int hf_disp_newDN;                         /* DistinguishedName */
+static int hf_disp_attributeChanges;              /* T_attributeChanges */
+static int hf_disp_replace;                       /* SET_OF_Attribute */
+static int hf_disp_replace_item;                  /* Attribute */
+static int hf_disp_changes;                       /* SEQUENCE_OF_EntryModification */
+static int hf_disp_changes_item;                  /* EntryModification */
+static int hf_disp_subordinate;                   /* RelativeDistinguishedName */
+static int hf_disp_subordinate_changes;           /* IncrementalStepRefresh */
+static int hf_disp_problem;                       /* ShadowProblem */
+static int hf_disp_unsignedShadowError;           /* ShadowErrorData */
+static int hf_disp_signedShadowError;             /* T_signedShadowError */
+static int hf_disp_shadowError;                   /* ShadowErrorData */
 
 /* Initialize the subtree pointers */
-static gint ett_disp = -1;
-static gint ett_disp_ModificationParameter = -1;
-static gint ett_disp_SET_OF_SupplierAndConsumers = -1;
-static gint ett_disp_ShadowingAgreementInfo = -1;
-static gint ett_disp_UnitOfReplication = -1;
-static gint ett_disp_T_supplyContexts = -1;
-static gint ett_disp_T_selectedContexts = -1;
-static gint ett_disp_AreaSpecification = -1;
-static gint ett_disp_Knowledge = -1;
-static gint ett_disp_AttributeSelection = -1;
-static gint ett_disp_ClassAttributeSelection = -1;
-static gint ett_disp_ClassAttributes = -1;
-static gint ett_disp_AttributeTypes = -1;
-static gint ett_disp_UpdateMode = -1;
-static gint ett_disp_SupplierUpdateMode = -1;
-static gint ett_disp_SchedulingParameters = -1;
-static gint ett_disp_PeriodicStrategy = -1;
-static gint ett_disp_CoordinateShadowUpdateArgumentData = -1;
-static gint ett_disp_T_updateStrategy = -1;
-static gint ett_disp_CoordinateShadowUpdateArgument = -1;
-static gint ett_disp_T_signedCoordinateShadowUpdateArgument = -1;
-static gint ett_disp_CoordinateShadowUpdateResult = -1;
-static gint ett_disp_InformationData = -1;
-static gint ett_disp_SEQUENCE_OF_Attribute = -1;
-static gint ett_disp_Information = -1;
-static gint ett_disp_T_signedInformation = -1;
-static gint ett_disp_RequestShadowUpdateArgumentData = -1;
-static gint ett_disp_T_requestedStrategy = -1;
-static gint ett_disp_RequestShadowUpdateArgument = -1;
-static gint ett_disp_T_signedRequestShadowUpdateArgument = -1;
-static gint ett_disp_RequestShadowUpdateResult = -1;
-static gint ett_disp_UpdateShadowArgumentData = -1;
-static gint ett_disp_UpdateShadowArgument = -1;
-static gint ett_disp_T_signedUpdateShadowArgument = -1;
-static gint ett_disp_UpdateShadowResult = -1;
-static gint ett_disp_UpdateWindow = -1;
-static gint ett_disp_RefreshInformation = -1;
-static gint ett_disp_TotalRefresh = -1;
-static gint ett_disp_SET_OF_Subtree = -1;
-static gint ett_disp_SDSEContent = -1;
-static gint ett_disp_SET_OF_Attribute = -1;
-static gint ett_disp_SET_OF_AttributeType = -1;
-static gint ett_disp_Subtree = -1;
-static gint ett_disp_IncrementalRefresh = -1;
-static gint ett_disp_IncrementalStepRefresh = -1;
-static gint ett_disp_T_sDSEChanges = -1;
-static gint ett_disp_SEQUENCE_OF_SubordinateChanges = -1;
-static gint ett_disp_ContentChange = -1;
-static gint ett_disp_T_rename = -1;
-static gint ett_disp_T_attributeChanges = -1;
-static gint ett_disp_SEQUENCE_OF_EntryModification = -1;
-static gint ett_disp_SubordinateChanges = -1;
-static gint ett_disp_ShadowErrorData = -1;
-static gint ett_disp_ShadowError = -1;
-static gint ett_disp_T_signedShadowError = -1;
+static int ett_disp;
+static int ett_disp_ModificationParameter;
+static int ett_disp_SET_OF_SupplierAndConsumers;
+static int ett_disp_ShadowingAgreementInfo;
+static int ett_disp_UnitOfReplication;
+static int ett_disp_T_supplyContexts;
+static int ett_disp_T_selectedContexts;
+static int ett_disp_AreaSpecification;
+static int ett_disp_Knowledge;
+static int ett_disp_AttributeSelection;
+static int ett_disp_ClassAttributeSelection;
+static int ett_disp_ClassAttributes;
+static int ett_disp_AttributeTypes;
+static int ett_disp_UpdateMode;
+static int ett_disp_SupplierUpdateMode;
+static int ett_disp_SchedulingParameters;
+static int ett_disp_PeriodicStrategy;
+static int ett_disp_CoordinateShadowUpdateArgumentData;
+static int ett_disp_T_updateStrategy;
+static int ett_disp_CoordinateShadowUpdateArgument;
+static int ett_disp_T_signedCoordinateShadowUpdateArgument;
+static int ett_disp_CoordinateShadowUpdateResult;
+static int ett_disp_InformationData;
+static int ett_disp_SEQUENCE_OF_Attribute;
+static int ett_disp_Information;
+static int ett_disp_T_signedInformation;
+static int ett_disp_RequestShadowUpdateArgumentData;
+static int ett_disp_T_requestedStrategy;
+static int ett_disp_RequestShadowUpdateArgument;
+static int ett_disp_T_signedRequestShadowUpdateArgument;
+static int ett_disp_RequestShadowUpdateResult;
+static int ett_disp_UpdateShadowArgumentData;
+static int ett_disp_UpdateShadowArgument;
+static int ett_disp_T_signedUpdateShadowArgument;
+static int ett_disp_UpdateShadowResult;
+static int ett_disp_UpdateWindow;
+static int ett_disp_RefreshInformation;
+static int ett_disp_TotalRefresh;
+static int ett_disp_SET_OF_Subtree;
+static int ett_disp_SDSEContent;
+static int ett_disp_SET_OF_Attribute;
+static int ett_disp_SET_OF_AttributeType;
+static int ett_disp_Subtree;
+static int ett_disp_IncrementalRefresh;
+static int ett_disp_IncrementalStepRefresh;
+static int ett_disp_T_sDSEChanges;
+static int ett_disp_SEQUENCE_OF_SubordinateChanges;
+static int ett_disp_ContentChange;
+static int ett_disp_T_rename;
+static int ett_disp_T_attributeChanges;
+static int ett_disp_SEQUENCE_OF_EntryModification;
+static int ett_disp_SubordinateChanges;
+static int ett_disp_ShadowErrorData;
+static int ett_disp_ShadowError;
+static int ett_disp_T_signedShadowError;
 
-static expert_field ei_disp_unsupported_opcode = EI_INIT;
-static expert_field ei_disp_unsupported_errcode = EI_INIT;
-static expert_field ei_disp_unsupported_pdu = EI_INIT;
-static expert_field ei_disp_zero_pdu = EI_INIT;
+static expert_field ei_disp_unsupported_opcode;
+static expert_field ei_disp_unsupported_errcode;
+static expert_field ei_disp_unsupported_pdu;
+static expert_field ei_disp_zero_pdu;
 
-static dissector_handle_t disp_handle = NULL;
+static dissector_handle_t disp_handle;
 
 /*--- Cyclic dependencies ---*/
 
 /* Subtree -> Subtree/subtree -> Subtree */
-static int dissect_disp_Subtree(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_);
+static int dissect_disp_Subtree(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_);
 
 /* IncrementalStepRefresh -> IncrementalStepRefresh/subordinateUpdates -> SubordinateChanges -> IncrementalStepRefresh */
-static int dissect_disp_IncrementalStepRefresh(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_);
+static int dissect_disp_IncrementalStepRefresh(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_);
 
 
 
 
 static int
-dissect_disp_DSAShadowBindArgument(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_disp_DSAShadowBindArgument(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_dap_DirectoryBindArgument(implicit_tag, tvb, offset, actx, tree, hf_index);
 
   return offset;
@@ -243,7 +245,7 @@ dissect_disp_DSAShadowBindArgument(gboolean implicit_tag _U_, tvbuff_t *tvb _U_,
 
 
 static int
-dissect_disp_DSAShadowBindResult(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_disp_DSAShadowBindResult(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_dap_DirectoryBindArgument(implicit_tag, tvb, offset, actx, tree, hf_index);
 
   return offset;
@@ -252,7 +254,7 @@ dissect_disp_DSAShadowBindResult(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, i
 
 
 static int
-dissect_disp_DSAShadowBindError(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_disp_DSAShadowBindError(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_dap_DirectoryBindError(implicit_tag, tvb, offset, actx, tree, hf_index);
 
   return offset;
@@ -261,7 +263,7 @@ dissect_disp_DSAShadowBindError(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, in
 
 
 static int
-dissect_disp_EstablishParameter(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_disp_EstablishParameter(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_null(implicit_tag, actx, tree, tvb, offset, hf_index);
 
   return offset;
@@ -273,7 +275,7 @@ static const ber_sequence_t SET_OF_SupplierAndConsumers_set_of[1] = {
 };
 
 static int
-dissect_disp_SET_OF_SupplierAndConsumers(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_disp_SET_OF_SupplierAndConsumers(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_set_of(implicit_tag, actx, tree, tvb, offset,
                                  SET_OF_SupplierAndConsumers_set_of, hf_index, ett_disp_SET_OF_SupplierAndConsumers);
 
@@ -287,7 +289,7 @@ static const ber_sequence_t ModificationParameter_sequence[] = {
 };
 
 static int
-dissect_disp_ModificationParameter(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_disp_ModificationParameter(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence(implicit_tag, actx, tree, tvb, offset,
                                    ModificationParameter_sequence, hf_index, ett_disp_ModificationParameter);
 
@@ -297,7 +299,7 @@ dissect_disp_ModificationParameter(gboolean implicit_tag _U_, tvbuff_t *tvb _U_,
 
 
 int
-dissect_disp_AgreementID(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_disp_AgreementID(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_dop_OperationalBindingID(implicit_tag, tvb, offset, actx, tree, hf_index);
 
   return offset;
@@ -311,7 +313,7 @@ static const ber_sequence_t AreaSpecification_sequence[] = {
 };
 
 static int
-dissect_disp_AreaSpecification(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_disp_AreaSpecification(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence(implicit_tag, actx, tree, tvb, offset,
                                    AreaSpecification_sequence, hf_index, ett_disp_AreaSpecification);
 
@@ -321,7 +323,7 @@ dissect_disp_AreaSpecification(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int
 
 
 static int
-dissect_disp_OBJECT_IDENTIFIER(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_disp_OBJECT_IDENTIFIER(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_object_identifier(implicit_tag, actx, tree, tvb, offset, hf_index, NULL);
 
   return offset;
@@ -330,7 +332,7 @@ dissect_disp_OBJECT_IDENTIFIER(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int
 
 
 static int
-dissect_disp_NULL(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_disp_NULL(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_null(implicit_tag, actx, tree, tvb, offset, hf_index);
 
   return offset;
@@ -342,7 +344,7 @@ static const ber_sequence_t AttributeTypes_set_of[1] = {
 };
 
 static int
-dissect_disp_AttributeTypes(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_disp_AttributeTypes(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_set_of(implicit_tag, actx, tree, tvb, offset,
                                  AttributeTypes_set_of, hf_index, ett_disp_AttributeTypes);
 
@@ -365,7 +367,7 @@ static const ber_choice_t ClassAttributes_choice[] = {
 };
 
 static int
-dissect_disp_ClassAttributes(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_disp_ClassAttributes(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_choice(actx, tree, tvb, offset,
                                  ClassAttributes_choice, hf_index, ett_disp_ClassAttributes,
                                  NULL);
@@ -381,7 +383,7 @@ static const ber_sequence_t ClassAttributeSelection_sequence[] = {
 };
 
 static int
-dissect_disp_ClassAttributeSelection(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_disp_ClassAttributeSelection(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence(implicit_tag, actx, tree, tvb, offset,
                                    ClassAttributeSelection_sequence, hf_index, ett_disp_ClassAttributeSelection);
 
@@ -394,7 +396,7 @@ static const ber_sequence_t AttributeSelection_set_of[1] = {
 };
 
 static int
-dissect_disp_AttributeSelection(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_disp_AttributeSelection(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_set_of(implicit_tag, actx, tree, tvb, offset,
                                  AttributeSelection_set_of, hf_index, ett_disp_AttributeSelection);
 
@@ -411,7 +413,7 @@ static const value_string disp_T_knowledgeType_vals[] = {
 
 
 static int
-dissect_disp_T_knowledgeType(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_disp_T_knowledgeType(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_integer(implicit_tag, actx, tree, tvb, offset, hf_index,
                                   NULL);
 
@@ -421,7 +423,7 @@ dissect_disp_T_knowledgeType(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int o
 
 
 static int
-dissect_disp_BOOLEAN(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_disp_BOOLEAN(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_boolean(implicit_tag, actx, tree, tvb, offset, hf_index, NULL);
 
   return offset;
@@ -435,7 +437,7 @@ static const ber_sequence_t Knowledge_sequence[] = {
 };
 
 static int
-dissect_disp_Knowledge(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_disp_Knowledge(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence(implicit_tag, actx, tree, tvb, offset,
                                    Knowledge_sequence, hf_index, ett_disp_Knowledge);
 
@@ -448,7 +450,7 @@ static const ber_sequence_t T_selectedContexts_set_of[1] = {
 };
 
 static int
-dissect_disp_T_selectedContexts(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_disp_T_selectedContexts(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_set_of(implicit_tag, actx, tree, tvb, offset,
                                  T_selectedContexts_set_of, hf_index, ett_disp_T_selectedContexts);
 
@@ -469,7 +471,7 @@ static const ber_choice_t T_supplyContexts_choice[] = {
 };
 
 static int
-dissect_disp_T_supplyContexts(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_disp_T_supplyContexts(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_choice(actx, tree, tvb, offset,
                                  T_supplyContexts_choice, hf_index, ett_disp_T_supplyContexts,
                                  NULL);
@@ -489,7 +491,7 @@ static const ber_sequence_t UnitOfReplication_sequence[] = {
 };
 
 static int
-dissect_disp_UnitOfReplication(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_disp_UnitOfReplication(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence(implicit_tag, actx, tree, tvb, offset,
                                    UnitOfReplication_sequence, hf_index, ett_disp_UnitOfReplication);
 
@@ -499,7 +501,7 @@ dissect_disp_UnitOfReplication(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int
 
 
 static int
-dissect_disp_Time(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_disp_Time(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_GeneralizedTime(implicit_tag, actx, tree, tvb, offset, hf_index);
 
   return offset;
@@ -508,7 +510,7 @@ dissect_disp_Time(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, 
 
 
 static int
-dissect_disp_INTEGER(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_disp_INTEGER(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_integer(implicit_tag, actx, tree, tvb, offset, hf_index,
                                                 NULL);
 
@@ -524,7 +526,7 @@ static const ber_sequence_t PeriodicStrategy_sequence[] = {
 };
 
 static int
-dissect_disp_PeriodicStrategy(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_disp_PeriodicStrategy(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence(implicit_tag, actx, tree, tvb, offset,
                                    PeriodicStrategy_sequence, hf_index, ett_disp_PeriodicStrategy);
 
@@ -539,7 +541,7 @@ static const ber_sequence_t SchedulingParameters_sequence[] = {
 };
 
 static int
-dissect_disp_SchedulingParameters(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_disp_SchedulingParameters(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence(implicit_tag, actx, tree, tvb, offset,
                                    SchedulingParameters_sequence, hf_index, ett_disp_SchedulingParameters);
 
@@ -560,7 +562,7 @@ static const ber_choice_t SupplierUpdateMode_choice[] = {
 };
 
 static int
-dissect_disp_SupplierUpdateMode(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_disp_SupplierUpdateMode(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_choice(actx, tree, tvb, offset,
                                  SupplierUpdateMode_choice, hf_index, ett_disp_SupplierUpdateMode,
                                  NULL);
@@ -571,7 +573,7 @@ dissect_disp_SupplierUpdateMode(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, in
 
 
 static int
-dissect_disp_ConsumerUpdateMode(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_disp_ConsumerUpdateMode(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_disp_SchedulingParameters(implicit_tag, tvb, offset, actx, tree, hf_index);
 
   return offset;
@@ -591,7 +593,7 @@ static const ber_choice_t UpdateMode_choice[] = {
 };
 
 static int
-dissect_disp_UpdateMode(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_disp_UpdateMode(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_choice(actx, tree, tvb, offset,
                                  UpdateMode_choice, hf_index, ett_disp_UpdateMode,
                                  NULL);
@@ -609,7 +611,7 @@ static const ber_sequence_t ShadowingAgreementInfo_sequence[] = {
 };
 
 static int
-dissect_disp_ShadowingAgreementInfo(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_disp_ShadowingAgreementInfo(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence(implicit_tag, actx, tree, tvb, offset,
                                    ShadowingAgreementInfo_sequence, hf_index, ett_disp_ShadowingAgreementInfo);
 
@@ -626,8 +628,8 @@ static const value_string disp_StandardUpdate_vals[] = {
 
 
 static int
-dissect_disp_StandardUpdate(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
-  guint32 update;
+dissect_disp_StandardUpdate(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+  uint32_t update;
 
     offset = dissect_ber_integer(implicit_tag, actx, tree, tvb, offset, hf_index,
                                   &update);
@@ -642,7 +644,7 @@ dissect_disp_StandardUpdate(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int of
 
 
 static int
-dissect_disp_EXTERNAL(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_disp_EXTERNAL(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_external_type(implicit_tag, tree, tvb, offset, actx, hf_index, NULL);
 
   return offset;
@@ -662,7 +664,7 @@ static const ber_choice_t T_updateStrategy_choice[] = {
 };
 
 static int
-dissect_disp_T_updateStrategy(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_disp_T_updateStrategy(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_choice(actx, tree, tvb, offset,
                                  T_updateStrategy_choice, hf_index, ett_disp_T_updateStrategy,
                                  NULL);
@@ -680,7 +682,7 @@ static const ber_sequence_t CoordinateShadowUpdateArgumentData_sequence[] = {
 };
 
 static int
-dissect_disp_CoordinateShadowUpdateArgumentData(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_disp_CoordinateShadowUpdateArgumentData(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence(implicit_tag, actx, tree, tvb, offset,
                                    CoordinateShadowUpdateArgumentData_sequence, hf_index, ett_disp_CoordinateShadowUpdateArgumentData);
 
@@ -690,7 +692,7 @@ dissect_disp_CoordinateShadowUpdateArgumentData(gboolean implicit_tag _U_, tvbuf
 
 
 static int
-dissect_disp_BIT_STRING(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_disp_BIT_STRING(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_bitstring(implicit_tag, actx, tree, tvb, offset,
                                     NULL, 0, hf_index, -1,
                                     NULL);
@@ -707,7 +709,7 @@ static const ber_sequence_t T_signedCoordinateShadowUpdateArgument_sequence[] = 
 };
 
 static int
-dissect_disp_T_signedCoordinateShadowUpdateArgument(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_disp_T_signedCoordinateShadowUpdateArgument(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence(implicit_tag, actx, tree, tvb, offset,
                                    T_signedCoordinateShadowUpdateArgument_sequence, hf_index, ett_disp_T_signedCoordinateShadowUpdateArgument);
 
@@ -722,7 +724,7 @@ static const ber_choice_t CoordinateShadowUpdateArgument_choice[] = {
 };
 
 static int
-dissect_disp_CoordinateShadowUpdateArgument(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_disp_CoordinateShadowUpdateArgument(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_choice(actx, tree, tvb, offset,
                                  CoordinateShadowUpdateArgument_choice, hf_index, ett_disp_CoordinateShadowUpdateArgument,
                                  NULL);
@@ -736,7 +738,7 @@ static const ber_sequence_t SEQUENCE_OF_Attribute_sequence_of[1] = {
 };
 
 static int
-dissect_disp_SEQUENCE_OF_Attribute(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_disp_SEQUENCE_OF_Attribute(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence_of(implicit_tag, actx, tree, tvb, offset,
                                       SEQUENCE_OF_Attribute_sequence_of, hf_index, ett_disp_SEQUENCE_OF_Attribute);
 
@@ -755,7 +757,7 @@ static const ber_sequence_t InformationData_sequence[] = {
 };
 
 static int
-dissect_disp_InformationData(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_disp_InformationData(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence(implicit_tag, actx, tree, tvb, offset,
                                    InformationData_sequence, hf_index, ett_disp_InformationData);
 
@@ -771,7 +773,7 @@ static const ber_sequence_t T_signedInformation_sequence[] = {
 };
 
 static int
-dissect_disp_T_signedInformation(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_disp_T_signedInformation(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence(implicit_tag, actx, tree, tvb, offset,
                                    T_signedInformation_sequence, hf_index, ett_disp_T_signedInformation);
 
@@ -792,7 +794,7 @@ static const ber_choice_t Information_choice[] = {
 };
 
 static int
-dissect_disp_Information(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_disp_Information(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_choice(actx, tree, tvb, offset,
                                  Information_choice, hf_index, ett_disp_Information,
                                  NULL);
@@ -814,8 +816,8 @@ static const ber_choice_t CoordinateShadowUpdateResult_choice[] = {
 };
 
 static int
-dissect_disp_CoordinateShadowUpdateResult(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
-  guint32 update;
+dissect_disp_CoordinateShadowUpdateResult(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+  uint32_t update;
 
     offset = dissect_ber_choice(actx, tree, tvb, offset,
                                  CoordinateShadowUpdateResult_choice, hf_index, ett_disp_CoordinateShadowUpdateResult,
@@ -837,8 +839,8 @@ static const value_string disp_T_standard_vals[] = {
 
 
 static int
-dissect_disp_T_standard(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
-  guint32 update;
+dissect_disp_T_standard(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+  uint32_t update;
 
     offset = dissect_ber_integer(implicit_tag, actx, tree, tvb, offset, hf_index,
                                   &update);
@@ -864,7 +866,7 @@ static const ber_choice_t T_requestedStrategy_choice[] = {
 };
 
 static int
-dissect_disp_T_requestedStrategy(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_disp_T_requestedStrategy(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_choice(actx, tree, tvb, offset,
                                  T_requestedStrategy_choice, hf_index, ett_disp_T_requestedStrategy,
                                  NULL);
@@ -882,7 +884,7 @@ static const ber_sequence_t RequestShadowUpdateArgumentData_sequence[] = {
 };
 
 static int
-dissect_disp_RequestShadowUpdateArgumentData(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_disp_RequestShadowUpdateArgumentData(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence(implicit_tag, actx, tree, tvb, offset,
                                    RequestShadowUpdateArgumentData_sequence, hf_index, ett_disp_RequestShadowUpdateArgumentData);
 
@@ -898,7 +900,7 @@ static const ber_sequence_t T_signedRequestShadowUpdateArgument_sequence[] = {
 };
 
 static int
-dissect_disp_T_signedRequestShadowUpdateArgument(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_disp_T_signedRequestShadowUpdateArgument(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence(implicit_tag, actx, tree, tvb, offset,
                                    T_signedRequestShadowUpdateArgument_sequence, hf_index, ett_disp_T_signedRequestShadowUpdateArgument);
 
@@ -913,7 +915,7 @@ static const ber_choice_t RequestShadowUpdateArgument_choice[] = {
 };
 
 static int
-dissect_disp_RequestShadowUpdateArgument(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_disp_RequestShadowUpdateArgument(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_choice(actx, tree, tvb, offset,
                                  RequestShadowUpdateArgument_choice, hf_index, ett_disp_RequestShadowUpdateArgument,
                                  NULL);
@@ -935,8 +937,8 @@ static const ber_choice_t RequestShadowUpdateResult_choice[] = {
 };
 
 static int
-dissect_disp_RequestShadowUpdateResult(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
-  guint32 update;
+dissect_disp_RequestShadowUpdateResult(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+  uint32_t update;
 
     offset = dissect_ber_choice(actx, tree, tvb, offset,
                                  RequestShadowUpdateResult_choice, hf_index, ett_disp_RequestShadowUpdateResult,
@@ -957,7 +959,7 @@ static const ber_sequence_t UpdateWindow_sequence[] = {
 };
 
 static int
-dissect_disp_UpdateWindow(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_disp_UpdateWindow(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence(implicit_tag, actx, tree, tvb, offset,
                                    UpdateWindow_sequence, hf_index, ett_disp_UpdateWindow);
 
@@ -967,7 +969,7 @@ dissect_disp_UpdateWindow(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offs
 
 
 static int
-dissect_disp_SDSEType(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_disp_SDSEType(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_dop_DSEType(implicit_tag, tvb, offset, actx, tree, hf_index);
 
   return offset;
@@ -979,7 +981,7 @@ static const ber_sequence_t SET_OF_Attribute_set_of[1] = {
 };
 
 static int
-dissect_disp_SET_OF_Attribute(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_disp_SET_OF_Attribute(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_set_of(implicit_tag, actx, tree, tvb, offset,
                                  SET_OF_Attribute_set_of, hf_index, ett_disp_SET_OF_Attribute);
 
@@ -992,7 +994,7 @@ static const ber_sequence_t SET_OF_AttributeType_set_of[1] = {
 };
 
 static int
-dissect_disp_SET_OF_AttributeType(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_disp_SET_OF_AttributeType(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_set_of(implicit_tag, actx, tree, tvb, offset,
                                  SET_OF_AttributeType_set_of, hf_index, ett_disp_SET_OF_AttributeType);
 
@@ -1010,7 +1012,7 @@ static const ber_sequence_t SDSEContent_sequence[] = {
 };
 
 static int
-dissect_disp_SDSEContent(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_disp_SDSEContent(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence(implicit_tag, actx, tree, tvb, offset,
                                    SDSEContent_sequence, hf_index, ett_disp_SDSEContent);
 
@@ -1023,7 +1025,7 @@ static const ber_sequence_t SET_OF_Subtree_set_of[1] = {
 };
 
 static int
-dissect_disp_SET_OF_Subtree(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_disp_SET_OF_Subtree(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_set_of(implicit_tag, actx, tree, tvb, offset,
                                  SET_OF_Subtree_set_of, hf_index, ett_disp_SET_OF_Subtree);
 
@@ -1039,10 +1041,15 @@ static const ber_sequence_t Subtree_sequence[] = {
 };
 
 static int
-dissect_disp_Subtree(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_disp_Subtree(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+  // Subtree -> Subtree/subtree -> Subtree
+  actx->pinfo->dissection_depth += 2;
+  increment_dissection_depth(actx->pinfo);
   offset = dissect_ber_sequence(implicit_tag, actx, tree, tvb, offset,
                                    Subtree_sequence, hf_index, ett_disp_Subtree);
 
+  actx->pinfo->dissection_depth -= 2;
+  decrement_dissection_depth(actx->pinfo);
   return offset;
 }
 
@@ -1054,7 +1061,7 @@ static const ber_sequence_t TotalRefresh_sequence[] = {
 };
 
 static int
-dissect_disp_TotalRefresh(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_disp_TotalRefresh(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence(implicit_tag, actx, tree, tvb, offset,
                                    TotalRefresh_sequence, hf_index, ett_disp_TotalRefresh);
 
@@ -1075,7 +1082,7 @@ static const ber_choice_t T_rename_choice[] = {
 };
 
 static int
-dissect_disp_T_rename(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_disp_T_rename(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_choice(actx, tree, tvb, offset,
                                  T_rename_choice, hf_index, ett_disp_T_rename,
                                  NULL);
@@ -1089,7 +1096,7 @@ static const ber_sequence_t SEQUENCE_OF_EntryModification_sequence_of[1] = {
 };
 
 static int
-dissect_disp_SEQUENCE_OF_EntryModification(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_disp_SEQUENCE_OF_EntryModification(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence_of(implicit_tag, actx, tree, tvb, offset,
                                       SEQUENCE_OF_EntryModification_sequence_of, hf_index, ett_disp_SEQUENCE_OF_EntryModification);
 
@@ -1110,7 +1117,7 @@ static const ber_choice_t T_attributeChanges_choice[] = {
 };
 
 static int
-dissect_disp_T_attributeChanges(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_disp_T_attributeChanges(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_choice(actx, tree, tvb, offset,
                                  T_attributeChanges_choice, hf_index, ett_disp_T_attributeChanges,
                                  NULL);
@@ -1130,7 +1137,7 @@ static const ber_sequence_t ContentChange_sequence[] = {
 };
 
 static int
-dissect_disp_ContentChange(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_disp_ContentChange(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence(implicit_tag, actx, tree, tvb, offset,
                                    ContentChange_sequence, hf_index, ett_disp_ContentChange);
 
@@ -1153,7 +1160,7 @@ static const ber_choice_t T_sDSEChanges_choice[] = {
 };
 
 static int
-dissect_disp_T_sDSEChanges(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_disp_T_sDSEChanges(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_choice(actx, tree, tvb, offset,
                                  T_sDSEChanges_choice, hf_index, ett_disp_T_sDSEChanges,
                                  NULL);
@@ -1169,7 +1176,7 @@ static const ber_sequence_t SubordinateChanges_sequence[] = {
 };
 
 static int
-dissect_disp_SubordinateChanges(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_disp_SubordinateChanges(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence(implicit_tag, actx, tree, tvb, offset,
                                    SubordinateChanges_sequence, hf_index, ett_disp_SubordinateChanges);
 
@@ -1182,7 +1189,7 @@ static const ber_sequence_t SEQUENCE_OF_SubordinateChanges_sequence_of[1] = {
 };
 
 static int
-dissect_disp_SEQUENCE_OF_SubordinateChanges(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_disp_SEQUENCE_OF_SubordinateChanges(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence_of(implicit_tag, actx, tree, tvb, offset,
                                       SEQUENCE_OF_SubordinateChanges_sequence_of, hf_index, ett_disp_SEQUENCE_OF_SubordinateChanges);
 
@@ -1197,10 +1204,15 @@ static const ber_sequence_t IncrementalStepRefresh_sequence[] = {
 };
 
 static int
-dissect_disp_IncrementalStepRefresh(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_disp_IncrementalStepRefresh(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+  // IncrementalStepRefresh -> IncrementalStepRefresh/subordinateUpdates -> SubordinateChanges -> IncrementalStepRefresh
+  actx->pinfo->dissection_depth += 3;
+  increment_dissection_depth(actx->pinfo);
   offset = dissect_ber_sequence(implicit_tag, actx, tree, tvb, offset,
                                    IncrementalStepRefresh_sequence, hf_index, ett_disp_IncrementalStepRefresh);
 
+  actx->pinfo->dissection_depth -= 3;
+  decrement_dissection_depth(actx->pinfo);
   return offset;
 }
 
@@ -1210,7 +1222,7 @@ static const ber_sequence_t IncrementalRefresh_sequence_of[1] = {
 };
 
 static int
-dissect_disp_IncrementalRefresh(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_disp_IncrementalRefresh(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence_of(implicit_tag, actx, tree, tvb, offset,
                                       IncrementalRefresh_sequence_of, hf_index, ett_disp_IncrementalRefresh);
 
@@ -1235,8 +1247,8 @@ static const ber_choice_t RefreshInformation_choice[] = {
 };
 
 static int
-dissect_disp_RefreshInformation(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
-  guint32 update;
+dissect_disp_RefreshInformation(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+  uint32_t update;
 
     offset = dissect_ber_choice(actx, tree, tvb, offset,
                                  RefreshInformation_choice, hf_index, ett_disp_RefreshInformation,
@@ -1260,7 +1272,7 @@ static const ber_sequence_t UpdateShadowArgumentData_sequence[] = {
 };
 
 static int
-dissect_disp_UpdateShadowArgumentData(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_disp_UpdateShadowArgumentData(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence(implicit_tag, actx, tree, tvb, offset,
                                    UpdateShadowArgumentData_sequence, hf_index, ett_disp_UpdateShadowArgumentData);
 
@@ -1276,7 +1288,7 @@ static const ber_sequence_t T_signedUpdateShadowArgument_sequence[] = {
 };
 
 static int
-dissect_disp_T_signedUpdateShadowArgument(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_disp_T_signedUpdateShadowArgument(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence(implicit_tag, actx, tree, tvb, offset,
                                    T_signedUpdateShadowArgument_sequence, hf_index, ett_disp_T_signedUpdateShadowArgument);
 
@@ -1291,7 +1303,7 @@ static const ber_choice_t UpdateShadowArgument_choice[] = {
 };
 
 static int
-dissect_disp_UpdateShadowArgument(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_disp_UpdateShadowArgument(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_choice(actx, tree, tvb, offset,
                                  UpdateShadowArgument_choice, hf_index, ett_disp_UpdateShadowArgument,
                                  NULL);
@@ -1313,8 +1325,8 @@ static const ber_choice_t UpdateShadowResult_choice[] = {
 };
 
 static int
-dissect_disp_UpdateShadowResult(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
-  guint32 update;
+dissect_disp_UpdateShadowResult(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+  uint32_t update;
 
     offset = dissect_ber_choice(actx, tree, tvb, offset,
                                  UpdateShadowResult_choice, hf_index, ett_disp_UpdateShadowResult,
@@ -1345,8 +1357,8 @@ static const value_string disp_ShadowProblem_vals[] = {
 
 
 static int
-dissect_disp_ShadowProblem(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
-  guint32 problem;
+dissect_disp_ShadowProblem(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+  uint32_t problem;
 
     offset = dissect_ber_integer(implicit_tag, actx, tree, tvb, offset, hf_index,
                                                 &problem);
@@ -1370,7 +1382,7 @@ static const ber_sequence_t ShadowErrorData_sequence[] = {
 };
 
 static int
-dissect_disp_ShadowErrorData(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_disp_ShadowErrorData(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence(implicit_tag, actx, tree, tvb, offset,
                                    ShadowErrorData_sequence, hf_index, ett_disp_ShadowErrorData);
 
@@ -1386,7 +1398,7 @@ static const ber_sequence_t T_signedShadowError_sequence[] = {
 };
 
 static int
-dissect_disp_T_signedShadowError(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_disp_T_signedShadowError(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence(implicit_tag, actx, tree, tvb, offset,
                                    T_signedShadowError_sequence, hf_index, ett_disp_T_signedShadowError);
 
@@ -1401,7 +1413,7 @@ static const ber_choice_t ShadowError_choice[] = {
 };
 
 static int
-dissect_disp_ShadowError(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_disp_ShadowError(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_choice(actx, tree, tvb, offset,
                                  ShadowError_choice, hf_index, ett_disp_ShadowError,
                                  NULL);
@@ -1414,22 +1426,22 @@ dissect_disp_ShadowError(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offse
 static int dissect_EstablishParameter_PDU(tvbuff_t *tvb _U_, packet_info *pinfo _U_, proto_tree *tree _U_, void *data _U_) {
   int offset = 0;
   asn1_ctx_t asn1_ctx;
-  asn1_ctx_init(&asn1_ctx, ASN1_ENC_BER, TRUE, pinfo);
-  offset = dissect_disp_EstablishParameter(FALSE, tvb, offset, &asn1_ctx, tree, hf_disp_EstablishParameter_PDU);
+  asn1_ctx_init(&asn1_ctx, ASN1_ENC_BER, true, pinfo);
+  offset = dissect_disp_EstablishParameter(false, tvb, offset, &asn1_ctx, tree, hf_disp_EstablishParameter_PDU);
   return offset;
 }
 static int dissect_ModificationParameter_PDU(tvbuff_t *tvb _U_, packet_info *pinfo _U_, proto_tree *tree _U_, void *data _U_) {
   int offset = 0;
   asn1_ctx_t asn1_ctx;
-  asn1_ctx_init(&asn1_ctx, ASN1_ENC_BER, TRUE, pinfo);
-  offset = dissect_disp_ModificationParameter(FALSE, tvb, offset, &asn1_ctx, tree, hf_disp_ModificationParameter_PDU);
+  asn1_ctx_init(&asn1_ctx, ASN1_ENC_BER, true, pinfo);
+  offset = dissect_disp_ModificationParameter(false, tvb, offset, &asn1_ctx, tree, hf_disp_ModificationParameter_PDU);
   return offset;
 }
 static int dissect_ShadowingAgreementInfo_PDU(tvbuff_t *tvb _U_, packet_info *pinfo _U_, proto_tree *tree _U_, void *data _U_) {
   int offset = 0;
   asn1_ctx_t asn1_ctx;
-  asn1_ctx_init(&asn1_ctx, ASN1_ENC_BER, TRUE, pinfo);
-  offset = dissect_disp_ShadowingAgreementInfo(FALSE, tvb, offset, &asn1_ctx, tree, hf_disp_ShadowingAgreementInfo_PDU);
+  asn1_ctx_init(&asn1_ctx, ASN1_ENC_BER, true, pinfo);
+  offset = dissect_disp_ShadowingAgreementInfo(false, tvb, offset, &asn1_ctx, tree, hf_disp_ShadowingAgreementInfo_PDU);
   return offset;
 }
 
@@ -1445,7 +1457,7 @@ dissect_disp(tvbuff_t *tvb, packet_info *pinfo, proto_tree *parent_tree, void* d
 	proto_item *item;
 	proto_tree *tree;
 	struct SESSION_DATA_STRUCTURE* session;
-	int (*disp_dissector)(gboolean implicit_tag _U_, tvbuff_t *tvb, int offset, asn1_ctx_t *actx, proto_tree *tree, int hf_index _U_) = NULL;
+	int (*disp_dissector)(bool implicit_tag _U_, tvbuff_t *tvb, int offset, asn1_ctx_t *actx, proto_tree *tree, int hf_index _U_) = NULL;
 	const char *disp_op_name;
 	asn1_ctx_t asn1_ctx;
 
@@ -1454,7 +1466,7 @@ dissect_disp(tvbuff_t *tvb, packet_info *pinfo, proto_tree *parent_tree, void* d
 		return 0;
 	session  = (struct SESSION_DATA_STRUCTURE*)data;
 
-	asn1_ctx_init(&asn1_ctx, ASN1_ENC_BER, TRUE, pinfo);
+	asn1_ctx_init(&asn1_ctx, ASN1_ENC_BER, true, pinfo);
 
 	asn1_ctx.private_data = session;
 
@@ -1539,7 +1551,7 @@ dissect_disp(tvbuff_t *tvb, packet_info *pinfo, proto_tree *parent_tree, void* d
 
 	  while (tvb_reported_length_remaining(tvb, offset) > 0){
 	    old_offset=offset;
-	    offset=(*disp_dissector)(FALSE, tvb, offset, &asn1_ctx, tree, -1);
+	    offset=(*disp_dissector)(false, tvb, offset, &asn1_ctx, tree, -1);
 	    if(offset == old_offset){
 	      proto_tree_add_expert(tree, pinfo, &ei_disp_zero_pdu, tvb, offset, -1);
 	      break;
@@ -1988,7 +2000,7 @@ void proto_register_disp(void) {
   };
 
   /* List of subtrees */
-  static gint *ett[] = {
+  static int *ett[] = {
     &ett_disp,
     &ett_disp_ModificationParameter,
     &ett_disp_SET_OF_SupplierAndConsumers,
@@ -2096,9 +2108,9 @@ void proto_reg_handoff_disp(void) {
   oid_add_from_string("id-ac-reliable-shadow-supplier-initiated","2.5.3.7");
 
   /* ABSTRACT SYNTAXES */
-  register_ros_oid_dissector_handle("2.5.9.3", disp_handle, 0, "id-as-directory-shadow", FALSE);
-  register_rtse_oid_dissector_handle("2.5.9.5", disp_handle, 0, "id-as-directory-reliable-shadow", FALSE);
-  register_rtse_oid_dissector_handle("2.5.9.6", disp_handle, 0, "id-as-directory-reliable-binding", FALSE);
+  register_ros_oid_dissector_handle("2.5.9.3", disp_handle, 0, "id-as-directory-shadow", false);
+  register_rtse_oid_dissector_handle("2.5.9.5", disp_handle, 0, "id-as-directory-reliable-shadow", false);
+  register_rtse_oid_dissector_handle("2.5.9.6", disp_handle, 0, "id-as-directory-reliable-binding", false);
 
   /* OPERATIONAL BINDING */
   oid_add_from_string("id-op-binding-shadow","2.5.1.0.5.1");

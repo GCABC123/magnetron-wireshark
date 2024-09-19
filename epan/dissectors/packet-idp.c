@@ -14,25 +14,28 @@
 #include <epan/packet.h>
 #include "packet-idp.h"
 #include <epan/etypes.h>
+#include <epan/unit_strings.h>
 
 void proto_register_idp(void);
 void proto_reg_handoff_idp(void);
 
-static int proto_idp = -1;
-static int hf_idp_checksum = -1;
-static int hf_idp_len = -1;
-/* static int hf_idp_src = -1; */
-/* static int hf_idp_dst = -1; */
-static int hf_idp_hops = -1;
-static int hf_idp_packet_type = -1;
-static int hf_idp_dnet = -1;
-static int hf_idp_dnode = -1;
-static int hf_idp_dsocket = -1;
-static int hf_idp_snet = -1;
-static int hf_idp_snode = -1;
-static int hf_idp_ssocket = -1;
+static dissector_handle_t idp_handle;
 
-static gint ett_idp = -1;
+static int proto_idp;
+static int hf_idp_checksum;
+static int hf_idp_len;
+/* static int hf_idp_src; */
+/* static int hf_idp_dst; */
+static int hf_idp_hops;
+static int hf_idp_packet_type;
+static int hf_idp_dnet;
+static int hf_idp_dnode;
+static int hf_idp_dsocket;
+static int hf_idp_snet;
+static int hf_idp_snode;
+static int hf_idp_ssocket;
+
+static int ett_idp;
 
 static dissector_table_t idp_type_dissector_table;
 
@@ -66,8 +69,8 @@ dissect_idp(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, void* data _U_)
 {
 	proto_tree	*idp_tree;
 	proto_item	*ti;
-	guint16		length;
-	guint8		type;
+	uint16_t		length;
+	uint8_t		type;
 	tvbuff_t	*next_tvb;
 
 	col_set_str(pinfo->cinfo, COL_PROTOCOL, "IDP");
@@ -82,7 +85,7 @@ dissect_idp(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, void* data _U_)
 	/* Adjust the tvbuff length to include only the IDP datagram. */
 	set_actual_length(tvb, length);
 	proto_tree_add_item(idp_tree, hf_idp_hops, tvb, 4, 1, ENC_BIG_ENDIAN);
-	type = tvb_get_guint8(tvb, 5);
+	type = tvb_get_uint8(tvb, 5);
 	proto_tree_add_uint(idp_tree, hf_idp_packet_type, tvb, 5, 1, type);
 
 	pinfo->ptype = PT_IDP;
@@ -137,7 +140,7 @@ proto_register_idp(void)
 
 		{ &hf_idp_len,
 		    { "Length",		"idp.len", FT_UINT16, BASE_DEC|BASE_UNIT_STRING,
-			&units_byte_bytes, 0x0, NULL, HFILL }},
+			UNS(&units_byte_bytes), 0x0, NULL, HFILL }},
 
 		/* XXX - does this have separate hop count and time subfields? */
 		{ &hf_idp_hops,
@@ -173,7 +176,7 @@ proto_register_idp(void)
 			VALS(idp_socket_vals), 0x0, NULL, HFILL }},
 	};
 
-	static gint *ett[] = {
+	static int *ett[] = {
 		&ett_idp,
 	};
 
@@ -184,14 +187,13 @@ proto_register_idp(void)
 
 	idp_type_dissector_table = register_dissector_table("idp.packet_type",
 	    "IDP packet type", proto_idp, FT_UINT8, BASE_DEC);
+
+	idp_handle = register_dissector("idp", dissect_idp, proto_idp);
 }
 
 void
 proto_reg_handoff_idp(void)
 {
-	dissector_handle_t idp_handle;
-
-	idp_handle = create_dissector_handle(dissect_idp, proto_idp);
 	dissector_add_uint("ethertype", ETHERTYPE_XNS_IDP, idp_handle);
 	dissector_add_uint("chdlc.protocol", ETHERTYPE_XNS_IDP, idp_handle);
 }

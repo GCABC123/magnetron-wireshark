@@ -12,7 +12,11 @@ import argparse
 import signal
 
 # Look for dissector symbols that could/should be static.
-# This will not run on Windows..
+# This will not run on Windows, unless/until we check the platform
+# and use (I think) dumpbin.exe
+#
+# N.B. Will report false positives if symbols are extern'd rather than
+# declared in a header file.
 
 # Try to exit soon after Ctrl-C is pressed.
 should_exit = False
@@ -25,7 +29,8 @@ def signal_handler(sig, frame):
 signal.signal(signal.SIGINT, signal_handler)
 
 # Allow this as a default build folder name...
-build_folder = os.getcwd() + '-build' 
+build_folder = os.getcwd() + '-build'
+
 
 # Record which symbols are referred to (by a set of files).
 class CalledSymbols:
@@ -33,6 +38,9 @@ class CalledSymbols:
         self.referred = set()
 
     def addCalls(self, file):
+        if should_exit:
+            exit(1)
+
         # Make sure that file is built.
         last_dir = os.path.split(os.path.dirname(file))[-1]
         if file.find('ui/cli') != -1:
@@ -46,42 +54,54 @@ class CalledSymbols:
             else:
                 object_file = os.path.join(build_folder, os.path.dirname(file), 'CMakeFiles', last_dir + '.dir', os.path.basename(file) + '.o')
         if not os.path.exists(object_file):
+            # Not built for whatever reason..
             #print('Warning -', object_file, 'does not exist')
             return
+
+        # Run command to check symbols.
         command = ['nm', object_file]
         for f in subprocess.check_output(command).splitlines():
-            l = str(f)[2:-1]
-            # Lines might or might not have an address before letter and symbol.
+            line = str(f)[2:-1]
+            # Lines might, or might not, have an address before letter and symbol.
             p1 = re.compile(r'[0-9a-f]* ([a-zA-Z]) (.*)')
             p2 = re.compile(r'[ ]* ([a-zA-Z]) (.*)')
 
-            m = p1.match(l)
+            m = p1.match(line)
             if not m:
-                m = p2.match(l)
+                m = p2.match(line)
             if m:
                 letter = m.group(1)
                 function_name = m.group(2)
 
-                # Only interested in undefined references to symbols.
+                # Only interested in undefined/external references to symbols.
                 if letter == 'U':
                     self.referred.add(function_name)
 
 
 
-# Record which symbols are defined in a single file.
+# Record which symbols are defined in a single dissector file.
 class DefinedSymbols:
     def __init__(self, file):
         self.filename = file
-        self.global_dict = {}
+        self.global_symbols = {}       # map from defined symbol -> whole output-line
         self.header_file_contents = None
+        self.from_generated_file = isGeneratedFile(file)
 
         # Make sure that file is built.
-        object_file = os.path.join(build_folder, 'epan', 'dissectors', 'CMakeFiles', 'dissectors.dir', os.path.basename(file) + '.o')
-
+        if self.filename.startswith('epan'):
+            object_file = os.path.join(build_folder, 'epan', 'dissectors', 'CMakeFiles', 'dissectors.dir', os.path.basename(file) + '.o')
+        elif self.filename.startswith('plugins'):
+            plugin_base_dir = os.path.dirname(file)
+            plugin_base_name = os.path.basename(plugin_base_dir)
+            object_file = os.path.join(build_folder, plugin_base_dir, 'CMakeFiles', plugin_base_name + '.dir', os.path.basename(file) + '.o')
+        else:
+            #print("Warning - can't determine object file for ", self.filename)
+            return
         if not os.path.exists(object_file):
             #print('Warning -', object_file, 'does not exist')
             return
 
+        # Get header file contents if available
         header_file= file.replace('.c', '.h')
         try:
             f = open(header_file, 'r')
@@ -89,28 +109,30 @@ class DefinedSymbols:
         except IOError:
             pass
 
-
+        # Run command to see which symbols are defined
         command = ['nm', object_file]
         for f in subprocess.check_output(command).splitlines():
-            l = str(f)[2:-1]
+            # Line consists of whitespace, [address], letter, symbolName
+            line = str(f)[2:-1]
             p = re.compile(r'[0-9a-f]* ([a-zA-Z]) (.*)')
-            m = p.match(l)
+            m = p.match(line)
             if m:
                 letter = m.group(1)
                 function_name = m.group(2)
-                # Locally-defined symbols.
+                # Globally-defined symbols. Would be 't' or 'd' if already static..
                 if letter in 'TD':
-                    self.add(function_name, l)
+                    self.addDefinedSymbol(function_name, line)
 
-    def add(self, letter, function_name):
-        self.global_dict[letter] = function_name
+    def addDefinedSymbol(self, symbol, line):
+        self.global_symbols[symbol] = line
 
+    # Check if a given symbol is mentioned in headers
     def mentionedInHeaders(self, symbol):
         if self.header_file_contents:
              if self.header_file_contents.find(symbol) != -1:
                 return True
         # Also check some of the 'common' header files that don't match the dissector file name.
-        # TODO: could cache the contents of these files, but it's not that slow.
+        # TODO: could cache the contents of these files?
         common_mismatched_headers = [ os.path.join('epan', 'dissectors', 'packet-ncp-int.h'),
                                       os.path.join('epan', 'dissectors', 'packet-mq.h'),
                                       os.path.join('epan', 'dissectors', 'packet-ip.h'),
@@ -131,13 +153,15 @@ class DefinedSymbols:
 
         return False
 
-    def check(self, called_symbols):
+    def checkIfSymbolsAreCalled(self, called_symbols):
         global issues_found
-        for f in self.global_dict:
-            if not f in called_symbols:
+        for f in self.global_symbols:
+            if f not in called_symbols:
                 mentioned_in_header = self.mentionedInHeaders(f)
-                fun = self.global_dict[f]
-                print(self.filename, '(' + fun + ')', 'is not referred to so could be static?', '(in header)' if mentioned_in_header else '')
+                fun = self.global_symbols[f]
+                print(self.filename, '' if not self.from_generated_file else '(GENERATED)',
+                      '(' + fun + ')',
+                      'is not referred to so could be static?', '(declared in header)' if mentioned_in_header else '')
                 issues_found += 1
 
 
@@ -145,11 +169,16 @@ class DefinedSymbols:
 # Helper functions.
 
 def isDissectorFile(filename):
+    # Ignoring usb.c & errno.c
     p = re.compile(r'(packet|file)-.*\.c')
     return p.match(filename)
 
 # Test for whether the given dissector file was automatically generated.
 def isGeneratedFile(filename):
+    # Check file exists - e.g. may have been deleted in a recent commit.
+    if not os.path.exists(filename):
+        return False
+
     if not filename.endswith('.c'):
         return False
 
@@ -206,11 +235,9 @@ def findFilesInFolder(folder):
 
 
 def is_dissector_file(filename):
-    p = re.compile(r'.*packet-.*\.c')
+    p = re.compile(r'.*(packet|file)-.*\.c')
     return p.match(filename)
 
-
-issues_found = 0
 
 
 
@@ -220,7 +247,7 @@ issues_found = 0
 # command-line args.  Controls which dissector files should be checked.
 # If no args given, will just scan epan/dissectors folder.
 parser = argparse.ArgumentParser(description='Check calls in dissectors')
-parser.add_argument('--build', action='store', default='',
+parser.add_argument('--build-folder', action='store', default='',
                     help='build folder', required=False)
 parser.add_argument('--file', action='append',
                     help='specify individual dissector file to test')
@@ -231,17 +258,18 @@ parser.add_argument('--open', action='store_true',
 
 args = parser.parse_args()
 
+issues_found = 0
 
 # Get files from wherever command-line args indicate.
 files = []
 
-if args.build:
-    build_folder = args.build
+if args.build_folder:
+    build_folder = args.build_folder
 
 if args.file:
     # Add specified file(s)
     for f in args.file:
-        if not f.startswith('epan'):
+        if not os.path.isfile(f) and not f.startswith('epan'):
             f = os.path.join('epan', 'dissectors', f)
         if not os.path.isfile(f):
             print('Chosen file', f, 'does not exist.')
@@ -271,12 +299,12 @@ elif args.open:
     for f in files:
         files.append(f)
     for f in files_staged:
-        if not f in files:
+        if f not in files:
             files.append(f)
 else:
     # Find all dissector files from folder.
     files = findDissectorFilesInFolder(os.path.join('epan', 'dissectors'),
-                                       include_generated=False)
+                                       include_generated=True)
 
 
 # If scanning a subset of files, list them here.
@@ -291,7 +319,7 @@ else:
 
 
 if not os.path.isdir(build_folder):
-    print('Build directory not valid', build_folder, '- please set with --build')
+    print('Build directory not valid', build_folder, '- please set with --build-folder')
     exit(1)
 
 
@@ -310,11 +338,12 @@ for d in findFilesInFolder(os.path.join('ui', 'cli')):
     called.addCalls(d)
 
 
-# Now check identified files.
+# Now check identified dissector files.
 for f in files:
     if should_exit:
         exit(1)
-    DefinedSymbols(f).check(called.referred)
+    # Are these symbols called - or could they be deleted or static????
+    DefinedSymbols(f).checkIfSymbolsAreCalled(called.referred)
 
 # Show summary.
 print(issues_found, 'issues found')

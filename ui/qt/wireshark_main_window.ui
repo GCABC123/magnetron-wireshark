@@ -72,8 +72,7 @@
         </widget>
        </item>
        <item>
-        <widget class="QLineEdit" name="goToLineEdit">
-        </widget>
+        <widget class="QLineEdit" name="goToLineEdit"/>
        </item>
        <item>
         <widget class="QPushButton" name="goToGo">
@@ -141,7 +140,7 @@
      <x>0</x>
      <y>0</y>
      <width>960</width>
-     <height>22</height>
+     <height>23</height>
     </rect>
    </property>
    <widget class="QMenu" name="menuFile">
@@ -247,9 +246,9 @@
     <addaction name="actionHelpFAQ"/>
     <addaction name="actionHelpAsk"/>
     <addaction name="actionHelpDownloads"/>
-    <addaction name="separator"/>
     <addaction name="actionHelpWiki"/>
     <addaction name="actionHelpSampleCaptures"/>
+    <addaction name="actionHelpReleaseNotes"/>
     <addaction name="separator"/>
     <addaction name="actionHelpAbout"/>
    </widget>
@@ -305,10 +304,14 @@
      <addaction name="separator"/>
      <addaction name="actionViewTimeDisplayFormatPrecisionAutomatic"/>
      <addaction name="actionViewTimeDisplayFormatPrecisionSeconds"/>
-     <addaction name="actionViewTimeDisplayFormatPrecisionDeciseconds"/>
-     <addaction name="actionViewTimeDisplayFormatPrecisionCentiseconds"/>
+     <addaction name="actionViewTimeDisplayFormatPrecision100Milliseconds"/>
+     <addaction name="actionViewTimeDisplayFormatPrecision10Milliseconds"/>
      <addaction name="actionViewTimeDisplayFormatPrecisionMilliseconds"/>
+     <addaction name="actionViewTimeDisplayFormatPrecision100Microseconds"/>
+     <addaction name="actionViewTimeDisplayFormatPrecision10Microseconds"/>
      <addaction name="actionViewTimeDisplayFormatPrecisionMicroseconds"/>
+     <addaction name="actionViewTimeDisplayFormatPrecision100Nanoseconds"/>
+     <addaction name="actionViewTimeDisplayFormatPrecision10Nanoseconds"/>
      <addaction name="actionViewTimeDisplayFormatPrecisionNanoseconds"/>
      <addaction name="separator"/>
      <addaction name="actionViewTimeDisplaySecondsWithHoursAndMinutes"/>
@@ -468,6 +471,13 @@
      <addaction name="actionStatisticsBACappObjectId"/>
      <addaction name="actionStatisticsBACappService"/>
     </widget>
+    <widget class="QMenu" name="menuDNS">
+     <property name="title">
+      <string>DNS</string>
+     </property>
+     <addaction name="actionStatisticsDNS"/>
+     <addaction name="actionStatisticsDNS_QR"/>
+    </widget>
     <widget class="QMenu" name="menuHTTP">
      <property name="title">
       <string>HTTP</string>
@@ -519,6 +529,24 @@
       <string>Service &amp;Response Time</string>
      </property>
     </widget>
+    <widget class="QMenu" name="menuRSerPool">
+     <property name="title">
+      <string>Reliable Server Pooling (RSerPool)</string>
+     </property>
+    </widget>
+    <widget class="QMenu" name="menuSOMEIP">
+     <property name="title">
+      <string>SOME/IP</string>
+     </property>
+     <addaction name="actionStatisticsSOMEIPmessages"/>
+     <addaction name="actionStatisticsSOMEIPSDentries"/>
+    </widget>
+    <widget class="QMenu" name="menuDTN">
+     <property name="title">
+      <string>&amp;DTN</string>
+     </property>
+     <addaction name="actionStatisticsLTP"/>
+    </widget>
     <addaction name="actionStatisticsCaptureFileProperties"/>
     <addaction name="actionStatisticsResolvedAddresses"/>
     <addaction name="actionStatisticsProtocolHierarchy"/>
@@ -533,7 +561,7 @@
     <addaction name="actionStatisticsANCP"/>
     <addaction name="menuBACnet"/>
     <addaction name="actionStatisticsCollectd"/>
-    <addaction name="actionStatisticsDNS"/>
+    <addaction name="menuDNS"/>
     <addaction name="actionStatisticsFlowGraph"/>
     <addaction name="actionStatisticsHART_IP"/>
     <addaction name="actionStatisticsHpfeeds"/>
@@ -543,27 +571,9 @@
     <addaction name="menuTcpStreamGraphs"/>
     <addaction name="actionStatisticsUdpMulticastStreams"/>
     <addaction name="menuRSerPool"/>
-    <widget class="QMenu" name="menuRSerPool">
-     <property name="title">
-      <string>Reliable Server Pooling (RSerPool)</string>
-     </property>
-    </widget>
     <addaction name="actionStatistics_REGISTER_STAT_GROUP_RSERPOOL"/>
     <addaction name="menuSOMEIP"/>
-    <widget class="QMenu" name="menuSOMEIP">
-     <property name="title">
-      <string>SOME/IP</string>
-     </property>
-     <addaction name="actionStatisticsSOMEIPmessages"/>
-     <addaction name="actionStatisticsSOMEIPSDentries"/>
-    </widget>
     <addaction name="menuDTN"/>
-    <widget class="QMenu" name="menuDTN">
-     <property name="title">
-      <string>&amp;DTN</string>
-     </property>
-     <addaction name="actionStatisticsLTP"/>
-    </widget>
    </widget>
    <widget class="QMenu" name="menuTelephony">
     <property name="title">
@@ -589,6 +599,7 @@
      </property>
      <addaction name="actionSCTPAnalyseThisAssociation"/>
      <addaction name="actionSCTPShowAllAssociations"/>
+     <addaction name="actionSCTPFilterThisAssociation"/>
     </widget>
     <widget class="QMenu" name="menuANSI">
      <property name="title">
@@ -604,7 +615,7 @@
     </widget>
     <widget class="QMenu" name="menuLTE">
      <property name="title">
-      <string>&amp;LTE</string>
+      <string>&amp;3GPP Uu</string>
      </property>
      <addaction name="actionTelephonyLTEPlaceholder"/>
     </widget>
@@ -635,6 +646,7 @@
     <addaction name="actionTelephonyUCPMessages"/>
     <addaction name="actionTelephonyF1APMessages"/>
     <addaction name="actionTelephonyNGAPMessages"/>
+    <addaction name="actionTelephonyE2APMessages"/>
    </widget>
    <widget class="QMenu" name="menuEdit">
     <property name="title">
@@ -647,6 +659,7 @@
      <addaction name="actionCopyListAsText"/>
      <addaction name="actionCopyListAsCSV"/>
      <addaction name="actionCopyListAsYAML"/>
+     <addaction name="actionCopyListAsHTML"/>
      <addaction name="separator"/>
      <addaction name="actionCopyAllVisibleItems"/>
      <addaction name="actionCopyAllVisibleSelectedTreeItems"/>
@@ -656,18 +669,23 @@
      <addaction name="separator"/>
      <addaction name="actionEditCopyAsFilter"/>
     </widget>
+    <widget class="QMenu" name="menuPacketComment">
+     <property name="title">
+      <string>Packet Comments</string>
+     </property>
+    </widget>
     <addaction name="menuEditCopy"/>
     <addaction name="actionEditFindPacket"/>
     <addaction name="actionEditFindNext"/>
     <addaction name="actionEditFindPrevious"/>
     <addaction name="separator"/>
-    <addaction name="actionEditMarkPacket"/>
+    <addaction name="actionEditMarkSelected"/>
     <addaction name="actionEditMarkAllDisplayed"/>
     <addaction name="actionEditUnmarkAllDisplayed"/>
     <addaction name="actionEditNextMark"/>
     <addaction name="actionEditPreviousMark"/>
     <addaction name="separator"/>
-    <addaction name="actionEditIgnorePacket"/>
+    <addaction name="actionEditIgnoreSelected"/>
     <addaction name="actionEditIgnoreAllDisplayed"/>
     <addaction name="actionEditUnignoreAllDisplayed"/>
     <addaction name="separator"/>
@@ -678,13 +696,11 @@
     <addaction name="separator"/>
     <addaction name="actionEditTimeShift"/>
     <addaction name="separator"/>
-    <widget class="QMenu" name="menuPacketComment">
-     <property name="title">
-      <string>Packet Comments</string>
-     </property>
-    </widget>
     <addaction name="menuPacketComment"/>
     <addaction name="actionDeleteAllPacketComments"/>
+    <addaction name="separator"/>
+    <addaction name="actionEditInjectSecrets"/>
+    <addaction name="actionEditDiscardAllSecrets"/>
     <addaction name="separator"/>
     <addaction name="actionEditConfigurationProfiles"/>
     <addaction name="actionEditPreferences"/>
@@ -705,6 +721,8 @@
     </property>
     <addaction name="actionToolsFirewallAclRules"/>
     <addaction name="actionToolsCredentials"/>
+    <addaction name="actionToolsMacLookup"/>
+    <addaction name="actionToolsTLSKeylog"/>
    </widget>
    <addaction name="menuFile"/>
    <addaction name="menuEdit"/>
@@ -770,6 +788,7 @@
    <addaction name="actionViewZoomOut"/>
    <addaction name="actionViewNormalSize"/>
    <addaction name="actionViewResizeColumns"/>
+   <addaction name="actionViewResetLayout"/>
   </widget>
   <widget class="MainStatusBar" name="statusBar"/>
   <widget class="QToolBar" name="displayFilterToolBar">
@@ -884,16 +903,14 @@
   </action>
   <action name="actionHelpContents">
    <property name="text">
-    <string>&amp;Contents</string>
+    <string>&amp;User's Guide</string>
    </property>
+   <!-- This tooltip is replaced with the URL -->
    <property name="toolTip">
-    <string>Help contents</string>
+    <string>Wireshark User's Guide</string>
    </property>
    <property name="shortcut">
     <string notr="true">F1</string>
-   </property>
-   <property name="iconVisibleInMenu">
-    <bool>true</bool>
    </property>
   </action>
   <action name="actionHelpMPWireshark">
@@ -903,7 +920,7 @@
   </action>
   <action name="actionHelpMPWireshark_Filter">
    <property name="text">
-    <string>Wireshark Filter</string>
+    <string>Display Filters</string>
    </property>
   </action>
   <action name="actionHelpMPTShark">
@@ -1354,6 +1371,11 @@
     <string>As &amp;YAML</string>
    </property>
   </action>
+  <action name="actionCopyListAsHTML">
+   <property name="text">
+    <string>As &amp;HTML</string>
+   </property>
+  </action>
   <action name="actionCopyAllVisibleItems">
    <property name="text">
     <string>All Visible Items</string>
@@ -1454,9 +1476,9 @@
     <string notr="true">Ctrl+B</string>
    </property>
   </action>
-  <action name="actionEditMarkPacket">
+  <action name="actionEditMarkSelected">
    <property name="text">
-    <string>&amp;Mark/Unmark Packet(s)</string>
+    <string>&amp;Mark/Unmark Selected</string>
    </property>
    <property name="toolTip">
     <string>Mark or unmark each selected packet</string>
@@ -1509,9 +1531,9 @@
     <string notr="true">Ctrl+Shift+B</string>
    </property>
   </action>
-  <action name="actionEditIgnorePacket">
+  <action name="actionEditIgnoreSelected">
    <property name="text">
-    <string>&amp;Ignore/Unignore Packet(s)</string>
+    <string>&amp;Ignore/Unignore Selected</string>
    </property>
    <property name="toolTip">
     <string>Ignore or unignore each selected packet</string>
@@ -1603,6 +1625,22 @@
    </property>
    <property name="toolTip">
     <string>Remove all packet comments in the capture file</string>
+   </property>
+  </action>
+  <action name="actionEditInjectSecrets">
+   <property name="text">
+    <string>Inject TLS Secrets</string>
+   </property>
+   <property name="toolTip">
+    <string>Embed used TLS secrets in the capture file</string>
+   </property>
+  </action>
+  <action name="actionEditDiscardAllSecrets">
+   <property name="text">
+    <string>Discard All Secrets</string>
+   </property>
+   <property name="toolTip">
+    <string>Discard all decryption secrets in the capture file</string>
    </property>
   </action>
   <action name="actionEditConfigurationProfiles">
@@ -1724,6 +1762,11 @@
     <string>Show All Associations</string>
    </property>
   </action>
+  <action name="actionSCTPFilterThisAssociation">
+   <property name="text">
+    <string>Filter this Association</string>
+   </property>
+  </action>
   <action name="actionStatisticsFlowGraph">
    <property name="text">
     <string>Flow Graph</string>
@@ -1782,10 +1825,18 @@
   </action>
   <action name="actionStatisticsDNS">
    <property name="text">
-    <string>DNS</string>
+    <string>General</string>
    </property>
    <property name="toolTip">
     <string>DNS statistics</string>
+   </property>
+  </action>
+  <action name="actionStatisticsDNS_QR">
+   <property name="text">
+    <string>Query-Response</string>
+   </property>
+   <property name="toolTip">
+    <string>DNS Query-Response Statistics</string>
    </property>
   </action>
   <action name="actionStatisticsHART_IP">
@@ -1860,15 +1911,15 @@
     <string>Sametime statistics</string>
    </property>
   </action>
-   <action name="actionStatisticsSOMEIPmessages">
-     <property name="text">
-       <string>SOME/IP Messages</string>
-     </property>
-     <property name="toolTip">
-       <string>SOME/IP Message statistics</string>
-     </property>
-   </action>
-   <action name="actionStatisticsSOMEIPSDentries">
+  <action name="actionStatisticsSOMEIPmessages">
+   <property name="text">
+    <string>SOME/IP Messages</string>
+   </property>
+   <property name="toolTip">
+    <string>SOME/IP Message statistics</string>
+   </property>
+  </action>
+  <action name="actionStatisticsSOMEIPSDentries">
    <property name="text">
     <string>SOME/IP-SD Entries</string>
    </property>
@@ -1938,6 +1989,14 @@
    </property>
    <property name="toolTip">
     <string>NGAP Messages</string>
+   </property>
+  </action>
+  <action name="actionTelephonyE2APMessages">
+   <property name="text">
+    <string>E2AP</string>
+   </property>
+   <property name="toolTip">
+    <string>E2AP Messages</string>
    </property>
   </action>
   <action name="actionAnalyzeDecodeAs">
@@ -2035,14 +2094,6 @@
   <action name="actionStatistics29WestLBTRU">
    <property name="text">
     <string>LBT-RU</string>
-   </property>
-  </action>
-  <action name="actionSCTPFilterThisAssociation">
-   <property name="text">
-    <string>Filter this Association</string>
-   </property>
-   <property name="toolTip">
-    <string>Filter this Association</string>
    </property>
   </action>
   <action name="actionFileExportPDU">
@@ -2159,7 +2210,7 @@
     <string>Reset Layout</string>
    </property>
    <property name="toolTip">
-    <string>Reset appearance layout to default size</string>
+    <string>Reset layout to default size</string>
    </property>
    <property name="shortcut">
     <string notr="true">Ctrl+Shift+W</string>
@@ -2329,7 +2380,7 @@
     <string>Seconds</string>
    </property>
   </action>
-  <action name="actionViewTimeDisplayFormatPrecisionDeciseconds">
+  <action name="actionViewTimeDisplayFormatPrecision100Milliseconds">
    <property name="checkable">
     <bool>true</bool>
    </property>
@@ -2337,7 +2388,7 @@
     <string>Tenths of a second</string>
    </property>
   </action>
-  <action name="actionViewTimeDisplayFormatPrecisionCentiseconds">
+  <action name="actionViewTimeDisplayFormatPrecision10Milliseconds">
    <property name="checkable">
     <bool>true</bool>
    </property>
@@ -2353,12 +2404,44 @@
     <string>Milliseconds</string>
    </property>
   </action>
+  <action name="actionViewTimeDisplayFormatPrecision100Microseconds">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>Tenths of a millisecond</string>
+   </property>
+  </action>
+  <action name="actionViewTimeDisplayFormatPrecision10Microseconds">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>Hundredths of a millisecond</string>
+   </property>
+  </action>
   <action name="actionViewTimeDisplayFormatPrecisionMicroseconds">
    <property name="checkable">
     <bool>true</bool>
    </property>
    <property name="text">
     <string>Microseconds</string>
+   </property>
+  </action>
+  <action name="actionViewTimeDisplayFormatPrecision100Nanoseconds">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>Tenths of a microsecond</string>
+   </property>
+  </action>
+  <action name="actionViewTimeDisplayFormatPrecision10Nanoseconds">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>Hundredths of a microsecond</string>
    </property>
   </action>
   <action name="actionViewTimeDisplayFormatPrecisionNanoseconds">
@@ -2957,6 +3040,21 @@
   <action name="actionToolsCredentials">
    <property name="text">
     <string>Credentials</string>
+   </property>
+  </action>
+  <action name="actionToolsMacLookup">
+   <property name="text">
+    <string>MAC Address Blocks</string>
+   </property>
+  </action>
+  <action name="actionToolsTLSKeylog">
+   <property name="text">
+    <string>TLS Keylog Launcher</string>
+   </property>
+  </action>
+  <action name="actionHelpReleaseNotes">
+   <property name="text">
+    <string>Release Notes</string>
    </property>
   </action>
  </widget>

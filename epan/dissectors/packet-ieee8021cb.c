@@ -26,33 +26,35 @@
 void proto_register_ieee8021cb(void);
 void proto_reg_handoff_ieee8021cb(void);
 
+static dissector_handle_t ieee8021cb_handle;
 static dissector_handle_t ethertype_handle;
 
+static capture_dissector_handle_t ieee8021cb_cap_handle;
 static capture_dissector_handle_t ipx_cap_handle;
 static capture_dissector_handle_t llc_cap_handle;
 
 /* GLOBALS ************************************************************/
 
-static int proto_ieee8021cb = -1;
+static int proto_ieee8021cb;
 
 /* dot1cb R-tag fields */
-static int hf_ieee8021cb_res = -1;
-static int hf_ieee8021cb_seq = -1;
+static int hf_ieee8021cb_res;
+static int hf_ieee8021cb_seq;
 
 /* Encapsulated protocol */
-static int hf_ieee8021cb_etype = -1;
+static int hf_ieee8021cb_etype;
 
-static gint ett_ieee8021cb = -1;
+static int ett_ieee8021cb;
 
 #define IEEE8021CB_LEN 6
 
-static gboolean
-capture_ieee8021cb(const guchar *pd, int offset, int len, capture_packet_info_t *cpinfo, const union wtap_pseudo_header *pseudo_header)
+static bool
+capture_ieee8021cb(const unsigned char *pd, int offset, int len, capture_packet_info_t *cpinfo, const union wtap_pseudo_header *pseudo_header)
 {
-    guint16 encap_proto;
+    uint16_t encap_proto;
 
     if (!BYTES_ARE_IN_FRAME(offset, len, IEEE8021CB_LEN + 1))
-        return FALSE;
+        return false;
 
     encap_proto = pntoh16( &pd[offset + IEEE8021CB_LEN - 2] );
     if (encap_proto <= IEEE_802_3_MAX_LEN) {
@@ -74,7 +76,7 @@ int dissect_ieee8021cb(tvbuff_t *tvb, packet_info *pinfo,
                    proto_tree *tree, void* data _U_)
 {
     proto_tree       *ptree   = NULL;
-    guint16           seq, pro;
+    uint16_t          seq, pro;
     ethertype_data_t  ethertype_data;
     proto_tree       *ieee8021cb_tree;
 
@@ -124,7 +126,7 @@ proto_register_ieee8021cb(void)
                 VALS(etype_vals), 0x0, "Ethertype", HFILL }}
     };
 
-    static gint *ett[] = {
+    static int *ett[] = {
         &ett_ieee8021cb
     };
 
@@ -132,18 +134,17 @@ proto_register_ieee8021cb(void)
     proto_ieee8021cb = proto_register_protocol("802.1CB Redundancy Tag", "R-Tag", "ieee8021cb");
     proto_register_field_array(proto_ieee8021cb, hf_1cb, array_length(hf_1cb));
     proto_register_subtree_array(ett, array_length(ett));
+
+    ieee8021cb_handle = register_dissector("ieee8021cb", dissect_ieee8021cb, proto_ieee8021cb);
+    ieee8021cb_cap_handle = register_capture_dissector("ieee8021cb", capture_ieee8021cb, proto_ieee8021cb);
 }
 
 void
 proto_reg_handoff_ieee8021cb(void)
 {
-    static dissector_handle_t         ieee8021cb_handle;
-    static capture_dissector_handle_t ieee8021cb_cap_handle;
 
-    ieee8021cb_handle = create_dissector_handle(dissect_ieee8021cb, proto_ieee8021cb);
     dissector_add_uint("ethertype", ETHERTYPE_IEEE_802_1CB, ieee8021cb_handle);
     ethertype_handle = find_dissector_add_dependency("ethertype", proto_ieee8021cb);
-    ieee8021cb_cap_handle = create_capture_dissector_handle(capture_ieee8021cb, proto_ieee8021cb);
     capture_dissector_add_uint("ethertype", ETHERTYPE_IEEE_802_1CB, ieee8021cb_cap_handle);
 
     ipx_cap_handle = find_capture_dissector("ipx");

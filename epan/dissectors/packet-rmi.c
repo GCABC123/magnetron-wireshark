@@ -19,41 +19,43 @@
 void proto_register_rmi(void);
 void proto_reg_handoff_rmi(void);
 
+static dissector_handle_t rmi_handle;
+
 static void
 dissect_ser(tvbuff_t *tvb, proto_tree *tree);
 
 static rmi_type
-get_rmi_type(tvbuff_t *tvb, gint offset, int datalen);
+get_rmi_type(tvbuff_t *tvb, int offset, int datalen);
 
 /* Initialize the protocol and registered fields */
-static int proto_rmi             = -1;
-static int proto_ser             = -1;
-static int hf_rmi_magic          = -1;
-static int hf_rmi_version        = -1;
-static int hf_rmi_protocol       = -1;
-static int hf_rmi_inputmessage   = -1;
-static int hf_rmi_outputmessage  = -1;
-static int hf_rmi_epid_length    = -1;
-static int hf_rmi_epid_hostname  = -1;
-static int hf_rmi_epid_port      = -1;
-static int hf_rmi_serialization_data = -1;
-static int hf_rmi_unique_identifier = -1;
+static int proto_rmi;
+static int proto_ser;
+static int hf_rmi_magic;
+static int hf_rmi_version;
+static int hf_rmi_protocol;
+static int hf_rmi_inputmessage;
+static int hf_rmi_outputmessage;
+static int hf_rmi_epid_length;
+static int hf_rmi_epid_hostname;
+static int hf_rmi_epid_port;
+static int hf_rmi_serialization_data;
+static int hf_rmi_unique_identifier;
 
-static int hf_ser_magic          = -1;
-static int hf_ser_version        = -1;
+static int hf_ser_magic;
+static int hf_ser_version;
 
 /* Initialize the subtree pointers */
-static gint ett_rmi               = -1;
-static gint ett_rmi_magic         = -1;
-static gint ett_rmi_version       = -1;
-static gint ett_rmi_inputmessage  = -1;
-static gint ett_rmi_outputmessage = -1;
-static gint ett_rmi_epid_length   = -1;
-static gint ett_rmi_epid_hostname = -1;
-static gint ett_rmi_epid_port     = -1;
-static gint ett_rmi_endpoint_identifier = -1;
+static int ett_rmi;
+static int ett_rmi_magic;
+static int ett_rmi_version;
+static int ett_rmi_inputmessage;
+static int ett_rmi_outputmessage;
+static int ett_rmi_epid_length;
+static int ett_rmi_epid_hostname;
+static int ett_rmi_epid_port;
+static int ett_rmi_endpoint_identifier;
 
-static gint ett_ser               = -1;
+static int ett_ser;
 
 /*
  * See
@@ -99,19 +101,19 @@ dissect_rmi(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, void* data _U_)
 
     tvbuff_t   *next_tvb;
 
-    gint        offset = 0;
-    gint        next_offset;
+    int         offset = 0;
+    int         next_offset;
     int         datalen;
 
-    guint16     version, len, port;
-    guint8      message, proto;
+    uint16_t    version, len, port;
+    uint8_t     message, proto;
 
     rmi_type    rmitype;
 
 /* Make entries in Protocol column and Info column on summary display */
     col_set_str(pinfo->cinfo, COL_PROTOCOL, "RMI");
 
-    datalen = tvb_find_line_end(tvb, offset, -1, &next_offset, FALSE);
+    datalen = tvb_find_line_end(tvb, offset, -1, &next_offset, false);
 
     rmitype = get_rmi_type(tvb, offset, datalen);
 
@@ -121,13 +123,13 @@ dissect_rmi(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, void* data _U_)
         col_add_fstr(pinfo->cinfo, COL_INFO,
                      "JRMI, Version: %d, ", version);
 
-        proto   = tvb_get_guint8(tvb, 6);
+        proto   = tvb_get_uint8(tvb, 6);
         col_append_str(pinfo->cinfo, COL_INFO,
                        val_to_str_const(proto, rmi_protocol_str,
                                         "Unknown protocol"));
         break;
     case RMI_OUTPUTMESSAGE:
-        message = tvb_get_guint8(tvb,0);
+        message = tvb_get_uint8(tvb,0);
         col_set_str(pinfo->cinfo, COL_INFO,
                     "JRMI, ");
         col_append_str(pinfo->cinfo, COL_INFO,
@@ -135,7 +137,7 @@ dissect_rmi(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, void* data _U_)
                                         "Unknown message"));
         break;
     case RMI_INPUTSTREAM:
-        message = tvb_get_guint8(tvb,0);
+        message = tvb_get_uint8(tvb,0);
         col_set_str(pinfo->cinfo, COL_INFO,
                     "JRMI, ");
         col_append_str(pinfo->cinfo, COL_INFO,
@@ -166,7 +168,7 @@ dissect_rmi(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, void* data _U_)
                                 tvb, offset + 6, 1, ENC_BIG_ENDIAN);
             break;
         case RMI_INPUTSTREAM:
-            message = tvb_get_guint8(tvb, 0);
+            message = tvb_get_uint8(tvb, 0);
             proto_tree_add_uint(rmi_tree, hf_rmi_inputmessage,
                                 tvb, offset, 1, message);
             if(message == RMI_INPUTSTREAM_MESSAGE_ACK) {
@@ -196,7 +198,7 @@ dissect_rmi(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, void* data _U_)
             }
             break;
         case RMI_OUTPUTMESSAGE:
-            message = tvb_get_guint8(tvb, 0);
+            message = tvb_get_uint8(tvb, 0);
             proto_tree_add_uint(rmi_tree, hf_rmi_outputmessage,
                                 tvb, offset, 1, message);
             if(message == RMI_OUTPUTSTREAM_MESSAGE_CALL) {
@@ -226,7 +228,7 @@ dissect_ser(tvbuff_t *tvb, proto_tree *tree)
     proto_item *ti;
     proto_tree *ser_tree;
 
-    gint offset;
+    int offset;
 
     offset = 0;
 
@@ -242,10 +244,10 @@ dissect_ser(tvbuff_t *tvb, proto_tree *tree)
 }
 
 static rmi_type
-get_rmi_type(tvbuff_t *tvb, gint offset, int datalen)
+get_rmi_type(tvbuff_t *tvb, int offset, int datalen)
 {
-    guint16 ser_magic;
-    guchar  data[4];
+    uint16_t ser_magic;
+    unsigned char  data[4];
 
     tvb_memcpy(tvb, data, offset, (datalen > 4) ? 4 : datalen);
 
@@ -314,7 +316,7 @@ proto_register_rmi(void)
         { &hf_rmi_epid_port,
           { "Port", "rmi.endpoint_id.port",
             FT_UINT16, BASE_DEC, NULL, 0x0,
-            "RMI Endpointindentifier Port", HFILL }},
+            "RMI Endpointidentifier Port", HFILL }},
         { &hf_rmi_serialization_data,
           { "Serialization Data", "rmi.serialization_data",
             FT_BYTES, BASE_NONE, NULL, 0x0,
@@ -334,7 +336,7 @@ proto_register_rmi(void)
             "Java Serialization Version", HFILL }},
     };
 
-    static gint *ett[] = {
+    static int *ett[] = {
         &ett_rmi,
         &ett_rmi_magic,
         &ett_rmi_version,
@@ -353,14 +355,12 @@ proto_register_rmi(void)
     proto_register_field_array(proto_rmi, hf, array_length(hf));
     proto_register_subtree_array(ett, array_length(ett));
 
+    rmi_handle = register_dissector("rmi", dissect_rmi, proto_rmi);
 }
 
 void
 proto_reg_handoff_rmi(void)
 {
-    dissector_handle_t rmi_handle;
-
-    rmi_handle = create_dissector_handle(dissect_rmi, proto_rmi);
     dissector_add_uint_with_preference("tcp.port", TCP_PORT_RMI, rmi_handle);
 }
 

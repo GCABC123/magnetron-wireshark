@@ -56,7 +56,7 @@
 
 
 
-static gint proto_hislip = -1;
+static int proto_hislip;
 
 static dissector_handle_t hislip_handle;
 
@@ -64,27 +64,27 @@ static dissector_handle_t hislip_handle;
 
 typedef struct _hislip_transaction_t
 {
-    guint32 req_frame;
-    guint32 rep_frame;
-    guint8 messagetype;
-    guint8 controlcode;
-    guint32 messagepara;
+    uint32_t req_frame;
+    uint32_t rep_frame;
+    uint8_t messagetype;
+    uint8_t controlcode;
+    uint32_t messagepara;
 } hislip_transaction_t;
 
 typedef struct _hislip_conv_info_t
 {
-    guint8 connectiontype;
+    uint8_t connectiontype;
     wmem_tree_t *pdus;
  }hislip_conv_info_t;
 
 
 typedef struct _hislipinfo
 {
-    guint8  messagetype;
-    guint8  controlcode;
-    guint32 messageparameter;
-    guint64 payloadlength;
-    guint  offset;
+    uint8_t messagetype;
+    uint8_t controlcode;
+    uint32_t messageparameter;
+    uint64_t payloadlength;
+    unsigned  offset;
     proto_item *hislip_item;
 } hislipinfo;
 
@@ -95,44 +95,44 @@ void proto_reg_handoff_hislip(void);
 #define HISLIP_PORT     4880
 
 /*Field indexs*/
-static gint hf_hislip_prologue = -1;
-static gint hf_hislip_messagetype = -1;
-static gint hf_hislip_controlcode = -1;
-static gint hf_hislip_controlcode_rmt = -1;
-static gint hf_hislip_controlcode_overlap = -1;
-static gint hf_hislip_controlcode_asynclock_code = -1;
-static gint hf_hislip_controlcode_asynclockresponse_code_request = -1;
-static gint hf_hislip_controlcode_asynclockresponse_code_release = -1;
-static gint hf_hislip_controlcode_asynclockinforesponse_code = -1;
-static gint hf_hislip_controlcode_feature_negotiation = -1;
-static gint hf_hislip_controlcode_asyncremotelocalcontrol_code = -1;
-static gint hf_hislip_controlcode_stb = -1;
-static gint hf_hislip_messageparameter = -1;
-static gint hf_hislip_payloadlength = -1;
-static gint hf_hislip_data = -1;
-static gint hf_hislip_msgpara_messageid = -1;
-static gint hf_hislip_msgpara_sessionid = -1;
-static gint hf_hislip_msgpara_serverproto = -1;
-static gint hf_hislip_msgpara_vendorID = -1;
-static gint hf_hislip_msgpara_clientproto = -1;
-static gint hf_hislip_msgpara_clients = -1;
-static gint hf_hislip_msgpara_timeout = -1;
-static gint hf_hislip_fatalerrcode = -1;
-static gint hf_hislip_nonfatalerrorcode = -1;
-static gint hf_hislip_syn = -1;
-static gint hf_hislip_asyn = -1;
-static gint hf_hislip_retransmission = -1;
-static gint hf_hislip_request = -1;
-static gint hf_hislip_maxmessagesize = -1;
-static gint hf_hislip_response = -1;
+static int hf_hislip_prologue;
+static int hf_hislip_messagetype;
+static int hf_hislip_controlcode;
+static int hf_hislip_controlcode_rmt;
+static int hf_hislip_controlcode_overlap;
+static int hf_hislip_controlcode_asynclock_code;
+static int hf_hislip_controlcode_asynclockresponse_code_request;
+static int hf_hislip_controlcode_asynclockresponse_code_release;
+static int hf_hislip_controlcode_asynclockinforesponse_code;
+static int hf_hislip_controlcode_feature_negotiation;
+static int hf_hislip_controlcode_asyncremotelocalcontrol_code;
+static int hf_hislip_controlcode_stb;
+static int hf_hislip_messageparameter;
+static int hf_hislip_payloadlength;
+static int hf_hislip_data;
+static int hf_hislip_msgpara_messageid;
+static int hf_hislip_msgpara_sessionid;
+static int hf_hislip_msgpara_serverproto;
+static int hf_hislip_msgpara_vendorID;
+static int hf_hislip_msgpara_clientproto;
+static int hf_hislip_msgpara_clients;
+static int hf_hislip_msgpara_timeout;
+static int hf_hislip_fatalerrcode;
+static int hf_hislip_nonfatalerrorcode;
+static int hf_hislip_syn;
+static int hf_hislip_asyn;
+static int hf_hislip_retransmission;
+static int hf_hislip_request;
+static int hf_hislip_maxmessagesize;
+static int hf_hislip_response;
 
 /*Subtree index*/
-static gint ett_hislip = -1;
-static gint ett_hislip_msgpara = -1;
+static int ett_hislip;
+static int ett_hislip_msgpara;
 
 
-static expert_field ei_wrong_prologue = EI_INIT;
-static expert_field ei_msg_not_null = EI_INIT;
+static expert_field ei_wrong_prologue;
+static expert_field ei_msg_not_null;
 
 static const range_string messagetypestring[] =
 {
@@ -227,7 +227,7 @@ static const value_string asyncremotelocalcontrol_code[] =
         { 3, "Enable remote and go to remote" },
         { 4, "Enable remote and lock out local" },
         { 5, "Enable remote, go to remote, and set local lockout" },
-        { 6, "go to local without changing state of remote enable" },
+        { 6, "Go to local without changing state of remote enable" },
         { 0, NULL }
 };
 
@@ -459,7 +459,7 @@ decode_messagepara(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, hislipin
 
 
 static void
-decode_controlcode(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, hislipinfo *data, guint8 oldcontrolvalue)
+decode_controlcode(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, hislipinfo *data, uint8_t oldcontrolvalue)
 {
     proto_item * item = NULL;
     switch (data->messagetype )
@@ -476,21 +476,21 @@ decode_controlcode(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, hislipin
     case HISLIP_INITIALIZERESPONSE:
 
         proto_tree_add_item(tree, hf_hislip_controlcode_overlap, tvb, data->offset, 1, ENC_BIG_ENDIAN );
-        col_append_fstr(pinfo->cinfo, COL_INFO, " [%s]", val_to_str(data->controlcode, overlap, "Unknown"));
-        proto_item_append_text(data->hislip_item, ", %s", val_to_str(data->controlcode, overlap, "Unknown"));
+        col_append_fstr(pinfo->cinfo, COL_INFO, " [%s]", val_to_str_const(data->controlcode, overlap, "Unknown"));
+        proto_item_append_text(data->hislip_item, ", %s", val_to_str_const(data->controlcode, overlap, "Unknown"));
         break;
 
 
     case HISLIP_ASYNCLOCK:
 
         item = proto_tree_add_item(tree, hf_hislip_controlcode_asynclock_code, tvb, data->offset, 1, ENC_BIG_ENDIAN );
-        col_append_fstr(pinfo->cinfo, COL_INFO, " [%s", val_to_str(data->controlcode, asynclock_code, "Unknown"));
-        proto_item_append_text(data->hislip_item, ", %s", val_to_str(data->controlcode, asynclock_code, "Unknown"));
+        col_append_fstr(pinfo->cinfo, COL_INFO, " [%s", val_to_str_const(data->controlcode, asynclock_code, "Unknown"));
+        proto_item_append_text(data->hislip_item, ", %s", val_to_str_const(data->controlcode, asynclock_code, "Unknown"));
 
         /*if release add ] and leave*/
         if (data->controlcode != 1)
         {
-            col_append_fstr(pinfo->cinfo, COL_INFO, "]");
+            col_append_str(pinfo->cinfo, COL_INFO, "]");
             break;
         }
 
@@ -499,13 +499,13 @@ decode_controlcode(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, hislipin
         {
 
             proto_item_append_text(item, "[Exclusive]");
-            col_append_fstr(pinfo->cinfo, COL_INFO, " Exclusive]");
+            col_append_str(pinfo->cinfo, COL_INFO, " Exclusive]");
             proto_item_append_text(data->hislip_item, " (Exclusive)");
         }
         else
         {
             proto_item_append_text(item, "[Shared]");
-            col_append_fstr(pinfo->cinfo, COL_INFO, " Shared]");
+            col_append_str(pinfo->cinfo, COL_INFO, " Shared]");
             proto_item_append_text(data->hislip_item, " (Shared)");
         }
         break;
@@ -514,16 +514,16 @@ decode_controlcode(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, hislipin
     case HISLIP_FATALERROR:
 
         proto_tree_add_item(tree, hf_hislip_fatalerrcode, tvb, data->offset, 1, ENC_BIG_ENDIAN );
-        col_append_fstr(pinfo->cinfo, COL_INFO, " [%s]", rval_to_str(data->controlcode, fatalerrortype, "Unknown"));
-        proto_item_append_text(data->hislip_item, ", %s", rval_to_str(data->controlcode, fatalerrortype, "Unknown"));
+        col_append_fstr(pinfo->cinfo, COL_INFO, " [%s]", rval_to_str_const(data->controlcode, fatalerrortype, "Unknown"));
+        proto_item_append_text(data->hislip_item, ", %s", rval_to_str_const(data->controlcode, fatalerrortype, "Unknown"));
         break;
 
 
     case HISLIP_ERROR:
 
         proto_tree_add_item(tree, hf_hislip_nonfatalerrorcode, tvb, data->offset, 1, ENC_BIG_ENDIAN );
-        col_append_fstr(pinfo->cinfo, COL_INFO, " [%s]", rval_to_str(data->controlcode, nonfatalerrortype, "Unknown"));
-        proto_item_append_text(data->hislip_item, ", %s", rval_to_str(data->controlcode, nonfatalerrortype, "Unknown"));
+        col_append_fstr(pinfo->cinfo, COL_INFO, " [%s]", rval_to_str_const(data->controlcode, nonfatalerrortype, "Unknown"));
+        proto_item_append_text(data->hislip_item, ", %s", rval_to_str_const(data->controlcode, nonfatalerrortype, "Unknown"));
         break;
 
 
@@ -533,14 +533,14 @@ decode_controlcode(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, hislipin
         if (oldcontrolvalue == 1)
         {   /*Requestresponse*/
             proto_tree_add_item(tree, hf_hislip_controlcode_asynclockresponse_code_request, tvb, data->offset, 1, ENC_BIG_ENDIAN );
-            col_append_fstr(pinfo->cinfo, COL_INFO, " [%s]", val_to_str(data->controlcode, asynclockresponse_code_request, "Unknown"));
-            proto_item_append_text(data->hislip_item, ", %s", val_to_str(data->controlcode, asynclockresponse_code_request, "Unknown"));
+            col_append_fstr(pinfo->cinfo, COL_INFO, " [%s]", val_to_str_const(data->controlcode, asynclockresponse_code_request, "Unknown"));
+            proto_item_append_text(data->hislip_item, ", %s", val_to_str_const(data->controlcode, asynclockresponse_code_request, "Unknown"));
         }
         else
         {   /*Releaseresponse*/
             proto_tree_add_item(tree, hf_hislip_controlcode_asynclockresponse_code_release, tvb, data->offset, 1, ENC_BIG_ENDIAN );
-            col_append_fstr(pinfo->cinfo, COL_INFO, " [%s]", val_to_str(data->controlcode, asynclockresponse_code_release, "Unknown"));
-            proto_item_append_text(data->hislip_item, ", %s", val_to_str(data->controlcode, asynclockresponse_code_release, "Unknown"));
+            col_append_fstr(pinfo->cinfo, COL_INFO, " [%s]", val_to_str_const(data->controlcode, asynclockresponse_code_release, "Unknown"));
+            proto_item_append_text(data->hislip_item, ", %s", val_to_str_const(data->controlcode, asynclockresponse_code_release, "Unknown"));
         }
         break;
 
@@ -548,17 +548,17 @@ decode_controlcode(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, hislipin
     case HISLIP_ASYNCLOCKINFORESPONSE:
 
         proto_tree_add_item(tree, hf_hislip_controlcode_asynclockinforesponse_code, tvb, data->offset, 1, ENC_BIG_ENDIAN );
-        col_append_fstr(pinfo->cinfo, COL_INFO, " [%s]", val_to_str(data->controlcode, asynclockinforesponse_code, "Unknown"));
-        proto_item_append_text(data->hislip_item, ", %s", val_to_str(data->controlcode, asynclockinforesponse_code, "Unknown"));
+        col_append_fstr(pinfo->cinfo, COL_INFO, " [%s]", val_to_str_const(data->controlcode, asynclockinforesponse_code, "Unknown"));
+        proto_item_append_text(data->hislip_item, ", %s", val_to_str_const(data->controlcode, asynclockinforesponse_code, "Unknown"));
         break;
 
 
     case HISLIP_ASYNCREMOTELOCALCONTROL:
 
         item = proto_tree_add_item(tree, hf_hislip_controlcode_asyncremotelocalcontrol_code, tvb, data->offset, 1, ENC_BIG_ENDIAN );
-        proto_item_append_text(item, " %s", val_to_str(data->controlcode, remotetype, "Unknown"));
-        col_append_fstr(pinfo->cinfo, COL_INFO, " [%s]", val_to_str(data->controlcode, asyncremotelocalcontrol_code, "Unknown"));
-        proto_item_append_text(data->hislip_item, ", %s", val_to_str(data->controlcode, asyncremotelocalcontrol_code, "Unknown"));
+        proto_item_append_text(item, " %s", val_to_str_const(data->controlcode, remotetype, "Unknown"));
+        col_append_fstr(pinfo->cinfo, COL_INFO, " [%s]", val_to_str_const(data->controlcode, asyncremotelocalcontrol_code, "Unknown"));
+        proto_item_append_text(data->hislip_item, ", %s", val_to_str_const(data->controlcode, asyncremotelocalcontrol_code, "Unknown"));
 
         break;
 
@@ -576,7 +576,7 @@ decode_controlcode(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, hislipin
     case HISLIP_DEVICECLEARACKNOWLEDGE:
 
         proto_tree_add_item(tree, hf_hislip_controlcode_feature_negotiation, tvb, data->offset, 1, ENC_BIG_ENDIAN );
-        col_append_fstr(pinfo->cinfo, COL_INFO, " [%s]", val_to_str(data->controlcode&0x01, feature_negotiation, "Unknown"));
+        col_append_fstr(pinfo->cinfo, COL_INFO, " [%s]", val_to_str_const(data->controlcode&0x01, feature_negotiation, "Unknown"));
         break;
 
     default:
@@ -596,8 +596,8 @@ decode_data(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, hislipinfo *dat
     /*check for data in packet*/
     if (data->payloadlength != 0)
     {
-        guint64 datalength;
-        gdouble max_message_size;
+        uint64_t datalength;
+        double max_message_size;
 
         switch (data->messagetype)
         {
@@ -610,7 +610,7 @@ decode_data(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, hislipinfo *dat
             if (data->payloadlength <= datalength)
                 datalength = data->payloadlength;
 
-            col_append_fstr(pinfo->cinfo, COL_INFO, " %s", tvb_format_text(pinfo->pool, tvb, data->offset, (guint32)datalength));
+            col_append_fstr(pinfo->cinfo, COL_INFO, " %s", tvb_format_text(pinfo->pool, tvb, data->offset, (uint32_t)datalength));
             proto_tree_add_item(tree, hf_hislip_data, tvb, data->offset, -1, ENC_UTF_8 |ENC_NA);
 
             break;
@@ -618,7 +618,7 @@ decode_data(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, hislipinfo *dat
         case HISLIP_ASYNCMAXIMUMMESSAGESIZE:
         case HISLIP_ASYNCMAXIMUMMESSAGESIZERESPONSE:
 
-            max_message_size = (gdouble)tvb_get_ntoh64(tvb, data->offset);
+            max_message_size = (double)tvb_get_ntoh64(tvb, data->offset);
             max_message_size = max_message_size/1048576.0;
 
             item = proto_tree_add_item(tree, hf_hislip_maxmessagesize, tvb, data->offset, 8, ENC_BIG_ENDIAN);
@@ -634,14 +634,14 @@ decode_data(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, hislipinfo *dat
         }
     }
 
-    data->offset  += (guint32)data->payloadlength;
+    data->offset  += (uint32_t)data->payloadlength;
 }
 
 
 
 /*Search for Retransmission*/
-static guint32
-search_for_retransmission(wmem_tree_t *pdus, hislipinfo *data, guint32 fnum )
+static uint32_t
+search_for_retransmission(wmem_tree_t *pdus, hislipinfo *data, uint32_t fnum )
 {
 
     hislip_transaction_t *hislip_trans;
@@ -658,8 +658,8 @@ search_for_retransmission(wmem_tree_t *pdus, hislipinfo *data, guint32 fnum )
 }
 
 
-static guint8
-is_connection_syn_or_asyn(guint8 messagetype)
+static uint8_t
+is_connection_syn_or_asyn(uint8_t messagetype)
 {
     if (messagetype >= HISLIP_ASYNCINTERRUPTED)
     {
@@ -684,7 +684,7 @@ is_connection_syn_or_asyn(guint8 messagetype)
 }
 
 
-static gint
+static int
 dissect_hislip_message(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, void *data _U_)
 {
     conversation_t *conversation;
@@ -693,8 +693,8 @@ dissect_hislip_message(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, void
     proto_tree *hislip_tree;
     proto_item *it = NULL;
     hislipinfo hislip_data;
-    guint8 oldcontrolvalue = 0;
-    guint32 frame_number;
+    uint8_t oldcontrolvalue = 0;
+    uint32_t frame_number;
 
     hislip_tree  = NULL;
     conversation = NULL;
@@ -710,9 +710,9 @@ dissect_hislip_message(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, void
 
 
     /*Get Message Type*/
-    hislip_data.messagetype = tvb_get_guint8(tvb, hislip_data.offset+2);
+    hislip_data.messagetype = tvb_get_uint8(tvb, hislip_data.offset+2);
     /*Get Control Code*/
-    hislip_data.controlcode = tvb_get_guint8(tvb, hislip_data.offset+3);
+    hislip_data.controlcode = tvb_get_uint8(tvb, hislip_data.offset+3);
     /*Get Message Parameter*/
     hislip_data.messageparameter = tvb_get_ntohl(tvb, hislip_data.offset+4);
     /*Get Payload Length*/
@@ -720,7 +720,7 @@ dissect_hislip_message(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, void
 
 
     /* Write Messagetype in the info column */
-    col_add_fstr(pinfo->cinfo, COL_INFO, "%s", rval_to_str(hislip_data.messagetype, messagetypestring, "Unknown"));
+    col_add_str(pinfo->cinfo, COL_INFO, rval_to_str_const(hislip_data.messagetype, messagetypestring, "Unknown"));
 
 
     if (tree)
@@ -789,7 +789,7 @@ dissect_hislip_message(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, void
             proto_item_set_generated(it);
         }
 
-        /*Retransmisson*/
+        /*Retransmission*/
         if((frame_number = search_for_retransmission(hislip_info->pdus, &hislip_data , pinfo->num))!=0)
         {
             it = proto_tree_add_uint( hislip_tree, hf_hislip_retransmission, tvb, 0, 0, frame_number);
@@ -831,7 +831,7 @@ dissect_hislip_message(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, void
     hislip_data.offset += 2;
 
     proto_tree_add_item(hislip_tree, hf_hislip_messagetype, tvb, hislip_data.offset, 1, ENC_BIG_ENDIAN);
-    proto_item_append_text(hislip_data.hislip_item, ", %s", rval_to_str(hislip_data.messagetype, messagetypestring, "Unknown"));
+    proto_item_append_text(hislip_data.hislip_item, ", %s", rval_to_str_const(hislip_data.messagetype, messagetypestring, "Unknown"));
     hislip_data.offset += 1;
 
     decode_controlcode(tvb, pinfo, hislip_tree, &hislip_data, oldcontrolvalue );
@@ -847,45 +847,45 @@ dissect_hislip_message(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, void
 
 }
 
-static guint
+static unsigned
 get_hislip_message_len(packet_info *pinfo _U_, tvbuff_t *tvb,
                        int offset, void *data _U_)
 {
     /* Data length */
-    guint64 length = tvb_get_ntoh64(tvb, offset+8);
+    uint64_t length = tvb_get_ntoh64(tvb, offset+8);
     /* Header length */
     length += FRAME_HEADER_LEN;
 
-    return (guint32)length;
+    return (uint32_t)length;
 }
 
-static gint
+static int
 dissect_hislip(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, void *data)
 {
     /*Reassembling TCP fragments*/
-    tcp_dissect_pdus(tvb, pinfo, tree, TRUE, FRAME_HEADER_LEN,
+    tcp_dissect_pdus(tvb, pinfo, tree, true, FRAME_HEADER_LEN,
                      get_hislip_message_len, dissect_hislip_message, data);
 
     return tvb_captured_length(tvb);
 }
 
 /*Heuristic*/
-static gboolean
+static bool
 dissect_hislip_heur(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, void *data)
 {
     /*  min. 16 bytes?*/
     if (tvb_captured_length(tvb) < FRAME_HEADER_LEN)
-        return FALSE;
+        return false;
 
     /*first two byte == "HS"*/
     if (tvb_get_ntohs(tvb, 0) != 0x4853)
-        return FALSE;
+        return false;
 
     /* XXX: Can it be assumed that all following packets for this connection will also be 'hislip' ?
      *      If so, conversation_set_dissector() should be called.
      */
     dissect_hislip(tvb, pinfo, tree, data);
-    return TRUE;
+    return true;
 
 }
 
@@ -992,7 +992,7 @@ proto_register_hislip(void)
     };
 
 
-    static gint *ett[] = {
+    static int *ett[] = {
         &ett_hislip,
         &ett_hislip_msgpara
     };
@@ -1014,12 +1014,12 @@ proto_register_hislip(void)
     hislip_module = prefs_register_protocol(proto_hislip, NULL);
     prefs_register_obsolete_preference(hislip_module, "enable_heuristic");
 
+    hislip_handle = register_dissector("hislip", dissect_hislip, proto_hislip);
 }
 
 void
 proto_reg_handoff_hislip(void)
 {
-    hislip_handle = create_dissector_handle(dissect_hislip, proto_hislip);
     /* disabled by default since heuristic is weak */
     heur_dissector_add("tcp", dissect_hislip_heur, "HiSLIP over TCP", "hislip_tcp", proto_hislip, HEURISTIC_DISABLE);
 

@@ -12,11 +12,11 @@ import argparse
 import signal
 
 # This utility scans for tfs items, and works out if standard ones
-# could have been used intead (from epan/tfs.c)
+# could have been used instead (from epan/tfs.c)
+# Can also check for value_string where common tfs could be used instead.
 
 # TODO:
-# - check how many of the definitions in epan/tfs.c are used in other dissectors
-#      - although even if unused, might be in external dissectors?
+# - consider merging Item class with check_typed_item_calls.py ?
 
 
 # Try to exit soon after Ctrl-C is pressed.
@@ -32,8 +32,12 @@ signal.signal(signal.SIGINT, signal_handler)
 
 # Test for whether the given file was automatically generated.
 def isGeneratedFile(filename):
+    # Check file exists - e.g. may have been deleted in a recent commit.
+    if not os.path.exists(filename):
+        return False
+
     # Open file
-    f_read = open(os.path.join(filename), 'r')
+    f_read = open(os.path.join(filename), 'r', encoding="utf8", errors="ignore")
     lines_tested = 0
     for line in f_read:
         # The comment to say that its generated is near the top, so give up once
@@ -64,32 +68,61 @@ def isGeneratedFile(filename):
 # Keep track of custom entries that might appear in multiple dissectors,
 # so we can consider adding them to tfs.c
 custom_tfs_entries = {}
-def AddCustomEntry(val1, val2, file):
+def AddCustomEntry(true_val, false_val, file):
     global custom_tfs_entries
-    if (val1, val2) in custom_tfs_entries:
-        custom_tfs_entries[(val1, val2)].append(file)
+    if (true_val, false_val) in custom_tfs_entries:
+        custom_tfs_entries[(true_val, false_val)].append(file)
     else:
-        custom_tfs_entries[(val1, val2)] = [file]
+        custom_tfs_entries[(true_val, false_val)] = [file]
 
 
-
+# Individual parsed TFS entry
 class TFS:
-    def __init__(self, file, name, val1, val2):
+    def __init__(self, file, name, true_val, false_val):
         self.file = file
         self.name = name
-        self.val1 = val1
-        self.val2 = val2
+        self.true_val = true_val
+        self.false_val = false_val
 
-        # Do some extra checks on values.
-        if val1.startswith(' ') or val1.endswith(' '):
-            print('N.B.: file=' + self.file + ' ' + self.name + ' - false val begins or ends with space \"' + self.val1 + '\"')
-        if val2.startswith(' ') or val2.endswith(' '):
-            print('N.B.: file=' + self.file + ' ' + self.name + ' - true val begins or ends with space \"' + self.val2 + '\"')
+        global warnings_found
+
+        # Should not be empty
+        if not len(true_val) or not len(false_val):
+            print('Warning:', file, name, 'has an empty field', self)
+            warnings_found += 1
+        #else:
+            # Strange if one begins with capital but other doesn't?
+            #if true_val[0].isalpha() and false_val[0].isalpha():
+            #    if true_val[0].isupper() != false_val[0].isupper():
+            #        print(file, name, 'one starts lowercase and the other upper', self)
+
+        # Leading or trailing space should not be needed.
+        if true_val.startswith(' ') or true_val.endswith(' '):
+            print('Note: ' + self.file + ' ' + self.name + ' - true val begins or ends with space \"' + self.true_val + '\"')
+        if false_val.startswith(' ') or false_val.endswith(' '):
+            print('Note: ' + self.file + ' ' + self.name + ' - false val begins or ends with space \"' + self.false_val + '\"')
+
+        # Should really not be identical...
+        if true_val.lower() == false_val.lower():
+            print('Warning:', file, name, 'true and false strings are the same', self)
+            warnings_found += 1
+
+        # Shouldn't both be negation (with exception..)
+        if (file != os.path.join('epan', 'dissectors', 'packet-smb.c') and (true_val.lower().find('not ') != -1) and (false_val.lower().find('not ') != -1)):
+            print('Warning:', file, name, self, 'both strings contain not')
+            warnings_found += 1
+
+        # Not expecting full-stops inside strings..
+        if true_val.find('.') != -1 or false_val.find('.') != -1:
+            print('Warning:', file, name, 'Period found in string', self)
+            warnings_found += 1
+
 
     def __str__(self):
-        return '{' + '"' + self.val1 + '", "' + self.val2 + '"}'
+        return '{' + '"' + self.true_val + '", "' + self.false_val + '"}'
 
 
+# Only looking at in terms of could/should it be TFS instead.
 class ValueString:
     def __init__(self, file, name, vals):
         self.file = file
@@ -126,37 +159,147 @@ class ValueString:
         return '{' + '"' + self.raw_vals + '"}'
 
 
+field_widths = {
+    'FT_BOOLEAN' : 64,   # TODO: Width depends upon 'display' field
+    'FT_CHAR'    : 8,
+    'FT_UINT8'   : 8,
+    'FT_INT8'    : 8,
+    'FT_UINT16'  : 16,
+    'FT_INT16'   : 16,
+    'FT_UINT24'  : 24,
+    'FT_INT24'   : 24,
+    'FT_UINT32'  : 32,
+    'FT_INT32'   : 32,
+    'FT_UINT40'  : 40,
+    'FT_INT40'   : 40,
+    'FT_UINT48'  : 48,
+    'FT_INT48'   : 48,
+    'FT_UINT56'  : 56,
+    'FT_INT56'   : 56,
+    'FT_UINT64'  : 64,
+    'FT_INT64'   : 64
+}
+
+
+
+
+# Simplified version of class that is in check_typed_item_calls.py
+class Item:
+
+    previousItem = None
+
+    def __init__(self, filename, hf, filter, label, item_type, type_modifier, strings, macros, mask=None,
+                 check_mask=False):
+        self.filename = filename
+        self.hf = hf
+        self.filter = filter
+        self.label = label
+        self.strings = strings
+        self.mask = mask
+
+        # N.B. Not setting mask by looking up macros.
+
+        self.item_type = item_type
+        self.type_modifier = type_modifier
+
+        self.set_mask_value(macros)
+
+        self.bits_set = 0
+        for n in range(0, self.get_field_width_in_bits()):
+            if self.check_bit(self.mask_value, n):
+                self.bits_set += 1
+
+    def __str__(self):
+        return 'Item ({0} "{1}" {2} type={3}:{4} strings={5} mask={6})'.format(self.filename, self.label, self.filter,
+                                                                               self.item_type, self.type_modifier, self.strings, self.mask)
+
+    def set_mask_value(self, macros):
+        try:
+            self.mask_read = True
+
+            # Substitute mask if found as a macro..
+            if self.mask in macros:
+                self.mask = macros[self.mask]
+            elif any(c not in '0123456789abcdefABCDEFxX' for c in self.mask):
+                self.mask_read = False
+                self.mask_value = 0
+                return
+
+            # Read according to the appropriate base.
+            if self.mask.startswith('0x'):
+                self.mask_value = int(self.mask, 16)
+            elif self.mask.startswith('0'):
+                self.mask_value = int(self.mask, 8)
+            else:
+                self.mask_value = int(self.mask, 10)
+        except Exception:
+            self.mask_read = False
+            self.mask_value = 0
+
+
+    # Return true if bit position n is set in value.
+    def check_bit(self, value, n):
+        return (value & (0x1 << n)) != 0
+
+
+    def get_field_width_in_bits(self):
+        if self.item_type == 'FT_BOOLEAN':
+            if self.type_modifier == 'NULL':
+                return 8  # i.e. 1 byte
+            elif self.type_modifier == 'BASE_NONE':
+                return 8
+            elif self.type_modifier == 'SEP_DOT':   # from proto.h, only meant for FT_BYTES
+                return 64
+            else:
+                try:
+                    # For FT_BOOLEAN, modifier is just numerical number of bits. Round up to next nibble.
+                    return int((int(self.type_modifier) + 3)/4)*4
+                except Exception:
+                    return 0
+        else:
+            if self.item_type in field_widths:
+                # Lookup fixed width for this type
+                return field_widths[self.item_type]
+            else:
+                #print('returning 0 for', self)
+                return 0
+
+
+
+
 
 def removeComments(code_string):
     code_string = re.sub(re.compile(r"/\*.*?\*/",re.DOTALL ) ,"" ,code_string) # C-style comment
     code_string = re.sub(re.compile(r"//.*?\n" ) ,"" ,code_string)             # C++-style comment
+    code_string = re.sub(re.compile(r"#if 0.*?#endif",re.DOTALL ) ,"" , code_string) # Ignored region
+
     return code_string
 
 
 # Look for true_false_string items in a dissector file.
-def findItems(filename):
-    items = {}
+def findTFS(filename):
+    tfs_found = {}
 
-    with open(filename, 'r') as f:
+    with open(filename, 'r', encoding="utf8", errors="ignore") as f:
         contents = f.read()
-        # Example: const true_false_string tfs_true_false = { "True", "False" };
+        # Example: const true_false_string tfs_yes_no = { "Yes", "No" };
 
         # Remove comments so as not to trip up RE.
         contents = removeComments(contents)
 
-        matches =   re.finditer(r'.*const\s*true_false_string\s*([a-z_]*)\s*=\s*{\s*\"([a-zA-Z_ ]*)\"\s*,\s*\"([a-zA-Z_ ]*)\"', contents)
+        matches =   re.finditer(r'\sconst\s*true_false_string\s*([a-zA-Z0-9_]*)\s*=\s*{\s*\"([a-zA-Z_0-9/:! ]*)\"\s*,\s*\"([a-zA-Z_0-9/:! ]*)\"', contents)
         for m in matches:
             name = m.group(1)
-            val1 = m.group(2)
-            val2 = m.group(3)
+            true_val = m.group(2)
+            false_val = m.group(3)
             # Store this entry.
-            items[name] = TFS(filename, name, val1, val2)
+            tfs_found[name] = TFS(filename, name, true_val, false_val)
 
-    return items
+    return tfs_found
 
 # Look for value_string entries in a dissector file.
 def findValueStrings(filename):
-    items = {}
+    vals_found = {}
 
     #static const value_string radio_type_vals[] =
     #{
@@ -165,45 +308,82 @@ def findValueStrings(filename):
     #    { 0, NULL }
     #};
 
-    with open(filename, 'r') as f:
+    with open(filename, 'r', encoding="utf8", errors="ignore") as f:
         contents = f.read()
 
         # Remove comments so as not to trip up RE.
         contents = removeComments(contents)
 
-        matches =   re.finditer(r'.*const value_string\s*([a-zA-Z0-9_]*)\s*\[\s*\]\s*\=\s*\{([\{\}\d\,a-zA-Z\s\"]*)\};', contents)
+        matches =   re.finditer(r'.*const value_string\s*([a-zA-Z0-9_]*)\s*\[\s*\]\s*\=\s*\{([\{\}\d\,a-zA-Z0-9\s\"]*)\};', contents)
         for m in matches:
             name = m.group(1)
             vals = m.group(2)
-            items[name] = ValueString(filename, name, vals)
+            vals_found[name] = ValueString(filename, name, vals)
 
+    return vals_found
+
+# Look for hf items (i.e. full item to be registered) in a dissector file.
+def find_items(filename, macros, check_mask=False, mask_exact_width=False, check_label=False, check_consecutive=False):
+    items = {}
+    with open(filename, 'r', encoding="utf8", errors="ignore") as f:
+        contents = f.read()
+        # Remove comments so as not to trip up RE.
+        contents = removeComments(contents)
+
+        # N.B. re extends all the way to HFILL to avoid greedy matching
+        matches = re.finditer( r'.*\{\s*\&(hf_[a-z_A-Z0-9]*)\s*,\s*{\s*\"(.*?)\"\s*,\s*\"(.*?)\"\s*,\s*(.*?)\s*,\s*([0-9A-Z_\|\s]*?)\s*,\s*(.*?)\s*,\s*(.*?)\s*,\s*([a-zA-Z0-9\W\s_\u00f6\u00e4]*?)\s*,\s*HFILL', contents)
+        for m in matches:
+            # Store this item.
+            hf = m.group(1)
+            items[hf] = Item(filename, hf, filter=m.group(3), label=m.group(2), item_type=m.group(4),
+                             type_modifier=m.group(5),
+                             strings=m.group(6),
+                             macros=macros,
+                             mask=m.group(7))
     return items
+
+def find_macros(filename):
+    macros = {}
+    with open(filename, 'r', encoding="utf8", errors="ignore") as f:
+        contents = f.read()
+        # Remove comments so as not to trip up RE.
+        contents = removeComments(contents)
+
+        matches = re.finditer( r'#define\s*([A-Z0-9_]*)\s*([0-9xa-fA-F]*)\n', contents)
+        for m in matches:
+            # Store this mapping.
+            macros[m.group(1)] = m.group(2)
+    return macros
 
 
 
 def is_dissector_file(filename):
-    p = re.compile(r'.*packet-.*\.c')
+    p = re.compile(r'.*(packet|file)-.*\.c')
     return p.match(filename)
 
 def findDissectorFilesInFolder(folder):
-    # Look at files in sorted order, to give some idea of how far through is.
-    files = []
+    files = set()
 
-    for f in sorted(os.listdir(folder)):
-        if should_exit:
-            return
-        if is_dissector_file(f):
-            filename = os.path.join(folder, f)
-            files.append(filename)
+    for path, tmp_unused, names in os.walk(folder):
+        for f in names:
+            if should_exit:
+                return
+            if is_dissector_file(f):
+                files.add(os.path.join(path, f))
+
     return files
 
 
-
+# Global counts
 warnings_found = 0
 errors_found = 0
 
+# name -> count
+common_usage = {}
+
+
 # Check the given dissector file.
-def checkFile(filename, tfs_items, look_for_common=False, check_value_strings=False):
+def checkFile(filename, common_tfs, look_for_common=False, check_value_strings=False, count_common_usage=False):
     global warnings_found
     global errors_found
 
@@ -213,11 +393,11 @@ def checkFile(filename, tfs_items, look_for_common=False, check_value_strings=Fa
         return
 
     # Find items.
-    items = findItems(filename)
+    file_tfs = findTFS(filename)
 
     # See if any of these items already existed in tfs.c
-    for i in items:
-        for t in tfs_items:
+    for f in file_tfs:
+        for c in common_tfs:
             found = False
 
             #
@@ -233,14 +413,15 @@ def checkFile(filename, tfs_items, look_for_common=False, check_value_strings=Fa
             #
             if os.path.commonprefix([filename, 'plugin/epan/']) == '':
                 exact_case = False
-                if tfs_items[t].val1 == items[i].val1 and tfs_items[t].val2 == items[i].val2:
+                if file_tfs[f].true_val == common_tfs[c].true_val and file_tfs[f].false_val == common_tfs[c].false_val:
                     found = True
                     exact_case = True
-                elif tfs_items[t].val1.upper() == items[i].val1.upper() and tfs_items[t].val2.upper() == items[i].val2.upper():
+                elif file_tfs[f].true_val.upper() == common_tfs[c].true_val.upper() and file_tfs[f].false_val.upper() == common_tfs[c].false_val.upper():
                     found = True
 
                 if found:
-                    print("Error:" if exact_case else "Warn: ", filename, i, "- could have used", t, 'from tfs.c instead: ', tfs_items[t],
+                    print("Error:" if exact_case else "Warning: ", filename, f,
+                          "- could have used", c, 'from tfs.c instead: ', common_tfs[c],
                           '' if exact_case else '  (capitalisation differs)')
                     if exact_case:
                         errors_found += 1
@@ -249,17 +430,25 @@ def checkFile(filename, tfs_items, look_for_common=False, check_value_strings=Fa
                     break
         if not found:
             if look_for_common:
-                AddCustomEntry(items[i].val1, items[i].val2, filename)
+                AddCustomEntry(file_tfs[f].true_val, file_tfs[f].false_val, filename)
 
     if check_value_strings:
+        # Get macros
+        macros = find_macros(filename)
+
+        # Get value_string entries.
         vs = findValueStrings(filename)
+
+        # Also get hf items
+        items = find_items(filename, macros, check_mask=True)
+
+
         for v in vs:
             if vs[v].looks_like_tfs:
                 found = False
                 exact_case = False
 
-                #print('Candidate', v, vs[v])
-                for t in tfs_items:
+                for c in common_tfs:
                     found = False
 
                     #
@@ -275,18 +464,38 @@ def checkFile(filename, tfs_items, look_for_common=False, check_value_strings=Fa
                     #
                     if os.path.commonprefix([filename, 'plugin/epan/']) == '':
                         exact_case = False
-                        if tfs_items[t].val1 == vs[v].parsed_vals[True] and tfs_items[t].val2 == vs[v].parsed_vals[False]:
+                        if common_tfs[c].true_val == vs[v].parsed_vals[True] and common_tfs[c].false_val == vs[v].parsed_vals[False]:
                             found = True
                             exact_case = True
-                        elif tfs_items[t].val1.upper() == vs[v].parsed_vals[True].upper() and tfs_items[t].val2.upper() == vs[v].parsed_vals[False].upper():
+                        elif common_tfs[c].true_val.upper() == vs[v].parsed_vals[True].upper() and common_tfs[c].false_val.upper() == vs[v].parsed_vals[False].upper():
                             found = True
 
+                        # Do values match?
                         if found:
-                            print("Warn:" if exact_case else "Note:", filename, 'value_string', v, "- could have used", t, 'from tfs.c instead: ', tfs_items[t],
-                                '' if exact_case else '  (capitalisation differs)')
-                            if exact_case:
-                                warnings_found += 1
-                            break
+                            # OK, now look for items that:
+                            # - have VALS(v)  AND
+                            # - have a mask width of 1 bit (no good if field can have values > 1...)
+                            for i in items:
+                                if re.match(r'VALS\(\s*'+v+r'\s*\)', items[i].strings):
+                                    if items[i].bits_set == 1:
+                                        print("Warn:" if exact_case else "Note:", filename, 'value_string', "'"+v+"'",
+                                              '- could have used tfs.c entry instead: for', i,
+                                              ' - "FT_BOOLEAN,', str(items[i].get_field_width_in_bits()) + ', TFS(&' + c + '),"',
+                                              '' if exact_case else '  (capitalisation differs)')
+                                        if exact_case:
+                                            warnings_found += 1
+
+    if count_common_usage:
+        # Look for TFS(&<name>) in dissector
+        with open(filename, 'r') as f:
+            contents = f.read()
+            for c in common_tfs:
+                m = re.search(r'TFS\(\s*\&' + c + r'\s*\)', contents)
+                if m:
+                    if c not in common_usage:
+                        common_usage[c] = 1
+                    else:
+                        common_usage[c] += 1
 
 
 
@@ -307,46 +516,46 @@ parser.add_argument('--check-value-strings', action='store_true',
 
 parser.add_argument('--common', action='store_true',
                     help='check for potential new entries for tfs.c')
-
+parser.add_argument('--common-usage', action='store_true',
+                    help='count how many dissectors are using common tfs entries')
 
 args = parser.parse_args()
 
 
 # Get files from wherever command-line args indicate.
-files = []
+files = set()
 if args.file:
     # Add specified file(s)
     for f in args.file:
-        if not f.startswith('epan'):
+        if not os.path.isfile(f) and not f.startswith('epan'):
             f = os.path.join('epan', 'dissectors', f)
         if not os.path.isfile(f):
             print('Chosen file', f, 'does not exist.')
             exit(1)
         else:
-            files.append(f)
+            files.add(f)
 elif args.commits:
     # Get files affected by specified number of commits.
     command = ['git', 'diff', '--name-only', 'HEAD~' + args.commits]
-    files = [f.decode('utf-8')
-             for f in subprocess.check_output(command).splitlines()]
+    files = {f.decode('utf-8')
+             for f in subprocess.check_output(command).splitlines()}
     # Will examine dissector files only
-    files = list(filter(lambda f : is_dissector_file(f), files))
+    files = set(filter(is_dissector_file, files))
 elif args.open:
     # Unstaged changes.
     command = ['git', 'diff', '--name-only']
-    files = [f.decode('utf-8')
-             for f in subprocess.check_output(command).splitlines()]
+    files = {f.decode('utf-8')
+             for f in subprocess.check_output(command).splitlines()}
     # Only interested in dissector files.
-    files = list(filter(lambda f : is_dissector_file(f), files))
+    files = list(filter(is_dissector_file, files))
     # Staged changes.
     command = ['git', 'diff', '--staged', '--name-only']
-    files_staged = [f.decode('utf-8')
-                    for f in subprocess.check_output(command).splitlines()]
+    files_staged = {f.decode('utf-8')
+                    for f in subprocess.check_output(command).splitlines()}
     # Only interested in dissector files.
-    files_staged = list(filter(lambda f : is_dissector_file(f), files_staged))
+    files = set(filter(is_dissector_file, files_staged))
     for f in files_staged:
-        if not f in files:
-            files.append(f)
+        files.add(f)
 else:
     # Find all dissector files from folder.
     files = findDissectorFilesInFolder(os.path.join('epan', 'dissectors'))
@@ -356,7 +565,7 @@ else:
 print('Examining:')
 if args.file or args.commits or args.open:
     if files:
-        print(' '.join(files), '\n')
+        print(' '.join(sorted(files)), '\n')
     else:
         print('No files to check.\n')
 else:
@@ -364,22 +573,19 @@ else:
 
 
 # Get standard/ shared ones.
-tfs_entries = findItems(os.path.join('epan', 'tfs.c'))
+common_tfs_entries = findTFS(os.path.join('epan', 'tfs.c'))
 
 # Now check the files to see if they could have used shared ones instead.
-for f in files:
+# Look at files in sorted order, to give some idea of how far through we are.
+for f in sorted(files):
     if should_exit:
         exit(1)
     if not isGeneratedFile(f):
-        checkFile(f, tfs_entries, look_for_common=args.common, check_value_strings=args.check_value_strings)
+        checkFile(f, common_tfs_entries, look_for_common=args.common,
+                  check_value_strings=args.check_value_strings,
+                  count_common_usage=args.common_usage)
 
-
-# Show summary.
-print(warnings_found, 'warnings found')
-if errors_found:
-    print(errors_found, 'errors found')
-    exit(1)
-
+# Report on commonly-defined values.
 if args.common:
     # Looking for items that could potentially be moved to tfs.c
     for c in custom_tfs_entries:
@@ -387,3 +593,16 @@ if args.common:
         # Even then, probably only want to consider ones that sound generic.
         if len(custom_tfs_entries[c]) > 2:
             print(c, 'appears', len(custom_tfs_entries[c]), 'times, in: ', custom_tfs_entries[c])
+
+if args.common_usage:
+    for c in common_tfs_entries:
+        if c in common_usage:
+            print(c, 'used in', common_usage[c], 'dissectors')
+        else:
+            print('***', c, 'IS NOT USED! ***')
+
+# Show summary.
+print(warnings_found, 'warnings found')
+if errors_found:
+    print(errors_found, 'errors found')
+    exit(1)

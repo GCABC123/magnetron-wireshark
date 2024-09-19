@@ -12,13 +12,9 @@
 
 # include "config.h"
 
-#include <glib.h>
 #include <epan/packet.h>
-#include <epan/conversation.h>
 #include <epan/sctpppids.h>
-
-#include <stdio.h>
-#include <string.h>
+#include <wsutil/array.h>
 
 #include "packet-ber.h"
 #include "packet-gdt.h"
@@ -28,13 +24,13 @@
 #define PFNAME "gdt"
 
 /* Initialize the protocol and registered fields */
-static int proto_gdt = -1;
-static dissector_handle_t gdt_handle = NULL;
+static int proto_gdt;
+static dissector_handle_t gdt_handle;
 
 #include "packet-gdt-hf.c"
 
 /* Initialize the subtree pointers */
-static int ett_gdt = -1;
+static int ett_gdt;
 #include "packet-gdt-ett.c"
 
 #include "packet-gdt-fn.c"
@@ -51,7 +47,7 @@ static int dissect_gdt(tvbuff_t *tvb,
 
     /* create the gdt protocol tree */
     if (tree) {
-        gdt_item = proto_tree_add_item(tree, proto_gdt, tvb, 0, -1, FALSE);
+        gdt_item = proto_tree_add_item(tree, proto_gdt, tvb, 0, -1, ENC_NA);
         gdt_tree = proto_item_add_subtree(gdt_item, ett_gdt);
         dissect_GDTMessage_PDU(tvb, pinfo, gdt_tree, 0);
     }
@@ -66,7 +62,7 @@ void proto_register_gdt(void) {
     };
 
     /* List of subtrees */
-    static gint *ett[] = {
+    static int *ett[] = {
         &ett_gdt,
 #include "packet-gdt-ettarr.c"
     };
@@ -77,16 +73,18 @@ void proto_register_gdt(void) {
     /* Register fields and subtrees */
     proto_register_field_array(proto_gdt, hf, array_length(hf));
     proto_register_subtree_array(ett, array_length(ett));
+
+    /* Register dissector */
+    gdt_handle = register_dissector("gdt", dissect_gdt, proto_gdt);
 }
 
 /*--- proto_reg_handoff_gdt -------------------------------------------*/
 void proto_reg_handoff_gdt(void) {
-    static gboolean initialized = FALSE;
+    static bool initialized = false;
 
     if (!initialized) {
-        gdt_handle = create_dissector_handle(dissect_gdt, proto_gdt);
         dissector_add_for_decode_as("sctp.ppi", gdt_handle);
         dissector_add_uint("sctp.ppi", GDT_PROTOCOL_ID, gdt_handle);
-        initialized = TRUE;
+        initialized = true;
     }
 }

@@ -1,7 +1,7 @@
 /* Do not modify this file. Changes will be overwritten.                      */
 /* Generated automatically by the ASN.1 to Wireshark dissector compiler       */
 /* packet-ieee1609dot2.h                                                      */
-/* asn2wrs.py -L -p ieee1609dot2 -c ./ieee1609dot2.cnf -s ./packet-ieee1609dot2-template -D . -O ../.. IEEE1609dot2BaseTypes.asn IEEE1609dot2DataTypes.asn IEEE1609dot12.asn */
+/* asn2wrs.py -q -L -p ieee1609dot2 -c ./ieee1609dot2.cnf -s ./packet-ieee1609dot2-template -D . -O ../.. IEEE1609dot2BaseTypes.asn Ieee1609Dot2CrlBaseTypes.asn Ieee1609Dot2Crl.asn Ieee1609Dot2.asn IEEE1609dot12.asn */
 
 /* packet-IEEE1609dot2.h
  * Routines for IEEE 1609.2
@@ -19,6 +19,7 @@
 
 #include "ws_symbol_export.h"
 
+#define p2pcd8ByteLearningRequestId    1
 
 typedef enum _Psid_enum {
   psid_system  =   0,
@@ -76,9 +77,9 @@ typedef enum _Psid_enum {
   psid_infrastructure_to_vehicle_information_service = 139,
   psid_traffic_light_control_requests_service = 140,
   psid_geonetworking_management_communications = 141,
+  psid_certificate_revocation_list_application = 256,
   psid_traffic_light_control_status_service = 637,
   psid_collective_perception_service = 639,
-  psid_certificate_revocation_list_application = 256,
   psid_vehicle_initiated_distress_notivication = 16514,
   psid_fast_service_advertisement_protocol = 2113664,
   psid_its_station_internal_management_communications_protocol = 2113665,
@@ -100,7 +101,7 @@ typedef enum _Psid_enum {
  * structure.
  */
 WS_DLL_PUBLIC
-void ieee1609dot2_set_next_default_psid(packet_info *pinfo, guint32 psid);
+void ieee1609dot2_set_next_default_psid(packet_info *pinfo, uint32_t psid);
 
 WS_DLL_PUBLIC const val64_string ieee1609dot2_Psid_vals[];
 

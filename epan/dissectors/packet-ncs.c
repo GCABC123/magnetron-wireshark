@@ -19,12 +19,14 @@
 void proto_register_ncs(void);
 void proto_reg_handoff_ncs(void);
 
-static gint ett_ncs = -1;
+static dissector_handle_t ncs_handle;
 
-static int proto_ncs = -1;
+static int ett_ncs;
 
-static int hf_panning_id = -1;
-static int hf_incarnation = -1;
+static int proto_ncs;
+
+static int hf_panning_id;
+static int hf_incarnation;
 
 static int
 dissect_ncs(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, void* data _U_)
@@ -57,7 +59,7 @@ proto_register_ncs(void)
         NULL, HFILL }},
 
   };
-  static gint *ett[] = {
+  static int *ett[] = {
     &ett_ncs,
   };
 
@@ -65,6 +67,8 @@ proto_register_ncs(void)
                                       "NCS", "ncs");
   proto_register_field_array(proto_ncs, hf, array_length(hf));
   proto_register_subtree_array(ett, array_length(ett));
+
+  ncs_handle = register_dissector("ncs", dissect_ncs, proto_ncs);
 }
 
 
@@ -72,9 +76,6 @@ proto_register_ncs(void)
 void
 proto_reg_handoff_ncs(void)
 {
-  dissector_handle_t ncs_handle;
-
-  ncs_handle = create_dissector_handle(dissect_ncs, proto_ncs);
   dissector_add_uint("ip.proto", IP_PROTO_NCS_HEARTBEAT, ncs_handle);
 }
 

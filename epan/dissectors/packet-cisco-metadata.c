@@ -21,30 +21,33 @@
 void proto_register_cmd(void);
 void proto_reg_handoff_cmd(void);
 
+static dissector_handle_t cmd_eth_handle;
+static dissector_handle_t cmd_gre_handle;
+
 static dissector_handle_t ethertype_handle;
 
 static dissector_table_t gre_dissector_table;
 
-static int proto_cmd = -1;
+static int proto_cmd;
 
-static int hf_cmd_version = -1;
-static int hf_cmd_length = -1;
-static int hf_cmd_options = -1;
-static int hf_cmd_sgt = -1;
+static int hf_cmd_version;
+static int hf_cmd_length;
+static int hf_cmd_options;
+static int hf_cmd_sgt;
 
-static int hf_eth_type = -1;
-static int hf_cmd_trailer = -1;
+static int hf_eth_type;
+static int hf_cmd_trailer;
 
-static gint ett_cmd = -1;
+static int ett_cmd;
 
 static int
 dissect_cmd_eth(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, void* data _U_)
 {
-    guint16 encap_proto;
+    uint16_t encap_proto;
     ethertype_data_t ethertype_data;
 
     proto_tree *cmd_tree = NULL;
-    gint offset = 0;
+    int offset = 0;
 
     col_set_str(pinfo->cinfo, COL_PROTOCOL, "CMD");
     col_clear(pinfo->cinfo, COL_INFO);
@@ -70,12 +73,12 @@ dissect_cmd_eth(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, void* data 
  */
 #if 0
     if (encap_proto <= IEEE_802_3_MAX_LEN) {
-        gboolean is_802_2 = TRUE;
+        bool is_802_2 = true;
 
         /* Don't throw an exception for this check (even a BoundsError) */
         if (tvb_captured_length_remaining(tvb, 4) >= 2) {
             if (tvb_get_ntohs(tvb, 4) == 0xffff)
-                is_802_2 = FALSE;
+                is_802_2 = false;
         }
 
         dissect_802_3(encap_proto, is_802_2, tvb, 4, pinfo, tree, cmd_tree, hf_eth_type, hf_cmd_trailer, 0);
@@ -99,9 +102,9 @@ dissect_cmd_gre(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, void* data 
 {
     proto_item *ti = NULL;
     proto_tree *cmd_tree = NULL;
-    guint16 encap_proto;
+    uint16_t encap_proto;
     tvbuff_t *next_tvb;
-    gint offset = 0;
+    int offset = 0;
 
     col_set_str(pinfo->cinfo, COL_PROTOCOL, "CMD");
     col_clear(pinfo->cinfo, COL_INFO);
@@ -153,27 +156,25 @@ proto_register_cmd(void)
         },
     };
 
-    static gint *ett[] = {
+    static int *ett[] = {
         &ett_cmd
     };
 
     proto_cmd = proto_register_protocol("Cisco MetaData", "Cisco MetaData", "cmd");
     proto_register_field_array(proto_cmd, hf, array_length(hf));
     proto_register_subtree_array(ett, array_length(ett));
+
+    cmd_eth_handle = register_dissector("cmd.eth", dissect_cmd_eth, proto_cmd);
+    cmd_gre_handle = register_dissector("cmd.gre", dissect_cmd_gre, proto_cmd);
 }
 
 void
 proto_reg_handoff_cmd(void)
 {
-    dissector_handle_t cmd_eth_handle;
-    dissector_handle_t cmd_gre_handle;
-
     ethertype_handle = find_dissector_add_dependency("ethertype", proto_cmd);
 
     gre_dissector_table = find_dissector_table("gre.proto");
 
-    cmd_eth_handle = create_dissector_handle(dissect_cmd_eth, proto_cmd);
-    cmd_gre_handle = create_dissector_handle(dissect_cmd_gre, proto_cmd);
     dissector_add_uint("ethertype", ETHERTYPE_CMD, cmd_eth_handle);
     dissector_add_uint("gre.proto", ETHERTYPE_CMD, cmd_gre_handle);
 }

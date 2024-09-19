@@ -22,20 +22,22 @@
 #include "config.h"
 #include <epan/packet.h>
 #include <epan/proto.h>
-#include <epan/dissectors/packet-usb.h>
+#include "packet-usb.h"
 #include <epan/value_string.h>
 
-static int proto_usb_printer = -1;
+static dissector_handle_t usb_printer_ctl_handle;
 
-static int hf_usb_printer_req = -1;
-static int hf_usb_printer_cfg_idx = -1;
-static int hf_usb_printer_intf = -1;
-static int hf_usb_printer_alt_set = -1;
-static int hf_usb_printer_max_len = -1;
-static int hf_usb_printer_dev_id_len = -1;
-static int hf_usb_printer_dev_id = -1;
+static int proto_usb_printer;
 
-static gint ett_usb_printer   = -1;
+static int hf_usb_printer_req;
+static int hf_usb_printer_cfg_idx;
+static int hf_usb_printer_intf;
+static int hf_usb_printer_alt_set;
+static int hf_usb_printer_max_len;
+static int hf_usb_printer_dev_id_len;
+static int hf_usb_printer_dev_id;
+
+static int ett_usb_printer;
 
 void proto_register_usb_printer(void);
 void proto_reg_handoff_usb_printer(void);
@@ -51,20 +53,20 @@ static const value_string usb_printer_req[] = {
     { 0, NULL }
 };
 
-static gint dissect_usb_printer_ctl(
+static int dissect_usb_printer_ctl(
         tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, void *data)
 {
-    gboolean is_request = (pinfo->srcport == NO_ENDPOINT);
-    usb_conv_info_t *usb_conv_info = (usb_conv_info_t *)data;
+    bool is_request = (pinfo->srcport == NO_ENDPOINT);
+    urb_info_t *urb = (urb_info_t *)data;
     usb_trans_info_t *usb_trans_info;
-    gint offset = 0;
-    guint8 bReq;
-    guint32 dev_id_len;
+    int offset = 0;
+    uint8_t bReq;
+    uint32_t dev_id_len;
 
-    if (!usb_conv_info)
+    if (!urb)
         return 0;
 
-    usb_trans_info = usb_conv_info->usb_trans_info;
+    usb_trans_info = urb->usb_trans_info;
     if (!usb_trans_info)
         return 0;
 
@@ -74,9 +76,9 @@ static gint dissect_usb_printer_ctl(
                 usb_printer_req, "Invalid"));
 
     if (is_request) {
-        col_append_fstr(pinfo->cinfo, COL_INFO, " request");
+        col_append_str(pinfo->cinfo, COL_INFO, " request");
 
-        bReq = tvb_get_guint8(tvb, offset);
+        bReq = tvb_get_uint8(tvb, offset);
         proto_tree_add_item(tree, hf_usb_printer_req,
                 tvb, offset, 1, ENC_LITTLE_ENDIAN);
         offset++;
@@ -97,7 +99,7 @@ static gint dissect_usb_printer_ctl(
         }
     }
     else {
-        col_append_fstr(pinfo->cinfo, COL_INFO, " response");
+        col_append_str(pinfo->cinfo, COL_INFO, " response");
 
         if (usb_trans_info->setup.request == REQ_GET_DEV_ID) {
             /*
@@ -155,24 +157,19 @@ void proto_register_usb_printer(void)
         }
     };
 
-    static gint *ett[] = {
+    static int *ett[] = {
         &ett_usb_printer
     };
 
-    proto_usb_printer = proto_register_protocol(
-            "USB Printer", "USBPRINTER", "usbprinter");
+    proto_usb_printer = proto_register_protocol("USB Printer", "USBPRINTER", "usbprinter");
     proto_register_field_array(proto_usb_printer, hf, array_length(hf));
     proto_register_subtree_array(ett, array_length(ett));
+    usb_printer_ctl_handle = register_dissector("usbprinter",  dissect_usb_printer_ctl, proto_usb_printer);
 }
 
 void
 proto_reg_handoff_usb_printer(void)
 {
-    dissector_handle_t usb_printer_ctl_handle;
-
-    usb_printer_ctl_handle = create_dissector_handle(
-            dissect_usb_printer_ctl, proto_usb_printer);
-
     dissector_add_uint("usb.control", IF_CLASS_PRINTER, usb_printer_ctl_handle);
 }
 

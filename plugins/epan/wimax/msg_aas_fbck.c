@@ -33,9 +33,12 @@
 void proto_register_mac_mgmt_msg_aas_fbck(void);
 void proto_reg_handoff_mac_mgmt_msg_aas(void);
 
-static gint proto_mac_mgmt_msg_aas_fbck_decoder = -1;
-static gint ett_mac_mgmt_msg_aas_fbck_req_decoder = -1;
-static gint ett_mac_mgmt_msg_aas_fbck_rsp_decoder = -1;
+static dissector_handle_t aas_req_handle;
+static dissector_handle_t aas_rsp_handle;
+
+static int proto_mac_mgmt_msg_aas_fbck_decoder;
+static int ett_mac_mgmt_msg_aas_fbck_req_decoder;
+static int ett_mac_mgmt_msg_aas_fbck_rsp_decoder;
 
 static const value_string vals_data_types[] =
 {
@@ -63,29 +66,29 @@ static const value_string vals_resolutions_1[] =
 };
 
 /* fix fields */
-/* static int hf_aas_fbck_unknown_type = -1; */
-static int hf_aas_fbck_frame_number = -1;
-static int hf_aas_fbck_number_of_frames = -1;
-static int hf_aas_fbck_req_data_type = -1;
-static int hf_aas_fbck_rsp_data_type = -1;
-static int hf_aas_fbck_req_counter = -1;
-static int hf_aas_fbck_rsp_counter = -1;
-static int hf_aas_fbck_req_resolution_0 = -1;
-static int hf_aas_fbck_rsp_resolution_0 = -1;
-static int hf_aas_fbck_req_resolution_1 = -1;
-static int hf_aas_fbck_rsp_resolution_1 = -1;
-static int hf_aas_fbck_req_reserved = -1;
-static int hf_aas_fbck_rsp_reserved = -1;
-static int hf_aas_fbck_freq_value_re = -1;
-static int hf_aas_fbck_freq_value_im = -1;
-static int hf_aas_fbck_rssi_value = -1;
-static int hf_aas_fbck_cinr_value = -1;
+/* static int hf_aas_fbck_unknown_type; */
+static int hf_aas_fbck_frame_number;
+static int hf_aas_fbck_number_of_frames;
+static int hf_aas_fbck_req_data_type;
+static int hf_aas_fbck_rsp_data_type;
+static int hf_aas_fbck_req_counter;
+static int hf_aas_fbck_rsp_counter;
+static int hf_aas_fbck_req_resolution_0;
+static int hf_aas_fbck_rsp_resolution_0;
+static int hf_aas_fbck_req_resolution_1;
+static int hf_aas_fbck_rsp_resolution_1;
+static int hf_aas_fbck_req_reserved;
+static int hf_aas_fbck_rsp_reserved;
+static int hf_aas_fbck_freq_value_re;
+static int hf_aas_fbck_freq_value_im;
+static int hf_aas_fbck_rssi_value;
+static int hf_aas_fbck_cinr_value;
 
 
 static int dissect_mac_mgmt_msg_aas_fbck_req_decoder(tvbuff_t *tvb, packet_info *pinfo _U_, proto_tree *tree, void* data _U_)
 {
-	guint offset = 0;
-	guint data_type;
+	unsigned offset = 0;
+	unsigned data_type;
 	proto_item *aas_fbck_item;
 	proto_tree *aas_fbck_tree;
 
@@ -103,7 +106,7 @@ static int dissect_mac_mgmt_msg_aas_fbck_req_decoder(tvbuff_t *tvb, packet_info 
 		/* move to next field */
 		offset++;
 		/* get the data type */
-		data_type = tvb_get_guint8(tvb, offset);
+		data_type = tvb_get_uint8(tvb, offset);
 		/* display the number of Frames */
 		proto_tree_add_item(aas_fbck_tree, hf_aas_fbck_number_of_frames, tvb, offset, 1, ENC_BIG_ENDIAN);
 		/* display the Data Type */
@@ -125,8 +128,8 @@ static int dissect_mac_mgmt_msg_aas_fbck_req_decoder(tvbuff_t *tvb, packet_info 
 
 static int dissect_mac_mgmt_msg_aas_fbck_rsp_decoder(tvbuff_t *tvb, packet_info *pinfo _U_, proto_tree *tree, void* data _U_)
 {
-	guint offset = 0;
-	guint tvb_len, data_type;
+	unsigned offset = 0;
+	unsigned tvb_len, data_type;
 	proto_item *aas_fbck_item;
 	proto_tree *aas_fbck_tree;
 
@@ -141,7 +144,7 @@ static int dissect_mac_mgmt_msg_aas_fbck_rsp_decoder(tvbuff_t *tvb, packet_info 
 		/* Display the AAS-FBCK-RSP message type */
 
 		/* get the data type */
-		data_type = tvb_get_guint8(tvb, offset);
+		data_type = tvb_get_uint8(tvb, offset);
 		/* Decode and display the AAS-FBCK-RSP message body */
 		/* display the reserved fields */
 		proto_tree_add_item(aas_fbck_tree, hf_aas_fbck_rsp_reserved, tvb, offset, 1, ENC_BIG_ENDIAN);
@@ -307,7 +310,7 @@ void proto_register_mac_mgmt_msg_aas_fbck(void)
 	};
 
 	/* Setup protocol subtree array */
-	static gint *ett[] =
+	static int *ett[] =
 		{
 			&ett_mac_mgmt_msg_aas_fbck_req_decoder,
 			&ett_mac_mgmt_msg_aas_fbck_rsp_decoder,
@@ -321,18 +324,15 @@ void proto_register_mac_mgmt_msg_aas_fbck(void)
 
 	proto_register_field_array(proto_mac_mgmt_msg_aas_fbck_decoder, hf_aas_fbck, array_length(hf_aas_fbck));
 	proto_register_subtree_array(ett, array_length(ett));
+	aas_req_handle = register_dissector("mac_mgmt_msg_aas_feedback_req_handler", dissect_mac_mgmt_msg_aas_fbck_req_decoder, proto_mac_mgmt_msg_aas_fbck_decoder);
+	aas_rsp_handle = register_dissector("mac_mgmt_msg_aas_feedback_rsp_handler", dissect_mac_mgmt_msg_aas_fbck_rsp_decoder, proto_mac_mgmt_msg_aas_fbck_decoder);
 }
 
 void
 proto_reg_handoff_mac_mgmt_msg_aas(void)
 {
-	dissector_handle_t aas_handle;
-
-	aas_handle = create_dissector_handle(dissect_mac_mgmt_msg_aas_fbck_req_decoder, proto_mac_mgmt_msg_aas_fbck_decoder);
-	dissector_add_uint("wmx.mgmtmsg", MAC_MGMT_MSG_AAS_FBCK_REQ, aas_handle);
-
-	aas_handle = create_dissector_handle(dissect_mac_mgmt_msg_aas_fbck_rsp_decoder, proto_mac_mgmt_msg_aas_fbck_decoder);
-	dissector_add_uint("wmx.mgmtmsg", MAC_MGMT_MSG_AAS_FBCK_RSP, aas_handle);
+	dissector_add_uint("wmx.mgmtmsg", MAC_MGMT_MSG_AAS_FBCK_REQ, aas_req_handle);
+	dissector_add_uint("wmx.mgmtmsg", MAC_MGMT_MSG_AAS_FBCK_RSP, aas_rsp_handle);
 }
 
 /*

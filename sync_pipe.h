@@ -25,14 +25,12 @@
  * message length is 3 bytes.
  * XXX - this must be large enough to handle a Really Big Filter
  * Expression, as the error message for an incorrect filter expression
- * is a bit larger than the filter expression.
+ * is a bit larger than the filter expression, and large enough to
+ * handle a large interface list.
+ * 4096 is a typical PIPE_BUF size for atomic writes, but we should have
+ * only one writer and one reader so that shouldn't be an issue.
  */
-#define SP_MAX_MSG_LEN  4096
-
-
-/* Size of buffer to hold decimal representation of
-   signed/unsigned 64-bit int */
-#define SP_DECISIZE 20
+#define SP_MAX_MSG_LEN  (512 * 1000)
 
 /*
  * Indications sent out on the sync pipe (from child to parent).
@@ -41,34 +39,46 @@
  * (http://code.google.com/p/protobuf-c/) if we ever need to use more
  * complex messages.
  */
+#define SP_EXEC_FAILED  'X'     /* errno value for the exec failing */
 #define SP_FILE         'F'     /* the name of the recently opened file */
 #define SP_ERROR_MSG    'E'     /* error message */
+#define SP_LOG_MSG      'L'     /* log message */
 #define SP_BAD_FILTER   'B'     /* error message for bad capture filter */
 #define SP_PACKET_COUNT 'P'     /* count of packets captured since last message */
 #define SP_DROPS        'D'     /* count of packets dropped in capture */
 #define SP_SUCCESS      'S'     /* success indication, no extra data */
 #define SP_TOOLBAR_CTRL 'T'     /* interface toolbar control packet */
+#define SP_IFACE_LIST   'I'     /* interface list */
 /*
  * Win32 only: Indications sent out on the signal pipe (from parent to child)
  * (UNIX-like sends signals for this)
  */
 #define SP_QUIT         'Q'     /* "gracefully" capture quit message (SIGUSR1) */
 
-/* write a single message header to the recipient pipe */
-extern ssize_t
-pipe_write_header(int pipe_fd, char indicator, int length);
-
-/* write a message to the recipient pipe in the standard format
-   (3 digit message length (excluding length and indicator field),
-   1 byte message indicator and the rest is the message).
+/* Write a message, with a string body, to the recipient pipe in the
+   standard format (1-byte message indicator, 3-byte message length
+   (excluding length and indicator field), and the string.
    If msg is NULL, the message has only a length and indicator. */
 extern void
-pipe_write_block(int pipe_fd, char indicator, const char *msg);
+sync_pipe_write_string_msg(int pipe_fd, char indicator, const char *msg);
+
+/* Write a message, with an unsigned integer body, to the recipient
+   pipe in the standard format (1-byte message indicator, 3-byte
+   message length (excluding length and indicator field), and the
+   unsigned integer, as a string. */
+extern void
+sync_pipe_write_uint_msg(int pipe_fd, char indicator, unsigned int num);
+
+/* Write a message, with an integer body, to the recipient pipe in the
+   standard format (1-byte message indicator, 3-byte message length
+   (excluding length and indicator field), and the integer, as a string. */
+extern void
+sync_pipe_write_int_msg(int pipe_fd, char indicator, int num);
 
 /** the child encountered an error, notify the parent */
 extern void
-sync_pipe_errmsg_to_parent(int pipe_fd, const char *error_msg,
-                           const char *secondary_error_msg);
+sync_pipe_write_errmsgs_to_parent(int pipe_fd, const char *error_msg,
+                                  const char *secondary_error_msg);
 
 /** Has the parent signalled the child to stop? */
 #define SIGNAL_PIPE_CTRL_ID_NONE "none"

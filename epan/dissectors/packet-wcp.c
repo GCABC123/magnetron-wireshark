@@ -104,10 +104,10 @@ void proto_register_wcp(void);
 void proto_reg_handoff_wcp(void);
 
 typedef struct {
-	guint8  *buf_cur;
-	guint8  buffer[MAX_WIN_BUF_LEN];
+	uint8_t *buf_cur;
+	uint8_t buffer[MAX_WIN_BUF_LEN];
 	/* initialized bytes in the buffer (since buf_cur may wrap around) */
-	guint16 initialized;
+	uint16_t initialized;
 } wcp_window_t;
 
 typedef struct {
@@ -117,51 +117,52 @@ typedef struct {
 
 /* XXX do I really want the length in here */
 typedef struct {
-	guint16  len;
-	guint8  buffer[MAX_WCP_BUF_LEN];
+	uint16_t len;
+	uint8_t buffer[MAX_WCP_BUF_LEN];
 } wcp_pdata_t;
 
 
-static int proto_wcp = -1;
-static int hf_wcp_cmd = -1;
-static int hf_wcp_ext_cmd = -1;
-static int hf_wcp_seq = -1;
-static int hf_wcp_chksum = -1;
-static int hf_wcp_tid = -1;
-static int hf_wcp_rev = -1;
-static int hf_wcp_init = -1;
-static int hf_wcp_seq_size = -1;
-static int hf_wcp_alg = -1;
-static int hf_wcp_alg_cnt = -1;
-static int hf_wcp_alg_a = -1;
-static int hf_wcp_alg_b = -1;
-static int hf_wcp_alg_c = -1;
-static int hf_wcp_alg_d = -1;
-/* static int hf_wcp_rexmit = -1; */
+static int proto_wcp;
+static int hf_wcp_cmd;
+static int hf_wcp_ext_cmd;
+static int hf_wcp_seq;
+static int hf_wcp_chksum;
+static int hf_wcp_tid;
+static int hf_wcp_rev;
+static int hf_wcp_init;
+static int hf_wcp_seq_size;
+static int hf_wcp_alg;
+static int hf_wcp_alg_cnt;
+static int hf_wcp_alg_a;
+static int hf_wcp_alg_b;
+static int hf_wcp_alg_c;
+static int hf_wcp_alg_d;
+/* static int hf_wcp_rexmit; */
 
-static int hf_wcp_hist_size = -1;
-static int hf_wcp_ppc = -1;
-static int hf_wcp_pib = -1;
+static int hf_wcp_hist_size;
+static int hf_wcp_ppc;
+static int hf_wcp_pib;
 
-static int hf_wcp_compressed_data = -1;
-static int hf_wcp_comp_bits = -1;
-/* static int hf_wcp_comp_marker = -1; */
-static int hf_wcp_short_len = -1;
-static int hf_wcp_long_len = -1;
-static int hf_wcp_short_run = -1;
-static int hf_wcp_long_run = -1;
-static int hf_wcp_offset = -1;
+static int hf_wcp_compressed_data;
+static int hf_wcp_comp_bits;
+/* static int hf_wcp_comp_marker; */
+static int hf_wcp_short_len;
+static int hf_wcp_long_len;
+static int hf_wcp_short_run;
+static int hf_wcp_long_run;
+static int hf_wcp_offset;
 
-static gint ett_wcp = -1;
-static gint ett_wcp_comp_data = -1;
-static gint ett_wcp_field = -1;
+static int ett_wcp;
+static int ett_wcp_comp_data;
+static int ett_wcp_field;
 
-static expert_field ei_wcp_compressed_data_exceeds = EI_INIT;
-static expert_field ei_wcp_uncompressed_data_exceeds = EI_INIT;
-static expert_field ei_wcp_invalid_window_offset = EI_INIT;
-static expert_field ei_wcp_buffer_too_long = EI_INIT;
-/* static expert_field ei_wcp_invalid_match_length = EI_INIT; */
+static expert_field ei_wcp_compressed_data_exceeds;
+static expert_field ei_wcp_uncompressed_data_exceeds;
+static expert_field ei_wcp_invalid_window_offset;
+static expert_field ei_wcp_buffer_too_long;
+/* static expert_field ei_wcp_invalid_match_length; */
 
+static dissector_handle_t wcp_handle;
 static dissector_handle_t fr_uncompressed_handle;
 
 /*
@@ -214,7 +215,7 @@ static void
 dissect_wcp_con_req(tvbuff_t *tvb, int offset, proto_tree *tree) {
 
 /* WCP connector request message */
-	guint32 alg_cnt;
+	uint32_t alg_cnt;
 
 	proto_tree_add_item(tree, hf_wcp_tid, tvb, offset, 2, ENC_BIG_ENDIAN);
 	proto_tree_add_item(tree, hf_wcp_rev, tvb, offset + 2, 1, ENC_NA);
@@ -276,10 +277,10 @@ static void wcp_save_data(tvbuff_t *tvb, packet_info *pinfo, proto_tree* tree) {
 		tvb_memcpy(tvb, buf_ptr->buf_cur, 2, len);
 		buf_ptr->buf_cur += len;
 	} else {
-		guint8 *buf_end = buf_ptr->buffer + MAX_WIN_BUF_LEN;
+		uint8_t *buf_end = buf_ptr->buffer + MAX_WIN_BUF_LEN;
 		tvb_memcpy(tvb, buf_ptr->buf_cur, 2, buf_end - buf_ptr->buf_cur);
 		if (buf_ptr->buf_cur + len <= buf_end) {
-			tvb_memcpy(tvb, buf_ptr->buffer, (gint) (buf_end - buf_ptr->buf_cur-2),
+			tvb_memcpy(tvb, buf_ptr->buffer, (int) (buf_end - buf_ptr->buf_cur-2),
 				len - (buf_end - buf_ptr->buf_cur));
 			buf_ptr->buf_cur += len - MAX_WIN_BUF_LEN;
 		} else {
@@ -294,7 +295,7 @@ static int dissect_wcp(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, void
 	proto_tree	*wcp_tree;
 	proto_item	*ti;
 	int		wcp_header_len;
-	guint16		temp, cmd, ext_cmd, seq;
+	uint16_t		temp, cmd, ext_cmd, seq;
 	tvbuff_t	*next_tvb;
 
 	col_set_str(pinfo->cinfo, COL_PROTOCOL, "WCP");
@@ -376,12 +377,12 @@ static int dissect_wcp(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, void
 }
 
 
-static guint8 *
-decompressed_entry(guint8 *dst, guint16 data_offset,
-	guint16 data_cnt, int *len, wcp_window_t *buf_ptr)
+static uint8_t *
+decompressed_entry(uint8_t *dst, uint16_t data_offset,
+	uint16_t data_cnt, int *len, wcp_window_t *buf_ptr)
 {
-	const guint8 *src;
-	guint8 *buf_start, *buf_end;
+	const uint8_t *src;
+	uint8_t *buf_start, *buf_end;
 
 	buf_start = buf_ptr->buffer;
 	buf_end = buf_ptr->buffer + MAX_WIN_BUF_LEN;
@@ -426,11 +427,9 @@ wcp_window_t *get_wcp_window_ptr(packet_info *pinfo) {
 
 	wcp_circuit_data = (wcp_circuit_data_t *)conversation_get_proto_data(conv, proto_wcp);
 	if (!wcp_circuit_data) {
-		wcp_circuit_data = wmem_new(wmem_file_scope(), wcp_circuit_data_t);
+		wcp_circuit_data = wmem_new0(wmem_file_scope(), wcp_circuit_data_t);
 		wcp_circuit_data->recv.buf_cur = wcp_circuit_data->recv.buffer;
-		wcp_circuit_data->recv.initialized = 0;
 		wcp_circuit_data->send.buf_cur = wcp_circuit_data->send.buffer;
-		wcp_circuit_data->send.initialized = 0;
 		conversation_add_proto_data(conv, proto_wcp, wcp_circuit_data);
 	}
 	if (pinfo->pseudo_header->dte_dce.flags & FROM_DCE)
@@ -450,9 +449,9 @@ static tvbuff_t *wcp_uncompress(tvbuff_t *src_tvb, int offset, packet_info *pinf
 	int len, i;
 	int cnt = tvb_reported_length(src_tvb) - 1;/* don't include check byte */
 
-	guint8 *dst, *src, *buf_start, *buf_end, comp_flag_bits = 0;
-	guint16 data_offset, data_cnt;
-	guint8 src_buf[ MAX_WCP_BUF_LEN];
+	uint8_t *dst, *src, *buf_start, *buf_end, comp_flag_bits = 0;
+	uint16_t data_offset, data_cnt;
+	uint8_t src_buf[ MAX_WCP_BUF_LEN];
 	tvbuff_t *tvb;
 	wcp_window_t *buf_ptr = 0;
 	wcp_pdata_t *pdata_ptr;
@@ -479,7 +478,7 @@ static tvbuff_t *wcp_uncompress(tvbuff_t *src_tvb, int offset, packet_info *pinf
 	 * want to mark the buffer of decompressed data as incomplete, so
 	 * that we don't try to use it for decompressing later packets.
 	 */
-	src = (guint8 *)tvb_memcpy(src_tvb, src_buf, offset, cnt - offset);
+	src = (uint8_t *)tvb_memcpy(src_tvb, src_buf, offset, cnt - offset);
 	dst = buf_ptr->buf_cur;
 	len = 0;
 	i = -1;
@@ -638,7 +637,7 @@ static tvbuff_t *wcp_uncompress(tvbuff_t *src_tvb, int offset, packet_info *pinf
 		}
 
 		/* save the new data as per packet data */
-		pdata_ptr = wmem_new(wmem_file_scope(), wcp_pdata_t);
+		pdata_ptr = wmem_new0(wmem_file_scope(), wcp_pdata_t);
 		memcpy( &pdata_ptr->buffer, buf_ptr->buf_cur, len);
 		pdata_ptr->len = len;
 
@@ -746,7 +745,7 @@ proto_register_wcp(void)
 	};
 
 
-	static gint *ett[] = {
+	static int *ett[] = {
 		&ett_wcp,
 		&ett_wcp_comp_data,
 		&ett_wcp_field,
@@ -769,19 +768,17 @@ proto_register_wcp(void)
 	proto_register_subtree_array(ett, array_length(ett));
 	expert_wcp = expert_register_protocol(proto_wcp);
 	expert_register_field_array(expert_wcp, ei, array_length(ei));
+	wcp_handle = register_dissector("wcp", dissect_wcp, proto_wcp);
 }
 
 
 void
 proto_reg_handoff_wcp(void) {
-	dissector_handle_t wcp_handle;
-
 	/*
 	 * Get handle for the Frame Relay (uncompressed) dissector.
 	 */
 	fr_uncompressed_handle = find_dissector_add_dependency("fr_uncompressed", proto_wcp);
 
-	wcp_handle = create_dissector_handle(dissect_wcp, proto_wcp);
 	dissector_add_uint("fr.nlpid", NLPID_COMPRESSED, wcp_handle);
 	dissector_add_uint("ethertype",  ETHERTYPE_WCP, wcp_handle);
 }

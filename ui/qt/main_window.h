@@ -19,18 +19,23 @@
 
 
 #include "filter_action.h"
+#include "io_graph_action.h"
 
 #include <QMainWindow>
 #include <QSplitter>
 
+class QMenu;
 class QSplitter;
 class QStackedWidget;
+
 class ByteViewTab;
 class DisplayFilterCombo;
 class FieldInformation;
+class FunnelAction;
 class MainStatusBar;
 class PacketDiagram;
 class PacketList;
+class ProfileSwitcher;
 class ProtoTree;
 class WelcomePage;
 
@@ -43,8 +48,9 @@ public:
     explicit MainWindow(QWidget *parent = nullptr);
     ~MainWindow();
     bool hasSelection();
+    bool hasUniqueSelection();
     QList<int> selectedRows(bool useFrameNum = false);
-    void insertColumn(QString name, QString abbrev, gint pos = -1);
+    void insertColumn(QString name, QString abbrev, int pos = -1);
     void gotoFrame(int packet_num);
     frame_data* frameDataForRow(int) const;
 
@@ -52,7 +58,7 @@ public:
     MainStatusBar *statusBar();
 
     // Used for managing custom packet menus
-    void appendPacketMenu(QAction* funnel_action);
+    void appendPacketMenu(FunnelAction *funnel_action);
     QList<QAction*> getPacketMenuActions();
     void clearAddedPacketMenus();
     bool addPacketMenus(QMenu * ctx_menu, GPtrArray *finfo_array);
@@ -61,6 +67,7 @@ public slots:
     void setDisplayFilter(QString filter, FilterAction::Action action, FilterAction::ActionType filterType);
     virtual void filterPackets(QString, bool) = 0;
     virtual void showPreferencesDialog(QString module_name) = 0;
+    virtual void showIOGraphDialog(io_graph_item_unit_t, QString) = 0;
     void layoutPanes();
     void applyRecentPaneGeometry();
 
@@ -73,7 +80,8 @@ protected:
         CopySelectedValue,
         CopyListAsText,
         CopyListAsCSV,
-        CopyListAsYAML
+        CopyListAsYAML,
+        CopyListAsHTML,
     };
 
     void showWelcome();
@@ -95,6 +103,20 @@ protected:
     PacketDiagram *packet_diagram_;
     DisplayFilterCombo *df_combo_box_;
     MainStatusBar *main_status_bar_;
+    ProfileSwitcher *profile_switcher_;
+
+protected slots:
+    void addDisplayFilterTranslationActions(QMenu *copy_menu);
+    void updateDisplayFilterTranslationActions(const QString &df_text);
+
+private:
+    QVector<QAction *> df_translate_actions_;
+
+    static const char *translator_;
+    static const char *translated_filter_;
+
+private slots:
+    void copyDisplayFilterTranslation(void);
 
 signals:
     void setCaptureFile(capture_file *cf);

@@ -12,8 +12,7 @@
 
 #include "ws_symbol_export.h"
 
-#include <wsutil/inet_ipv4.h>
-#include <wsutil/inet_ipv6.h>
+#include <wsutil/inet_addr.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -77,7 +76,12 @@ extern "C" {
                                        *     If this option is not present, a resolution of 10^-6 is assumed
                                        *     (i.e. timestamps have the same resolution of the standard 'libpcap' timestamps).
                                        */
-#define OPT_IDB_TZONE          10    /**< XXX: if_tzone    Time zone for GMT support (TODO: specify better). */
+#define OPT_IDB_TZONE          10    /**< Time zone for GMT support.  This option has neer been specified in
+                                       *     greater detail and, unless it were to identify something such as
+                                       *     an IANA time zone database timezone, would be insufficient for
+                                       *     converting between UTC and local time.  Therefore, it SHOULD NOT
+                                       *     be used; instead, the if_iana_tzname option SHOULD be used if
+                                       *     time zone information is to be specified. */
 #define OPT_IDB_FILTER         11    /**< The filter (e.g. "capture only TCP traffic") used to capture traffic.
                                        *     The first byte of the Option Data keeps a code of the filter used
                                        *     (e.g. if this is a libpcap string, or BPF bytecode, and more).
@@ -98,13 +102,15 @@ extern "C" {
                                        *     For link layers whose FCS length can change during time,
                                        *     the Packet Block Flags Word can be used (see Appendix A (Packet Block Flags Word))
                                        */
-#define OPT_IDB_TSOFFSET       14    /**< XXX: A 64 bits integer value that specifies an offset (in seconds)
+#define OPT_IDB_TSOFFSET       14    /**< A 64-bit signed integer value that specifies an offset (in seconds)
                                        *     that must be added to the timestamp of each packet to obtain
-                                       *     the absolute timestamp of a packet. If the option is missing,
-                                       *     the timestamps stored in the packet must be considered absolute
-                                       *     timestamps. The time zone of the offset can be specified with the
-                                       *     option if_tzone. TODO: won't a if_tsoffset_low for fractional
-                                       *     second offsets be useful for highly synchronized capture systems?
+                                       *     the absolute timestamp of a packet. If the option is not present,
+                                       *     an offst of 0 is assumed (i.e., timestamps in blocks are absolute
+                                       *     timestamps).
+                                       *
+                                       *     This offset is not intended to be used as an offset between local
+                                       *     time and UTC; for this purpose, the if_iana_tzname option SHOULD be
+                                       *     used to specify a timezone.
                                        */
 #define OPT_IDB_HARDWARE       15    /**< A UTF-8 string containing the description
                                        *     of the hardware of the device used
@@ -185,6 +191,7 @@ typedef enum {
     WTAP_BLOCK_FT_SPECIFIC_REPORT,
     WTAP_BLOCK_FT_SPECIFIC_EVENT,
     WTAP_BLOCK_SYSDIG_EVENT,
+    WTAP_BLOCK_META_EVENT,
     WTAP_BLOCK_SYSTEMD_JOURNAL_EXPORT,
     WTAP_BLOCK_CUSTOM,
     MAX_WTAP_BLOCK_TYPE_VALUE
@@ -194,7 +201,7 @@ typedef enum {
  * Holds the required data from a WTAP_BLOCK_SECTION.
  */
 typedef struct wtapng_section_mandatory_s {
-    guint64             section_length; /**< 64-bit value specifying the length in bytes of the
+    uint64_t            section_length; /**< 64-bit value specifying the length in bytes of the
                                          *     following section.
                                          *     Section Length equal -1 (0xFFFFFFFFFFFFFFFF) means
                                          *     that the size of the section is not specified
@@ -217,12 +224,12 @@ typedef struct wtapng_iface_descriptions_s {
  */
 typedef struct wtapng_if_descr_mandatory_s {
     int                    wtap_encap;            /**< link_type translated to wtap_encap */
-    guint64                time_units_per_second;
+    uint64_t               time_units_per_second;
     int                    tsprecision;           /**< WTAP_TSPREC_ value for this interface */
 
-    guint32                snap_len;
+    uint32_t               snap_len;
 
-    guint8                 num_stat_entries;
+    uint8_t                num_stat_entries;
     GArray                *interface_statistics;  /**< An array holding the interface statistics from
                                                    *     pcapng ISB:s or equivalent(?)*/
 } wtapng_if_descr_mandatory_t;
@@ -239,19 +246,28 @@ typedef struct wtapng_nrb_mandatory_s {
  * Holds the required data from a WTAP_BLOCK_IF_STATISTICS.
  */
 typedef struct wtapng_if_stats_mandatory_s {
-    guint32  interface_id;
-    guint32  ts_high;
-    guint32  ts_low;
+    uint32_t interface_id;
+    uint32_t ts_high;
+    uint32_t ts_low;
 } wtapng_if_stats_mandatory_t;
 
 /**
  * Holds the required data from a WTAP_BLOCK_DECRYPTION_SECRETS.
  */
 typedef struct wtapng_dsb_mandatory_s {
-    guint32                secrets_type;            /** Type of secrets stored in data (see secrets-types.h) */
-    guint32                secrets_len;             /** Length of the secrets data in bytes */
-    guint8                *secrets_data;            /** Buffer of secrets (not NUL-terminated) */
+    uint32_t               secrets_type;            /** Type of secrets stored in data (see secrets-types.h) */
+    uint32_t               secrets_len;             /** Length of the secrets data in bytes */
+    uint8_t               *secrets_data;            /** Buffer of secrets (not NUL-terminated) */
 } wtapng_dsb_mandatory_t;
+
+/**
+ * Holds the required data from a WTAP_BLOCK_META_EVENT.
+ */
+typedef struct wtapng_meta_event_mandatory_s {
+    uint32_t               mev_block_type;      /** pcapng block type of the event, e.g. BLOCK_TYPE_SYSDIG_MI */
+    unsigned               mev_data_len;        /** Length of the mev data in bytes */
+    uint8_t               *mev_data;            /** Buffer of mev data (not NUL-terminated) */
+} wtapng_meta_event_mandatory_t;
 
 /**
  * Holds the required data from a WTAP_BLOCK_PACKET.
@@ -264,11 +280,11 @@ typedef struct wtapng_dsb_mandatory_s {
  * Wireshark in other ways.
  */
 typedef struct wtapng_packet_mandatory_s {
-    guint32  interface_id;
-    guint32  ts_high;
-    guint32  ts_low;
-    guint32  captured_len;
-    guint32  orig_len;
+    uint32_t interface_id;
+    uint32_t ts_high;
+    uint32_t ts_low;
+    uint32_t captured_len;
+    uint32_t orig_len;
 } wtapng_packet_mandatory_t;
 #endif
 
@@ -276,10 +292,16 @@ typedef struct wtapng_packet_mandatory_s {
  * Holds the required data from a WTAP_BLOCK_FT_SPECIFIC_REPORT.
  */
 typedef struct wtapng_ft_specific_mandatory_s {
-    guint     record_type;      /* the type of record this is - file type-specific value */
+    unsigned  record_type;      /* the type of record this is - file type-specific value */
 } wtapng_ft_specific_mandatory_t;
 
-/* Currently supported option types */
+/*
+ * Currently supported option types.  These are not option types
+ * in the sense that each one corresponds to a particular option,
+ * they are data types for the data of an option, so, for example,
+ * all options with a 32-bit unsigned integer value have the type
+ * WTAP_OPTTYPE_UINT32.
+ */
 typedef enum {
     WTAP_OPTTYPE_UINT8,
     WTAP_OPTTYPE_UINT32,
@@ -292,6 +314,9 @@ typedef enum {
     WTAP_OPTTYPE_IF_FILTER,
     WTAP_OPTTYPE_PACKET_VERDICT,
     WTAP_OPTTYPE_PACKET_HASH,
+    WTAP_OPTTYPE_INT8,
+    WTAP_OPTTYPE_INT32,
+    WTAP_OPTTYPE_INT64,
 } wtap_opttype_e;
 
 typedef enum {
@@ -313,17 +338,17 @@ typedef enum {
  */
 
 typedef struct custom_opt_s {
-    guint32 pen;
+    uint32_t pen;
     union {
         struct generic_custom_opt_data {
-            gsize custom_data_len;
-            gchar *custom_data;
+            size_t custom_data_len;
+            char *custom_data;
         } generic_data;
         struct nflx_custom_opt_data {
-            guint32 type;
-            gsize custom_data_len;
-            gchar *custom_data;
-            gboolean use_little_endian;
+            uint32_t type;
+            size_t custom_data_len;
+            char *custom_data;
+            bool use_little_endian;
         } nflx_data;
     } data;
 } custom_opt_t;
@@ -332,20 +357,20 @@ typedef struct custom_opt_s {
  * Structure describing a NFLX custom option.
  */
 typedef struct nflx_custom_opt_s {
-    gboolean nflx_use_little_endian;
-    guint32 nflx_type;
-    gsize nflx_custom_data_len;
-    gchar *nflx_custom_data;
+    bool nflx_use_little_endian;
+    uint32_t nflx_type;
+    size_t nflx_custom_data_len;
+    char *nflx_custom_data;
 } nflx_custom_opt_t;
 
 /* Interface description data - if_filter option structure */
 
 /* BPF instruction */
 typedef struct wtap_bpf_insn_s {
-    guint16                code;
-    guint8                 jt;
-    guint8                 jf;
-    guint32                k;
+    uint16_t               code;
+    uint8_t                jt;
+    uint8_t                jf;
+    uint32_t               k;
 } wtap_bpf_insn_t;
 
 /*
@@ -359,9 +384,9 @@ typedef enum {
 typedef struct if_filter_opt_s {
     if_filter_type_e type;
     union {
-        gchar             *filter_str;   /**< pcap filter string */
+        char              *filter_str;   /**< pcap filter string */
         struct wtap_bpf_insns {
-            guint          bpf_prog_len; /**< number of BPF instructions */
+            unsigned       bpf_prog_len; /**< number of BPF instructions */
             wtap_bpf_insn_t *bpf_prog;   /**< BPF instructions */
         }                  bpf_prog;     /**< BPF program */
     }                      data;
@@ -382,13 +407,13 @@ typedef struct packet_verdict_opt_s {
     packet_verdict_type_e type;
     union {
         GByteArray *verdict_bytes;
-        guint64     verdict_linux_ebpf_tc;
-        guint64     verdict_linux_ebpf_xdp;
+        uint64_t    verdict_linux_ebpf_tc;
+        uint64_t    verdict_linux_ebpf_xdp;
     }               data;
 } packet_verdict_opt_t;
 
 typedef struct packet_hash_opt_s {
-    guint8 type;
+    uint8_t type;
     GByteArray *hash_bytes;
 } packet_hash_opt_t;
 
@@ -396,9 +421,12 @@ typedef struct packet_hash_opt_s {
  * Structure describing a value of an option.
  */
 typedef union {
-    guint8 uint8val;
-    guint32 uint32val;
-    guint64 uint64val;
+    uint8_t uint8val;
+    uint32_t uint32val;
+    uint64_t uint64val;
+    int8_t int8val;
+    int32_t int32val;
+    int64_t int64val;
     ws_in4_addr ipv4val;    /* network byte order */
     ws_in6_addr ipv6val;
     char *stringval;
@@ -413,7 +441,7 @@ typedef union {
  * Structure describing an option in a block.
  */
 typedef struct {
-    guint option_id;     /**< option code for the option */
+    unsigned option_id;     /**< option code for the option */
     wtap_optval_t value; /**< value */
 } wtap_option_t;
 
@@ -424,21 +452,21 @@ typedef struct {
 #define NFLX_OPT_TYPE_STACKNAME  6
 
 struct nflx_dumpinfo {
-    guint32 tlh_version;
-    guint32 tlh_type;
-    guint64 tlh_length;
-    guint16 tlh_ie_fport;
-    guint16 tlh_ie_lport;
-    guint32 tlh_ie_faddr_addr32[4];
-    guint32 tlh_ie_laddr_addr32[4];
-    guint32 tlh_ie_zoneid;
-    guint64 tlh_offset_tv_sec;
-    guint64 tlh_offset_tv_usec;
+    uint32_t tlh_version;
+    uint32_t tlh_type;
+    uint64_t tlh_length;
+    uint16_t tlh_ie_fport;
+    uint16_t tlh_ie_lport;
+    uint32_t tlh_ie_faddr_addr32[4];
+    uint32_t tlh_ie_laddr_addr32[4];
+    uint32_t tlh_ie_zoneid;
+    uint64_t tlh_offset_tv_sec;
+    uint64_t tlh_offset_tv_usec;
     char    tlh_id[64];
     char    tlh_reason[32];
     char    tlh_tag[32];
-    guint8  tlh_af;
-    guint8  _pad[7];
+    uint8_t tlh_af;
+    uint8_t _pad[7];
 };
 
 /* Flags used in tlb_eventflags */
@@ -457,83 +485,81 @@ struct nflx_dumpinfo {
 #define NFLX_TLB_IS_SYNCHRONIZED(state) (state >= NFLX_TLB_TCPS_ESTABLISHED)
 
 struct nflx_tcpinfo {
-    guint64 tlb_tv_sec;
-    guint64 tlb_tv_usec;
-    guint32 tlb_ticks;
-    guint32 tlb_sn;
-    guint8  tlb_stackid;
-    guint8  tlb_eventid;
-    guint16 tlb_eventflags;
-    gint32  tlb_errno;
-    guint32 tlb_rxbuf_tls_sb_acc;
-    guint32 tlb_rxbuf_tls_sb_ccc;
-    guint32 tlb_rxbuf_tls_sb_spare;
-    guint32 tlb_txbuf_tls_sb_acc;
-    guint32 tlb_txbuf_tls_sb_ccc;
-    guint32 tlb_txbuf_tls_sb_spare;
-    gint32  tlb_state;
-    guint32 tlb_starttime;
-    guint32 tlb_iss;
-    guint32 tlb_flags;
-    guint32 tlb_snd_una;
-    guint32 tlb_snd_max;
-    guint32 tlb_snd_cwnd;
-    guint32 tlb_snd_nxt;
-    guint32 tlb_snd_recover;
-    guint32 tlb_snd_wnd;
-    guint32 tlb_snd_ssthresh;
-    guint32 tlb_srtt;
-    guint32 tlb_rttvar;
-    guint32 tlb_rcv_up;
-    guint32 tlb_rcv_adv;
-    guint32 tlb_flags2;
-    guint32 tlb_rcv_nxt;
-    guint32 tlb_rcv_wnd;
-    guint32 tlb_dupacks;
-    gint32  tlb_segqlen;
-    gint32  tlb_snd_numholes;
-    guint32 tlb_flex1;
-    guint32 tlb_flex2;
-    guint32 tlb_fbyte_in;
-    guint32 tlb_fbyte_out;
-    guint8  tlb_snd_scale:4,
+    uint64_t tlb_tv_sec;
+    uint64_t tlb_tv_usec;
+    uint32_t tlb_ticks;
+    uint32_t tlb_sn;
+    uint8_t tlb_stackid;
+    uint8_t tlb_eventid;
+    uint16_t tlb_eventflags;
+    int32_t tlb_errno;
+    uint32_t tlb_rxbuf_tls_sb_acc;
+    uint32_t tlb_rxbuf_tls_sb_ccc;
+    uint32_t tlb_rxbuf_tls_sb_spare;
+    uint32_t tlb_txbuf_tls_sb_acc;
+    uint32_t tlb_txbuf_tls_sb_ccc;
+    uint32_t tlb_txbuf_tls_sb_spare;
+    int32_t tlb_state;
+    uint32_t tlb_starttime;
+    uint32_t tlb_iss;
+    uint32_t tlb_flags;
+    uint32_t tlb_snd_una;
+    uint32_t tlb_snd_max;
+    uint32_t tlb_snd_cwnd;
+    uint32_t tlb_snd_nxt;
+    uint32_t tlb_snd_recover;
+    uint32_t tlb_snd_wnd;
+    uint32_t tlb_snd_ssthresh;
+    uint32_t tlb_srtt;
+    uint32_t tlb_rttvar;
+    uint32_t tlb_rcv_up;
+    uint32_t tlb_rcv_adv;
+    uint32_t tlb_flags2;
+    uint32_t tlb_rcv_nxt;
+    uint32_t tlb_rcv_wnd;
+    uint32_t tlb_dupacks;
+    int32_t tlb_segqlen;
+    int32_t tlb_snd_numholes;
+    uint32_t tlb_flex1;
+    uint32_t tlb_flex2;
+    uint32_t tlb_fbyte_in;
+    uint32_t tlb_fbyte_out;
+    uint8_t tlb_snd_scale:4,
             tlb_rcv_scale:4;
-    guint8  _pad[3];
+    uint8_t _pad[3];
 
     /* The following fields might become part of a union */
-    guint64 tlb_stackinfo_bbr_cur_del_rate;
-    guint64 tlb_stackinfo_bbr_delRate;
-    guint64 tlb_stackinfo_bbr_rttProp;
-    guint64 tlb_stackinfo_bbr_bw_inuse;
-    guint32 tlb_stackinfo_bbr_inflight;
-    guint32 tlb_stackinfo_bbr_applimited;
-    guint32 tlb_stackinfo_bbr_delivered;
-    guint32 tlb_stackinfo_bbr_timeStamp;
-    guint32 tlb_stackinfo_bbr_epoch;
-    guint32 tlb_stackinfo_bbr_lt_epoch;
-    guint32 tlb_stackinfo_bbr_pkts_out;
-    guint32 tlb_stackinfo_bbr_flex1;
-    guint32 tlb_stackinfo_bbr_flex2;
-    guint32 tlb_stackinfo_bbr_flex3;
-    guint32 tlb_stackinfo_bbr_flex4;
-    guint32 tlb_stackinfo_bbr_flex5;
-    guint32 tlb_stackinfo_bbr_flex6;
-    guint32 tlb_stackinfo_bbr_lost;
-    guint16 tlb_stackinfo_bbr_pacing_gain;
-    guint16 tlb_stackinfo_bbr_cwnd_gain;
-    guint16 tlb_stackinfo_bbr_flex7;
-    guint8  tlb_stackinfo_bbr_bbr_state;
-    guint8  tlb_stackinfo_bbr_bbr_substate;
-    guint8  tlb_stackinfo_bbr_inhpts;
-    guint8  tlb_stackinfo_bbr_ininput;
-    guint8  tlb_stackinfo_bbr_use_lt_bw;
-    guint8  tlb_stackinfo_bbr_flex8;
-    guint32 tlb_stackinfo_bbr_pkt_epoch;
+    uint64_t tlb_stackinfo_bbr_cur_del_rate;
+    uint64_t tlb_stackinfo_bbr_delRate;
+    uint64_t tlb_stackinfo_bbr_rttProp;
+    uint64_t tlb_stackinfo_bbr_bw_inuse;
+    uint32_t tlb_stackinfo_bbr_inflight;
+    uint32_t tlb_stackinfo_bbr_applimited;
+    uint32_t tlb_stackinfo_bbr_delivered;
+    uint32_t tlb_stackinfo_bbr_timeStamp;
+    uint32_t tlb_stackinfo_bbr_epoch;
+    uint32_t tlb_stackinfo_bbr_lt_epoch;
+    uint32_t tlb_stackinfo_bbr_pkts_out;
+    uint32_t tlb_stackinfo_bbr_flex1;
+    uint32_t tlb_stackinfo_bbr_flex2;
+    uint32_t tlb_stackinfo_bbr_flex3;
+    uint32_t tlb_stackinfo_bbr_flex4;
+    uint32_t tlb_stackinfo_bbr_flex5;
+    uint32_t tlb_stackinfo_bbr_flex6;
+    uint32_t tlb_stackinfo_bbr_lost;
+    uint16_t tlb_stackinfo_bbr_pacing_gain;
+    uint16_t tlb_stackinfo_bbr_cwnd_gain;
+    uint16_t tlb_stackinfo_bbr_flex7;
+    uint8_t tlb_stackinfo_bbr_bbr_state;
+    uint8_t tlb_stackinfo_bbr_bbr_substate;
+    uint8_t tlb_stackinfo_bbr_inhpts;
+    uint8_t tlb_stackinfo_bbr_ininput;
+    uint8_t tlb_stackinfo_bbr_use_lt_bw;
+    uint8_t tlb_stackinfo_bbr_flex8;
+    uint32_t tlb_stackinfo_bbr_pkt_epoch;
 
-    guint32 tlb_len;
+    uint32_t tlb_len;
 };
-
-struct wtap_dumper;
 
 typedef void (*wtap_block_create_func)(wtap_block_t block);
 typedef void (*wtap_mand_free_func)(wtap_block_t block);
@@ -588,6 +614,29 @@ wtap_block_unref(wtap_block_t block);
 WS_DLL_PUBLIC void
 wtap_block_array_free(GArray* block_array);
 
+/** Decrement the reference count of an array of blocks
+ *
+ * Decrement the reference count of each block in the array
+ * and the GArray itself. Any element whose reference count
+ * drops to 0 will be freed. If the GArray and every block
+ * has a reference count of 1, this is the same as
+ * wtap_block_array_free().
+ *
+ * @param[in] block_array Array of blocks to be dereferenced
+ */
+WS_DLL_PUBLIC void
+wtap_block_array_unref(GArray* block_array);
+
+/** Increment the reference count of an array of blocks
+ *
+ * Increment the reference count of each block in the array
+ * and the GArray itself.
+ *
+ * @param[in] block_array Array of blocks to be referenced
+ */
+WS_DLL_PUBLIC void
+wtap_block_array_ref(GArray* block_array);
+
 /** Provide type of a block
  *
  * @param[in] block Block from which to retrieve mandatory data
@@ -608,10 +657,10 @@ wtap_block_get_mandatory_data(wtap_block_t block);
  *
  * @param[in] block Block to which to add the option
  * @param[in] option_id Identifier value for option
- * @return guint - the number of times the option was found
+ * @return unsigned - the number of times the option was found
  */
-WS_DLL_PUBLIC guint
-wtap_block_count_option(wtap_block_t block, guint option_id);
+WS_DLL_PUBLIC unsigned
+wtap_block_count_option(wtap_block_t block, unsigned option_id);
 
 /** Add UINT8 option value to a block
  *
@@ -622,7 +671,7 @@ wtap_block_count_option(wtap_block_t block, guint option_id);
  * error code otherwise
  */
 WS_DLL_PUBLIC wtap_opttype_return_val
-wtap_block_add_uint8_option(wtap_block_t block, guint option_id, guint8 value);
+wtap_block_add_uint8_option(wtap_block_t block, unsigned option_id, uint8_t value);
 
 /** Set UINT8 option value in a block
  *
@@ -633,7 +682,7 @@ wtap_block_add_uint8_option(wtap_block_t block, guint option_id, guint8 value);
  * error code otherwise
  */
 WS_DLL_PUBLIC wtap_opttype_return_val
-wtap_block_set_uint8_option_value(wtap_block_t block, guint option_id, guint8 value);
+wtap_block_set_uint8_option_value(wtap_block_t block, unsigned option_id, uint8_t value);
 
 /** Get UINT8 option value from a block
  *
@@ -644,7 +693,7 @@ wtap_block_set_uint8_option_value(wtap_block_t block, guint option_id, guint8 va
  * error code otherwise
  */
 WS_DLL_PUBLIC wtap_opttype_return_val
-wtap_block_get_uint8_option_value(wtap_block_t block, guint option_id, guint8* value) G_GNUC_WARN_UNUSED_RESULT;
+wtap_block_get_uint8_option_value(wtap_block_t block, unsigned option_id, uint8_t* value) G_GNUC_WARN_UNUSED_RESULT;
 
 /** Add UINT32 option value to a block
  *
@@ -655,7 +704,7 @@ wtap_block_get_uint8_option_value(wtap_block_t block, guint option_id, guint8* v
  * error code otherwise
  */
 WS_DLL_PUBLIC wtap_opttype_return_val
-wtap_block_add_uint32_option(wtap_block_t block, guint option_id, guint32 value);
+wtap_block_add_uint32_option(wtap_block_t block, unsigned option_id, uint32_t value);
 
 /** Set UINT32 option value in a block
  *
@@ -666,7 +715,7 @@ wtap_block_add_uint32_option(wtap_block_t block, guint option_id, guint32 value)
  * error code otherwise
  */
 WS_DLL_PUBLIC wtap_opttype_return_val
-wtap_block_set_uint32_option_value(wtap_block_t block, guint option_id, guint32 value);
+wtap_block_set_uint32_option_value(wtap_block_t block, unsigned option_id, uint32_t value);
 
 /** Get UINT32 option value from a block
  *
@@ -677,7 +726,7 @@ wtap_block_set_uint32_option_value(wtap_block_t block, guint option_id, guint32 
  * error code otherwise
  */
 WS_DLL_PUBLIC wtap_opttype_return_val
-wtap_block_get_uint32_option_value(wtap_block_t block, guint option_id, guint32* value) G_GNUC_WARN_UNUSED_RESULT;
+wtap_block_get_uint32_option_value(wtap_block_t block, unsigned option_id, uint32_t* value) G_GNUC_WARN_UNUSED_RESULT;
 
 /** Add UINT64 option value to a block
  *
@@ -688,7 +737,7 @@ wtap_block_get_uint32_option_value(wtap_block_t block, guint option_id, guint32*
  * error code otherwise
  */
 WS_DLL_PUBLIC wtap_opttype_return_val
-wtap_block_add_uint64_option(wtap_block_t block, guint option_id, guint64 value);
+wtap_block_add_uint64_option(wtap_block_t block, unsigned option_id, uint64_t value);
 
 /** Set UINT64 option value in a block
  *
@@ -699,7 +748,7 @@ wtap_block_add_uint64_option(wtap_block_t block, guint option_id, guint64 value)
  * error code otherwise
  */
 WS_DLL_PUBLIC wtap_opttype_return_val
-wtap_block_set_uint64_option_value(wtap_block_t block, guint option_id, guint64 value);
+wtap_block_set_uint64_option_value(wtap_block_t block, unsigned option_id, uint64_t value);
 
 /** Get UINT64 option value from a block
  *
@@ -710,7 +759,106 @@ wtap_block_set_uint64_option_value(wtap_block_t block, guint option_id, guint64 
  * error code otherwise
  */
 WS_DLL_PUBLIC wtap_opttype_return_val
-wtap_block_get_uint64_option_value(wtap_block_t block, guint option_id, guint64* value) G_GNUC_WARN_UNUSED_RESULT;
+wtap_block_get_uint64_option_value(wtap_block_t block, unsigned option_id, uint64_t* value) G_GNUC_WARN_UNUSED_RESULT;
+
+/** Add INT8 option value to a block
+ *
+ * @param[in] block Block to which to add the option
+ * @param[in] option_id Identifier value for option
+ * @param[in] value Value of option
+ * @return wtap_opttype_return_val - WTAP_OPTTYPE_SUCCESS if successful,
+ * error code otherwise
+ */
+WS_DLL_PUBLIC wtap_opttype_return_val
+wtap_block_add_int8_option(wtap_block_t block, unsigned option_id, int8_t value);
+
+/** Set INT8 option value in a block
+ *
+ * @param[in] block Block in which to set the option value
+ * @param[in] option_id Identifier value for option
+ * @param[in] value New value of option
+ * @return wtap_opttype_return_val - WTAP_OPTTYPE_SUCCESS if successful,
+ * error code otherwise
+ */
+WS_DLL_PUBLIC wtap_opttype_return_val
+wtap_block_set_int8_option_value(wtap_block_t block, unsigned option_id, int8_t value);
+
+/** Get INT8 option value from a block
+ *
+ * @param[in] block Block from which to get the option value
+ * @param[in] option_id Identifier value for option
+ * @param[out] value Returned value of option
+ * @return wtap_opttype_return_val - WTAP_OPTTYPE_SUCCESS if successful,
+ * error code otherwise
+ */
+WS_DLL_PUBLIC wtap_opttype_return_val
+wtap_block_get_int8_option_value(wtap_block_t block, unsigned option_id, int8_t* value) G_GNUC_WARN_UNUSED_RESULT;
+
+/** Add INT32 option value to a block
+ *
+ * @param[in] block Block to which to add the option
+ * @param[in] option_id Identifier value for option
+ * @param[in] value Value of option
+ * @return wtap_opttype_return_val - WTAP_OPTTYPE_SUCCESS if successful,
+ * error code otherwise
+ */
+WS_DLL_PUBLIC wtap_opttype_return_val
+wtap_block_add_int32_option(wtap_block_t block, unsigned option_id, int32_t value);
+
+/** Set INT32 option value in a block
+ *
+ * @param[in] block Block in which to set the option value
+ * @param[in] option_id Identifier value for option
+ * @param[in] value New value of option
+ * @return wtap_opttype_return_val - WTAP_OPTTYPE_SUCCESS if successful,
+ * error code otherwise
+ */
+WS_DLL_PUBLIC wtap_opttype_return_val
+wtap_block_set_int32_option_value(wtap_block_t block, unsigned option_id, int32_t value);
+
+/** Get INT32 option value from a block
+ *
+ * @param[in] block Block from which to get the option value
+ * @param[in] option_id Identifier value for option
+ * @param[out] value Returned value of option
+ * @return wtap_opttype_return_val - WTAP_OPTTYPE_SUCCESS if successful,
+ * error code otherwise
+ */
+WS_DLL_PUBLIC wtap_opttype_return_val
+wtap_block_get_int32_option_value(wtap_block_t block, unsigned option_id, int32_t* value) G_GNUC_WARN_UNUSED_RESULT;
+
+/** Add INT64 option value to a block
+ *
+ * @param[in] block Block to which to add the option
+ * @param[in] option_id Identifier value for option
+ * @param[in] value Value of option
+ * @return wtap_opttype_return_val - WTAP_OPTTYPE_SUCCESS if successful,
+ * error code otherwise
+ */
+WS_DLL_PUBLIC wtap_opttype_return_val
+wtap_block_add_int64_option(wtap_block_t block, unsigned option_id, int64_t value);
+
+/** Set INT64 option value in a block
+ *
+ * @param[in] block Block in which to set the option value
+ * @param[in] option_id Identifier value for option
+ * @param[in] value New value of option
+ * @return wtap_opttype_return_val - WTAP_OPTTYPE_SUCCESS if successful,
+ * error code otherwise
+ */
+WS_DLL_PUBLIC wtap_opttype_return_val
+wtap_block_set_int64_option_value(wtap_block_t block, unsigned option_id, int64_t value);
+
+/** Get INT64 option value from a block
+ *
+ * @param[in] block Block from which to get the option value
+ * @param[in] option_id Identifier value for option
+ * @param[out] value Returned value of option
+ * @return wtap_opttype_return_val - WTAP_OPTTYPE_SUCCESS if successful,
+ * error code otherwise
+ */
+WS_DLL_PUBLIC wtap_opttype_return_val
+wtap_block_get_int64_option_value(wtap_block_t block, unsigned option_id, int64_t* value) G_GNUC_WARN_UNUSED_RESULT;
 
 /** Add IPv4 address option value to a block
  *
@@ -721,7 +869,7 @@ wtap_block_get_uint64_option_value(wtap_block_t block, guint option_id, guint64*
  * error code otherwise
  */
 WS_DLL_PUBLIC wtap_opttype_return_val
-wtap_block_add_ipv4_option(wtap_block_t block, guint option_id, guint32 value);
+wtap_block_add_ipv4_option(wtap_block_t block, unsigned option_id, uint32_t value);
 
 /** Set IPv4 option value in a block
  *
@@ -732,7 +880,7 @@ wtap_block_add_ipv4_option(wtap_block_t block, guint option_id, guint32 value);
  * error code otherwise
  */
 WS_DLL_PUBLIC wtap_opttype_return_val
-wtap_block_set_ipv4_option_value(wtap_block_t block, guint option_id, guint32 value);
+wtap_block_set_ipv4_option_value(wtap_block_t block, unsigned option_id, uint32_t value);
 
 /** Get IPv4 option value from a block
  *
@@ -743,7 +891,7 @@ wtap_block_set_ipv4_option_value(wtap_block_t block, guint option_id, guint32 va
  * error code otherwise
  */
 WS_DLL_PUBLIC wtap_opttype_return_val
-wtap_block_get_ipv4_option_value(wtap_block_t block, guint option_id, guint32* value) G_GNUC_WARN_UNUSED_RESULT;
+wtap_block_get_ipv4_option_value(wtap_block_t block, unsigned option_id, uint32_t* value) G_GNUC_WARN_UNUSED_RESULT;
 
 /** Add IPv6 address option value to a block
  *
@@ -754,7 +902,7 @@ wtap_block_get_ipv4_option_value(wtap_block_t block, guint option_id, guint32* v
  * error code otherwise
  */
 WS_DLL_PUBLIC wtap_opttype_return_val
-wtap_block_add_ipv6_option(wtap_block_t block, guint option_id, ws_in6_addr *value);
+wtap_block_add_ipv6_option(wtap_block_t block, unsigned option_id, ws_in6_addr *value);
 
 /** Set IPv6 option value in a block
  *
@@ -765,7 +913,7 @@ wtap_block_add_ipv6_option(wtap_block_t block, guint option_id, ws_in6_addr *val
  * error code otherwise
  */
 WS_DLL_PUBLIC wtap_opttype_return_val
-wtap_block_set_ipv6_option_value(wtap_block_t block, guint option_id, ws_in6_addr *value);
+wtap_block_set_ipv6_option_value(wtap_block_t block, unsigned option_id, ws_in6_addr *value);
 
 /** Get IPv6 option value from a block
  *
@@ -776,7 +924,7 @@ wtap_block_set_ipv6_option_value(wtap_block_t block, guint option_id, ws_in6_add
  * error code otherwise
  */
 WS_DLL_PUBLIC wtap_opttype_return_val
-wtap_block_get_ipv6_option_value(wtap_block_t block, guint option_id, ws_in6_addr* value) G_GNUC_WARN_UNUSED_RESULT;
+wtap_block_get_ipv6_option_value(wtap_block_t block, unsigned option_id, ws_in6_addr* value) G_GNUC_WARN_UNUSED_RESULT;
 
 /** Add a string option to a block
  *
@@ -788,7 +936,7 @@ wtap_block_get_ipv6_option_value(wtap_block_t block, guint option_id, ws_in6_add
  * error code otherwise
  */
 WS_DLL_PUBLIC wtap_opttype_return_val
-wtap_block_add_string_option(wtap_block_t block, guint option_id, const char *value, gsize value_length);
+wtap_block_add_string_option(wtap_block_t block, unsigned option_id, const char *value, size_t value_length);
 
 /** Add a string option to a block taking ownership of the null-terminated string.
  *
@@ -799,7 +947,7 @@ wtap_block_add_string_option(wtap_block_t block, guint option_id, const char *va
  * error code otherwise
  */
 WS_DLL_PUBLIC wtap_opttype_return_val
-wtap_block_add_string_option_owned(wtap_block_t block, guint option_id, char *value);
+wtap_block_add_string_option_owned(wtap_block_t block, unsigned option_id, char *value);
 
 /** Add a string option to a block with a printf-formatted string as its value
  *
@@ -810,7 +958,7 @@ wtap_block_add_string_option_owned(wtap_block_t block, guint option_id, char *va
  * error code otherwise
  */
 WS_DLL_PUBLIC wtap_opttype_return_val
-wtap_block_add_string_option_format(wtap_block_t block, guint option_id, const char *format, ...)
+wtap_block_add_string_option_format(wtap_block_t block, unsigned option_id, const char *format, ...)
                                     G_GNUC_PRINTF(3,4);
 
 /** Set string option value in a block
@@ -823,7 +971,7 @@ wtap_block_add_string_option_format(wtap_block_t block, guint option_id, const c
  * error code otherwise
  */
 WS_DLL_PUBLIC wtap_opttype_return_val
-wtap_block_set_string_option_value(wtap_block_t block, guint option_id, const char* value, gsize value_length);
+wtap_block_set_string_option_value(wtap_block_t block, unsigned option_id, const char* value, size_t value_length);
 
 /** Set string option value for the nth instance of a particular option
  * in a block
@@ -837,7 +985,7 @@ wtap_block_set_string_option_value(wtap_block_t block, guint option_id, const ch
  * error code otherwise
  */
 WS_DLL_PUBLIC wtap_opttype_return_val
-wtap_block_set_nth_string_option_value(wtap_block_t block, guint option_id, guint idx, const char* value, gsize value_length);
+wtap_block_set_nth_string_option_value(wtap_block_t block, unsigned option_id, unsigned idx, const char* value, size_t value_length);
 
 /** Set string option value in a block to a printf-formatted string
  *
@@ -848,7 +996,7 @@ wtap_block_set_nth_string_option_value(wtap_block_t block, guint option_id, guin
  * error code otherwise
  */
 WS_DLL_PUBLIC wtap_opttype_return_val
-wtap_block_set_string_option_value_format(wtap_block_t block, guint option_id, const char *format, ...)
+wtap_block_set_string_option_value_format(wtap_block_t block, unsigned option_id, const char *format, ...)
                                           G_GNUC_PRINTF(3,4);
 
 /** Set string option value for the nth instance of a particular option
@@ -862,7 +1010,7 @@ wtap_block_set_string_option_value_format(wtap_block_t block, guint option_id, c
  * error code otherwise
  */
 WS_DLL_PUBLIC wtap_opttype_return_val
-wtap_block_set_nth_string_option_value_format(wtap_block_t block, guint option_id, guint idx, const char *format, ...)
+wtap_block_set_nth_string_option_value_format(wtap_block_t block, unsigned option_id, unsigned idx, const char *format, ...)
                                               G_GNUC_PRINTF(4,5);
 
 /** Get string option value from a block
@@ -874,7 +1022,7 @@ wtap_block_set_nth_string_option_value_format(wtap_block_t block, guint option_i
  * error code otherwise
  */
 WS_DLL_PUBLIC wtap_opttype_return_val
-wtap_block_get_string_option_value(wtap_block_t block, guint option_id, char** value) G_GNUC_WARN_UNUSED_RESULT;
+wtap_block_get_string_option_value(wtap_block_t block, unsigned option_id, char** value) G_GNUC_WARN_UNUSED_RESULT;
 
 /** Get string option value for the nth instance of a particular option
  * in a block
@@ -887,7 +1035,7 @@ wtap_block_get_string_option_value(wtap_block_t block, guint option_id, char** v
  * error code otherwise
  */
 WS_DLL_PUBLIC wtap_opttype_return_val
-wtap_block_get_nth_string_option_value(wtap_block_t block, guint option_id, guint idx, char** value) G_GNUC_WARN_UNUSED_RESULT;
+wtap_block_get_nth_string_option_value(wtap_block_t block, unsigned option_id, unsigned idx, char** value) G_GNUC_WARN_UNUSED_RESULT;
 
 /** Add a bytes option to a block
  *
@@ -899,7 +1047,7 @@ wtap_block_get_nth_string_option_value(wtap_block_t block, guint option_id, guin
  * error code otherwise
  */
 WS_DLL_PUBLIC wtap_opttype_return_val
-wtap_block_add_bytes_option(wtap_block_t block, guint option_id, const guint8 *value, gsize value_length);
+wtap_block_add_bytes_option(wtap_block_t block, unsigned option_id, const uint8_t *value, size_t value_length);
 
 /** Add a bytes option to a block, borrowing the value from a GBytes
  *
@@ -910,7 +1058,7 @@ wtap_block_add_bytes_option(wtap_block_t block, guint option_id, const guint8 *v
  * error code otherwise
  */
 WS_DLL_PUBLIC wtap_opttype_return_val
-wtap_block_add_bytes_option_borrow(wtap_block_t block, guint option_id, GBytes *value);
+wtap_block_add_bytes_option_borrow(wtap_block_t block, unsigned option_id, GBytes *value);
 
 /** Set bytes option value in a block
  *
@@ -922,7 +1070,7 @@ wtap_block_add_bytes_option_borrow(wtap_block_t block, guint option_id, GBytes *
  * error code otherwise
  */
 WS_DLL_PUBLIC wtap_opttype_return_val
-wtap_block_set_bytes_option_value(wtap_block_t block, guint option_id, const guint8* value, gsize value_length);
+wtap_block_set_bytes_option_value(wtap_block_t block, unsigned option_id, const uint8_t* value, size_t value_length);
 
 /** Set bytes option value for nth instance of a particular option in a block
  *
@@ -934,7 +1082,7 @@ wtap_block_set_bytes_option_value(wtap_block_t block, guint option_id, const gui
  * error code otherwise
  */
 WS_DLL_PUBLIC wtap_opttype_return_val
-wtap_block_set_nth_bytes_option_value(wtap_block_t block, guint option_id, guint idx, GBytes* value);
+wtap_block_set_nth_bytes_option_value(wtap_block_t block, unsigned option_id, unsigned idx, GBytes* value);
 
 /** Get bytes option value from a block
  *
@@ -947,7 +1095,7 @@ wtap_block_set_nth_bytes_option_value(wtap_block_t block, guint option_id, guint
  * (and then g_bytes_unref() when you're done with it).
  */
 WS_DLL_PUBLIC wtap_opttype_return_val
-wtap_block_get_bytes_option_value(wtap_block_t block, guint option_id, GBytes** value) G_GNUC_WARN_UNUSED_RESULT;
+wtap_block_get_bytes_option_value(wtap_block_t block, unsigned option_id, GBytes** value) G_GNUC_WARN_UNUSED_RESULT;
 
 /** Get bytes option value for nth instance of a particular option in a block
  *
@@ -961,7 +1109,7 @@ wtap_block_get_bytes_option_value(wtap_block_t block, guint option_id, GBytes** 
  * (and then g_bytes_unref() when you're done with it).
  */
 WS_DLL_PUBLIC wtap_opttype_return_val
-wtap_block_get_nth_bytes_option_value(wtap_block_t block, guint option_id, guint idx, GBytes** value) G_GNUC_WARN_UNUSED_RESULT;
+wtap_block_get_nth_bytes_option_value(wtap_block_t block, unsigned option_id, unsigned idx, GBytes** value) G_GNUC_WARN_UNUSED_RESULT;
 
 /** Add an NFLX custom option to a block
  *
@@ -973,7 +1121,7 @@ wtap_block_get_nth_bytes_option_value(wtap_block_t block, guint option_id, guint
  * error code otherwise
  */
 WS_DLL_PUBLIC wtap_opttype_return_val
-wtap_block_add_nflx_custom_option(wtap_block_t block, guint32 nflx_type, const char *nflx_custom_data, gsize nflx_custom_data_len);
+wtap_block_add_nflx_custom_option(wtap_block_t block, uint32_t nflx_type, const char *nflx_custom_data, size_t nflx_custom_data_len);
 
 /** Get an NFLX custom option value from a block
  *
@@ -985,7 +1133,7 @@ wtap_block_add_nflx_custom_option(wtap_block_t block, guint32 nflx_type, const c
  * error code otherwise
  */
 WS_DLL_PUBLIC wtap_opttype_return_val
-wtap_block_get_nflx_custom_option(wtap_block_t block, guint32 nflx_type, char *nflx_custom_data, gsize nflx_custom_data_len);
+wtap_block_get_nflx_custom_option(wtap_block_t block, uint32_t nflx_type, char *nflx_custom_data, size_t nflx_custom_data_len);
 
 /** Add a custom option to a block
  *
@@ -998,7 +1146,7 @@ wtap_block_get_nflx_custom_option(wtap_block_t block, guint32 nflx_type, char *n
  * error code otherwise
  */
 WS_DLL_PUBLIC wtap_opttype_return_val
-wtap_block_add_custom_option(wtap_block_t block, guint option_id, guint32 pen, const char *custom_data, gsize custom_data_len);
+wtap_block_add_custom_option(wtap_block_t block, unsigned option_id, uint32_t pen, const char *custom_data, size_t custom_data_len);
 
 /** Add an if_filter option value to a block
  *
@@ -1009,7 +1157,7 @@ wtap_block_add_custom_option(wtap_block_t block, guint option_id, guint32 pen, c
  * error code otherwise
  */
 WS_DLL_PUBLIC wtap_opttype_return_val
-wtap_block_add_if_filter_option(wtap_block_t block, guint option_id, if_filter_opt_t* value);
+wtap_block_add_if_filter_option(wtap_block_t block, unsigned option_id, if_filter_opt_t* value);
 
 /** Set an if_filter option value in a block
  *
@@ -1020,7 +1168,7 @@ wtap_block_add_if_filter_option(wtap_block_t block, guint option_id, if_filter_o
  * error code otherwise
  */
 WS_DLL_PUBLIC wtap_opttype_return_val
-wtap_block_set_if_filter_option_value(wtap_block_t block, guint option_id, if_filter_opt_t* value);
+wtap_block_set_if_filter_option_value(wtap_block_t block, unsigned option_id, if_filter_opt_t* value);
 
 /** Get an if_filter option value from a block
  *
@@ -1031,7 +1179,7 @@ wtap_block_set_if_filter_option_value(wtap_block_t block, guint option_id, if_fi
  * error code otherwise
  */
 WS_DLL_PUBLIC wtap_opttype_return_val
-wtap_block_get_if_filter_option_value(wtap_block_t block, guint option_id, if_filter_opt_t* value) G_GNUC_WARN_UNUSED_RESULT;
+wtap_block_get_if_filter_option_value(wtap_block_t block, unsigned option_id, if_filter_opt_t* value) G_GNUC_WARN_UNUSED_RESULT;
 
 /** Add a packet_verdict option value to a block
  *
@@ -1042,7 +1190,7 @@ wtap_block_get_if_filter_option_value(wtap_block_t block, guint option_id, if_fi
  * error code otherwise
  */
 WS_DLL_PUBLIC wtap_opttype_return_val
-wtap_block_add_packet_verdict_option(wtap_block_t block, guint option_id, packet_verdict_opt_t* value);
+wtap_block_add_packet_verdict_option(wtap_block_t block, unsigned option_id, packet_verdict_opt_t* value);
 
 /** Set packet_verdict option value for the nth instsance of a particular
  * option in a block
@@ -1055,7 +1203,7 @@ wtap_block_add_packet_verdict_option(wtap_block_t block, guint option_id, packet
  * error code otherwise
  */
 WS_DLL_PUBLIC wtap_opttype_return_val
-wtap_block_set_nth_packet_verdict_option_value(wtap_block_t block, guint option_id, guint idx, packet_verdict_opt_t* value);
+wtap_block_set_nth_packet_verdict_option_value(wtap_block_t block, unsigned option_id, unsigned idx, packet_verdict_opt_t* value);
 
 /** Get packet_verdict option value for the nth instance of a particular
  * option in a block
@@ -1068,7 +1216,7 @@ wtap_block_set_nth_packet_verdict_option_value(wtap_block_t block, guint option_
  * error code otherwise
  */
 WS_DLL_PUBLIC wtap_opttype_return_val
-wtap_block_get_nth_packet_verdict_option_value(wtap_block_t block, guint option_id, guint idx, packet_verdict_opt_t* value) G_GNUC_WARN_UNUSED_RESULT;
+wtap_block_get_nth_packet_verdict_option_value(wtap_block_t block, unsigned option_id, unsigned idx, packet_verdict_opt_t* value) G_GNUC_WARN_UNUSED_RESULT;
 
 WS_DLL_PUBLIC void
 wtap_packet_verdict_free(packet_verdict_opt_t* verdict);
@@ -1082,7 +1230,7 @@ wtap_packet_verdict_free(packet_verdict_opt_t* verdict);
  * error code otherwise
  */
 WS_DLL_PUBLIC wtap_opttype_return_val
-wtap_block_add_packet_hash_option(wtap_block_t block, guint option_id, packet_hash_opt_t* value);
+wtap_block_add_packet_hash_option(wtap_block_t block, unsigned option_id, packet_hash_opt_t* value);
 
 WS_DLL_PUBLIC void
 wtap_packet_hash_free(packet_hash_opt_t* hash);
@@ -1095,7 +1243,7 @@ wtap_packet_hash_free(packet_hash_opt_t* hash);
  * error code otherwise
  */
 WS_DLL_PUBLIC wtap_opttype_return_val
-wtap_block_remove_option(wtap_block_t block, guint option_id);
+wtap_block_remove_option(wtap_block_t block, unsigned option_id);
 
 /** Remove the nth instance of an option from a block
  *
@@ -1106,7 +1254,7 @@ wtap_block_remove_option(wtap_block_t block, guint option_id);
  * error code otherwise
  */
 WS_DLL_PUBLIC wtap_opttype_return_val
-wtap_block_remove_nth_option_instance(wtap_block_t block, guint option_id, guint idx);
+wtap_block_remove_nth_option_instance(wtap_block_t block, unsigned option_id, unsigned idx);
 
 /** Copy a block to another.
  *
@@ -1127,8 +1275,8 @@ wtap_block_copy(wtap_block_t dest_block, wtap_block_t src_block);
 WS_DLL_PUBLIC wtap_block_t
 wtap_block_make_copy(wtap_block_t block);
 
-typedef gboolean (*wtap_block_foreach_func)(wtap_block_t block, guint option_id, wtap_opttype_e option_type, wtap_optval_t *option, void *user_data);
-WS_DLL_PUBLIC gboolean
+typedef bool (*wtap_block_foreach_func)(wtap_block_t block, unsigned option_id, wtap_opttype_e option_type, wtap_optval_t *option, void *user_data);
+WS_DLL_PUBLIC bool
 wtap_block_foreach_option(wtap_block_t block, wtap_block_foreach_func func, void* user_data);
 
 /** Cleanup the internal structures

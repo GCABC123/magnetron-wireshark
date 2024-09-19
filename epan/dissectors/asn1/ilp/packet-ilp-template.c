@@ -18,6 +18,7 @@
 #include <epan/packet.h>
 #include <epan/prefs.h>
 #include <epan/asn1.h>
+#include <wsutil/array.h>
 
 #include "packet-per.h"
 #include "packet-tcp.h"
@@ -33,7 +34,7 @@ void proto_register_ilp(void);
 
 static dissector_handle_t rrlp_handle;
 static dissector_handle_t lpp_handle;
-static dissector_handle_t ilp_handle;
+static dissector_handle_t ilp_tcp_handle;
 
 
 /* IANA Registered Ports
@@ -42,19 +43,19 @@ static dissector_handle_t ilp_handle;
 #define ILP_TCP_PORT    7276
 
 /* Initialize the protocol and registered fields */
-static int proto_ilp = -1;
+static int proto_ilp;
 
 
 #define ILP_HEADER_SIZE 2
 
-static gboolean ilp_desegment = TRUE;
+static bool ilp_desegment = true;
 
 #include "packet-ilp-hf.c"
-static int hf_ilp_mobile_directory_number = -1;
+static int hf_ilp_mobile_directory_number;
 
 /* Initialize the subtree pointers */
-static gint ett_ilp = -1;
-static gint ett_ilp_setid = -1;
+static int ett_ilp;
+static int ett_ilp_setid;
 #include "packet-ilp-ett.c"
 
 /* Include constants */
@@ -64,7 +65,7 @@ static gint ett_ilp_setid = -1;
 #include "packet-ilp-fn.c"
 
 
-static guint
+static unsigned
 get_ilp_pdu_len(packet_info *pinfo _U_, tvbuff_t *tvb, int offset, void *data _U_)
 {
   /* PDU length = Message length */
@@ -95,7 +96,7 @@ void proto_register_ilp(void) {
   };
 
   /* List of subtrees */
-  static gint *ett[] = {
+  static int *ett[] = {
     &ett_ilp,
     &ett_ilp_setid,
 #include "packet-ilp-ettarr.c"
@@ -106,7 +107,7 @@ void proto_register_ilp(void) {
 
   /* Register protocol */
   proto_ilp = proto_register_protocol(PNAME, PSNAME, PFNAME);
-  ilp_handle = register_dissector("ilp", dissect_ilp_tcp, proto_ilp);
+  ilp_tcp_handle = register_dissector("ilp", dissect_ilp_tcp, proto_ilp);
 
   /* Register fields and subtrees */
   proto_register_field_array(proto_ilp, hf, array_length(hf));
@@ -126,9 +127,12 @@ void proto_register_ilp(void) {
 void
 proto_reg_handoff_ilp(void)
 {
-  dissector_add_string("media_type","application/oma-supl-ilp", ilp_handle);
+  dissector_handle_t ilp_pdu_handle;
+
+  ilp_pdu_handle = create_dissector_handle(dissect_ILP_PDU_PDU, proto_ilp);
   rrlp_handle = find_dissector_add_dependency("rrlp", proto_ilp);
   lpp_handle = find_dissector_add_dependency("lpp", proto_ilp);
 
-  dissector_add_uint_with_preference("tcp.port", ILP_TCP_PORT, ilp_handle);
+  dissector_add_string("media_type","application/oma-supl-ilp", ilp_pdu_handle);
+  dissector_add_uint_with_preference("tcp.port", ILP_TCP_PORT, ilp_tcp_handle);
 }

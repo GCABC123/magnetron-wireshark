@@ -87,8 +87,8 @@ enum Direction
 #define AC_SEQ_NUM_AR_SIZE 255
 struct SeqNumIpSeq
 {
-    guint ip;
-    guint seq;
+    unsigned ip;
+    unsigned seq;
 };
 
 static const value_string acdr_trace_pt_vals[] = {
@@ -186,6 +186,9 @@ static const value_string acdr_media_type_vals[] = {
     {ACDR_RTP_NSE,          "RTP NSE"            },
     {ACDR_RTP_NO_OP,        "RTP NoOp"           },
     {ACDR_DTLS,             "DTLS Data"          },
+    {ACDR_SSH_SHELL,        "SSH Shell"          },
+    {ACDR_SSH_SFTP,         "SSH SFTP"           },
+    {ACDR_SSH_SCP,          "SSH SCP"            },
     {0,                NULL                 }
 };
 
@@ -235,16 +238,16 @@ enum AcdrAc5xProtocolType
 
 struct AcdrAc5xPrivateData
 {
-    guint packet_direction;
+    unsigned packet_direction;
     enum AcdrAc5xProtocolType protocol_type;
-    guint mii_header_exist;
+    unsigned mii_header_exist;
 };
 
 typedef struct AcdrTlsPacketInfo
 {
-    guint16 source_port;
-    guint16 dest_port;
-    guint8  application;
+    uint16_t source_port;
+    uint16_t dest_port;
+    uint8_t application;
 } AcdrTlsPacketInfo;
 
 
@@ -268,112 +271,112 @@ static const value_string hf_acdr_ext_direction_vals[] = {
     {0, NULL      }
 };
 
-static int proto_acdr = -1;
-static int proto_ac5xmii = -1;
-static int proto_ac5x = -1;
-static int proto_ac48x = -1;
-static int proto_ac49x = -1;
+static int proto_acdr;
+static int proto_ac5xmii;
+static int proto_ac5x;
+static int proto_ac48x;
+static int proto_ac49x;
 
 // Define headers for acdr
-static int hf_acdr_seq_num = -1;
-static int hf_acdr_timestamp = -1;
-static int hf_acdr_sourceid = -1;
-static int hf_acdr_destid = -1;
-static int hf_acdr_version = -1;
-static int hf_acdr_trace_pt = -1;
-static int hf_acdr_media_type = -1;
-static int hf_acdr_media_type_dsp_ac5x = -1;
-static int hf_acdr_pl_offset_type = -1;
-static int hf_acdr_header_ext_len_type = -1;
-static int hf_acdr_data = -1;
-static int hf_acdr_data_mii = -1;
-static int hf_acdr_data_ipv6 = -1;
-static int hf_acdr_data_fragmented = -1;
-static int hf_acdr_data_headeradded = -1;
-static int hf_acdr_data_encrypted = -1;
-static int hf_acdr_data_mtce = -1;
-static int hf_acdr_data_li = -1;
+static int hf_acdr_seq_num;
+static int hf_acdr_timestamp;
+static int hf_acdr_sourceid;
+static int hf_acdr_destid;
+static int hf_acdr_version;
+static int hf_acdr_trace_pt;
+static int hf_acdr_media_type;
+static int hf_acdr_media_type_dsp_ac5x;
+static int hf_acdr_pl_offset_type;
+static int hf_acdr_header_ext_len_type;
+static int hf_acdr_data;
+static int hf_acdr_data_mii;
+static int hf_acdr_data_ipv6;
+static int hf_acdr_data_fragmented;
+static int hf_acdr_data_headeradded;
+static int hf_acdr_data_encrypted;
+static int hf_acdr_data_mtce;
+static int hf_acdr_data_li;
 
-static int hf_acdr_session_id = -1;
-static int hf_acdr_session_id_board_id = -1;
-static int hf_acdr_session_id_reset_counter = -1;
-static int hf_acdr_session_id_session_number = -1;
-static int hf_acdr_session_id_long_session_number = -1;
+static int hf_acdr_session_id;
+static int hf_acdr_session_id_board_id;
+static int hf_acdr_session_id_reset_counter;
+static int hf_acdr_session_id_session_number;
+static int hf_acdr_session_id_long_session_number;
 
-static int hf_acdr_ext_c5_control_favorite = -1;
+static int hf_acdr_ext_c5_control_favorite;
 
-static int hf_acdr_payload_header = -1;
-static int hf_acdr_mii_header = -1;
+static int hf_acdr_payload_header;
+static int hf_acdr_mii_header;
 
 // header extension
-static int hf_acdr_ext_srcudp = -1;
-static int hf_acdr_ext_dstudp = -1;
-static int hf_acdr_ext_srcip = -1;
-static int hf_acdr_ext_srcipv6 = -1;
-static int hf_acdr_ext_dstip = -1;
-static int hf_acdr_ext_dstipv6 = -1;
-static int hf_acdr_ext_protocol = -1;
-static int hf_acdr_ext_tls_application = -1;
-static int hf_acdr_ext_direction = -1;
-static int hf_acdr_ext_iptos = -1;
-static int hf_acdr_ext_c5_control_flags = -1;
+static int hf_acdr_ext_srcudp;
+static int hf_acdr_ext_dstudp;
+static int hf_acdr_ext_srcip;
+static int hf_acdr_ext_srcipv6;
+static int hf_acdr_ext_dstip;
+static int hf_acdr_ext_dstipv6;
+static int hf_acdr_ext_protocol;
+static int hf_acdr_ext_tls_application;
+static int hf_acdr_ext_direction;
+static int hf_acdr_ext_iptos;
+static int hf_acdr_ext_c5_control_flags;
 
-static int hf_acdr_unknown_packet = -1;
-static int hf_acdr_ext_pstn_trace_seq_num = -1;
-static int hf_acdr_header_extension = -1;
-static int hf_acdr_ext_dsp_core = -1;
-static int hf_acdr_ext_dsp_channel = -1;
-static int hf_acdr_ext_event_id = -1;
-static int hf_acdr_ext_event_source = -1;
+static int hf_acdr_unknown_packet;
+static int hf_acdr_ext_pstn_trace_seq_num;
+static int hf_acdr_header_extension;
+static int hf_acdr_ext_dsp_core;
+static int hf_acdr_ext_dsp_channel;
+static int hf_acdr_ext_event_id;
+static int hf_acdr_ext_event_source;
 
 // Mii header extension
-static int hf_acdr_mii_sequence = -1;
-static int hf_acdr_mii_packet_size = -1;
-static int hf_acdr_5x_analysis_packet_header = -1;
-static int hf_5x_analysis_version = -1;
-static int hf_5x_analysis_direction = -1;
-static int hf_5x_analysis_sub_version = -1;
-static int hf_5x_analysis_device = -1;
-static int hf_5x_analysis_sequence = -1;
-static int hf_5x_analysis_spare1 = -1;
-static int hf_5x_analysis_timestamp = -1;
-static int hf_5x_analysis_spare2 = -1;
+static int hf_acdr_mii_sequence;
+static int hf_acdr_mii_packet_size;
+static int hf_acdr_5x_analysis_packet_header;
+static int hf_5x_analysis_version;
+static int hf_5x_analysis_direction;
+static int hf_5x_analysis_sub_version;
+static int hf_5x_analysis_device;
+static int hf_5x_analysis_sequence;
+static int hf_5x_analysis_spare1;
+static int hf_5x_analysis_timestamp;
+static int hf_5x_analysis_spare2;
 
-static int hf_acdr_5x_hpi_packet_header = -1;
-static int hf_5x_hpi_sync5 = -1;
-static int hf_5x_hpi_udp_checksum = -1;
-static int hf_5x_hpi_resource_id = -1;
-static int hf_5x_hpi_favorite = -1;
-static int hf_5x_hpi_protocol = -1;
+static int hf_acdr_5x_hpi_packet_header;
+static int hf_5x_hpi_sync5;
+static int hf_5x_hpi_udp_checksum;
+static int hf_5x_hpi_resource_id;
+static int hf_5x_hpi_favorite;
+static int hf_5x_hpi_protocol;
 
-static int hf_ac45x_packet = -1;
-static int hf_ac48x_packet = -1;
-static int hf_ac49x_packet = -1;
-static int hf_ac5x_packet = -1;
+static int hf_ac45x_packet;
+static int hf_ac48x_packet;
+static int hf_ac49x_packet;
+static int hf_ac5x_packet;
 
-static int hf_signaling_packet = -1;
-static int hf_acdr_signaling_opcode = -1;
-static int hf_acdr_signaling_size = -1;
-static int hf_acdr_signaling_timestamp = -1;
+static int hf_signaling_packet;
+static int hf_acdr_signaling_opcode;
+static int hf_acdr_signaling_size;
+static int hf_acdr_signaling_timestamp;
 
 
 // Define the trees for acdr
-static int ett_acdr = -1;
-static int ett_extension = -1;
-static int ett_ac49x_packet = -1;
-static int ett_ac48x_packet = -1;
-static int ett_ac45x_packet = -1;
-static int ett_ac5x_packet = -1;
-static int ett_ac5x_mii_packet = -1;
-static int ett_mii_header = -1;
-static int ett_signaling_packet = -1;
-static int ett_extra_data = -1;
-static int ett_c5_cntrl_flags = -1;
-static int ett_5x_analysis_packet_header = -1;
-static int ett_5x_hpi_packet_header = -1;
-static int ett_session_id = -1;
+static int ett_acdr;
+static int ett_extension;
+static int ett_ac49x_packet;
+static int ett_ac48x_packet;
+static int ett_ac45x_packet;
+static int ett_ac5x_packet;
+static int ett_ac5x_mii_packet;
+static int ett_mii_header;
+static int ett_signaling_packet;
+static int ett_extra_data;
+static int ett_c5_cntrl_flags;
+static int ett_5x_analysis_packet_header;
+static int ett_5x_hpi_packet_header;
+static int ett_session_id;
 
-static expert_field ei_acdr_version_not_supported = EI_INIT;
+static expert_field ei_acdr_version_not_supported;
 
 static int proto_rtp;
 
@@ -382,8 +385,11 @@ static dissector_table_t tls_application_table;
 static dissector_table_t tls_application_port_table;
 
 static dissector_handle_t acdr_dissector_handle;
+static dissector_handle_t acdr_mii_dissector_handle;
+static dissector_handle_t acdr_rtp_dissector_handle;
+static dissector_handle_t acdr_xml_dissector_handle;
 static dissector_handle_t rtp_dissector_handle;
-static dissector_handle_t udp_stun_dissector_handle = NULL;
+static dissector_handle_t udp_stun_dissector_handle;
 static dissector_handle_t rtp_events_handle;
 static dissector_handle_t rtp_rfc2198_handle;
 static dissector_handle_t amr_handle;
@@ -403,28 +409,29 @@ static dissector_handle_t dsp_5x_MII_dissector_handle;
 static dissector_handle_t udp_dissector_handle;
 static dissector_handle_t xml_dissector_handle;
 static dissector_handle_t lix2x3_dissector_handle;
+static dissector_handle_t ssh_dissector_handle;
 
 static void dissect_rtp_packet(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree,
-                               guint8 media_type, guint16 payload_type);
+                               uint8_t media_type, uint16_t payload_type);
 static void create_5x_analysis_packet_header_subtree(proto_tree *tree, tvbuff_t *tvb);
 static void create_5x_hpi_packet_header_subtree(proto_tree *tree, tvbuff_t *tvb);
 
 static int
-create_full_session_id_subtree(proto_tree *tree, tvbuff_t *tvb, int offset, guint8 ver)
+create_full_session_id_subtree(wmem_allocator_t *scope, proto_tree *tree, tvbuff_t *tvb, int offset, uint8_t ver)
 {
-    guint64 full_session_id = tvb_get_letoh64(tvb, offset);
+    uint64_t full_session_id = tvb_get_letoh64(tvb, offset);
     proto_item *packet_item = NULL;
     proto_item *packet_tree = NULL;
-    guint64 session_int = 0;
-    gint session_id_length;
+    uint64_t session_int = 0;
+    int session_id_length;
 
     // SessionID
     const char *str = "N/A";
 
     if (full_session_id != 0) {
         const char *session_ext = "";
-        guint32 board_id = tvb_get_ntoh24(tvb, offset);
-        guint8 reset_counter = tvb_get_guint8(tvb, offset + 3);
+        uint32_t board_id = tvb_get_ntoh24(tvb, offset);
+        uint8_t reset_counter = tvb_get_uint8(tvb, offset + 3);
 
         if ((ver & 0xF) == 7)
             session_int = tvb_get_ntohl(tvb, offset + 4);
@@ -432,8 +439,8 @@ create_full_session_id_subtree(proto_tree *tree, tvbuff_t *tvb, int offset, guin
             session_int = tvb_get_ntoh40(tvb, offset + 4);
 
         if (session_int != 0)
-            session_ext = wmem_strdup_printf(wmem_packet_scope(), ":%" PRIu64, session_int);
-        str = wmem_strdup_printf(wmem_packet_scope(), "%x:%d%s", board_id, reset_counter, session_ext);
+            session_ext = wmem_strdup_printf(scope, ":%" PRIu64, session_int);
+        str = wmem_strdup_printf(scope, "%x:%d%s", board_id, reset_counter, session_ext);
     }
 
     if ((ver & 0xF) == 7) {
@@ -471,12 +478,12 @@ create_full_session_id_subtree(proto_tree *tree, tvbuff_t *tvb, int offset, guin
 }
 
 static void
-create_header_extension_subtree(proto_tree *tree, tvbuff_t *tvb, gint offset, guint8 extension_length,
-                                guint32 ver, guint8 media_type, guint8 trace_point, guint8 extra_data,
+create_header_extension_subtree(proto_tree *tree, tvbuff_t *tvb, int offset, uint8_t extension_length,
+                                uint32_t ver, uint8_t media_type, uint8_t trace_point, uint8_t extra_data,
                                 AcdrTlsPacketInfo *tls_packet_info)
 {
     proto_tree *extension_tree;
-    gboolean ipv6 = ((IPV6_MASK & extra_data) == IPV6_MASK);
+    bool ipv6 = ((IPV6_MASK & extra_data) == IPV6_MASK);
 
     // parse the header extension
     proto_item *ti = proto_tree_add_item(tree, hf_acdr_header_extension, tvb, offset,
@@ -487,7 +494,7 @@ create_header_extension_subtree(proto_tree *tree, tvbuff_t *tvb, gint offset, gu
     if (media_type == ACDR_TLS || media_type == ACDR_TLSPeek) {
         tls_packet_info->source_port = tvb_get_ntohs(tvb, offset);
         tls_packet_info->dest_port = tvb_get_ntohs(tvb, offset + 2);
-        tls_packet_info->application = tvb_get_guint8(tvb, offset + 12);
+        tls_packet_info->application = tvb_get_uint8(tvb, offset + 12);
     }
 
     //further processing only involves adding fields
@@ -686,7 +693,7 @@ create_header_extension_subtree(proto_tree *tree, tvbuff_t *tvb, gint offset, gu
 }
 
 static void
-create_mii_header_subtree(proto_tree *tree, tvbuff_t *tvb, int offset, guint8 media_type)
+create_mii_header_subtree(proto_tree *tree, tvbuff_t *tvb, int offset, uint8_t media_type)
 {
     proto_tree *mii_header_tree;
 
@@ -797,21 +804,21 @@ acdr_payload_handler(proto_tree *tree, packet_info *pinfo, tvbuff_t *tvb,
             return;
     }
     // check registered media types
-    if (dissector_try_uint_new(media_type_table, data->media_type, tvb, pinfo, tree, FALSE, data))
+    if (dissector_try_uint_new(media_type_table, data->media_type, tvb, pinfo, tree, false, data))
         return;
     proto_tree_add_item(tree, hf_acdr_unknown_packet, tvb, 0, 0, ENC_NA);
 }
 
 static void
-dissect_rtp_packet(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, guint8 media_type,
-                   guint16 payload_type)
+dissect_rtp_packet(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, uint8_t media_type,
+                   uint16_t payload_type)
 {
     proto_tree *rtp_data_tree;
     dissector_handle_t old_dissector_handle = NULL;
 
     int bytes_dissected = 0;
 
-    if ((tvb_get_guint8(tvb, 0) & 0xC0) == 0) {
+    if ((tvb_get_uint8(tvb, 0) & 0xC0) == 0) {
         // RTP Version = 0
         if (tvb_get_ntohl(tvb, 4) == 0x2112a442) {
             // This is STUN RFC 5389 packet
@@ -926,12 +933,12 @@ dissect_rtp_packet(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, guint8 m
 }
 
 static int
-dissect_signaling_packet(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, guint8 trace_point)
+dissect_signaling_packet(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, uint8_t trace_point)
 {
     tvbuff_t *next_tvb = NULL;
-    gint32 offset = 0;
-    gint remaining;
-    const gboolean is_incoming = trace_point == Host2Pstn || trace_point == DspIncoming;
+    int32_t offset = 0;
+    int remaining;
+    const bool is_incoming = trace_point == Host2Pstn || trace_point == DspIncoming;
 
     proto_tree_add_item(tree, hf_acdr_signaling_opcode, tvb, HEADER_FIELD_SIG_OPCODE_BYTE_NO,
                         HEADER_FIELD_SIG_OPCODE_BYTE_COUNT, ENC_BIG_ENDIAN);
@@ -941,7 +948,7 @@ dissect_signaling_packet(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, gu
                             HEADER_FIELD_SIG_SIZE_BYTE_COUNT, ENC_BIG_ENDIAN);
         offset += HEADER_FIELD_SIG_SIZE_BYTE_COUNT;
     } else {
-        const guint32 timestamp = tvb_get_ntohl(tvb, HEADER_FIELD_SIG_TIME_BYTE_NO);
+        const uint32_t timestamp = tvb_get_ntohl(tvb, HEADER_FIELD_SIG_TIME_BYTE_NO);
         nstime_t sig_time = {timestamp / 1000000, (timestamp % 1000000) * 1000};
         proto_tree_add_time_format_value(
                     tree, hf_acdr_signaling_timestamp, tvb, HEADER_FIELD_SIG_TIME_BYTE_NO,
@@ -957,10 +964,10 @@ dissect_signaling_packet(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, gu
     return call_data_dissector(next_tvb, pinfo, tree);
 }
 
-static gint32
-add_cid(proto_tree *tree, tvbuff_t *tvb, gint offset, gint cid_byte_length, int hf)
+static int32_t
+add_cid(proto_tree *tree, tvbuff_t *tvb, int offset, int cid_byte_length, int hf)
 {
-    gint32 cid = 0;
+    int32_t cid = 0;
     if (cid_byte_length == 2) {
         cid = tvb_get_ntohs(tvb, offset);
     } else {
@@ -978,20 +985,20 @@ create_acdr_tree(proto_tree *tree, packet_info *pinfo, tvbuff_t *tvb)
     proto_item *header_ti = NULL;
     proto_tree *acdr_tree;
     tvbuff_t *next_tvb = NULL;
-    gint offset = 0;
-    gint header_byte_length = 15;
-    gint cid_byte_length = 2;
-    guint32 sequence_num = 0;
-    guint32 version, trace_point, header_extension_len = 0;
-    guint8 media_type, extra_data;
-    gboolean medium_mii = 0;
-    gint64 timestamp;
+    int offset = 0;
+    int header_byte_length = 15;
+    int cid_byte_length = 2;
+    uint32_t sequence_num = 0;
+    uint32_t version, trace_point, header_extension_len = 0;
+    uint8_t media_type, extra_data;
+    bool medium_mii = 0;
+    int64_t timestamp;
     nstime_t acdr_time = NSTIME_INIT_ZERO;
-    gint time_size = 0;
+    int time_size = 0;
     int acdr_header_length;
-    gboolean header_added;
-    gboolean li_packet;
-    guint16 payload_type = 0;
+    bool header_added;
+    bool li_packet;
+    uint16_t payload_type = 0;
     AcdrTlsPacketInfo tls_packet_info = {0xFFFF, 0xFFFF, TLS_APP_UNKNWN};
     const char *proto_name = NULL;
 
@@ -1053,7 +1060,7 @@ create_acdr_tree(proto_tree *tree, packet_info *pinfo, tvbuff_t *tvb)
     offset += cid_byte_length;
 
     // Extra Data
-    extra_data = tvb_get_guint8(tvb, offset);
+    extra_data = tvb_get_uint8(tvb, offset);
     if ((extra_data == 0) ||
 
         // Backward Compatible:  in old versions we always set the extra_data with 0xAA value
@@ -1088,7 +1095,7 @@ create_acdr_tree(proto_tree *tree, packet_info *pinfo, tvbuff_t *tvb)
     offset++;
 
     // Media Type
-    media_type = tvb_get_guint8(tvb, offset);
+    media_type = tvb_get_uint8(tvb, offset);
     if ((media_type == ACDR_DSP_AC5X_MII) && (medium_mii == 0))
         proto_tree_add_item(acdr_tree, hf_acdr_media_type_dsp_ac5x, tvb, offset, 1, ENC_BIG_ENDIAN);
     else
@@ -1117,7 +1124,7 @@ create_acdr_tree(proto_tree *tree, packet_info *pinfo, tvbuff_t *tvb)
                                 offset, 4, ENC_BIG_ENDIAN);
         } else {
             // Full SessionID (include also BoardID)
-            create_full_session_id_subtree(acdr_tree, tvb, offset, version);
+            create_full_session_id_subtree(pinfo->pool, acdr_tree, tvb, offset, version);
         }
     }
 
@@ -1147,7 +1154,7 @@ create_acdr_tree(proto_tree *tree, packet_info *pinfo, tvbuff_t *tvb)
         case ACDR_RTP_RFC2198:
         case ACDR_RTP_RFC2833:
         case ACDR_RTP_FEC:
-            payload_type = (tvb_get_guint8(tvb, acdr_header_length + 1) & 0x7F);
+            payload_type = (tvb_get_uint8(tvb, acdr_header_length + 1) & 0x7F);
             break;
         }
 
@@ -1194,7 +1201,7 @@ dissect_acdr(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, void *data _U_
     pinfo->current_proto = "acdr";
 
     col_set_str(pinfo->cinfo, COL_PROTOCOL, "AC DR");
-    col_add_fstr(pinfo->cinfo, COL_INFO, "AC DEBUG Packet");
+    col_set_str(pinfo->cinfo, COL_INFO, "AC DEBUG Packet");
 
     create_acdr_tree(tree, pinfo, tvb);
 
@@ -1246,7 +1253,7 @@ dissect_acdr_tls(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, void *data
     //dissector wasn't found
     col_set_str(pinfo->cinfo, COL_PROTOCOL, "TLS");
     col_clear(pinfo->cinfo, COL_INFO);
-    col_add_fstr(pinfo->cinfo, COL_INFO, "TLS raw data");
+    col_set_str(pinfo->cinfo, COL_INFO, "TLS raw data");
     call_data_dissector(tvb, pinfo, tree);
 
     return tvb_captured_length(tvb);
@@ -1312,7 +1319,7 @@ dissect_acdr_rtcp(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, void *dat
         return 0;
 
     int bytes_dissected = 0;
-    if ((tvb_get_guint8(tvb, 0) & 0xC0) == 0) {
+    if ((tvb_get_uint8(tvb, 0) & 0xC0) == 0) {
         // RTCP Version = 0
         if (tvb_get_ntohl(tvb, 4) == 0x2112a442) {
             // This is STUN RFC 5389 packet
@@ -1352,6 +1359,172 @@ dissect_acdr_xml(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, void* data
     col_set_str(pinfo->cinfo, COL_INFO, name);
 
     return call_dissector(xml_dissector_handle, tvb, pinfo, tree);
+}
+
+static int
+dissect_acdr_dsp(tvbuff_t *tvb, packet_info *pinfo, proto_tree *parent_tree, void *data,
+                 int hf, int ett, const char *name, dissector_handle_t dissector)
+{
+    unsigned packet_direction;
+    proto_item *packet_item;
+    proto_tree *packet_tree;
+    acdr_dissector_data_t *acdr_data = (acdr_dissector_data_t *) data;
+
+    if (!dissector)
+        return call_data_dissector(tvb, pinfo, parent_tree);
+    packet_item = proto_tree_add_item(parent_tree, hf, tvb, 0, -1, ENC_NA);
+    packet_tree = proto_item_add_subtree(packet_item, ett);
+
+    col_clear(pinfo->cinfo, COL_INFO);
+
+    col_set_str(pinfo->cinfo, COL_PROTOCOL, name);
+
+    if (acdr_data->trace_point == Dsp2Host)
+        packet_direction = DIR_RX;
+    else
+        packet_direction = DIR_TX;
+
+    return call_dissector_with_data(dissector, tvb, pinfo, packet_tree, &packet_direction);
+}
+
+static int
+dissect_acdr_ac45x(tvbuff_t *tvb, packet_info *pinfo, proto_tree *parent_tree, void *data)
+{
+    return dissect_acdr_dsp(tvb, pinfo, parent_tree, data, hf_ac45x_packet, ett_ac45x_packet,
+                            "AC45X", dsp_45x_dissector_handle);
+}
+
+static int
+dissect_acdr_ac48x(tvbuff_t *tvb, packet_info *pinfo, proto_tree *parent_tree, void *data)
+{
+    return dissect_acdr_dsp(tvb, pinfo, parent_tree, data, hf_ac48x_packet, ett_ac48x_packet,
+                            "AC48X", dsp_48x_dissector_handle);
+}
+
+static int
+dissect_acdr_ac49x(tvbuff_t *tvb, packet_info *pinfo, proto_tree *parent_tree, void *data)
+{
+    return dissect_acdr_dsp(tvb, pinfo, parent_tree, data, hf_ac49x_packet, ett_ac49x_packet,
+                            "AC49X", dsp_49x_dissector_handle);
+}
+
+static int
+dissect_acdr_ac5x(tvbuff_t *tvb, packet_info *pinfo, proto_tree *parent_tree, void *data)
+{
+    return dissect_acdr_dsp(tvb, pinfo, parent_tree, data, hf_ac5x_packet, ett_ac5x_packet,
+                            "AC5X", dsp_5x_dissector_handle);
+}
+
+static int
+dissect_acdr_mii(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, void *data)
+{
+    proto_item *packet_item = NULL;
+    proto_item *packet_tree = NULL;
+    acdr_dissector_data_t *acdr_data = (acdr_dissector_data_t *) data;
+    struct AcdrAc5xPrivateData private_data;
+
+    if (!dsp_5x_MII_dissector_handle)
+        return call_data_dissector(tvb, pinfo, packet_tree);
+
+    if (acdr_data->media_type == ACDR_DSP_TDM_PLAYBACK) {
+        private_data.protocol_type = ACDR_AC5X_PROTOCOL_TYPE__TDM_PLAYBACK;
+        private_data.mii_header_exist = 1;
+    } else if (acdr_data->media_type == ACDR_DSP_NET_PLAYBACK) {
+        private_data.protocol_type = ACDR_AC5X_PROTOCOL_TYPE__NET_PLAYBACK;
+        private_data.mii_header_exist = 1;
+    } else {
+        private_data.protocol_type = ACDR_AC5X_PROTOCOL_TYPE__REGULAR;
+        private_data.mii_header_exist = acdr_data->medium_mii;
+    }
+
+    packet_item = proto_tree_add_item(tree, proto_ac5xmii, tvb, 0, -1, ENC_NA);
+    packet_tree = proto_item_add_subtree(packet_item, ett_ac5x_mii_packet);
+
+    col_clear(pinfo->cinfo, COL_INFO);
+    if (acdr_data->media_type == ACDR_DSP_AC5X_MII) {
+        if (acdr_data->medium_mii)
+            col_set_str(pinfo->cinfo, COL_PROTOCOL, "AC5x_MII");
+        else
+            col_set_str(pinfo->cinfo, COL_PROTOCOL, "AC5x");
+    } else {
+        col_set_str(pinfo->cinfo, COL_PROTOCOL, "AC5x_MII");
+    }
+
+    if ((acdr_data->trace_point == Dsp2Host) || (acdr_data->trace_point == DspOutgoing))
+        private_data.packet_direction = DIR_RX;
+    else
+        private_data.packet_direction = DIR_TX;
+
+    return call_dissector_with_data(dsp_5x_MII_dissector_handle, tvb, pinfo, packet_tree, &private_data);
+}
+
+static int
+dissect_acdr_v1501(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, void *data _U_)
+{
+    col_set_str(pinfo->cinfo, COL_PROTOCOL, "V150.1");
+    return call_data_dissector(tvb, pinfo, tree);
+}
+
+static int
+dissect_acdr_signaling(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, void *data)
+{
+    acdr_dissector_data_t *acdr_data = (acdr_dissector_data_t *) data;
+    proto_item *packet_item = proto_tree_add_item(tree, hf_signaling_packet, tvb, 0, -1, ENC_NA);
+    proto_tree *packet_tree = proto_item_add_subtree(packet_item, ett_signaling_packet);
+
+    int res = dissect_signaling_packet(tvb, pinfo, packet_tree, acdr_data->trace_point);
+
+    col_set_str(pinfo->cinfo, COL_PROTOCOL, "Signaling");
+    col_clear(pinfo->cinfo, COL_INFO);
+    switch (acdr_data->trace_point) {
+    case Host2Pstn:
+        col_prepend_fstr(pinfo->cinfo, COL_INFO, "HOST --> PSTN");
+        break;
+    case Pstn2Host:
+        col_prepend_fstr(pinfo->cinfo, COL_INFO, "PSTN --> HOST");
+        break;
+    case DspIncoming:
+        col_prepend_fstr(pinfo->cinfo, COL_INFO, "DSP Incoming:  HOST --> PSTN");
+        break;
+    case DspOutgoing:
+        col_prepend_fstr(pinfo->cinfo, COL_INFO, "DSP Outgoing:  PSTN --> HOST");
+        break;
+    }
+    return res;
+}
+
+static int
+dissect_acdr_fragmented(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, void *data _U_)
+{
+    col_set_str(pinfo->cinfo, COL_PROTOCOL, "Fragmented");
+    col_set_str(pinfo->cinfo, COL_INFO, "fragment of previous ACDR packet");
+    return call_data_dissector(tvb, pinfo, tree);
+}
+
+static int
+dissect_acdr_dsp_data_relay(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, void *data _U_)
+{
+    col_set_str(pinfo->cinfo, COL_PROTOCOL, "DSP Data Relay");
+    return call_data_dissector(tvb, pinfo, tree);
+}
+
+static const char *acdr_ssh_protocol(int media_type)
+{
+    switch (media_type) {
+    case ACDR_SSH_SHELL: return "SSH-SHELL";
+    case ACDR_SSH_SFTP: return "SSH-SFTP";
+    case ACDR_SSH_SCP: return "SSH-SCP";
+    }
+    return "Unknown";
+}
+
+static int
+dissect_acdr_ssh(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, void *data)
+{
+    acdr_dissector_data_t *acdr_data = (acdr_dissector_data_t *) data;
+    col_set_str(pinfo->cinfo, COL_PROTOCOL, acdr_ssh_protocol(acdr_data->media_type));
+    col_set_str(pinfo->cinfo, COL_INFO, "SSH raw data");
+    return call_data_dissector(tvb, pinfo, tree);
 }
 
 void
@@ -1710,7 +1883,7 @@ proto_register_acdr(void)
         { &hf_5x_hpi_resource_id,
             { "Resource ID", "acdr.5x.HpiHeader.ResourceId",
                 FT_UINT8, BASE_DEC,
-                NULL, 0xFF,
+                NULL, 0x0,
                 "Resource ID into core", HFILL }
         },
         { &hf_5x_hpi_favorite,
@@ -1775,7 +1948,7 @@ proto_register_acdr(void)
         }
     };
 
-    static gint *ett[] = {
+    static int *ett[] = {
         &ett_acdr,
         &ett_extension,
         &ett_ac45x_packet,
@@ -1805,6 +1978,11 @@ proto_register_acdr(void)
     expert_acdr = expert_register_protocol(proto_acdr);
     expert_register_field_array(expert_acdr, ei, array_length(ei));
 
+    acdr_dissector_handle = register_dissector("acdr", dissect_acdr, proto_acdr);
+    acdr_mii_dissector_handle = register_dissector("acdr.mii", dissect_acdr_mii, proto_acdr);
+    acdr_rtp_dissector_handle = register_dissector("acdr.rtp", dissect_acdr_rtp, proto_acdr);
+    acdr_xml_dissector_handle = register_dissector("acdr.xml", dissect_acdr_xml, proto_acdr);
+
     media_type_table = register_dissector_table("acdr.media_type", "AC DR Media Type", proto_acdr,
                                                 FT_UINT32, BASE_HEX);
     tls_application_table = register_dissector_table("acdr.tls_application",
@@ -1817,164 +1995,9 @@ proto_register_acdr(void)
                                                           FT_UINT32, BASE_HEX);
 }
 
-static int
-dissect_acdr_dsp(tvbuff_t *tvb, packet_info *pinfo, proto_tree *parent_tree, void *data,
-                 int hf, int ett, const char *name, dissector_handle_t dissector)
-{
-    guint packet_direction;
-    proto_item *packet_item;
-    proto_tree *packet_tree;
-    acdr_dissector_data_t *acdr_data = (acdr_dissector_data_t *) data;
-
-    if (!dissector)
-        return call_data_dissector(tvb, pinfo, parent_tree);
-    packet_item = proto_tree_add_item(parent_tree, hf, tvb, 0, -1, ENC_NA);
-    packet_tree = proto_item_add_subtree(packet_item, ett);
-
-    col_clear(pinfo->cinfo, COL_INFO);
-
-    col_set_str(pinfo->cinfo, COL_PROTOCOL, name);
-
-    if (acdr_data->trace_point == Dsp2Host)
-        packet_direction = DIR_RX;
-    else
-        packet_direction = DIR_TX;
-
-    return call_dissector_with_data(dissector, tvb, pinfo, packet_tree, &packet_direction);
-}
-
-static int
-dissect_acdr_ac45x(tvbuff_t *tvb, packet_info *pinfo, proto_tree *parent_tree, void *data)
-{
-    return dissect_acdr_dsp(tvb, pinfo, parent_tree, data, hf_ac45x_packet, ett_ac45x_packet,
-                            "AC45X", dsp_45x_dissector_handle);
-}
-
-static int
-dissect_acdr_ac48x(tvbuff_t *tvb, packet_info *pinfo, proto_tree *parent_tree, void *data)
-{
-    return dissect_acdr_dsp(tvb, pinfo, parent_tree, data, hf_ac48x_packet, ett_ac48x_packet,
-                            "AC48X", dsp_48x_dissector_handle);
-}
-
-static int
-dissect_acdr_ac49x(tvbuff_t *tvb, packet_info *pinfo, proto_tree *parent_tree, void *data)
-{
-    return dissect_acdr_dsp(tvb, pinfo, parent_tree, data, hf_ac49x_packet, ett_ac49x_packet,
-                            "AC49X", dsp_49x_dissector_handle);
-}
-
-static int
-dissect_acdr_ac5x(tvbuff_t *tvb, packet_info *pinfo, proto_tree *parent_tree, void *data)
-{
-    return dissect_acdr_dsp(tvb, pinfo, parent_tree, data, hf_ac5x_packet, ett_ac5x_packet,
-                            "AC5X", dsp_5x_dissector_handle);
-}
-
-static int
-dissect_acdr_mii(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, void *data)
-{
-    proto_item *packet_item = NULL;
-    proto_item *packet_tree = NULL;
-    acdr_dissector_data_t *acdr_data = (acdr_dissector_data_t *) data;
-    struct AcdrAc5xPrivateData private_data;
-
-    if (!dsp_5x_MII_dissector_handle)
-        return call_data_dissector(tvb, pinfo, packet_tree);
-
-    if (acdr_data->media_type == ACDR_DSP_TDM_PLAYBACK) {
-        private_data.protocol_type = ACDR_AC5X_PROTOCOL_TYPE__TDM_PLAYBACK;
-        private_data.mii_header_exist = 1;
-    } else if (acdr_data->media_type == ACDR_DSP_NET_PLAYBACK) {
-        private_data.protocol_type = ACDR_AC5X_PROTOCOL_TYPE__NET_PLAYBACK;
-        private_data.mii_header_exist = 1;
-    } else {
-        private_data.protocol_type = ACDR_AC5X_PROTOCOL_TYPE__REGULAR;
-        private_data.mii_header_exist = acdr_data->medium_mii;
-    }
-
-    packet_item = proto_tree_add_item(tree, proto_ac5xmii, tvb, 0, -1, FALSE);
-    packet_tree = proto_item_add_subtree(packet_item, ett_ac5x_mii_packet);
-
-    col_clear(pinfo->cinfo, COL_INFO);
-    if (acdr_data->media_type == ACDR_DSP_AC5X_MII) {
-        if (acdr_data->medium_mii)
-            col_set_str(pinfo->cinfo, COL_PROTOCOL, "AC5x_MII");
-        else
-            col_set_str(pinfo->cinfo, COL_PROTOCOL, "AC5x");
-    } else {
-        col_set_str(pinfo->cinfo, COL_PROTOCOL, "AC5x_MII");
-    }
-
-    if ((acdr_data->trace_point == Dsp2Host) || (acdr_data->trace_point == DspOutgoing))
-        private_data.packet_direction = DIR_RX;
-    else
-        private_data.packet_direction = DIR_TX;
-
-    return call_dissector_with_data(dsp_5x_MII_dissector_handle, tvb, pinfo, packet_tree, &private_data);
-}
-
-static int
-dissect_acdr_v1501(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, void *data _U_)
-{
-    col_set_str(pinfo->cinfo, COL_PROTOCOL, "V150.1");
-    return call_data_dissector(tvb, pinfo, tree);
-}
-
-static int
-dissect_acdr_signaling(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, void *data)
-{
-    acdr_dissector_data_t *acdr_data = (acdr_dissector_data_t *) data;
-    proto_item *packet_item = proto_tree_add_item(tree, hf_signaling_packet, tvb, 0, -1, ENC_NA);
-    proto_tree *packet_tree = proto_item_add_subtree(packet_item, ett_signaling_packet);
-
-    int res = dissect_signaling_packet(tvb, pinfo, packet_tree, acdr_data->trace_point);
-
-    col_set_str(pinfo->cinfo, COL_PROTOCOL, "Signaling");
-    col_clear(pinfo->cinfo, COL_INFO);
-    switch (acdr_data->trace_point) {
-    case Host2Pstn:
-        col_prepend_fstr(pinfo->cinfo, COL_INFO, "HOST --> PSTN");
-        break;
-    case Pstn2Host:
-        col_prepend_fstr(pinfo->cinfo, COL_INFO, "PSTN --> HOST");
-        break;
-    case DspIncoming:
-        col_prepend_fstr(pinfo->cinfo, COL_INFO, "DSP Incoming:  HOST --> PSTN");
-        break;
-    case DspOutgoing:
-        col_prepend_fstr(pinfo->cinfo, COL_INFO, "DSP Outgoing:  PSTN --> HOST");
-        break;
-    }
-    return res;
-}
-
-static int
-dissect_acdr_fragmented(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, void *data _U_)
-{
-    col_set_str(pinfo->cinfo, COL_PROTOCOL, "Fragmented");
-    col_set_str(pinfo->cinfo, COL_INFO, "fragment of previous ACDR packet");
-    return call_data_dissector(tvb, pinfo, tree);
-}
-
-static int
-dissect_acdr_dsp_data_relay(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, void *data _U_)
-{
-    col_set_str(pinfo->cinfo, COL_PROTOCOL, "DSP Data Relay");
-    return call_data_dissector(tvb, pinfo, tree);
-}
-
 void
 proto_reg_handoff_acdr(void)
 {
-    dissector_handle_t acdr_mii_dissector_handle;
-    dissector_handle_t acdr_rtp_dissector_handle;
-    dissector_handle_t acdr_xml_dissector_handle;
-
-    acdr_dissector_handle = create_dissector_handle(dissect_acdr, proto_acdr);
-
-    register_dissector("acdr", dissect_acdr, proto_acdr);
-
     rtp_dissector_handle = find_dissector("rtp");
     rtp_dissector_table = find_dissector_table("rtp.pt");
     rtp_events_handle = find_dissector("rtpevent");
@@ -2005,10 +2028,7 @@ proto_reg_handoff_acdr(void)
 
     udp_stun_dissector_handle = find_dissector("stun-udp");
     xml_dissector_handle = find_dissector("xml");
-
-    acdr_mii_dissector_handle = create_dissector_handle(dissect_acdr_mii, proto_acdr);
-    acdr_rtp_dissector_handle = create_dissector_handle(dissect_acdr_rtp, proto_acdr);
-    acdr_xml_dissector_handle = create_dissector_handle(dissect_acdr_xml, proto_acdr);
+    ssh_dissector_handle = create_dissector_handle(dissect_acdr_ssh, proto_acdr);
 
     // register our port number to the underlying TCP/UDP layers so our
     // dissector gets called for the appropriate port
@@ -2016,12 +2036,12 @@ proto_reg_handoff_acdr(void)
     dissector_add_uint_with_preference("tcp.port", PORT_AC_DR, acdr_dissector_handle);
 
     // Register "local" media types
-    dissector_add_uint("acdr.media_type", ACDR_VoiceAI, create_dissector_handle(dissect_acdr_voiceai, -1));
-    dissector_add_uint("acdr.media_type", ACDR_TLS, create_dissector_handle(dissect_acdr_tls, -1));
-    dissector_add_uint("acdr.media_type", ACDR_TLSPeek, create_dissector_handle(dissect_acdr_tls, -1));
-    dissector_add_uint("acdr.media_type", ACDR_SIP, create_dissector_handle(dissect_acdr_sip, -1));
-    dissector_add_uint("acdr.media_type", ACDR_MEGACO, create_dissector_handle(dissect_acdr_megaco, -1));
-    dissector_add_uint("acdr.media_type", ACDR_MGCP, create_dissector_handle(dissect_acdr_mgcp, -1));
+    dissector_add_uint("acdr.media_type", ACDR_VoiceAI, create_dissector_handle(dissect_acdr_voiceai, proto_acdr));
+    dissector_add_uint("acdr.media_type", ACDR_TLS, create_dissector_handle(dissect_acdr_tls, proto_acdr));
+    dissector_add_uint("acdr.media_type", ACDR_TLSPeek, create_dissector_handle(dissect_acdr_tls, proto_acdr));
+    dissector_add_uint("acdr.media_type", ACDR_SIP, create_dissector_handle(dissect_acdr_sip, proto_acdr));
+    dissector_add_uint("acdr.media_type", ACDR_MEGACO, create_dissector_handle(dissect_acdr_megaco, proto_acdr));
+    dissector_add_uint("acdr.media_type", ACDR_MGCP, create_dissector_handle(dissect_acdr_mgcp, proto_acdr));
 
     dissector_add_uint("acdr.media_type", ACDR_RTP, acdr_rtp_dissector_handle);
     dissector_add_uint("acdr.media_type", ACDR_RTP_AMR, acdr_rtp_dissector_handle);
@@ -2037,8 +2057,8 @@ proto_reg_handoff_acdr(void)
     dissector_add_uint("acdr.media_type", ACDR_PCM, acdr_rtp_dissector_handle);
     dissector_add_uint("acdr.media_type", ACDR_NATIVE, acdr_rtp_dissector_handle);
     dissector_add_uint("acdr.media_type", ACDR_VIDEORTP, acdr_rtp_dissector_handle);
-    dissector_add_uint("acdr.media_type", ACDR_RTCP, create_dissector_handle(dissect_acdr_rtcp, -1));
-    dissector_add_uint("acdr.media_type", ACDR_VIDEORTCP, create_dissector_handle(dissect_acdr_video_rtcp, -1));
+    dissector_add_uint("acdr.media_type", ACDR_RTCP, create_dissector_handle(dissect_acdr_rtcp, proto_acdr));
+    dissector_add_uint("acdr.media_type", ACDR_VIDEORTCP, create_dissector_handle(dissect_acdr_video_rtcp, proto_acdr));
     dissector_add_uint("acdr.media_type", ACDR_DSP_AC45X, create_dissector_handle(dissect_acdr_ac45x, proto_acdr));
     dissector_add_uint("acdr.media_type", ACDR_DSP_AC48X, create_dissector_handle(dissect_acdr_ac48x, proto_acdr));
     dissector_add_uint("acdr.media_type", ACDR_DSP_AC49X, create_dissector_handle(dissect_acdr_ac49x, proto_acdr));
@@ -2046,14 +2066,17 @@ proto_reg_handoff_acdr(void)
     dissector_add_uint("acdr.media_type", ACDR_DSP_AC5X_MII, acdr_mii_dissector_handle);
     dissector_add_uint("acdr.media_type", ACDR_DSP_TDM_PLAYBACK, acdr_mii_dissector_handle);
     dissector_add_uint("acdr.media_type", ACDR_DSP_NET_PLAYBACK, acdr_mii_dissector_handle);
-    dissector_add_uint("acdr.media_type", ACDR_V1501, create_dissector_handle(dissect_acdr_v1501, -1));
-    dissector_add_uint("acdr.media_type", ACDR_SIGNALING, create_dissector_handle(dissect_acdr_signaling, -1));
-    dissector_add_uint("acdr.media_type", ACDR_FRAGMENTED, create_dissector_handle(dissect_acdr_fragmented, -1));
+    dissector_add_uint("acdr.media_type", ACDR_V1501, create_dissector_handle(dissect_acdr_v1501, proto_acdr));
+    dissector_add_uint("acdr.media_type", ACDR_SIGNALING, create_dissector_handle(dissect_acdr_signaling, proto_acdr));
+    dissector_add_uint("acdr.media_type", ACDR_FRAGMENTED, create_dissector_handle(dissect_acdr_fragmented, proto_acdr));
     dissector_add_uint("acdr.media_type", ACDR_DSP_DATA_RELAY,
-                       create_dissector_handle(dissect_acdr_dsp_data_relay, -1));
+                       create_dissector_handle(dissect_acdr_dsp_data_relay, proto_acdr));
     dissector_add_uint("acdr.media_type", ACDR_QOE_CDR, acdr_xml_dissector_handle);
     dissector_add_uint("acdr.media_type", ACDR_QOE_MDR, acdr_xml_dissector_handle);
     dissector_add_uint("acdr.media_type", ACDR_QOE_EVENT, acdr_xml_dissector_handle);
+    dissector_add_uint("acdr.media_type", ACDR_SSH_SHELL, ssh_dissector_handle);
+    dissector_add_uint("acdr.media_type", ACDR_SSH_SFTP, ssh_dissector_handle);
+    dissector_add_uint("acdr.media_type", ACDR_SSH_SCP, ssh_dissector_handle);
 }
 
 /*

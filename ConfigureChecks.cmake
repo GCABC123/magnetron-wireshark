@@ -83,6 +83,13 @@ endif()
 check_symbol_exists("clock_gettime"  "time.h"   HAVE_CLOCK_GETTIME)
 # Some platforms (macOS pre 10.15) are non-conformant with C11 and lack timespec_get()
 check_symbol_exists("timespec_get"   "time.h"   HAVE_TIMESPEC_GET)
+if(NOT MSVC)
+	check_symbol_exists("localtime_r"    "time.h"   HAVE_LOCALTIME_R)
+	check_symbol_exists("gmtime_r"       "time.h"   HAVE_GMTIME_R)
+	check_symbol_exists("timegm"         "time.h"   HAVE_TIMEGM)
+	check_symbol_exists("tzset"          "time.h"   HAVE_TZSET)
+	check_symbol_exists("tzname"         "time.h"   HAVE_TZNAME)
+endif()
 check_function_exists("getifaddrs"       HAVE_GETIFADDRS)
 check_function_exists("issetugid"        HAVE_ISSETUGID)
 check_function_exists("setresgid"        HAVE_SETRESGID)
@@ -97,7 +104,7 @@ if(UNIX)
 	cmake_push_check_state()
 	list(APPEND CMAKE_REQUIRED_DEFINITIONS -D_GNU_SOURCE)
 	check_symbol_exists("memmem"        "string.h"   HAVE_MEMMEM)
-	check_symbol_exists("strcasestr"    "string.h"   HAVE_STRCASESTR)
+	check_symbol_exists("memrchr"       "string.h"   HAVE_MEMRCHR)
 	check_symbol_exists("strerrorname_np" "string.h" HAVE_STRERRORNAME_NP)
 	check_symbol_exists("strptime"      "time.h"     HAVE_STRPTIME)
 	check_symbol_exists("vasprintf"     "stdio.h"    HAVE_VASPRINTF)
@@ -110,9 +117,7 @@ check_struct_has_member("struct stat"     st_blksize     sys/stat.h   HAVE_STRUC
 check_struct_has_member("struct stat"     st_birthtime   sys/stat.h   HAVE_STRUCT_STAT_ST_BIRTHTIME)
 check_struct_has_member("struct stat"     __st_birthtime sys/stat.h   HAVE_STRUCT_STAT___ST_BIRTHTIME)
 check_struct_has_member("struct tm"       tm_zone        time.h       HAVE_STRUCT_TM_TM_ZONE)
-
-#Symbols but NOT enums or types
-check_symbol_exists(tzname "time.h" HAVE_TZNAME)
+check_struct_has_member("struct tm"       tm_gmtoff      time.h       HAVE_STRUCT_TM_TM_GMTOFF)
 
 # Types
 include(CheckTypeSize)
@@ -122,26 +127,34 @@ check_type_size("ssize_t"       SSIZE_T)
 # Check if the libc vsnprintf() conforms to C99. If this fails we may
 # need to fall-back on GLib I/O.
 #
-check_c_source_runs("
-	#include <stdio.h>
-	int main(void)
-	{
-		/* Check that snprintf() and vsnprintf() don't return
-		 * -1 if the buffer is too small. C99 says this value
-		 * is the length that would be written not including
-		 * the nul byte. */
-		char buf[3];
-		return snprintf(buf, sizeof(buf), \"%s\", \"ABCDEF\") > 0 ? 0 : 1;
-	}"
-	HAVE_C99_VSNPRINTF
-)
-if (NOT HAVE_C99_VSNPRINTF)
-	message(FATAL_ERROR
+# If cross-compiling we can't check so just assume this requirement is met.
+#
+if(NOT CMAKE_CROSSCOMPILING)
+	check_c_source_runs("
+		#include <stdio.h>
+
+		#pragma GCC diagnostic push
+		#pragma GCC diagnostic ignored \"-Wall\"
+		int main(void)
+		{
+			/* Check that snprintf() and vsnprintf() don't return
+			* -1 if the buffer is too small. C99 says this value
+			* is the length that would be written not including
+			* the nul byte. */
+			char buf[3];
+			return snprintf(buf, sizeof(buf), \"%s\", \"ABCDEF\") > 0 ? 0 : 1;
+		}
+		#pragma GCC diagnostic pop"
+		HAVE_C99_VSNPRINTF
+	)
+	if (NOT HAVE_C99_VSNPRINTF)
+		message(FATAL_ERROR
 "Building Wireshark requires a C99 compliant vsnprintf() and this \
 target does not meet that requirement. Compiling for ${CMAKE_SYSTEM} \
 using ${CMAKE_C_COMPILER_ID}. Please report this issue to the Wireshark \
 developers at wireshark-dev@wireshark.org."
-	)
+		)
+	endif()
 endif()
 
 #

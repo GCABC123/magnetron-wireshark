@@ -34,6 +34,9 @@
 /* Link Wireshark libraries statically */
 #cmakedefine ENABLE_STATIC 1
 
+/* Enable AddressSanitizer (and LeakSanitizer on clang/gcc) */
+#cmakedefine ENABLE_ASAN 1
+
 /* Enable AirPcap */
 #cmakedefine HAVE_AIRPCAP 1
 
@@ -45,6 +48,18 @@
 
 /* Define to 1 if you have the `timespec_get` function. */
 #cmakedefine HAVE_TIMESPEC_GET 1
+
+/* Define to 1 if you have the `localtime_r` function. */
+#cmakedefine HAVE_LOCALTIME_R 1
+
+/* Define to 1 if you have the `gmtime_r` function. */
+#cmakedefine HAVE_GMTIME_R 1
+
+/* Define to 1 if you have the `timegm` function. */
+#cmakedefine HAVE_TIMEGM 1
+
+/* Define to 1 if you have the `tzset` function. */
+#cmakedefine HAVE_TZSET 1
 
 /* Define to use the MaxMind DB library */
 #cmakedefine HAVE_MAXMINDDB 1
@@ -88,17 +103,20 @@
 /* Define to 1 if you have the `inflatePrime' function. */
 #cmakedefine HAVE_INFLATEPRIME 1
 
+/* Define to 1 if you have the `zng_gzopen' function. */
+#cmakedefine WITH_GZFILEOP 1
+
 /* Define to 1 if you have the `issetugid' function. */
 #cmakedefine HAVE_ISSETUGID 1
 
 /* Define to use kerberos */
 #cmakedefine HAVE_KERBEROS 1
 
-/* Define to use PCRE2 library */
-#define HAVE_PCRE2 1
-
 /* Define to use nghttp2 */
 #cmakedefine HAVE_NGHTTP2 1
+
+/* Define to use nghttp3 */
+#cmakedefine HAVE_NGHTTP3 1
 
 /* Define to use the libcap library */
 #cmakedefine HAVE_LIBCAP 1
@@ -133,8 +151,17 @@
 /* Define to use zlib library */
 #cmakedefine HAVE_ZLIB 1
 
+/* Define to use zlib-ng library */
+#cmakedefine HAVE_ZLIBNG 1
+#define ZLIBNG_VERSION_STRING "${ZLIBNG_VERSION_STRING}"
+
 /* Define to use the minizip library */
 #cmakedefine HAVE_MINIZIP 1
+#define MINIZIP_VERSION "${MINIZIP_VERSION}"
+
+/* Define to use the minizip-ng library */
+#cmakedefine HAVE_MINIZIPNG 1
+#define MINIZIPNG_VERSION "${MINIZIPNG_VERSION}"
 
 /* Define if `dos_date' (with underscore) field exists in `zip_fileinfo'  */
 #cmakedefine HAVE_MZCOMPAT_DOS_DATE 1
@@ -165,6 +192,9 @@
 
 /* Define to 1 if we have Lua with Unicode for Windows patches. */
 #cmakedefine HAVE_LUA_UNICODE 1
+
+/* The size of the lua_Integer type, if we have Lua. */
+#cmakedefine LUA_INTEGER_SIZE ${LUA_INTEGER_SIZE}
 
 /* Define to use MIT kerberos */
 #cmakedefine HAVE_MIT_KERBEROS 1
@@ -220,6 +250,12 @@
 /* Define to 1 if you have the `pcap_set_tstamp_type' function. */
 #cmakedefine HAVE_PCAP_SET_TSTAMP_TYPE 1
 
+/* Define to 1 if you have the `PCAP_ERROR_PROMISC_PERM_DENIED' symbol. */
+#cmakedefine HAVE_PCAP_ERROR_PROMISC_PERM_DENIED 1
+
+/* Define to 1 if you have the `PCAP_WARNING_TSTAMP_TYPE_NOTSUP' symbol. */
+#cmakedefine HAVE_PCAP_WARNING_TSTAMP_TYPE_NOTSUP 1
+
 /* Define to 1 if you have the <pwd.h> header file. */
 #cmakedefine HAVE_PWD_H 1
 
@@ -231,6 +267,9 @@
 
 /* Define to 1 if you have the bcg729 library. */
 #cmakedefine HAVE_BCG729 1
+
+/* Define to 1 if you have the opencore-amrnb library. */
+#cmakedefine HAVE_AMRNB 1
 
 /* Define to 1 if you have the ilbc library. */
 #cmakedefine HAVE_ILBC 1
@@ -256,8 +295,8 @@
 /* Define if you have the 'memmem' function. */
 #cmakedefine HAVE_MEMMEM 1
 
-/* Define if you have the 'strcasestr' function. */
-#cmakedefine HAVE_STRCASESTR 1
+/* Define if you have the 'memrchr' function. */
+#cmakedefine HAVE_MEMRCHR 1
 
 /* Define if you have the 'strerrorname_np' function. */
 #cmakedefine HAVE_STRERRORNAME_NP 1
@@ -286,6 +325,9 @@
 /* Define to 1 if you have the <sys/wait.h> header file. */
 #cmakedefine HAVE_SYS_WAIT_H 1
 
+/* Define if tm_gmtoff field exists in struct tm */
+#cmakedefine HAVE_STRUCT_TM_TM_GMTOFF 1
+
 /* Define if tm_zone field exists in struct tm */
 #cmakedefine HAVE_STRUCT_TM_TM_ZONE 1
 
@@ -297,6 +339,9 @@
 
 /* Define if we have QtMultimedia */
 #cmakedefine QT_MULTIMEDIA_LIB 1
+
+/* Define if we have QtDBus */
+#cmakedefine QT_DBUS_LIB 1
 
 /* Build androiddump with libpcap instead of wireshark stuff */
 #cmakedefine ANDROIDDUMP_USE_LIBPCAP 1
@@ -333,21 +378,19 @@
  * for our needs.
  * This should match the following:
  * - The <compatibility><application> section in resources\wireshark.exe.manifest.in
- * - The GetWindowsVersion parts of packaging\nsis\wireshark.nsi
+ * - The WinVer parts of packaging\nsis\wireshark.nsi
  * - The VersionNT parts of packaging\wix\Prerequisites.wxi
  */
 #  ifndef NTDDI_VERSION
-#  define NTDDI_VERSION   NTDDI_WIN7
+#  define NTDDI_VERSION   NTDDI_WIN10
 #  endif
 
 #  ifndef _WIN32_WINNT
-#  define _WIN32_WINNT    _WIN32_WINNT_WIN7
+#  define _WIN32_WINNT    _WIN32_WINNT_WIN10
 #  endif
 #endif
 
-#ifdef HAVE_PCRE2
 #define PCRE2_CODE_UNIT_WIDTH  8
-#endif
 
 /*
  * If HAVE_PCAP_REMOTE is defined, it forces the WinPcap header files to

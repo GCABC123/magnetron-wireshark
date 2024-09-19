@@ -116,7 +116,7 @@ void TimeShiftDialog::enableWidgets()
 void TimeShiftDialog::checkFrameNumber(SyntaxLineEdit &frame_le)
 {
     bool frame_valid;
-    guint frame_num = frame_le.text().toUInt(&frame_valid);
+    unsigned frame_num = frame_le.text().toUInt(&frame_valid);
 
     syntax_err_.clear();
     if (frame_le.text().isEmpty()) {
@@ -137,7 +137,7 @@ void TimeShiftDialog::checkDateTime(SyntaxLineEdit &time_le)
 {
     int Y, M, D, h, m;
     long double s;
-    const gchar *err_str;
+    const char *err_str;
 
     syntax_err_.clear();
     if (time_le.text().isEmpty()) {
@@ -175,8 +175,8 @@ void TimeShiftDialog::on_shiftAllTimeLineEdit_textChanged(const QString &sa_text
 {
     int h, m;
     long double s;
-    gboolean neg;
-    const gchar *err_str;
+    bool neg;
+    const char *err_str;
 
     syntax_err_.clear();
     if (sa_text.isEmpty()) {
@@ -223,13 +223,13 @@ void TimeShiftDialog::on_setTwoTimeLineEdit_textChanged(const QString &)
 
 void TimeShiftDialog::applyTimeShift()
 {
-    const gchar *err_str = NULL;
+    const char *err_str = NULL;
 
-    if (!cap_file_ || cap_file_->state == FILE_CLOSED) return;
+    if (!cap_file_ || cap_file_->state == FILE_CLOSED || cap_file_->state == FILE_READ_PENDING) return;
 
     syntax_err_.clear();
     if (cap_file_->state == FILE_READ_IN_PROGRESS) {
-        syntax_err_ = tr("Time shifting is not available capturing packets.");
+        syntax_err_ = tr("Time shifting is not available while capturing packets.");
     } else if (ts_ui_->shiftAllButton->isChecked()) {
         err_str = time_shift_all(cap_file_,
                                  ts_ui_->shiftAllTimeLineEdit->text().toUtf8().constData());

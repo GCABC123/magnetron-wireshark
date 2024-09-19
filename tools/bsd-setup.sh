@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+#!/usr/bin/env sh
 # Setup development environment on BSD-like platforms.
 #
 # Tested on: FreeBSD, OpenBSD, NetBSD.
@@ -12,11 +12,16 @@
 # We drag in tools that might not be needed by all users; it's easier
 # that way.
 #
+# We do not use Bash as the shell for this script, and use the POSIX
+# syntax for function definition rather than the
+# "function <name>() { ... }" syntax, as FreeBSD 13, at least, does
+# not have Bash, and its /bin/sh doesn't support the other syntax.
+#
 
-function print_usage() {
+print_usage() {
 	printf "\\nUtility to setup a bsd-based system for Wireshark Development.\\n"
 	printf "The basic usage installs the needed software\\n\\n"
-	printf "Usage: $0 [--install-optional] [...other options...]\\n"
+	printf "Usage: %s [--install-optional] [...other options...]\\n" "$0"
 	printf "\\t--install-optional: install optional software as well\\n"
 	printf "\\t[other]: other options are passed as-is to pkg manager.\\n"
 }
@@ -39,7 +44,7 @@ for arg; do
 done
 
 # Check if the user is root
-if [ $(id -u) -ne 0 ]
+if [ "$(id -u)" -ne 0 ]
 then
 	echo "You must be root."
 	exit 1
@@ -61,7 +66,6 @@ ADDITIONAL_LIST="\
 	libsmi \
 	brotli \
 	zstd \
-	lua52 \
 	"
 
 # Uncomment to add PNG compression utilities used by compress-pngs:
@@ -71,7 +75,7 @@ ADDITIONAL_LIST="\
 #	pngcrush"
 
 # Guess which package manager we will use
-PM=`which pkgin 2> /dev/null || which pkg 2> /dev/null || which pkg_add 2> /dev/null`
+PM=$( which pkgin 2> /dev/null || which pkg 2> /dev/null || which pkg_add 2> /dev/null )
 
 case $PM in
 	*/pkgin)
@@ -96,6 +100,7 @@ echo "Using $PM ($PM_SEARCH)"
 
 # Adds package $2 to list variable $1 if the package is found
 add_package() {
+	# shellcheck disable=SC3043
 	local list="$1" pkgname="$2"
 
 	# fail if the package is not known
@@ -143,9 +148,17 @@ add_package ADDITIONAL_LIST liblz4 ||
 add_package ADDITIONAL_LIST lz4 ||
 echo "lz4 is unavailable"
 
+# libnghttp2: FreeBSD
 # nghttp2: NetBSD
+add_package ADDITIONAL_LIST libnghttp2 ||
 add_package ADDITIONAL_LIST nghttp2 ||
 echo "nghttp2 is unavailable"
+
+# libnghttp3: FreeBSD
+# nghttp3: NetBSD
+add_package ADDITIONAL_LIST libnghttp3 ||
+add_package ADDITIONAL_LIST nghttp3 ||
+echo "nghttp3 is unavailable"
 
 # spandsp: NetBSD
 add_package ADDITIONAL_LIST spandsp ||
@@ -161,9 +174,17 @@ echo "ninja is unavailable"
 add_package ADDITIONAL_LIST libilbc ||
 echo "libilbc is unavailable"
 
+# lua: OpenBSD latest (current 5.4)
+# lua54: FreeBSD, NetBSD 5.4.x
+# lua53 is also acceptable
+add_package ADDITIONAL_LIST lua ||
+add_package ADDITIONAL_LIST lua54 ||
+add_package ADDITIONAL_LIST lua53 ||
+echo "lua >= 5.3 is unavailable"
+
 # Add OS-specific required/optional packages
 # Those not listed don't require additions.
-case `uname` in
+case $( uname ) in
 	FreeBSD | NetBSD)
 		add_package ADDITIONAL_LIST libgcrypt || echo "libgcrypt is unavailable"
 		;;
@@ -177,6 +198,7 @@ then
 	ACTUAL_LIST="$ACTUAL_LIST $ADDITIONAL_LIST"
 fi
 
+# shellcheck disable=SC2086
 $PM $PM_OPTIONS $ACTUAL_LIST $OPTIONS
 if [ ! $? ]
 then
@@ -185,5 +207,5 @@ fi
 
 if [ $ADDITIONAL -eq 0 ]
 then
-	echo -e "\n*** Optional packages not installed. Rerun with --install-optional to have them.\n"
+	printf "\\n*** Optional packages not installed. Rerun with --install-optional to have them.\\n"
 fi

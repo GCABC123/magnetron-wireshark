@@ -135,7 +135,6 @@ public:
             default:
                 // Fall back to string comparison
                 return QTreeWidgetItem::operator <(other);
-                break;
         }
     }
 };
@@ -206,7 +205,15 @@ RtpPlayerDialog::RtpPlayerDialog(QWidget &parent, CaptureFile &cf, bool capture_
     graph_ctx_menu_->addAction(ui->actionGoToSetupPacketPlot);
     set_action_shortcuts_visible_in_context_menu(graph_ctx_menu_->actions());
 
+    ui->audioPlot->setContextMenuPolicy(Qt::CustomContextMenu);
+    connect(ui->audioPlot, &QCustomPlot::customContextMenuRequested, this, &RtpPlayerDialog::showGraphContextMenu);
+
     ui->streamTreeWidget->setMouseTracking(true);
+    mouse_update_timer_ = new QTimer(this);
+    mouse_update_timer_->setSingleShot(true);
+    mouse_update_timer_->setInterval(10);
+    connect(mouse_update_timer_, &QTimer::timeout, this, &RtpPlayerDialog::mouseMoveUpdate);
+
     connect(ui->streamTreeWidget, &QTreeWidget::itemEntered, this, &RtpPlayerDialog::itemEntered);
 
     connect(ui->audioPlot, &QCustomPlot::mouseMove, this, &RtpPlayerDialog::mouseMovePlot);
@@ -393,13 +400,13 @@ RtpPlayerDialog::~RtpPlayerDialog()
 {
     std::lock_guard<std::mutex> lock(init_mutex_);
     if (pinstance_ != nullptr) {
-        cleanupMarkerStream();
         for (int row = 0; row < ui->streamTreeWidget->topLevelItemCount(); row++) {
             QTreeWidgetItem *ti = ui->streamTreeWidget->topLevelItem(row);
             RtpAudioStream *audio_stream = ti->data(stream_data_col_, Qt::UserRole).value<RtpAudioStream*>();
             if (audio_stream)
                 delete audio_stream;
         }
+        cleanupMarkerStream();
         delete ui;
         pinstance_ = nullptr;
     }
@@ -533,7 +540,7 @@ void RtpPlayerDialog::createPlot(bool rescale_axes)
     bool legend_inserted_silences = false;
     bool relative_timestamps = !ui->todCheckBox->isChecked();
     int row_count = ui->streamTreeWidget->topLevelItemCount();
-    gint16 total_max_sample_value = 1;
+    int16_t total_max_sample_value = 1;
 
     ui->audioPlot->clearGraphs();
 
@@ -547,7 +554,7 @@ void RtpPlayerDialog::createPlot(bool rescale_axes)
     for (int row = 0; row < row_count; row++) {
         QTreeWidgetItem *ti = ui->streamTreeWidget->topLevelItem(row);
         RtpAudioStream *audio_stream = ti->data(stream_data_col_, Qt::UserRole).value<RtpAudioStream*>();
-        gint16 max_sample_value = audio_stream->getMaxSampleValue();
+        int16_t max_sample_value = audio_stream->getMaxSampleValue();
 
         if (max_sample_value > total_max_sample_value) {
             total_max_sample_value = max_sample_value;
@@ -673,7 +680,7 @@ void RtpPlayerDialog::fillTappedColumns()
     // true just for first stream
     bool is_first = true;
 
-    // Get all rows, immutable list. Later changes in rows migth reorder them
+    // Get all rows, immutable list. Later changes in rows might reorder them
     QList<QTreeWidgetItem *> items = ui->streamTreeWidget->findItems(
         QString("*"), Qt::MatchWrap | Qt::MatchWildcard | Qt::MatchRecursive);
 
@@ -887,6 +894,8 @@ void RtpPlayerDialog::setMarkers()
 
 void RtpPlayerDialog::showEvent(QShowEvent *)
 {
+    // We could use loadSplitterState(ui->splitter) instead of always
+    // resetting the plot size to 75%
     QList<int> split_sizes = ui->splitter->sizes();
     int tot_size = split_sizes[0] + split_sizes[1];
     int plot_size = tot_size * 3 / 4;
@@ -1130,22 +1139,34 @@ void RtpPlayerDialog::itemEntered(QTreeWidgetItem *item, int column _U_)
 
 void RtpPlayerDialog::mouseMovePlot(QMouseEvent *event)
 {
+    // The calculations are expensive, so just store the position and
+    // calculate no more than once per some interval. (On Linux the
+    // QMouseEvents can be sent absurdly often, every 25 microseconds!)
+    mouse_pos_ = event->pos();
+    if (!mouse_update_timer_->isActive()) {
+        mouse_update_timer_->start();
+    }
+}
+
+void RtpPlayerDialog::mouseMoveUpdate()
+{
+    // findItemByCoords is expensive (because of calling pointDistance),
+    // and updateHintLabel calls it as well via getHoveredPacket. Some
+    // way to only perform the distance calculations once would be better.
     updateHintLabel();
 
-    QTreeWidgetItem *ti = findItemByCoords(event->pos());
+    QTreeWidgetItem *ti = findItemByCoords(mouse_pos_);
     handleItemHighlight(ti, true);
 }
 
-void RtpPlayerDialog::graphClicked(QMouseEvent *event)
+void RtpPlayerDialog::showGraphContextMenu(const QPoint &pos)
+{
+    graph_ctx_menu_->popup(ui->audioPlot->mapToGlobal(pos));
+}
+
+void RtpPlayerDialog::graphClicked(QMouseEvent*)
 {
     updateWidgets();
-    if (event->button() == Qt::RightButton) {
-#if QT_VERSION >= QT_VERSION_CHECK(6, 0 ,0)
-        graph_ctx_menu_->popup(event->globalPosition().toPoint());
-#else
-        graph_ctx_menu_->popup(event->globalPos());
-#endif
-    }
 }
 
 void RtpPlayerDialog::graphDoubleClicked(QMouseEvent *event)
@@ -1288,7 +1309,9 @@ void RtpPlayerDialog::playFinished(RtpAudioStream *stream, QAudio::Error error)
     }
     playing_streams_.removeOne(stream);
     if (playing_streams_.isEmpty()) {
-        marker_stream_->stop();
+        if (marker_stream_) {
+            marker_stream_->stop();
+        }
         updateWidgets();
     }
 }
@@ -1425,9 +1448,9 @@ void RtpPlayerDialog::on_playButton_clicked()
 #if (QT_VERSION >= QT_VERSION_CHECK(6, 0, 0))
     notify_timer_start_diff_ = -1;
 #endif
-    marker_stream_->start(new AudioSilenceGenerator());
+    marker_stream_->start(new AudioSilenceGenerator(marker_stream_));
     // It may happen that stream play is finished before all others are started
-    // therefore we do not use playing_streams_ there, but separate temporarly
+    // therefore we do not use playing_streams_ there, but separate temporarily
     // list. It avoids access element/remove element race condition.
     streams_to_start = playing_streams_;
     for( int i = 0; i<streams_to_start.count(); ++i ) {
@@ -1533,7 +1556,7 @@ void RtpPlayerDialog::outputNotify()
 #if (QT_VERSION >= QT_VERSION_CHECK(6, 0, 0))
     // First notify can show end of buffer, not play point so we have
     // remember the shift
-    if ( -1 == notify_timer_start_diff_) {
+    if ( -1 == notify_timer_start_diff_ || 0 == notify_timer_start_diff_) {
       notify_timer_start_diff_ = usecs;
     }
     usecs -= notify_timer_start_diff_;
@@ -2280,11 +2303,11 @@ qint64 RtpPlayerDialog::saveAudioHeaderWAV(QFile *save_file, quint32 channels, u
 {
     uint8_t pd[4];
     int64_t nchars;
-    gint32  subchunk2Size;
-    gint32  data32;
-    gint16  data16;
+    int32_t subchunk2Size;
+    int32_t data32;
+    int16_t data16;
 
-    subchunk2Size = sizeof(SAMPLE) * channels * (gint32)samples;
+    subchunk2Size = sizeof(SAMPLE) * channels * (int32_t)samples;
 
     /* http://soundfile.sapp.org/doc/WaveFormat/ */
 
@@ -2352,14 +2375,14 @@ qint64 RtpPlayerDialog::saveAudioHeaderWAV(QFile *save_file, quint32 channels, u
     }
 
     /* WAVE fmt header, BlockAlign */
-    data16 = channels * (gint16)sizeof(SAMPLE);
+    data16 = channels * (int16_t)sizeof(SAMPLE);
     nchars = save_file->write((const char *)&data16, 2);
     if (nchars != 2) {
         return -1;
     }
 
     /* WAVE fmt header, BitsPerSample */
-    data16 = (gint16)sizeof(SAMPLE) * 8;
+    data16 = (int16_t)sizeof(SAMPLE) * 8;
     nchars = save_file->write((const char *)&data16, 2);
     if (nchars != 2) {
         return -1;
@@ -2416,12 +2439,12 @@ bool RtpPlayerDialog::writeAudioStreamsSamples(QFile *out_file, QVector<RtpAudio
                 if (swap_bytes) {
                     // same as phton16(), but more clear in compare
                     // to else branch
-                    pd[0] = (guint8)(sample >> 8);
-                    pd[1] = (guint8)(sample >> 0);
+                    pd[0] = (uint8_t)(sample >> 8);
+                    pd[1] = (uint8_t)(sample >> 0);
                 } else {
                     // just copy
-                    pd[1] = (guint8)(sample >> 8);
-                    pd[0] = (guint8)(sample >> 0);
+                    pd[1] = (uint8_t)(sample >> 8);
+                    pd[0] = (uint8_t)(sample >> 0);
                 }
                 read = true;
             } else {
@@ -2448,7 +2471,7 @@ save_audio_t RtpPlayerDialog::selectFileAudioFormatAndName(QString *file_path)
 
     QString sel_filter;
     *file_path = WiresharkFileDialog::getSaveFileName(
-                this, tr("Save audio"), mainApp->lastOpenDir().absoluteFilePath(""),
+                this, tr("Save audio"), mainApp->openDialogInitialDir().absoluteFilePath(""),
                 ext_filter, &sel_filter);
 
     if (file_path->isEmpty()) return save_audio_none;
@@ -2471,7 +2494,7 @@ save_payload_t RtpPlayerDialog::selectFilePayloadFormatAndName(QString *file_pat
 
     QString sel_filter;
     *file_path = WiresharkFileDialog::getSaveFileName(
-                this, tr("Save payload"), mainApp->lastOpenDir().absoluteFilePath(""),
+                this, tr("Save payload"), mainApp->openDialogInitialDir().absoluteFilePath(""),
                 ext_filter, &sel_filter);
 
     if (file_path->isEmpty()) return save_payload_none;

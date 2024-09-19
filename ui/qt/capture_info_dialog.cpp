@@ -9,7 +9,7 @@
 
 #include "config.h"
 
-#include <glib.h>
+#include "wireshark.h"
 
 #include "ui/capture_info.h"
 
@@ -19,7 +19,7 @@
 #include "ui/capture.h"
 
 #include "capture_info_dialog.h"
-#include "ui_capture_info_dialog.h"
+#include <ui_capture_info_dialog.h>
 
 #include "main_application.h"
 
@@ -146,7 +146,7 @@ void CaptureInfoModel::updateInfo()
     if (!cap_info_) return;
 
     GHashTableIter iter;
-    gpointer key, value;
+    void *key, *value;
 
     samples_++;
     other_points_.append(cap_info_->counts->other - last_other_);

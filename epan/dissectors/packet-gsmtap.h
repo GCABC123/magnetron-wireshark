@@ -93,6 +93,17 @@
 #define GSMTAP_CHANNEL_ACCH	0x80
 
 /* ====== DO NOT MAKE UNAPPROVED MODIFICATIONS HERE ===== */
+/* sub-types for GSMTAP_TYPE_SIM */
+#define GSMTAP_SIM_APDU		0x00 /* APDU data (complete APDU) */
+#define GSMTAP_SIM_ATR			0x01 /* card ATR data */
+#define GSMTAP_SIM_PPS_REQ		0x02 /* PPS request data */
+#define GSMTAP_SIM_PPS_RSP		0x03 /* PPS response data */
+#define GSMTAP_SIM_TPDU_HDR		0x04 /* TPDU command header */
+#define GSMTAP_SIM_TPDU_CMD		0x05 /* TPDU command body */
+#define GSMTAP_SIM_TPDU_RSP		0x06 /* TPDU response body */
+#define GSMTAP_SIM_TPDU_SW		0x07 /* TPDU response trailer */
+
+/* ====== DO NOT MAKE UNAPPROVED MODIFICATIONS HERE ===== */
 /* sub-types for TYPE_TETRA_AIR */
 #define GSMTAP_TETRA_BSCH			0x01
 #define GSMTAP_TETRA_AACH			0x02
@@ -132,6 +143,11 @@
 #define GSMTAP_E1T1_TRAU16			0x04	/* 16k TRAU frames; sub-slot 0-3 */
 #define GSMTAP_E1T1_TRAU8			0x05	/* 8k TRAU frames; sub-slot 0-7 */
 #define GSMTAP_E1T1_V5EF			0x06	/* V5 Envelope Function */
+#define GSMTAP_E1T1_X75				0x07	/* X.75 B-channel data */
+#define GSMTAP_E1T1_V120			0x08	/* V.120 B-channel data */
+#define GSMTAP_E1T1_V110			0x09	/* V.110 B-channel data */
+#define GSMTAP_E1T1_H221			0x0a	/* H.221 B-channel data */
+#define GSMTAP_E1T1_PPP				0x0b	/* PPP */
 
 #define GSMTAP_ARFCN_F_PCS			0x8000
 #define GSMTAP_ARFCN_F_UPLINK			0x4000
@@ -142,21 +158,21 @@
 /* This is the header as it is used by gsmtap-generating software.
  * It is not used by the wireshark dissector and provided for reference only.
 struct gsmtap_hdr {
-	guint8 version;		// version, set to 0x01 currently
-	guint8 hdr_len;		// length in number of 32bit words
-	guint8 type;		// see GSMTAP_TYPE_*
-	guint8 timeslot;	// timeslot (0..7 on Um)
+	uint8_t version;		// version, set to 0x01 currently
+	uint8_t hdr_len;		// length in number of 32bit words
+	uint8_t type;		// see GSMTAP_TYPE_*
+	uint8_t timeslot;	// timeslot (0..7 on Um)
 
-	guint16 arfcn;		// ARFCN (frequency)
-	gint8 signal_dbm;	// signal level in dBm
-	gint8 snr_db;		// signal/noise ratio in dB
+	uint16_t arfcn;		// ARFCN (frequency)
+	int8_t signal_dbm;	// signal level in dBm
+	int8_t snr_db;		// signal/noise ratio in dB
 
-	guint32 frame_number;	// GSM Frame Number (FN)
+	uint32_t frame_number;	// GSM Frame Number (FN)
 
-	guint8 sub_type;	// Type of burst/channel, see above
-	guint8 antenna_nr;	// Antenna Number
-	guint8 sub_slot;	// sub-slot within timeslot
-	guint8 res;		// reserved for future use (RFU)
+	uint8_t sub_type;	// Type of burst/channel, see above
+	uint8_t antenna_nr;	// Antenna Number
+	uint8_t sub_slot;	// sub-slot within timeslot
+	uint8_t res;		// reserved for future use (RFU)
 }
  */
 

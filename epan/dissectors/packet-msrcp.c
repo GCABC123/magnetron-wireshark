@@ -12,12 +12,16 @@
 
 
 #include "config.h"
+
+#include <wsutil/array.h>
 #include <epan/packet.h>
 #include <epan/expert.h>
 #include <epan/conversation.h>
 
 void proto_register_msrcp(void);
 void proto_reg_handoff_msrcp(void);
+
+static dissector_handle_t msrcp_handle;
 
 #define MSRCP_PORT 3343
 #define MSRCP_REQUEST 0
@@ -46,32 +50,32 @@ typedef struct _msrcp_conv_info_t {
 } msrcp_conv_info_t;
 
 typedef struct _msrcp_transaction_t {
-    guint32 req_frame;
-    guint32 rep_frame;
+    uint32_t req_frame;
+    uint32_t rep_frame;
     nstime_t req_time;
-    guint32 seq;
-    gboolean matched;
+    uint32_t seq;
+    bool matched;
 } msrcp_transaction_t;
 
-static int proto_msrcp = -1;
-static int hf_msrcp_id = -1;
-static int hf_msrcp_type = -1;
-static int hf_msrcp_vers = -1;
-static int hf_msrcp_reserved = -1;
-static int hf_msrcp_next_header = -1;
-static int hf_msrcp_len = -1;
-static int hf_msrcp_seq = -1;
-static int hf_msrcp_response_in = -1;
-static int hf_msrcp_response_to = -1;
-static int hf_msrcp_ext_header = -1;
-static int hf_msrcp_ext_next_header = -1;
-static int hf_msrcp_ext_len = -1;
-static int hf_msrcp_ext_res = -1;
+static int proto_msrcp;
+static int hf_msrcp_id;
+static int hf_msrcp_type;
+static int hf_msrcp_vers;
+static int hf_msrcp_reserved;
+static int hf_msrcp_next_header;
+static int hf_msrcp_len;
+static int hf_msrcp_seq;
+static int hf_msrcp_response_in;
+static int hf_msrcp_response_to;
+static int hf_msrcp_ext_header;
+static int hf_msrcp_ext_next_header;
+static int hf_msrcp_ext_len;
+static int hf_msrcp_ext_res;
 
-static gint ett_msrcp = -1;
-static gint ett_msrcp_nxt = -1;
+static int ett_msrcp;
+static int ett_msrcp_nxt;
 
-static expert_field ei_msrcp_no_resp = EI_INIT;
+static expert_field ei_msrcp_no_resp;
 
 // Handles for subparsing
 static dissector_handle_t eth_handle;
@@ -96,13 +100,13 @@ dissect_msrcp(tvbuff_t* tvb, packet_info* pinfo, proto_tree* tree, void* data _U
             SrcAddr:        16 bytes
             DstAddr:        16 bytes
     */
-    guint tree_offset = 0;
+    unsigned tree_offset = 0;
 
     proto_tree* msrcp_tree, * nxt_tree;
     proto_item* ti, * nxt_ti;
     tvbuff_t* next_tvb;
-    guint32         seq;
-    guint16         type;
+    uint32_t        seq;
+    uint16_t        type;
 
     // variables for our expert analysis
     conversation_t* conv = NULL;
@@ -110,8 +114,8 @@ dissect_msrcp(tvbuff_t* tvb, packet_info* pinfo, proto_tree* tree, void* data _U
     msrcp_transaction_t* msrcp_trans = NULL;
     wmem_tree_key_t  key[3];
 
-    type = tvb_get_guint8(tvb, MSRCP_OFFSET_TYPE);
-    seq = tvb_get_guint32(tvb, MSRCP_OFFSET_SEQ, ENC_LITTLE_ENDIAN);
+    type = tvb_get_uint8(tvb, MSRCP_OFFSET_TYPE);
+    seq = tvb_get_uint32(tvb, MSRCP_OFFSET_SEQ, ENC_LITTLE_ENDIAN);
 
     conv = find_or_create_conversation(pinfo);
     msrcp_info = (msrcp_conv_info_t*)conversation_get_proto_data(conv, proto_msrcp);
@@ -139,7 +143,7 @@ dissect_msrcp(tvbuff_t* tvb, packet_info* pinfo, proto_tree* tree, void* data _U
                 msrcp_trans->rep_frame = 0;
                 msrcp_trans->req_time = pinfo->abs_ts;
                 msrcp_trans->seq = seq;
-                msrcp_trans->matched = FALSE;
+                msrcp_trans->matched = false;
                 wmem_tree_insert32_array(msrcp_info->pdus, key, (void*)msrcp_trans);
             }
             else
@@ -154,7 +158,7 @@ dissect_msrcp(tvbuff_t* tvb, packet_info* pinfo, proto_tree* tree, void* data _U
                     else if (msrcp_trans->rep_frame == 0)
                     {
                         msrcp_trans->rep_frame = pinfo->num;
-                        msrcp_trans->matched = TRUE;
+                        msrcp_trans->matched = true;
                     }
                 }
             }
@@ -184,7 +188,7 @@ dissect_msrcp(tvbuff_t* tvb, packet_info* pinfo, proto_tree* tree, void* data _U
             msrcp_trans->req_frame = 0;
             msrcp_trans->rep_frame = 0;
             msrcp_trans->req_time = pinfo->abs_ts;
-            msrcp_trans->matched = FALSE;
+            msrcp_trans->matched = false;
         }
     }
 
@@ -192,12 +196,12 @@ dissect_msrcp(tvbuff_t* tvb, packet_info* pinfo, proto_tree* tree, void* data _U
     col_set_str(pinfo->cinfo, COL_PROTOCOL, "MSRCP");
     col_clear(pinfo->cinfo, COL_INFO);
     col_add_fstr(pinfo->cinfo, COL_INFO, "%s ID %d (0x%X)",
-        val_to_str(type, packettypenames, "MSRCP"), seq, seq);
+        val_to_str_const(type, packettypenames, "MSRCP"), seq, seq);
 
 
     ti = proto_tree_add_item(tree, proto_msrcp, tvb, 0, -1, ENC_BIG_ENDIAN);
     proto_item_append_text(ti, "Type %s",
-        val_to_str(type, packettypenames, "MSRCP"));
+        val_to_str_const(type, packettypenames, "MSRCP"));
     msrcp_tree = proto_item_add_subtree(ti, ett_msrcp);
 
     if (type == MSRCP_REQUEST || type == MSRCP_RESPONSE)
@@ -339,7 +343,7 @@ proto_register_msrcp(void)
     },
     };
 
-    static gint* ett[] = {
+    static int* ett[] = {
             &ett_msrcp,
             &ett_msrcp_nxt
     };
@@ -352,25 +356,19 @@ proto_register_msrcp(void)
         }
     };
 
-    proto_msrcp = proto_register_protocol(
-        "MSRCP Protocol",
-        "MSRCP",
-        "msrcp"
-    );
-
+    proto_msrcp = proto_register_protocol("MSRCP Protocol", "MSRCP", "msrcp");
 
     proto_register_field_array(proto_msrcp, hf, array_length(hf));
     proto_register_subtree_array(ett, array_length(ett));
     expert_msrcp = expert_register_protocol(proto_msrcp);
     expert_register_field_array(expert_msrcp, ei, array_length(ei));
+
+    msrcp_handle = register_dissector("msrcp", dissect_msrcp, proto_msrcp);
 }
 
 void
 proto_reg_handoff_msrcp(void)
 {
-    static dissector_handle_t msrcp_handle;
-
     eth_handle = find_dissector_add_dependency("eth_withoutfcs", proto_msrcp);
-    msrcp_handle = create_dissector_handle(dissect_msrcp, proto_msrcp);
     dissector_add_uint("udp.port", MSRCP_PORT, msrcp_handle);
 }

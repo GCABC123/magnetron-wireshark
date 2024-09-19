@@ -13,6 +13,8 @@
 
 #include <epan/packet.h>
 #include <epan/expert.h>
+#include <epan/tfs.h>
+#include <wsutil/array.h>
 
 /* IF PROTO exposes code to other dissectors, then it must be exported
    in a header file. If not, a header file is not needed at all. */
@@ -21,274 +23,274 @@
 /* Initialize the protocol and registered fields */
 
 static dissector_handle_t wimaxmacphy_handle;
-static int proto_wimaxmacphy                                         = -1;
-static int hf_wimaxmacphy_hdr_phy_entity_id                          = -1;
-static int hf_wimaxmacphy_hdr_message_segmentation                   = -1;
-static int hf_wimaxmacphy_hdr_message_type                           = -1;
-static int hf_wimaxmacphy_unknown                                    = -1;
-static int hf_wimaxmacphy_prim_length_of_txvector                    = -1;
-static int hf_wimaxmacphy_prim_length_of_rxvector                    = -1;
-static int hf_wimaxmacphy_prim_status                                = -1;
-static int hf_wimaxmacphy_prim_txstart_indication_status             = -1;
-static int hf_wimaxmacphy_prim_reserved1                             = -1;
-static int hf_wimaxmacphy_prim_reserved2                             = -1;
-static int hf_wimaxmacphy_prim_reserved3                             = -1;
-static int hf_wimaxmacphy_prim_reserved4                             = -1;
-static int hf_wimaxmacphy_prim_reserved5                             = -1;
-static int hf_wimaxmacphy_prim_next_frame_number                     = -1;
-static int hf_wimaxmacphy_prim_extended_frame_number                 = -1;
-static int hf_wimaxmacphy_prim_current_frame_number_lsn              = -1;
-static int hf_wimaxmacphy_prim_initial_frame_number                  = -1;
-static int hf_wimaxmacphy_prim_dl_zone_number                        = -1;
-static int hf_wimaxmacphy_prim_sub_burst_burst_split_point           = -1;
-static int hf_wimaxmacphy_prim_dl_sub_burst_burst_number             = -1;
-static int hf_wimaxmacphy_prim_phy_sdu                               = -1;
-static int hf_wimaxmacphy_prim_phy_request                           = -1;
-static int hf_wimaxmacphy_prim_requested_aas_calibration_zone_size   = -1;
-static int hf_wimaxmacphy_prim_requested_aas_calibration_zone_alloc  = -1;
-static int hf_wimaxmacphy_prim_number_of_consecutive_frames_with_aas = -1;
-static int hf_wimaxmacphy_prim_frame_number                          = -1;
-static int hf_wimaxmacphy_prim_issid                                 = -1;
-static int hf_wimaxmacphy_prim_integrity                             = -1;
-static int hf_wimaxmacphy_prim_number_of_bytes_received              = -1;
-static int hf_wimaxmacphy_prim_rssi_per_subcarrier_level             = -1;
-static int hf_wimaxmacphy_prim_cinr                                  = -1;
-static int hf_wimaxmacphy_prim_power_offset                          = -1;
-static int hf_wimaxmacphy_prim_current_frame_number_msn              = -1;
-static int hf_wimaxmacphy_prim_acid_for_harq_data_bursts             = -1;
-static int hf_wimaxmacphy_prim_indication_type                       = -1;
-static int hf_wimaxmacphy_prim_zone_permutation_type                 = -1;
-static int hf_wimaxmacphy_prim_update_aas_handle_in_mac              = -1;
-static int hf_wimaxmacphy_prim_aas_handle                            = -1;
-static int hf_wimaxmacphy_prim_time_deviation                        = -1;
-static int hf_wimaxmacphy_prim_frequency_deviation                   = -1;
-static int hf_wimaxmacphy_prim_phy_aas_report_present                = -1;
-static int hf_wimaxmacphy_prim_number_of_affected_ss                 = -1;
-static int hf_wimaxmacphy_prim_zonexid                               = -1;
-static int hf_wimaxmacphy_prim_cdma_code                             = -1;
-static int hf_wimaxmacphy_prim_cdma_symbol                           = -1;
-static int hf_wimaxmacphy_prim_cdma_subchannel                       = -1;
-static int hf_wimaxmacphy_prim_harq_ack_issid                        = -1;
-static int hf_wimaxmacphy_prim_harq_ack_acid                         = -1;
-static int hf_wimaxmacphy_prim_harq_ack_reserved1                    = -1;
-static int hf_wimaxmacphy_prim_harq_ack_ack_valid                    = -1;
-static int hf_wimaxmacphy_prim_harq_ack_unnamed                      = -1;
-static int hf_wimaxmacphy_prim_harq_ack_reserved2                    = -1;
-static int hf_wimaxmacphy_prim_fast_issid                            = -1;
-static int hf_wimaxmacphy_prim_fast_cqich_id                         = -1;
-static int hf_wimaxmacphy_prim_fast_feedback_type_coding             = -1;
-static int hf_wimaxmacphy_prim_fast_feedback_type_coding_bit0        = -1;
-static int hf_wimaxmacphy_prim_fast_feedback_type_coding_bit1        = -1;
-static int hf_wimaxmacphy_prim_fast_feedback_type_coding_bit2        = -1;
-static int hf_wimaxmacphy_prim_fast_feedback_type_coding_bit3        = -1;
-static int hf_wimaxmacphy_prim_fast_feedback_type_coding_bit4        = -1;
-static int hf_wimaxmacphy_prim_fast_feedback_type_coding_bit5        = -1;
-static int hf_wimaxmacphy_prim_fast_feedback_type_coding_bit6        = -1;
-static int hf_wimaxmacphy_prim_fast_feedback_type_coding_bit7        = -1;
-static int hf_wimaxmacphy_prim_fast_feedback_valid                   = -1;
-static int hf_wimaxmacphy_prim_fast_feedback_sub_type                = -1;
-static int hf_wimaxmacphy_prim_fast_reserved                         = -1;
-static int hf_wimaxmacphy_prim_fast_feedback_value                   = -1;
-static int hf_wimaxmacphy_subframe_subframe_type                     = -1;
-static int hf_wimaxmacphy_subframe_frame_number                      = -1;
-static int hf_wimaxmacphy_subframe_downlink_reserved1                = -1;
-static int hf_wimaxmacphy_subframe_phy_sap_version_number            = -1;
-static int hf_wimaxmacphy_subframe_downlink_reserved2                = -1;
-static int hf_wimaxmacphy_subframe_allocation_start_time             = -1;
-static int hf_wimaxmacphy_number_of_zone_descriptors                 = -1;
-static int hf_wimaxmacphy_zone_padding                               = -1;
-static int hf_wimaxmacphy_dl_zone_type                               = -1;
-static int hf_wimaxmacphy_ul_zone_type                               = -1;
-static int hf_wimaxmacphy_zone_number                                = -1;
-static int hf_wimaxmacphy_zone_start_symbol_offset                   = -1;
-static int hf_wimaxmacphy_zone_end_symbol_offset                     = -1;
-static int hf_wimaxmacphy_dl_zone_permutation_type                   = -1;
-static int hf_wimaxmacphy_ul_zone_permutation_type                   = -1;
-static int hf_wimaxmacphy_dl_zone_use_all_subchannels_indicator      = -1;
-static int hf_wimaxmacphy_ul_zone_use_all_subchannels_indicator      = -1;
-static int hf_wimaxmacphy_ul_zone_disable_pusc_subchannel_rotation   = -1;
-static int hf_wimaxmacphy_zone_dl_perm_base                          = -1;
-static int hf_wimaxmacphy_zone_ul_perm_base                          = -1;
-static int hf_wimaxmacphy_zone_prbs_id                               = -1;
-static int hf_wimaxmacphy_zone_agc_range_extension                   = -1;
-static int hf_wimaxmacphy_zone_dedicated_pilots                      = -1;
-static int hf_wimaxmacphy_zone_reserved                              = -1;
-static int hf_wimaxmacphy_zone_stc_type                              = -1;
-static int hf_wimaxmacphy_zone_matrix_indicator                      = -1;
-static int hf_wimaxmacphy_zone_midamble_presence                     = -1;
-static int hf_wimaxmacphy_zone_midamble_boosting                     = -1;
-static int hf_wimaxmacphy_zone_preamble_configuration                = -1;
-static int hf_wimaxmacphy_zone_sdma_supported_indication             = -1;
-static int hf_wimaxmacphy_zone_preamble_type                         = -1;
-static int hf_wimaxmacphy_dl_zone_aas_reserved                       = -1;
-static int hf_wimaxmacphy_ul_zone_aas_reserved                       = -1;
-static int hf_wimaxmacphy_number_of_burst_descriptors                = -1;
-static int hf_wimaxmacphy_burst_padding                              = -1;
-static int hf_wimaxmacphy_dl_burst_type                              = -1;
-static int hf_wimaxmacphy_ul_burst_type                              = -1;
-static int hf_wimaxmacphy_burst_type_extension                       = -1;
-static int hf_wimaxmacphy_burst_number                               = -1;
-static int hf_wimaxmacphy_burst_modulation_fec_code_type             = -1;
-static int hf_wimaxmacphy_burst_data_length                          = -1;
-static int hf_wimaxmacphy_burst_ofdma_symbol_offset                  = -1;
-static int hf_wimaxmacphy_burst_subchannel_offset                    = -1;
-static int hf_wimaxmacphy_burst_boosting                             = -1;
-static int hf_wimaxmacphy_burst_reserved                             = -1;
-static int hf_wimaxmacphy_burst_repetition_coding_indication         = -1;
-static int hf_wimaxmacphy_burst_issid                                = -1;
-static int hf_wimaxmacphy_burst_aas_handle                           = -1;
-static int hf_wimaxmacphy_dl_burst_map_number_of_slots               = -1;
-static int hf_wimaxmacphy_dl_burst_map_reserved                      = -1;
-static int hf_wimaxmacphy_dl_burst_normal_number_of_symbols          = -1;
-static int hf_wimaxmacphy_dl_burst_normal_number_of_subchannels      = -1;
-static int hf_wimaxmacphy_dl_burst_normal_aas_handle                 = -1;
-static int hf_wimaxmacphy_ul_burst_normal_number_of_slots            = -1;
-static int hf_wimaxmacphy_ul_burst_normal_reserved                   = -1;
-static int hf_wimaxmacphy_burst_papr_number_of_symbols               = -1;
-static int hf_wimaxmacphy_burst_papr_number_of_subchannels           = -1;
-static int hf_wimaxmacphy_burst_papr_reserved                        = -1;
-static int hf_wimaxmacphy_ul_burst_papr_unnamed                      = -1;
-static int hf_wimaxmacphy_ul_burst_harq_ack_number_of_symbols        = -1;
-static int hf_wimaxmacphy_ul_burst_harq_ack_number_of_subchannels    = -1;
-static int hf_wimaxmacphy_ul_burst_harq_ack_reserved                 = -1;
-static int hf_wimaxmacphy_ul_burst_fast_number_of_symbols            = -1;
-static int hf_wimaxmacphy_ul_burst_fast_number_of_subchannels        = -1;
-static int hf_wimaxmacphy_ul_burst_fast_reserved                     = -1;
-static int hf_wimaxmacphy_ul_burst_initial_number_of_symbols         = -1;
-static int hf_wimaxmacphy_ul_burst_initial_number_of_subchannels     = -1;
-static int hf_wimaxmacphy_ul_burst_initial_ranging_method            = -1;
-static int hf_wimaxmacphy_ul_burst_initial_reserved1                 = -1;
-static int hf_wimaxmacphy_ul_burst_initial_zone_xid                  = -1;
-static int hf_wimaxmacphy_ul_burst_initial_reserved2                 = -1;
-static int hf_wimaxmacphy_ul_burst_periodic_number_of_symbols        = -1;
-static int hf_wimaxmacphy_ul_burst_periodic_number_of_subchannels    = -1;
-static int hf_wimaxmacphy_ul_burst_periodic_ranging_method           = -1;
-static int hf_wimaxmacphy_ul_burst_periodic_reserved1                = -1;
-static int hf_wimaxmacphy_ul_burst_periodic_zone_xid                 = -1;
-static int hf_wimaxmacphy_ul_burst_periodic_reserved2                = -1;
-static int hf_wimaxmacphy_ul_burst_sounding_number_of_symbols        = -1;
-static int hf_wimaxmacphy_ul_burst_sounding_number_of_subchannels    = -1;
-static int hf_wimaxmacphy_ul_burst_sounding_type                     = -1;
-static int hf_wimaxmacphy_ul_burst_sounding_separability_type        = -1;
-static int hf_wimaxmacphy_ul_burst_sounding_max_cyclic_shift_indx    = -1;
-static int hf_wimaxmacphy_ul_burst_sounding_decimation_value         = -1;
-static int hf_wimaxmacphy_ul_burst_sounding_decimation_offset_rand   = -1;
-static int hf_wimaxmacphy_ul_burst_sounding_reserved                 = -1;
-static int hf_wimaxmacphy_ul_burst_noise_number_of_symbols           = -1;
-static int hf_wimaxmacphy_ul_burst_noise_number_of_subchannels       = -1;
-static int hf_wimaxmacphy_ul_burst_noise_reserved                    = -1;
-static int hf_wimaxmacphy_burst_opt_aas_preamble_modifier_type       = -1;
-static int hf_wimaxmacphy_burst_opt_aas_preamble_shift_index         = -1;
-static int hf_wimaxmacphy_burst_opt_aas_reserved                     = -1;
-static int hf_wimaxmacphy_burst_opt_mimo_matrix_indicator            = -1;
-static int hf_wimaxmacphy_burst_opt_mimo_layer_index                 = -1;
-static int hf_wimaxmacphy_dl_burst_opt_mimo_reserved                 = -1;
-static int hf_wimaxmacphy_ul_burst_opt_mimo_matrix_indicator         = -1;
-static int hf_wimaxmacphy_ul_burst_opt_mimo_pilot_patterns           = -1;
-static int hf_wimaxmacphy_ul_burst_opt_mimo_pilot_patterns_bit0      = -1;
-static int hf_wimaxmacphy_ul_burst_opt_mimo_pilot_patterns_bit1      = -1;
-static int hf_wimaxmacphy_ul_burst_opt_mimo_pilot_patterns_bit2      = -1;
-static int hf_wimaxmacphy_ul_burst_opt_mimo_pilot_patterns_bit3      = -1;
-static int hf_wimaxmacphy_ul_burst_opt_mimo_collaborative            = -1;
-static int hf_wimaxmacphy_ul_burst_opt_mimo_antenna_unnamed          = -1;
-static int hf_wimaxmacphy_number_of_sub_burst_descriptors            = -1;
-static int hf_wimaxmacphy_sub_burst_padding                          = -1;
-static int hf_wimaxmacphy_dl_sub_burst_type                          = -1;
-static int hf_wimaxmacphy_ul_sub_burst_type                          = -1;
-static int hf_wimaxmacphy_sub_burst_number                           = -1;
-static int hf_wimaxmacphy_sub_burst_symbol_offset                    = -1;
-static int hf_wimaxmacphy_sub_burst_subchannel_offset                = -1;
-static int hf_wimaxmacphy_sub_burst_number_of_slots                  = -1;
-static int hf_wimaxmacphy_sub_burst_reserved1                        = -1;
-static int hf_wimaxmacphy_sub_burst_reserved2                        = -1;
-static int hf_wimaxmacphy_sub_burst_modulation_fec_code_type         = -1;
-static int hf_wimaxmacphy_sub_burst_issid                            = -1;
-static int hf_wimaxmacphy_sub_burst_aas_handle                       = -1;
-static int hf_wimaxmacphy_sub_burst_boosting                         = -1;
-static int hf_wimaxmacphy_sub_burst_repetition_coding_indication     = -1;
-static int hf_wimaxmacphy_sub_burst_data_length                      = -1;
-static int hf_wimaxmacphy_sub_burst_harq_chase_harq_channel_id       = -1;
-static int hf_wimaxmacphy_sub_burst_harq_chase_harq_sequence_number  = -1;
-static int hf_wimaxmacphy_sub_burst_harq_chase_flush_unnamed         = -1;
-static int hf_wimaxmacphy_sub_burst_harq_chase_reserved              = -1;
-static int hf_wimaxmacphy_sub_burst_mimo_chase_harq_channel_id       = -1;
-static int hf_wimaxmacphy_sub_burst_mimo_chase_harq_sequence_number  = -1;
-static int hf_wimaxmacphy_sub_burst_mimo_chase_flush_unnamed         = -1;
-static int hf_wimaxmacphy_sub_burst_mimo_chase_layer_index           = -1;
-static int hf_wimaxmacphy_ul_sub_burst_ctype                         = -1;
-static int hf_wimaxmacphy_ul_sub_burst_mini_subchannel_index         = -1;
-static int hf_wimaxmacphy_ul_sub_burst_mini_reserved                 = -1;
-static int hf_wimaxmacphy_ul_sub_burst_feedback_type_coding          = -1;
-static int hf_wimaxmacphy_ul_sub_burst_feedback_type_coding_bit0     = -1;
-static int hf_wimaxmacphy_ul_sub_burst_feedback_type_coding_bit1     = -1;
-static int hf_wimaxmacphy_ul_sub_burst_feedback_type_coding_bit2     = -1;
-static int hf_wimaxmacphy_ul_sub_burst_feedback_type_coding_bit3     = -1;
-static int hf_wimaxmacphy_ul_sub_burst_feedback_type_coding_bit4     = -1;
-static int hf_wimaxmacphy_ul_sub_burst_feedback_type_coding_bit5     = -1;
-static int hf_wimaxmacphy_ul_sub_burst_feedback_type_coding_bit6     = -1;
-static int hf_wimaxmacphy_ul_sub_burst_feedback_type_coding_bit7     = -1;
-static int hf_wimaxmacphy_ul_sub_burst_feedback_reserved1            = -1;
-static int hf_wimaxmacphy_ul_sub_burst_feedback_sub_type             = -1;
-static int hf_wimaxmacphy_ul_sub_burst_feedback_cqich_id             = -1;
-static int hf_wimaxmacphy_ul_sub_burst_feedback_reserved2            = -1;
-static int hf_wimaxmacphy_ul_sub_burst_feedback_slot_offset          = -1;
-static int hf_wimaxmacphy_ul_sub_burst_harq_ack_acid                 = -1;
-static int hf_wimaxmacphy_ul_sub_burst_harq_ack_reserved             = -1;
-static int hf_wimaxmacphy_ul_sub_burst_sounding_symbol_index         = -1;
-static int hf_wimaxmacphy_ul_sub_burst_sounding_power_assignment     = -1;
-static int hf_wimaxmacphy_ul_sub_burst_sounding_power_boost          = -1;
-static int hf_wimaxmacphy_ul_sub_burst_sounding_allocation_mode      = -1;
-static int hf_wimaxmacphy_ul_sub_burst_sounding_start_freq_band      = -1;
-static int hf_wimaxmacphy_ul_sub_burst_sounding_num_freq_bands       = -1;
-static int hf_wimaxmacphy_ul_sub_burst_sounding_band_bit_map         = -1;
-static int hf_wimaxmacphy_ul_sub_burst_sounding_cyclic_time_shift    = -1;
-static int hf_wimaxmacphy_ul_sub_burst_sounding_decimation_offset    = -1;
-static int hf_wimaxmacphy_ul_sub_burst_sounding_reserved             = -1;
-static int hf_wimaxmacphy_ul_sub_burst_mimo_chase_matrix             = -1;
+static int proto_wimaxmacphy;
+static int hf_wimaxmacphy_hdr_phy_entity_id;
+static int hf_wimaxmacphy_hdr_message_segmentation;
+static int hf_wimaxmacphy_hdr_message_type;
+static int hf_wimaxmacphy_unknown;
+static int hf_wimaxmacphy_prim_length_of_txvector;
+static int hf_wimaxmacphy_prim_length_of_rxvector;
+static int hf_wimaxmacphy_prim_status;
+static int hf_wimaxmacphy_prim_txstart_indication_status;
+static int hf_wimaxmacphy_prim_reserved1;
+static int hf_wimaxmacphy_prim_reserved2;
+static int hf_wimaxmacphy_prim_reserved3;
+static int hf_wimaxmacphy_prim_reserved4;
+static int hf_wimaxmacphy_prim_reserved5;
+static int hf_wimaxmacphy_prim_next_frame_number;
+static int hf_wimaxmacphy_prim_extended_frame_number;
+static int hf_wimaxmacphy_prim_current_frame_number_lsn;
+static int hf_wimaxmacphy_prim_initial_frame_number;
+static int hf_wimaxmacphy_prim_dl_zone_number;
+static int hf_wimaxmacphy_prim_sub_burst_burst_split_point;
+static int hf_wimaxmacphy_prim_dl_sub_burst_burst_number;
+static int hf_wimaxmacphy_prim_phy_sdu;
+static int hf_wimaxmacphy_prim_phy_request;
+static int hf_wimaxmacphy_prim_requested_aas_calibration_zone_size;
+static int hf_wimaxmacphy_prim_requested_aas_calibration_zone_alloc;
+static int hf_wimaxmacphy_prim_number_of_consecutive_frames_with_aas;
+static int hf_wimaxmacphy_prim_frame_number;
+static int hf_wimaxmacphy_prim_issid;
+static int hf_wimaxmacphy_prim_integrity;
+static int hf_wimaxmacphy_prim_number_of_bytes_received;
+static int hf_wimaxmacphy_prim_rssi_per_subcarrier_level;
+static int hf_wimaxmacphy_prim_cinr;
+static int hf_wimaxmacphy_prim_power_offset;
+static int hf_wimaxmacphy_prim_current_frame_number_msn;
+static int hf_wimaxmacphy_prim_acid_for_harq_data_bursts;
+static int hf_wimaxmacphy_prim_indication_type;
+static int hf_wimaxmacphy_prim_zone_permutation_type;
+static int hf_wimaxmacphy_prim_update_aas_handle_in_mac;
+static int hf_wimaxmacphy_prim_aas_handle;
+static int hf_wimaxmacphy_prim_time_deviation;
+static int hf_wimaxmacphy_prim_frequency_deviation;
+static int hf_wimaxmacphy_prim_phy_aas_report_present;
+static int hf_wimaxmacphy_prim_number_of_affected_ss;
+static int hf_wimaxmacphy_prim_zonexid;
+static int hf_wimaxmacphy_prim_cdma_code;
+static int hf_wimaxmacphy_prim_cdma_symbol;
+static int hf_wimaxmacphy_prim_cdma_subchannel;
+static int hf_wimaxmacphy_prim_harq_ack_issid;
+static int hf_wimaxmacphy_prim_harq_ack_acid;
+static int hf_wimaxmacphy_prim_harq_ack_reserved1;
+static int hf_wimaxmacphy_prim_harq_ack_ack_valid;
+static int hf_wimaxmacphy_prim_harq_ack_unnamed;
+static int hf_wimaxmacphy_prim_harq_ack_reserved2;
+static int hf_wimaxmacphy_prim_fast_issid;
+static int hf_wimaxmacphy_prim_fast_cqich_id;
+static int hf_wimaxmacphy_prim_fast_feedback_type_coding;
+static int hf_wimaxmacphy_prim_fast_feedback_type_coding_bit0;
+static int hf_wimaxmacphy_prim_fast_feedback_type_coding_bit1;
+static int hf_wimaxmacphy_prim_fast_feedback_type_coding_bit2;
+static int hf_wimaxmacphy_prim_fast_feedback_type_coding_bit3;
+static int hf_wimaxmacphy_prim_fast_feedback_type_coding_bit4;
+static int hf_wimaxmacphy_prim_fast_feedback_type_coding_bit5;
+static int hf_wimaxmacphy_prim_fast_feedback_type_coding_bit6;
+static int hf_wimaxmacphy_prim_fast_feedback_type_coding_bit7;
+static int hf_wimaxmacphy_prim_fast_feedback_valid;
+static int hf_wimaxmacphy_prim_fast_feedback_sub_type;
+static int hf_wimaxmacphy_prim_fast_reserved;
+static int hf_wimaxmacphy_prim_fast_feedback_value;
+static int hf_wimaxmacphy_subframe_subframe_type;
+static int hf_wimaxmacphy_subframe_frame_number;
+static int hf_wimaxmacphy_subframe_downlink_reserved1;
+static int hf_wimaxmacphy_subframe_phy_sap_version_number;
+static int hf_wimaxmacphy_subframe_downlink_reserved2;
+static int hf_wimaxmacphy_subframe_allocation_start_time;
+static int hf_wimaxmacphy_number_of_zone_descriptors;
+static int hf_wimaxmacphy_zone_padding;
+static int hf_wimaxmacphy_dl_zone_type;
+static int hf_wimaxmacphy_ul_zone_type;
+static int hf_wimaxmacphy_zone_number;
+static int hf_wimaxmacphy_zone_start_symbol_offset;
+static int hf_wimaxmacphy_zone_end_symbol_offset;
+static int hf_wimaxmacphy_dl_zone_permutation_type;
+static int hf_wimaxmacphy_ul_zone_permutation_type;
+static int hf_wimaxmacphy_dl_zone_use_all_subchannels_indicator;
+static int hf_wimaxmacphy_ul_zone_use_all_subchannels_indicator;
+static int hf_wimaxmacphy_ul_zone_disable_pusc_subchannel_rotation;
+static int hf_wimaxmacphy_zone_dl_perm_base;
+static int hf_wimaxmacphy_zone_ul_perm_base;
+static int hf_wimaxmacphy_zone_prbs_id;
+static int hf_wimaxmacphy_zone_agc_range_extension;
+static int hf_wimaxmacphy_zone_dedicated_pilots;
+static int hf_wimaxmacphy_zone_reserved;
+static int hf_wimaxmacphy_zone_stc_type;
+static int hf_wimaxmacphy_zone_matrix_indicator;
+static int hf_wimaxmacphy_zone_midamble_presence;
+static int hf_wimaxmacphy_zone_midamble_boosting;
+static int hf_wimaxmacphy_zone_preamble_configuration;
+static int hf_wimaxmacphy_zone_sdma_supported_indication;
+static int hf_wimaxmacphy_zone_preamble_type;
+static int hf_wimaxmacphy_dl_zone_aas_reserved;
+static int hf_wimaxmacphy_ul_zone_aas_reserved;
+static int hf_wimaxmacphy_number_of_burst_descriptors;
+static int hf_wimaxmacphy_burst_padding;
+static int hf_wimaxmacphy_dl_burst_type;
+static int hf_wimaxmacphy_ul_burst_type;
+static int hf_wimaxmacphy_burst_type_extension;
+static int hf_wimaxmacphy_burst_number;
+static int hf_wimaxmacphy_burst_modulation_fec_code_type;
+static int hf_wimaxmacphy_burst_data_length;
+static int hf_wimaxmacphy_burst_ofdma_symbol_offset;
+static int hf_wimaxmacphy_burst_subchannel_offset;
+static int hf_wimaxmacphy_burst_boosting;
+static int hf_wimaxmacphy_burst_reserved;
+static int hf_wimaxmacphy_burst_repetition_coding_indication;
+static int hf_wimaxmacphy_burst_issid;
+static int hf_wimaxmacphy_burst_aas_handle;
+static int hf_wimaxmacphy_dl_burst_map_number_of_slots;
+static int hf_wimaxmacphy_dl_burst_map_reserved;
+static int hf_wimaxmacphy_dl_burst_normal_number_of_symbols;
+static int hf_wimaxmacphy_dl_burst_normal_number_of_subchannels;
+static int hf_wimaxmacphy_dl_burst_normal_aas_handle;
+static int hf_wimaxmacphy_ul_burst_normal_number_of_slots;
+static int hf_wimaxmacphy_ul_burst_normal_reserved;
+static int hf_wimaxmacphy_burst_papr_number_of_symbols;
+static int hf_wimaxmacphy_burst_papr_number_of_subchannels;
+static int hf_wimaxmacphy_burst_papr_reserved;
+static int hf_wimaxmacphy_ul_burst_papr_unnamed;
+static int hf_wimaxmacphy_ul_burst_harq_ack_number_of_symbols;
+static int hf_wimaxmacphy_ul_burst_harq_ack_number_of_subchannels;
+static int hf_wimaxmacphy_ul_burst_harq_ack_reserved;
+static int hf_wimaxmacphy_ul_burst_fast_number_of_symbols;
+static int hf_wimaxmacphy_ul_burst_fast_number_of_subchannels;
+static int hf_wimaxmacphy_ul_burst_fast_reserved;
+static int hf_wimaxmacphy_ul_burst_initial_number_of_symbols;
+static int hf_wimaxmacphy_ul_burst_initial_number_of_subchannels;
+static int hf_wimaxmacphy_ul_burst_initial_ranging_method;
+static int hf_wimaxmacphy_ul_burst_initial_reserved1;
+static int hf_wimaxmacphy_ul_burst_initial_zone_xid;
+static int hf_wimaxmacphy_ul_burst_initial_reserved2;
+static int hf_wimaxmacphy_ul_burst_periodic_number_of_symbols;
+static int hf_wimaxmacphy_ul_burst_periodic_number_of_subchannels;
+static int hf_wimaxmacphy_ul_burst_periodic_ranging_method;
+static int hf_wimaxmacphy_ul_burst_periodic_reserved1;
+static int hf_wimaxmacphy_ul_burst_periodic_zone_xid;
+static int hf_wimaxmacphy_ul_burst_periodic_reserved2;
+static int hf_wimaxmacphy_ul_burst_sounding_number_of_symbols;
+static int hf_wimaxmacphy_ul_burst_sounding_number_of_subchannels;
+static int hf_wimaxmacphy_ul_burst_sounding_type;
+static int hf_wimaxmacphy_ul_burst_sounding_separability_type;
+static int hf_wimaxmacphy_ul_burst_sounding_max_cyclic_shift_indx;
+static int hf_wimaxmacphy_ul_burst_sounding_decimation_value;
+static int hf_wimaxmacphy_ul_burst_sounding_decimation_offset_rand;
+static int hf_wimaxmacphy_ul_burst_sounding_reserved;
+static int hf_wimaxmacphy_ul_burst_noise_number_of_symbols;
+static int hf_wimaxmacphy_ul_burst_noise_number_of_subchannels;
+static int hf_wimaxmacphy_ul_burst_noise_reserved;
+static int hf_wimaxmacphy_burst_opt_aas_preamble_modifier_type;
+static int hf_wimaxmacphy_burst_opt_aas_preamble_shift_index;
+static int hf_wimaxmacphy_burst_opt_aas_reserved;
+static int hf_wimaxmacphy_burst_opt_mimo_matrix_indicator;
+static int hf_wimaxmacphy_burst_opt_mimo_layer_index;
+static int hf_wimaxmacphy_dl_burst_opt_mimo_reserved;
+static int hf_wimaxmacphy_ul_burst_opt_mimo_matrix_indicator;
+static int hf_wimaxmacphy_ul_burst_opt_mimo_pilot_patterns;
+static int hf_wimaxmacphy_ul_burst_opt_mimo_pilot_patterns_bit0;
+static int hf_wimaxmacphy_ul_burst_opt_mimo_pilot_patterns_bit1;
+static int hf_wimaxmacphy_ul_burst_opt_mimo_pilot_patterns_bit2;
+static int hf_wimaxmacphy_ul_burst_opt_mimo_pilot_patterns_bit3;
+static int hf_wimaxmacphy_ul_burst_opt_mimo_collaborative;
+static int hf_wimaxmacphy_ul_burst_opt_mimo_antenna_unnamed;
+static int hf_wimaxmacphy_number_of_sub_burst_descriptors;
+static int hf_wimaxmacphy_sub_burst_padding;
+static int hf_wimaxmacphy_dl_sub_burst_type;
+static int hf_wimaxmacphy_ul_sub_burst_type;
+static int hf_wimaxmacphy_sub_burst_number;
+static int hf_wimaxmacphy_sub_burst_symbol_offset;
+static int hf_wimaxmacphy_sub_burst_subchannel_offset;
+static int hf_wimaxmacphy_sub_burst_number_of_slots;
+static int hf_wimaxmacphy_sub_burst_reserved1;
+static int hf_wimaxmacphy_sub_burst_reserved2;
+static int hf_wimaxmacphy_sub_burst_modulation_fec_code_type;
+static int hf_wimaxmacphy_sub_burst_issid;
+static int hf_wimaxmacphy_sub_burst_aas_handle;
+static int hf_wimaxmacphy_sub_burst_boosting;
+static int hf_wimaxmacphy_sub_burst_repetition_coding_indication;
+static int hf_wimaxmacphy_sub_burst_data_length;
+static int hf_wimaxmacphy_sub_burst_harq_chase_harq_channel_id;
+static int hf_wimaxmacphy_sub_burst_harq_chase_harq_sequence_number;
+static int hf_wimaxmacphy_sub_burst_harq_chase_flush_unnamed;
+static int hf_wimaxmacphy_sub_burst_harq_chase_reserved;
+static int hf_wimaxmacphy_sub_burst_mimo_chase_harq_channel_id;
+static int hf_wimaxmacphy_sub_burst_mimo_chase_harq_sequence_number;
+static int hf_wimaxmacphy_sub_burst_mimo_chase_flush_unnamed;
+static int hf_wimaxmacphy_sub_burst_mimo_chase_layer_index;
+static int hf_wimaxmacphy_ul_sub_burst_ctype;
+static int hf_wimaxmacphy_ul_sub_burst_mini_subchannel_index;
+static int hf_wimaxmacphy_ul_sub_burst_mini_reserved;
+static int hf_wimaxmacphy_ul_sub_burst_feedback_type_coding;
+static int hf_wimaxmacphy_ul_sub_burst_feedback_type_coding_bit0;
+static int hf_wimaxmacphy_ul_sub_burst_feedback_type_coding_bit1;
+static int hf_wimaxmacphy_ul_sub_burst_feedback_type_coding_bit2;
+static int hf_wimaxmacphy_ul_sub_burst_feedback_type_coding_bit3;
+static int hf_wimaxmacphy_ul_sub_burst_feedback_type_coding_bit4;
+static int hf_wimaxmacphy_ul_sub_burst_feedback_type_coding_bit5;
+static int hf_wimaxmacphy_ul_sub_burst_feedback_type_coding_bit6;
+static int hf_wimaxmacphy_ul_sub_burst_feedback_type_coding_bit7;
+static int hf_wimaxmacphy_ul_sub_burst_feedback_reserved1;
+static int hf_wimaxmacphy_ul_sub_burst_feedback_sub_type;
+static int hf_wimaxmacphy_ul_sub_burst_feedback_cqich_id;
+static int hf_wimaxmacphy_ul_sub_burst_feedback_reserved2;
+static int hf_wimaxmacphy_ul_sub_burst_feedback_slot_offset;
+static int hf_wimaxmacphy_ul_sub_burst_harq_ack_acid;
+static int hf_wimaxmacphy_ul_sub_burst_harq_ack_reserved;
+static int hf_wimaxmacphy_ul_sub_burst_sounding_symbol_index;
+static int hf_wimaxmacphy_ul_sub_burst_sounding_power_assignment;
+static int hf_wimaxmacphy_ul_sub_burst_sounding_power_boost;
+static int hf_wimaxmacphy_ul_sub_burst_sounding_allocation_mode;
+static int hf_wimaxmacphy_ul_sub_burst_sounding_start_freq_band;
+static int hf_wimaxmacphy_ul_sub_burst_sounding_num_freq_bands;
+static int hf_wimaxmacphy_ul_sub_burst_sounding_band_bit_map;
+static int hf_wimaxmacphy_ul_sub_burst_sounding_cyclic_time_shift;
+static int hf_wimaxmacphy_ul_sub_burst_sounding_decimation_offset;
+static int hf_wimaxmacphy_ul_sub_burst_sounding_reserved;
+static int hf_wimaxmacphy_ul_sub_burst_mimo_chase_matrix;
 
 /* Initialize the subtree pointers */
-static gint ett_wimaxmacphy                                          = -1;
-static gint ett_wimaxmacphy_primitive                                = -1;
-static gint ett_wimaxmacphy_prim_harq_ack                            = -1;
-static gint ett_wimaxmacphy_prim_fast_feedback                       = -1;
-static gint ett_wimaxmacphy_prim_fast_feedback_type_coding           = -1;
-static gint ett_wimaxmacphy_dl_zone_descriptor                       = -1;
-static gint ett_wimaxmacphy_dl_zone_stc                              = -1;
-static gint ett_wimaxmacphy_dl_zone_aas                              = -1;
-static gint ett_wimaxmacphy_dl_burst_descriptor                      = -1;
-static gint ett_wimaxmacphy_dl_burst_map                             = -1;
-static gint ett_wimaxmacphy_dl_burst_normal                          = -1;
-static gint ett_wimaxmacphy_dl_burst_papr                            = -1;
-static gint ett_wimaxmacphy_dl_sub_burst_descriptor                  = -1;
-static gint ett_wimaxmacphy_dl_sub_burst_harq_chase                  = -1;
-static gint ett_wimaxmacphy_dl_sub_burst_mimo_chase                  = -1;
-static gint ett_wimaxmacphy_dl_burst_opt_aas                         = -1;
-static gint ett_wimaxmacphy_dl_burst_opt_mimo                        = -1;
-static gint ett_wimaxmacphy_ul_zone_descriptor                       = -1;
-static gint ett_wimaxmacphy_ul_zone_aas                              = -1;
-static gint ett_wimaxmacphy_ul_burst_descriptor                      = -1;
-static gint ett_wimaxmacphy_ul_burst_harq_ack                        = -1;
-static gint ett_wimaxmacphy_ul_burst_fast_feedback                   = -1;
-static gint ett_wimaxmacphy_ul_burst_initial_ranging                 = -1;
-static gint ett_wimaxmacphy_ul_burst_periodic_ranging                = -1;
-static gint ett_wimaxmacphy_ul_burst_papr_safety_zone                = -1;
-static gint ett_wimaxmacphy_ul_burst_sounding_zone                   = -1;
-static gint ett_wimaxmacphy_ul_burst_noise_floor                     = -1;
-static gint ett_wimaxmacphy_ul_burst_normal_data                     = -1;
-static gint ett_wimaxmacphy_ul_burst_opt_aas                         = -1;
-static gint ett_wimaxmacphy_ul_burst_opt_mimo                        = -1;
-static gint ett_wimaxmacphy_ul_sub_burst_descriptor                  = -1;
-static gint ett_wimaxmacphy_ul_pilot_patterns                        = -1;
-static gint ett_wimaxmacphy_ul_feedback_type_coding                  = -1;
-static gint ett_wimaxmacphy_ul_sub_burst_mini_subchannel             = -1;
-static gint ett_wimaxmacphy_ul_sub_burst_fast_feedback               = -1;
-static gint ett_wimaxmacphy_ul_sub_burst_harq_ack                    = -1;
-static gint ett_wimaxmacphy_ul_sub_burst_sounding_signal             = -1;
-static gint ett_wimaxmacphy_ul_sub_burst_harq_chase                  = -1;
-static gint ett_wimaxmacphy_ul_sub_burst_mimo_chase                  = -1;
-static gint ett_wimaxmacphy_ul_sub_burst_sub_allocation_specific     = -1;
+static int ett_wimaxmacphy;
+static int ett_wimaxmacphy_primitive;
+static int ett_wimaxmacphy_prim_harq_ack;
+static int ett_wimaxmacphy_prim_fast_feedback;
+static int ett_wimaxmacphy_prim_fast_feedback_type_coding;
+static int ett_wimaxmacphy_dl_zone_descriptor;
+static int ett_wimaxmacphy_dl_zone_stc;
+static int ett_wimaxmacphy_dl_zone_aas;
+static int ett_wimaxmacphy_dl_burst_descriptor;
+static int ett_wimaxmacphy_dl_burst_map;
+static int ett_wimaxmacphy_dl_burst_normal;
+static int ett_wimaxmacphy_dl_burst_papr;
+static int ett_wimaxmacphy_dl_sub_burst_descriptor;
+static int ett_wimaxmacphy_dl_sub_burst_harq_chase;
+static int ett_wimaxmacphy_dl_sub_burst_mimo_chase;
+static int ett_wimaxmacphy_dl_burst_opt_aas;
+static int ett_wimaxmacphy_dl_burst_opt_mimo;
+static int ett_wimaxmacphy_ul_zone_descriptor;
+static int ett_wimaxmacphy_ul_zone_aas;
+static int ett_wimaxmacphy_ul_burst_descriptor;
+static int ett_wimaxmacphy_ul_burst_harq_ack;
+static int ett_wimaxmacphy_ul_burst_fast_feedback;
+static int ett_wimaxmacphy_ul_burst_initial_ranging;
+static int ett_wimaxmacphy_ul_burst_periodic_ranging;
+static int ett_wimaxmacphy_ul_burst_papr_safety_zone;
+static int ett_wimaxmacphy_ul_burst_sounding_zone;
+static int ett_wimaxmacphy_ul_burst_noise_floor;
+static int ett_wimaxmacphy_ul_burst_normal_data;
+static int ett_wimaxmacphy_ul_burst_opt_aas;
+static int ett_wimaxmacphy_ul_burst_opt_mimo;
+static int ett_wimaxmacphy_ul_sub_burst_descriptor;
+static int ett_wimaxmacphy_ul_pilot_patterns;
+static int ett_wimaxmacphy_ul_feedback_type_coding;
+static int ett_wimaxmacphy_ul_sub_burst_mini_subchannel;
+static int ett_wimaxmacphy_ul_sub_burst_fast_feedback;
+static int ett_wimaxmacphy_ul_sub_burst_harq_ack;
+static int ett_wimaxmacphy_ul_sub_burst_sounding_signal;
+static int ett_wimaxmacphy_ul_sub_burst_harq_chase;
+static int ett_wimaxmacphy_ul_sub_burst_mimo_chase;
+static int ett_wimaxmacphy_ul_sub_burst_sub_allocation_specific;
 
-static expert_field ei_wimaxmacphy_unknown = EI_INIT;
+static expert_field ei_wimaxmacphy_unknown;
 
 /* PHY SAP message header size */
 #define WIMAXMACPHY_HEADER_SIZE 2
@@ -989,13 +991,13 @@ static const value_string wimaxmacphy_ul_sub_burst_mimo_chase_matrix_vals[]=
     { 0,    NULL}
 };
 
-static gint dissect_wimaxmacphy_dl_sub_burst_descriptor(tvbuff_t *tvb, guint offset, packet_info *pinfo _U_, proto_tree *tree)
+static int dissect_wimaxmacphy_dl_sub_burst_descriptor(tvbuff_t *tvb, unsigned offset, packet_info *pinfo _U_, proto_tree *tree)
 {
-    guint       start_offset = offset;
-    guint8      sub_burst_type;
+    unsigned    start_offset = offset;
+    uint8_t     sub_burst_type;
     proto_tree *subtree;
 
-    sub_burst_type = tvb_get_guint8(tvb, offset);
+    sub_burst_type = tvb_get_uint8(tvb, offset);
     proto_tree_add_item(tree, hf_wimaxmacphy_dl_sub_burst_type,                      tvb, offset, 1, ENC_BIG_ENDIAN);
     offset += 1;
 
@@ -1080,18 +1082,18 @@ static gint dissect_wimaxmacphy_dl_sub_burst_descriptor(tvbuff_t *tvb, guint off
     return offset - start_offset;
 }
 
-static guint dissect_wimaxmacphy_dl_burst_descriptor(tvbuff_t *tvb, guint offset, packet_info *pinfo, proto_tree *tree)
+static unsigned dissect_wimaxmacphy_dl_burst_descriptor(tvbuff_t *tvb, unsigned offset, packet_info *pinfo, proto_tree *tree)
 {
-    guint       start_offset = offset;
-    guint8      burst_type, burst_type_extension, sub_burst_descriptor_count, sub_burst;
+    unsigned    start_offset = offset;
+    uint8_t     burst_type, burst_type_extension, sub_burst_descriptor_count, sub_burst;
     proto_item *item;
     proto_tree *subtree, *opt_tree;
 
-    burst_type = tvb_get_guint8(tvb, offset);
+    burst_type = tvb_get_uint8(tvb, offset);
     proto_tree_add_item(tree, hf_wimaxmacphy_dl_burst_type,                      tvb, offset, 1, ENC_BIG_ENDIAN);
     offset += 1;
 
-    burst_type_extension = tvb_get_guint8(tvb, offset);
+    burst_type_extension = tvb_get_uint8(tvb, offset);
     proto_tree_add_item(tree, hf_wimaxmacphy_burst_type_extension,               tvb, offset, 1, ENC_BIG_ENDIAN);
     offset += 1;
 
@@ -1206,7 +1208,7 @@ static guint dissect_wimaxmacphy_dl_burst_descriptor(tvbuff_t *tvb, guint offset
     }
 
     /* sub-burst portion */
-    sub_burst_descriptor_count = tvb_get_guint8(tvb, offset);
+    sub_burst_descriptor_count = tvb_get_uint8(tvb, offset);
     proto_tree_add_item(tree, hf_wimaxmacphy_number_of_sub_burst_descriptors, tvb, offset, 1, ENC_BIG_ENDIAN);
     offset += 1;
 
@@ -1217,7 +1219,7 @@ static guint dissect_wimaxmacphy_dl_burst_descriptor(tvbuff_t *tvb, guint offset
     for (sub_burst = 0; sub_burst < sub_burst_descriptor_count; ++sub_burst)
     {
         proto_tree *sub_burst_descriptor_tree;
-        guint       sub_burst_descriptor_length;
+        unsigned    sub_burst_descriptor_length;
 
         sub_burst_descriptor_tree = proto_tree_add_subtree_format(tree, tvb, offset, 1,
                  ett_wimaxmacphy_dl_sub_burst_descriptor, &item, "Sub-Burst Descriptor %u", sub_burst);
@@ -1232,14 +1234,14 @@ static guint dissect_wimaxmacphy_dl_burst_descriptor(tvbuff_t *tvb, guint offset
     return offset - start_offset;
 }
 
-static guint dissect_wimaxmacphy_dl_zone_descriptor(tvbuff_t *tvb, guint offset, packet_info *pinfo, proto_tree *tree)
+static unsigned dissect_wimaxmacphy_dl_zone_descriptor(tvbuff_t *tvb, unsigned offset, packet_info *pinfo, proto_tree *tree)
 {
-    guint       start_offset = offset;
-    guint8      zone_type, burst_descriptor_count, burst;
+    unsigned    start_offset = offset;
+    uint8_t     zone_type, burst_descriptor_count, burst;
     proto_item *item;
     proto_tree *subtree;
 
-    zone_type = tvb_get_guint8(tvb, offset);
+    zone_type = tvb_get_uint8(tvb, offset);
     proto_tree_add_item(tree, hf_wimaxmacphy_dl_zone_type,                          tvb, offset, 1, ENC_BIG_ENDIAN);
     offset += 1;
 
@@ -1312,7 +1314,7 @@ static guint dissect_wimaxmacphy_dl_zone_descriptor(tvbuff_t *tvb, guint offset,
     }
 
     /* burst portion */
-    burst_descriptor_count = tvb_get_guint8(tvb, offset);
+    burst_descriptor_count = tvb_get_uint8(tvb, offset);
     proto_tree_add_item(tree, hf_wimaxmacphy_number_of_burst_descriptors, tvb, offset, 1, ENC_BIG_ENDIAN);
     offset += 1;
 
@@ -1323,7 +1325,7 @@ static guint dissect_wimaxmacphy_dl_zone_descriptor(tvbuff_t *tvb, guint offset,
     for (burst = 0; burst < burst_descriptor_count; ++burst)
     {
         proto_tree *burst_descriptor_tree;
-        guint       burst_descriptor_length;
+        unsigned    burst_descriptor_length;
 
         /* note: we'll adjust the length later */
         burst_descriptor_tree = proto_tree_add_subtree_format(tree, tvb, offset, 1,
@@ -1340,11 +1342,11 @@ static guint dissect_wimaxmacphy_dl_zone_descriptor(tvbuff_t *tvb, guint offset,
     return offset - start_offset;
 }
 
-static guint dissect_wimaxmacphy_dl_subframe_descriptor(tvbuff_t *tvb, guint offset, packet_info *pinfo, proto_tree *tree)
+static unsigned dissect_wimaxmacphy_dl_subframe_descriptor(tvbuff_t *tvb, unsigned offset, packet_info *pinfo, proto_tree *tree)
 {
-    guint  start_offset = offset;
-    guint8 zone_descriptor_count;
-    guint8 zone;
+    unsigned  start_offset = offset;
+    uint8_t zone_descriptor_count;
+    uint8_t zone;
 
     proto_tree_add_item(tree, hf_wimaxmacphy_subframe_subframe_type,          tvb, offset, 1, ENC_BIG_ENDIAN);
     offset += 1;
@@ -1362,7 +1364,7 @@ static guint dissect_wimaxmacphy_dl_subframe_descriptor(tvbuff_t *tvb, guint off
     offset += 4;
 
     /* zone portion */
-    zone_descriptor_count = tvb_get_guint8(tvb, offset);
+    zone_descriptor_count = tvb_get_uint8(tvb, offset);
     proto_tree_add_item(tree, hf_wimaxmacphy_number_of_zone_descriptors,      tvb, offset, 1, ENC_BIG_ENDIAN);
     offset += 1;
 
@@ -1374,7 +1376,7 @@ static guint dissect_wimaxmacphy_dl_subframe_descriptor(tvbuff_t *tvb, guint off
     {
         proto_item *item;
         proto_tree *zone_descriptor_tree;
-        guint zone_descriptor_length;
+        unsigned zone_descriptor_length;
 
         zone_descriptor_tree = proto_tree_add_subtree_format(tree, tvb, offset, 1, ett_wimaxmacphy_dl_zone_descriptor, &item, "Zone Descriptor %u", zone);
 
@@ -1389,10 +1391,10 @@ static guint dissect_wimaxmacphy_dl_subframe_descriptor(tvbuff_t *tvb, guint off
     return offset - start_offset;
 }
 
-static gint dissect_wimaxmacphy_ul_sub_burst_sub_allocation_specific_part(tvbuff_t *tvb, guint offset,
-    packet_info *pinfo _U_, proto_tree *tree, guint8 sub_burst_type)
+static int dissect_wimaxmacphy_ul_sub_burst_sub_allocation_specific_part(tvbuff_t *tvb, unsigned offset,
+    packet_info *pinfo _U_, proto_tree *tree, uint8_t sub_burst_type)
 {
-    guint       start_offset = offset;
+    unsigned    start_offset = offset;
     proto_item *item, *opt_item;
     proto_tree *subtree, *opt_tree;
 
@@ -1466,14 +1468,14 @@ static gint dissect_wimaxmacphy_ul_sub_burst_sub_allocation_specific_part(tvbuff
     return offset - start_offset;
 }
 
-static gint dissect_wimaxmacphy_ul_sub_burst_descriptor(tvbuff_t *tvb, guint offset, packet_info *pinfo _U_, proto_tree *tree)
+static int dissect_wimaxmacphy_ul_sub_burst_descriptor(tvbuff_t *tvb, unsigned offset, packet_info *pinfo _U_, proto_tree *tree)
 {
-    guint8      sub_burst_type;
+    uint8_t     sub_burst_type;
     proto_item *feedback_item;
     proto_tree *subtree, *feedback_tree;
-    guint       start_offset = offset;
+    unsigned    start_offset = offset;
 
-    sub_burst_type = tvb_get_guint8(tvb, offset);
+    sub_burst_type = tvb_get_uint8(tvb, offset);
     proto_tree_add_item(tree, hf_wimaxmacphy_ul_sub_burst_type,    tvb, offset, 1, ENC_BIG_ENDIAN);
     offset += 1;
 
@@ -1585,19 +1587,19 @@ static gint dissect_wimaxmacphy_ul_sub_burst_descriptor(tvbuff_t *tvb, guint off
     return offset - start_offset;
 }
 
-static guint dissect_wimaxmacphy_ul_burst_descriptor(tvbuff_t *tvb, guint offset, packet_info *pinfo, proto_tree *tree)
+static unsigned dissect_wimaxmacphy_ul_burst_descriptor(tvbuff_t *tvb, unsigned offset, packet_info *pinfo, proto_tree *tree)
 {
-    guint8      burst_type, burst_type_extension;
-    guint8      sub_burst_descriptor_count, sub_burst;
+    uint8_t     burst_type, burst_type_extension;
+    uint8_t     sub_burst_descriptor_count, sub_burst;
     proto_item *item, *pilot_patterns_item;
     proto_tree *subtree, *opt_tree, *pilot_patterns_tree;
-    guint       start_offset = offset;
+    unsigned    start_offset = offset;
 
-    burst_type = tvb_get_guint8(tvb, offset);
+    burst_type = tvb_get_uint8(tvb, offset);
     proto_tree_add_item(tree, hf_wimaxmacphy_ul_burst_type,                      tvb, offset, 1, ENC_BIG_ENDIAN);
     offset += 1;
 
-    burst_type_extension = tvb_get_guint8(tvb, offset);
+    burst_type_extension = tvb_get_uint8(tvb, offset);
     proto_tree_add_item(tree, hf_wimaxmacphy_burst_type_extension,               tvb, offset, 1, ENC_BIG_ENDIAN);
     offset += 1;
 
@@ -1833,7 +1835,7 @@ static guint dissect_wimaxmacphy_ul_burst_descriptor(tvbuff_t *tvb, guint offset
     }
 
     /* sub-burst portion */
-    sub_burst_descriptor_count = tvb_get_guint8(tvb, offset);
+    sub_burst_descriptor_count = tvb_get_uint8(tvb, offset);
     proto_tree_add_item(tree, hf_wimaxmacphy_number_of_sub_burst_descriptors, tvb, offset, 1, ENC_BIG_ENDIAN);
     offset += 1;
 
@@ -1844,7 +1846,7 @@ static guint dissect_wimaxmacphy_ul_burst_descriptor(tvbuff_t *tvb, guint offset
     for (sub_burst = 0; sub_burst < sub_burst_descriptor_count; ++sub_burst)
     {
         proto_tree *sub_burst_descriptor_tree;
-        guint       sub_burst_descriptor_length;
+        unsigned    sub_burst_descriptor_length;
 
         sub_burst_descriptor_tree = proto_tree_add_subtree_format(tree, tvb, offset, 1, ett_wimaxmacphy_ul_sub_burst_descriptor, &item, "Sub-Burst Descriptor %u", sub_burst);
 
@@ -1859,13 +1861,13 @@ static guint dissect_wimaxmacphy_ul_burst_descriptor(tvbuff_t *tvb, guint offset
     return offset - start_offset;
 }
 
-static guint dissect_wimaxmacphy_ul_zone_descriptor(tvbuff_t *tvb, guint offset, packet_info *pinfo, proto_tree *tree)
+static unsigned dissect_wimaxmacphy_ul_zone_descriptor(tvbuff_t *tvb, unsigned offset, packet_info *pinfo, proto_tree *tree)
 {
-    guint       start_offset = offset;
-    guint8      zone_type, burst_descriptor_count, burst;
+    unsigned    start_offset = offset;
+    uint8_t     zone_type, burst_descriptor_count, burst;
     proto_item *item;
 
-    zone_type = tvb_get_guint8(tvb, offset);
+    zone_type = tvb_get_uint8(tvb, offset);
     proto_tree_add_item(tree, hf_wimaxmacphy_ul_zone_type,                             tvb, offset, 1, ENC_BIG_ENDIAN);
     offset += 1;
 
@@ -1921,7 +1923,7 @@ static guint dissect_wimaxmacphy_ul_zone_descriptor(tvbuff_t *tvb, guint offset,
     }
 
     /* burst portion */
-    burst_descriptor_count = tvb_get_guint8(tvb, offset);
+    burst_descriptor_count = tvb_get_uint8(tvb, offset);
     proto_tree_add_item(tree, hf_wimaxmacphy_number_of_burst_descriptors, tvb, offset, 1, ENC_BIG_ENDIAN);
     offset += 1;
 
@@ -1932,7 +1934,7 @@ static guint dissect_wimaxmacphy_ul_zone_descriptor(tvbuff_t *tvb, guint offset,
     for (burst = 0; burst < burst_descriptor_count; ++burst)
     {
         proto_tree *burst_descriptor_tree;
-        guint burst_descriptor_length;
+        unsigned burst_descriptor_length;
 
         burst_descriptor_tree = proto_tree_add_subtree_format(tree, tvb, offset, 1, ett_wimaxmacphy_ul_burst_descriptor, &item, "Burst Descriptor %u", burst);
 
@@ -1946,11 +1948,11 @@ static guint dissect_wimaxmacphy_ul_zone_descriptor(tvbuff_t *tvb, guint offset,
     return offset - start_offset;
 }
 
-static guint dissect_wimaxmacphy_ul_subframe_descriptor(tvbuff_t *tvb, guint offset, packet_info *pinfo, proto_tree *tree)
+static unsigned dissect_wimaxmacphy_ul_subframe_descriptor(tvbuff_t *tvb, unsigned offset, packet_info *pinfo, proto_tree *tree)
 {
-    guint  start_offset = offset;
-    guint8 zone_descriptor_count;
-    guint8 zone;
+    unsigned  start_offset = offset;
+    uint8_t zone_descriptor_count;
+    uint8_t zone;
 
     proto_tree_add_item(tree, hf_wimaxmacphy_subframe_subframe_type,          tvb, offset, 1, ENC_BIG_ENDIAN);
     offset += 1;
@@ -1967,7 +1969,7 @@ static guint dissect_wimaxmacphy_ul_subframe_descriptor(tvbuff_t *tvb, guint off
     proto_tree_add_item(tree, hf_wimaxmacphy_subframe_allocation_start_time,  tvb, offset, 4, ENC_BIG_ENDIAN);
     offset += 4;
 
-    zone_descriptor_count = tvb_get_guint8(tvb, offset);
+    zone_descriptor_count = tvb_get_uint8(tvb, offset);
     proto_tree_add_item(tree, hf_wimaxmacphy_number_of_zone_descriptors,      tvb, offset, 1, ENC_BIG_ENDIAN);
     offset += 1;
 
@@ -1983,7 +1985,7 @@ static guint dissect_wimaxmacphy_ul_subframe_descriptor(tvbuff_t *tvb, guint off
     {
         proto_item *item;
         proto_tree *zone_descriptor_tree;
-        guint zone_descriptor_length;
+        unsigned zone_descriptor_length;
 
         zone_descriptor_tree = proto_tree_add_subtree_format(tree, tvb, offset, 1, ett_wimaxmacphy_ul_zone_descriptor, &item, "Zone Descriptor %u", zone);
 
@@ -1997,10 +1999,10 @@ static guint dissect_wimaxmacphy_ul_subframe_descriptor(tvbuff_t *tvb, guint off
     return offset - start_offset;
 }
 
-static guint dissect_wimaxmacphy_phy_txstart_request(tvbuff_t *tvb, guint offset, packet_info *pinfo, proto_tree *tree)
+static unsigned dissect_wimaxmacphy_phy_txstart_request(tvbuff_t *tvb, unsigned offset, packet_info *pinfo, proto_tree *tree)
 {
-    guint16 txvector_length;
-    guint   subframe_descriptor_length;
+    uint16_t txvector_length;
+    unsigned   subframe_descriptor_length;
 
     txvector_length = tvb_get_ntohs(tvb, offset);
     proto_tree_add_item(tree, hf_wimaxmacphy_prim_length_of_txvector, tvb, offset, 2, ENC_BIG_ENDIAN);
@@ -2017,7 +2019,7 @@ static guint dissect_wimaxmacphy_phy_txstart_request(tvbuff_t *tvb, guint offset
     return txvector_length + 2;
 }
 
-static guint dissect_wimaxmacphy_phy_txstart_confirmation(tvbuff_t *tvb, guint offset, packet_info *pinfo _U_, proto_tree *tree)
+static unsigned dissect_wimaxmacphy_phy_txstart_confirmation(tvbuff_t *tvb, unsigned offset, packet_info *pinfo _U_, proto_tree *tree)
 {
     proto_tree_add_item(tree, hf_wimaxmacphy_prim_status,            tvb, offset, 1, ENC_BIG_ENDIAN);
     offset += 1;
@@ -2029,7 +2031,7 @@ static guint dissect_wimaxmacphy_phy_txstart_confirmation(tvbuff_t *tvb, guint o
     return 2;
 }
 
-static guint dissect_wimaxmacphy_phy_txstart_indication(tvbuff_t *tvb, guint offset, packet_info *pinfo _U_, proto_tree *tree)
+static unsigned dissect_wimaxmacphy_phy_txstart_indication(tvbuff_t *tvb, unsigned offset, packet_info *pinfo _U_, proto_tree *tree)
 {
     proto_tree_add_item(tree, hf_wimaxmacphy_prim_txstart_indication_status, tvb, offset, 1, ENC_BIG_ENDIAN);
     offset += 1;
@@ -2047,9 +2049,9 @@ static guint dissect_wimaxmacphy_phy_txstart_indication(tvbuff_t *tvb, guint off
     return 6;
 }
 
-static guint dissect_wimaxmacphy_phy_txsdu_request(tvbuff_t *tvb, guint offset, packet_info *pinfo _U_, proto_tree *tree)
+static unsigned dissect_wimaxmacphy_phy_txsdu_request(tvbuff_t *tvb, unsigned offset, packet_info *pinfo _U_, proto_tree *tree)
 {
-    guint length;
+    unsigned length;
 
     proto_tree_add_item(tree, hf_wimaxmacphy_prim_dl_zone_number,              tvb, offset, 2, ENC_BIG_ENDIAN);
     proto_tree_add_item(tree, hf_wimaxmacphy_prim_sub_burst_burst_split_point, tvb, offset, 2, ENC_BIG_ENDIAN);
@@ -2062,7 +2064,7 @@ static guint dissect_wimaxmacphy_phy_txsdu_request(tvbuff_t *tvb, guint offset, 
     return length + 2;
 }
 
-static guint dissect_wimaxmacphy_phy_txsdu_confirmation(tvbuff_t *tvb, guint offset, packet_info *pinfo _U_, proto_tree *tree)
+static unsigned dissect_wimaxmacphy_phy_txsdu_confirmation(tvbuff_t *tvb, unsigned offset, packet_info *pinfo _U_, proto_tree *tree)
 {
     proto_tree_add_item(tree, hf_wimaxmacphy_prim_dl_zone_number,              tvb, offset, 2, ENC_BIG_ENDIAN);
     proto_tree_add_item(tree, hf_wimaxmacphy_prim_sub_burst_burst_split_point, tvb, offset, 2, ENC_BIG_ENDIAN);
@@ -2082,7 +2084,7 @@ static guint dissect_wimaxmacphy_phy_txsdu_confirmation(tvbuff_t *tvb, guint off
     return 6;
 }
 
-static guint dissect_wimaxmacphy_phy_txend_indication(tvbuff_t *tvb, guint offset, packet_info *pinfo _U_, proto_tree *tree)
+static unsigned dissect_wimaxmacphy_phy_txend_indication(tvbuff_t *tvb, unsigned offset, packet_info *pinfo _U_, proto_tree *tree)
 {
     proto_tree_add_item(tree, hf_wimaxmacphy_prim_status,                                tvb, offset, 1, ENC_BIG_ENDIAN);
     offset += 1;
@@ -2104,10 +2106,10 @@ static guint dissect_wimaxmacphy_phy_txend_indication(tvbuff_t *tvb, guint offse
     return 6;
 }
 
-static guint dissect_wimaxmacphy_phy_rxstart_request(tvbuff_t *tvb, guint offset, packet_info *pinfo, proto_tree *tree)
+static unsigned dissect_wimaxmacphy_phy_rxstart_request(tvbuff_t *tvb, unsigned offset, packet_info *pinfo, proto_tree *tree)
 {
-    guint16 rxvector_length;
-    guint   subframe_descriptor_length;
+    uint16_t rxvector_length;
+    unsigned   subframe_descriptor_length;
 
     rxvector_length = tvb_get_ntohs(tvb, offset);
     proto_tree_add_item(tree, hf_wimaxmacphy_prim_length_of_rxvector, tvb, offset, 2, ENC_BIG_ENDIAN);
@@ -2125,7 +2127,7 @@ static guint dissect_wimaxmacphy_phy_rxstart_request(tvbuff_t *tvb, guint offset
     return rxvector_length + 2;
 }
 
-static guint dissect_wimaxmacphy_phy_rxstart_confirmation(tvbuff_t *tvb, guint offset, packet_info *pinfo _U_, proto_tree *tree)
+static unsigned dissect_wimaxmacphy_phy_rxstart_confirmation(tvbuff_t *tvb, unsigned offset, packet_info *pinfo _U_, proto_tree *tree)
 {
     proto_tree_add_item(tree, hf_wimaxmacphy_prim_status,       tvb, offset, 1, ENC_BIG_ENDIAN);
     offset += 1;
@@ -2137,7 +2139,7 @@ static guint dissect_wimaxmacphy_phy_rxstart_confirmation(tvbuff_t *tvb, guint o
     return 2;
 }
 
-static guint dissect_wimaxmacphy_phy_rxstart_indication(tvbuff_t *tvb, guint offset, packet_info *pinfo _U_, proto_tree *tree)
+static unsigned dissect_wimaxmacphy_phy_rxstart_indication(tvbuff_t *tvb, unsigned offset, packet_info *pinfo _U_, proto_tree *tree)
 {
     proto_tree_add_item(tree, hf_wimaxmacphy_prim_status,                   tvb, offset, 1, ENC_BIG_ENDIAN);
     offset += 1;
@@ -2149,12 +2151,12 @@ static guint dissect_wimaxmacphy_phy_rxstart_indication(tvbuff_t *tvb, guint off
     return 2;
 }
 
-static guint dissect_wimaxmacphy_phy_rxsdu_indication(tvbuff_t *tvb, guint offset, packet_info *pinfo _U_, proto_tree *tree)
+static unsigned dissect_wimaxmacphy_phy_rxsdu_indication(tvbuff_t *tvb, unsigned offset, packet_info *pinfo _U_, proto_tree *tree)
 {
-    guint8      indication_type;
+    uint8_t     indication_type;
     proto_item *feedback_item;
     proto_tree *subtree, *feedback_tree;
-    guint       length, start_offset = offset;
+    unsigned    length, start_offset = offset;
 
     proto_tree_add_item(tree, hf_wimaxmacphy_prim_issid,                     tvb, offset, 2, ENC_BIG_ENDIAN);
     offset += 2;
@@ -2179,7 +2181,7 @@ static guint dissect_wimaxmacphy_phy_rxsdu_indication(tvbuff_t *tvb, guint offse
     proto_tree_add_item(tree, hf_wimaxmacphy_prim_acid_for_harq_data_bursts, tvb, offset, 1, ENC_BIG_ENDIAN);
     offset += 1;
 
-    indication_type = (tvb_get_guint8(tvb, offset) >> 4) & 0x0F;
+    indication_type = (tvb_get_uint8(tvb, offset) >> 4) & 0x0F;
     proto_tree_add_item(tree, hf_wimaxmacphy_prim_indication_type,           tvb, offset, 1, ENC_BIG_ENDIAN);
     proto_tree_add_item(tree, hf_wimaxmacphy_prim_zone_permutation_type,     tvb, offset, 1, ENC_BIG_ENDIAN);
     proto_tree_add_item(tree, hf_wimaxmacphy_prim_update_aas_handle_in_mac,  tvb, offset, 1, ENC_BIG_ENDIAN);
@@ -2258,9 +2260,9 @@ static guint dissect_wimaxmacphy_phy_rxsdu_indication(tvbuff_t *tvb, guint offse
     return offset - start_offset;
 }
 
-static guint dissect_wimaxmacphy_phy_rxend_indication(tvbuff_t *tvb, guint offset, packet_info *pinfo _U_, proto_tree *tree)
+static unsigned dissect_wimaxmacphy_phy_rxend_indication(tvbuff_t *tvb, unsigned offset, packet_info *pinfo _U_, proto_tree *tree)
 {
-    guint start_offset = offset;
+    unsigned start_offset = offset;
 
     proto_tree_add_item(tree, hf_wimaxmacphy_prim_status,                   tvb, offset, 1, ENC_BIG_ENDIAN);
     offset += 1;
@@ -2286,9 +2288,9 @@ static guint dissect_wimaxmacphy_phy_rxend_indication(tvbuff_t *tvb, guint offse
     return offset - start_offset;
 }
 
-static guint dissect_wimaxmacphy_phy_rxcdma_indication(tvbuff_t *tvb, guint offset, packet_info *pinfo _U_, proto_tree *tree)
+static unsigned dissect_wimaxmacphy_phy_rxcdma_indication(tvbuff_t *tvb, unsigned offset, packet_info *pinfo _U_, proto_tree *tree)
 {
-    guint start_offset = offset;
+    unsigned start_offset = offset;
 
     proto_tree_add_item(tree, hf_wimaxmacphy_prim_zonexid,                   tvb, offset, 2, ENC_BIG_ENDIAN);
     offset += 2;
@@ -2340,8 +2342,8 @@ dissect_wimaxmacphy(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, void *d
     proto_tree *wimaxmacphy_tree, *primitive_tree;
     proto_item *item;
 
-    guint  offset = 0;
-    guint8 message_type;
+    unsigned  offset = 0;
+    uint8_t message_type;
 
     /* Ensure minimum size */
     if (tvb_reported_length(tvb) < WIMAXMACPHY_HEADER_SIZE)
@@ -2359,7 +2361,7 @@ dissect_wimaxmacphy(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, void *d
                         tvb, offset, 1, ENC_BIG_ENDIAN);
     offset += 1;
 
-    message_type = tvb_get_guint8(tvb, offset);
+    message_type = tvb_get_uint8(tvb, offset);
     item = proto_tree_add_item(wimaxmacphy_tree, hf_wimaxmacphy_hdr_message_type,
                                tvb, offset, 1, ENC_BIG_ENDIAN);
 
@@ -2660,7 +2662,7 @@ proto_register_wimaxmacphy(void)
                 {
                     "Initial Frame Number (from PHY)",
                     "wimaxmacphy.prim_initial_frame_number",
-                    FT_UINT8,
+                    FT_UINT24,
                     BASE_DEC,
                     NULL,
                     0x0,
@@ -2868,10 +2870,10 @@ proto_register_wimaxmacphy(void)
                 {
                     "Current Frame Number (lsb)",
                     "wimaxmacphy.prim_current_frame_number",
-                    FT_UINT8,
+                    FT_UINT16,
                     BASE_DEC,
                     NULL,
-                    0xf0,
+                    0x00f0,
                     NULL,
                     HFILL
                 }
@@ -2881,10 +2883,10 @@ proto_register_wimaxmacphy(void)
                 {
                     "ACID for HARQ data bursts",
                     "wimaxmacphy.prim_acid_for_harq_data_bursts",
-                    FT_UINT8,
+                    FT_UINT16,
                     BASE_DEC,
                     NULL,
-                    0x0f,
+                    0x000f,
                     NULL,
                     HFILL
                 }
@@ -3401,7 +3403,7 @@ proto_register_wimaxmacphy(void)
                 {
                     "Number of Zone Descriptors",
                     "wimaxmacphy.number_of_zone_descriptors",
-                    FT_UINT8,
+                    FT_UINT24,
                     BASE_DEC,
                     NULL,
                     0x0,
@@ -5186,10 +5188,10 @@ proto_register_wimaxmacphy(void)
                 {
                     "ACID",
                     "wimaxmacphy.sub_burst_harq_ack_acid",
-                    FT_UINT8,
+                    FT_UINT32,
                     BASE_DEC,
                     NULL,
-                    0xf0,
+                    0x000000f0,
                     NULL,
                     HFILL
                 }
@@ -5202,7 +5204,7 @@ proto_register_wimaxmacphy(void)
                     FT_UINT32,
                     BASE_HEX,
                     NULL,
-                    0x0fff,
+                    0x00000fff,
                     NULL,
                     HFILL
                 }
@@ -5353,7 +5355,7 @@ proto_register_wimaxmacphy(void)
         };
 
         /* Protocol subtree array */
-    static gint *ett[] = {
+    static int *ett[] = {
         &ett_wimaxmacphy,
         &ett_wimaxmacphy_primitive,
         &ett_wimaxmacphy_prim_harq_ack,
@@ -5403,10 +5405,7 @@ proto_register_wimaxmacphy(void)
     expert_module_t* expert_wimaxmacphy;
 
     /* Register the protocol name and description */
-    proto_wimaxmacphy = proto_register_protocol(
-        "WiMAX MAC-PHY over Ethernet",
-        "WiMAX MAC-PHY",
-        "wimaxmacphy");
+    proto_wimaxmacphy = proto_register_protocol("WiMAX MAC-PHY over Ethernet", "WiMAX MAC-PHY", "wimaxmacphy");
     wimaxmacphy_handle = register_dissector("wimaxmacphy", dissect_wimaxmacphy, proto_wimaxmacphy);
 
     /* Required function calls to register the header fields and subtrees

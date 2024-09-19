@@ -31,6 +31,8 @@ void proto_register_mc_nmf(void);
 static dissector_handle_t ms_nns_handle;
 static dissector_handle_t tls_handle;
 
+static dissector_handle_t mc_nmf_handle;
+
 /* Initialize the protocol and registered fields */
 
 #define MC_NMF_REC_VERSION      0
@@ -86,70 +88,80 @@ static const value_string mc_nmf_encoding_vals[] = {
 };
 
 struct mc_nmf_session_state {
-    gboolean  upgrade_req;
-    gboolean  negotiate;
-    gboolean  tls;
-    guint32   upgrade_rsp;
+    bool      upgrade_req;
+    bool      negotiate;
+    bool      tls;
+    uint32_t  upgrade_rsp;
 };
 
-static int proto_mc_nmf = -1;
-static int hf_mc_nmf_record_type = -1;
-static int hf_mc_nmf_major_version = -1;
-static int hf_mc_nmf_minor_version = -1;
-static int hf_mc_nmf_mode = -1;
-static int hf_mc_nmf_known_encoding = -1;
-static int hf_mc_nmf_via_length = -1;
-static int hf_mc_nmf_via = -1;
-static int hf_mc_nmf_encoding_length = -1;
-static int hf_mc_nmf_encoding_type = -1;
-static int hf_mc_nmf_fault_length = -1;
-static int hf_mc_nmf_fault = -1;
-static int hf_mc_nmf_upgrade_length = -1;
-static int hf_mc_nmf_upgrade = -1;
-static int hf_mc_nmf_chunk_length = -1;
-static int hf_mc_nmf_chunk = -1;
-static int hf_mc_nmf_terminator = -1;
-static int hf_mc_nmf_payload_length = -1;
-static int hf_mc_nmf_payload = -1;
-static int hf_mc_nmf_upgrade_proto_data = -1;
+static int proto_mc_nmf;
+static int hf_mc_nmf_record_type;
+static int hf_mc_nmf_major_version;
+static int hf_mc_nmf_minor_version;
+static int hf_mc_nmf_mode;
+static int hf_mc_nmf_known_encoding;
+static int hf_mc_nmf_via_length;
+static int hf_mc_nmf_via;
+static int hf_mc_nmf_encoding_length;
+static int hf_mc_nmf_encoding_type;
+static int hf_mc_nmf_fault_length;
+static int hf_mc_nmf_fault;
+static int hf_mc_nmf_upgrade_length;
+static int hf_mc_nmf_upgrade;
+static int hf_mc_nmf_chunk_length;
+static int hf_mc_nmf_chunk;
+static int hf_mc_nmf_terminator;
+static int hf_mc_nmf_payload_length;
+static int hf_mc_nmf_payload;
+static int hf_mc_nmf_upgrade_proto_data;
 
-static expert_field ei_mc_nmf_size_too_big = EI_INIT;
+static expert_field ei_mc_nmf_size_too_big;
 
-#define MC_NMF_TCP_PORT 0
+// [MC-NMF] does not have a defined port https://learn.microsoft.com/en-us/openspecs/windows_protocols/mc-nmf/51b5eb53-f488-4b74-b21d-8a498f016b61
+// but 9389 is ADWS port https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-adcap/cfff3d7f-e7cd-4529-86a0-4de89efe3855
+// which relies on [MC-NMF], so by doing this, all ADWS traffic on port 9389 is properly dissected by default
+#define MC_NMF_TCP_PORT 9389
 
 /* Initialize the subtree pointers */
-static gint ett_mc_nmf = -1;
-static gint ett_mc_nmf_rec = -1;
+static int ett_mc_nmf;
+static int ett_mc_nmf_rec;
 
 #define MC_NMF_MIN_LENGTH 1
 
-static gboolean get_size_length(tvbuff_t *tvb, int *offset, guint *len_length, packet_info *pinfo, guint32 *out_size) {
-    guint8    lbyte;
-    gint64    size = 0;
-    guint     shiftcount = 0;
+static bool get_size_length(tvbuff_t *tvb, int *offset, unsigned *len_length, packet_info *pinfo, uint32_t *out_size) {
+    uint8_t   lbyte;
+    uint64_t  size = 0;
+    unsigned  shiftcount = 0;
 
-    lbyte = tvb_get_guint8(tvb, *offset);
+    lbyte = tvb_get_uint8(tvb, *offset);
     *offset += 1;
     *len_length += 1;
     size = ( lbyte & 0x7F);
     while ( lbyte & 0x80 ) {
-        lbyte = tvb_get_guint8(tvb, *offset);
+        lbyte = tvb_get_uint8(tvb, *offset);
         *offset += 1;
+        /* Guard against the pathological case of a sequence of 0x80
+         * bytes (which add nothing to size).
+         */
+        if (*len_length >= 5) {
+            expert_add_info(pinfo, NULL, &ei_mc_nmf_size_too_big);
+            return false;
+        }
         shiftcount = 7 * *len_length;
-        size = ((lbyte & 0x7F) << shiftcount) | (size);
+        size = ((lbyte & UINT64_C(0x7F)) << shiftcount) | (size);
         *len_length += 1;
         /*
          * Check if size if is too big to prevent against overflow.
          * According to spec an implementation SHOULD support record sizes as
-         * large as 0xffffffff octets.
+         * large as 0xffffffff octets (encoded size requires five octets).
          */
         if (size > 0xffffffff) {
             expert_add_info(pinfo, NULL, &ei_mc_nmf_size_too_big);
-            return FALSE;
+            return false;
         }
     }
-    *out_size = (guint32)size;
-    return TRUE;
+    *out_size = (uint32_t)size;
+    return true;
 }
 
 static int
@@ -157,12 +169,12 @@ dissect_mc_nmf(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, void *data _
 {
     proto_item     *ti, *rti, *dti;
     proto_tree     *mc_nmf_tree, *rec_tree, *data_tree;
-    guint          offset = 0;
-    guint32        record_type;
-    guint8         *upgrade_protocol;
-    guint          len_length;
-    gint32         size;
-    guint8         search_terminator;
+    unsigned       offset = 0;
+    uint32_t       record_type;
+    uint8_t        *upgrade_protocol;
+    unsigned       len_length;
+    int32_t        size;
+    uint8_t        search_terminator;
     conversation_t *conversation;
     tvbuff_t       *nt_tvb;
     struct mc_nmf_session_state *session_state;
@@ -263,7 +275,7 @@ dissect_mc_nmf(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, void *data _
                     proto_tree_add_uint(rec_tree, hf_mc_nmf_chunk_length, tvb, offset - len_length, len_length, size);
                     proto_tree_add_item(rec_tree, hf_mc_nmf_chunk, tvb, offset, size, ENC_NA);
                     offset += size;
-                    search_terminator = tvb_get_guint8(tvb, offset);
+                    search_terminator = tvb_get_uint8(tvb, offset);
                 } while ( search_terminator != 0x00 );
                 proto_tree_add_item(rec_tree, hf_mc_nmf_terminator, tvb,
                             offset, 1, ENC_NA);
@@ -300,15 +312,15 @@ dissect_mc_nmf(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, void *data _
                 upgrade_protocol = tvb_get_string_enc(pinfo->pool, tvb, offset, size, ENC_UTF_8|ENC_NA);
                 offset += size;
                 if (strcmp((char*)upgrade_protocol, "application/negotiate") == 0) {
-                    session_state->negotiate = TRUE;
+                    session_state->negotiate = true;
                 }
                 else if (strcmp((char*)upgrade_protocol, "application/ssl-tls") == 0) {
-                    session_state->tls = TRUE;
+                    session_state->tls = true;
                 }
-                session_state->upgrade_req = TRUE;
+                session_state->upgrade_req = true;
                 break;
             case MC_NMF_REC_UPGRADE_RSP:
-                if ( session_state->upgrade_req == TRUE) {
+                if ( session_state->upgrade_req == true) {
                     session_state->upgrade_rsp = pinfo->num;
                 }
                 break;
@@ -421,7 +433,7 @@ void proto_register_mc_nmf(void)
         }
     };
 
-    static gint *ett[] = {
+    static int *ett[] = {
         &ett_mc_nmf,
         &ett_mc_nmf_rec
     };
@@ -438,13 +450,12 @@ void proto_register_mc_nmf(void)
     proto_register_subtree_array(ett, array_length(ett));
     expert_mc_nmf = expert_register_protocol(proto_mc_nmf);
     expert_register_field_array(expert_mc_nmf, ei, array_length(ei));
+
+    mc_nmf_handle = register_dissector("mc-nmf", dissect_mc_nmf, proto_mc_nmf);
 }
 
 void proto_reg_handoff_mc_nmf(void)
 {
-    dissector_handle_t mc_nmf_handle;
-
-    mc_nmf_handle = create_dissector_handle(dissect_mc_nmf, proto_mc_nmf);
     dissector_add_uint_with_preference("tcp.port", MC_NMF_TCP_PORT, mc_nmf_handle);
     ms_nns_handle = find_dissector_add_dependency("ms-nns", proto_mc_nmf);
     tls_handle = find_dissector("tls");

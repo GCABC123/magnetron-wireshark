@@ -13,15 +13,15 @@
 #include <wsutil/ws_assert.h>
 
 typedef struct {
-	guint32		magic;
+	uint32_t		magic;
 	df_func_def_t *funcdef;
 	GSList *params;
 } function_t;
 
 #define FUNCTION_MAGIC	0xe10f0f99
 
-static gpointer
-function_new(gpointer funcdef)
+static void *
+function_new(void *funcdef)
 {
 	function_t		*stfuncrec;
 
@@ -34,8 +34,8 @@ function_new(gpointer funcdef)
 	return stfuncrec;
 }
 
-static gpointer
-function_dup(gconstpointer data)
+static void *
+function_dup(const void *data)
 {
 	const function_t *org = data;
 	function_t		 *stfuncrec;
@@ -51,7 +51,7 @@ function_dup(gconstpointer data)
 }
 
 static char *
-function_tostr(const void *data, gboolean pretty)
+function_tostr(const void *data, bool pretty)
 {
 	const function_t *stfuncrec = data;
 	const df_func_def_t *def = stfuncrec->funcdef;
@@ -80,7 +80,7 @@ function_tostr(const void *data, gboolean pretty)
 }
 
 static void
-slist_stnode_free(gpointer data)
+slist_stnode_free(void *data)
 {
 	stnode_free(data);
 }
@@ -92,7 +92,7 @@ st_funcparams_free(GSList *params)
 }
 
 static void
-function_free(gpointer value)
+function_free(void *value)
 {
 	function_t	*stfuncrec = value;
 	ws_assert_magic(stfuncrec, FUNCTION_MAGIC);
@@ -152,7 +152,6 @@ sttype_register_function(void)
 {
 	static sttype_t function_type = {
 		STTYPE_FUNCTION,
-		"FUNCTION",
 		function_new,
 		function_free,
 		function_dup,

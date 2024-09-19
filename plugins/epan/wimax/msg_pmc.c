@@ -19,33 +19,37 @@
 
 #include <epan/packet.h>
 #include "wimax_mac.h"
-
-extern	gboolean include_cor2_changes;
+#include "wimax_prefs.h"
 
 void proto_register_mac_mgmt_msg_pmc_req(void);
 void proto_register_mac_mgmt_msg_pmc_rsp(void);
 void proto_reg_handoff_mac_mgmt_msg_pmc(void);
+static int dissect_mac_mgmt_msg_pmc_req_decoder(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, void* data);
+static int dissect_mac_mgmt_msg_pmc_rsp_decoder(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, void* data);
 
-static gint proto_mac_mgmt_msg_pmc_req_decoder = -1;
-static gint proto_mac_mgmt_msg_pmc_rsp_decoder = -1;
+static dissector_handle_t pmc_req_handle;
+static dissector_handle_t pmc_rsp_handle;
 
-static gint ett_mac_mgmt_msg_pmc_decoder = -1;
+static int proto_mac_mgmt_msg_pmc_req_decoder;
+static int proto_mac_mgmt_msg_pmc_rsp_decoder;
+
+static int ett_mac_mgmt_msg_pmc_decoder;
 
 /* Setup protocol subtree array */
-static gint *ett[] =
+static int *ett[] =
 {
 	&ett_mac_mgmt_msg_pmc_decoder,
 };
 
 /* PMC fields */
-static gint hf_pmc_req_pwr_control_mode_change = -1;
-static gint hf_pmc_req_pwr_control_mode_change_cor2 = -1;
-static gint hf_pmc_req_tx_power_level = -1;
-static gint hf_pmc_req_confirmation = -1;
-static gint hf_pmc_req_reserved = -1;
-static gint hf_pmc_rsp_start_frame = -1;
-static gint hf_pmc_rsp_power_adjust = -1;
-static gint hf_pmc_rsp_offset_BS_per_MS = -1;
+static int hf_pmc_req_pwr_control_mode_change;
+static int hf_pmc_req_pwr_control_mode_change_cor2;
+static int hf_pmc_req_tx_power_level;
+static int hf_pmc_req_confirmation;
+static int hf_pmc_req_reserved;
+static int hf_pmc_rsp_start_frame;
+static int hf_pmc_rsp_power_adjust;
+static int hf_pmc_rsp_offset_BS_per_MS;
 
 /* STRING RESOURCES */
 static const value_string vals_pmc_req_pwr[] = {
@@ -142,6 +146,7 @@ void proto_register_mac_mgmt_msg_pmc_req(void)
 
 	proto_register_field_array(proto_mac_mgmt_msg_pmc_req_decoder, hf, array_length(hf));
 	proto_register_subtree_array(ett, array_length(ett));
+	pmc_req_handle = register_dissector("mac_mgmt_msg_pmc_req_handler", dissect_mac_mgmt_msg_pmc_req_decoder, proto_mac_mgmt_msg_pmc_req_decoder);
 }
 
 /* Register Wimax Mac Payload Protocol and Dissector */
@@ -152,12 +157,13 @@ void proto_register_mac_mgmt_msg_pmc_rsp(void)
 		"WiMax PMC-RSP", /* short name */
 		"wmx.pmc_rsp" /* abbrev */
 		);
+	pmc_rsp_handle = register_dissector("mac_mgmt_msg_pmc_rsp_handler", dissect_mac_mgmt_msg_pmc_rsp_decoder, proto_mac_mgmt_msg_pmc_rsp_decoder);
 }
 
 /* Decode PMC-REQ messages. */
 static int dissect_mac_mgmt_msg_pmc_req_decoder(tvbuff_t *tvb, packet_info *pinfo _U_, proto_tree *tree, void* data _U_)
 {
-	guint offset = 0;
+	unsigned offset = 0;
 	proto_item *pmc_req_item;
 	proto_tree *pmc_req_tree;
 
@@ -182,12 +188,12 @@ static int dissect_mac_mgmt_msg_pmc_req_decoder(tvbuff_t *tvb, packet_info *pinf
 /* Decode PMC-RSP messages. */
 static int dissect_mac_mgmt_msg_pmc_rsp_decoder(tvbuff_t *tvb, packet_info *pinfo _U_, proto_tree *tree, void* data _U_)
 {
-	guint offset = 0;
+	unsigned offset = 0;
 	proto_item *pmc_rsp_item;
 	proto_tree *pmc_rsp_tree;
-	guint8 pwr_control_mode;
-	gint8 value;
-	gfloat power_change;
+	uint8_t pwr_control_mode;
+	int8_t value;
+	float power_change;
 
 	{	/* we are being asked for details */
 
@@ -203,10 +209,10 @@ static int dissect_mac_mgmt_msg_pmc_rsp_decoder(tvbuff_t *tvb, packet_info *pinf
 			proto_tree_add_item(pmc_rsp_tree, hf_pmc_req_pwr_control_mode_change, tvb, offset, 2, ENC_BIG_ENDIAN);
 		/* display the Power Adjust start frame */
 		proto_tree_add_item(pmc_rsp_tree, hf_pmc_rsp_start_frame, tvb, offset, 2, ENC_BIG_ENDIAN);
-		pwr_control_mode = 0xC0 & tvb_get_guint8(tvb, offset);
+		pwr_control_mode = 0xC0 & tvb_get_uint8(tvb, offset);
 		offset++;
 
-		value = tvb_get_gint8(tvb, offset);
+		value = tvb_get_int8(tvb, offset);
 		power_change = (float)0.25 * value;  /* 0.25dB incr */
 		/* Check if Power Control Mode is 0 */
 		if (pwr_control_mode == 0) {
@@ -223,13 +229,8 @@ static int dissect_mac_mgmt_msg_pmc_rsp_decoder(tvbuff_t *tvb, packet_info *pinf
 void
 proto_reg_handoff_mac_mgmt_msg_pmc(void)
 {
-	dissector_handle_t pmc_handle;
-
-	pmc_handle = create_dissector_handle(dissect_mac_mgmt_msg_pmc_req_decoder, proto_mac_mgmt_msg_pmc_req_decoder);
-	dissector_add_uint("wmx.mgmtmsg", MAC_MGMT_MSG_PMC_REQ, pmc_handle);
-
-	pmc_handle = create_dissector_handle(dissect_mac_mgmt_msg_pmc_rsp_decoder, proto_mac_mgmt_msg_pmc_rsp_decoder);
-	dissector_add_uint("wmx.mgmtmsg", MAC_MGMT_MSG_PMC_RSP, pmc_handle);
+	dissector_add_uint("wmx.mgmtmsg", MAC_MGMT_MSG_PMC_REQ, pmc_req_handle);
+	dissector_add_uint("wmx.mgmtmsg", MAC_MGMT_MSG_PMC_RSP, pmc_rsp_handle);
 }
 
 /*

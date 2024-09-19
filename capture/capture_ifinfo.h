@@ -36,6 +36,21 @@ typedef enum {
 } interface_type;
 
 /*
+ * "get_if_capabilities()" and "capture_if_capabilities()" return a pointer
+ * to an allocated instance of this structure.  "free_if_capabilities()"
+ * frees the returned instance.
+ */
+typedef struct {
+	bool	can_set_rfmon;	/* true if can be put into monitor mode */
+	GList		*data_link_types;	/* GList of data_link_info_t's */
+	GList		*data_link_types_rfmon; /* GList of data_link_info_t's */
+	GList		*timestamp_types;   /* GList of timestamp_info_t's */
+	int status;
+	char *primary_msg;   /* If non-NULL, the query failed, and a message explaining why */
+	const char *secondary_msg; /* An optional supplementary message */
+} if_capabilities_t;
+
+/*
  * The list of interfaces returned by "get_interface_list()" is
  * a list of these structures.
  */
@@ -49,8 +64,9 @@ typedef struct {
 				   or NULL if not available */
 	GSList  *addrs;         /* containing address values of if_addr_t */
 	interface_type type;    /* type of interface */
-	gboolean loopback;      /* TRUE if loopback, FALSE otherwise */
+	bool loopback;      /* true if loopback, false otherwise */
 	char	*extcap;		/* extcap arguments, which present the data to call the extcap interface */
+	if_capabilities_t *caps;
 } if_info_t;
 
 /*
@@ -64,13 +80,18 @@ typedef enum {
 typedef struct {
 	if_address_type ifat_type;
 	union {
-		guint32 ip4_addr;   /*  4 byte IP V4 address, or */
-		guint8 ip6_addr[16];/* 16 byte IP V6 address */
+		uint32_t ip4_addr;   /*  4 byte IP V4 address, or */
+		uint8_t ip6_addr[16];/* 16 byte IP V6 address */
 	} addr;
 } if_addr_t;
 
+extern GList *deserialize_interface_list(char *data, int *err, char **err_str);
+
 /**
- * Fetch the interface list from a child process.
+ * Return the list of interfaces.
+ *
+ * Local interfaces are fetched by running dumpcap.
+ * The remote and extcap interfaces are appended to the list after that.
  */
 extern GList *capture_interface_list(int *err, char **err_str, void (*update_cb)(void));
 
@@ -79,6 +100,11 @@ extern GList *capture_interface_list(int *err, char **err_str, void (*update_cb)
 #define	DONT_HAVE_PCAP		2	/* couldn't load WinPcap/Npcap */
 
 void free_interface_list(GList *if_list);
+
+/**
+ * Deep copy an interface list
+ */
+GList * interface_list_copy(GList *if_list);
 
 /**
  * Get an if_info_t for a particular interface.
@@ -91,16 +117,22 @@ extern if_info_t *if_info_get(const char *name);
  */
 void if_info_free(if_info_t *if_info);
 
-/*
- * "get_if_capabilities()" and "capture_if_capabilities()" return a pointer
- * to an allocated instance of this structure.  "free_if_capabilities()"
- * frees the returned instance.
+/**
+ * Deep copy an if_info_t.
  */
+if_info_t *if_info_copy(const if_info_t *if_info);
+
+/**
+ * Deep copy an if_addr_t.
+ */
+if_addr_t *if_addr_copy(const if_addr_t *if_addr);
+
 typedef struct {
-	gboolean	can_set_rfmon;	/* TRUE if can be put into monitor mode */
-	GList		*data_link_types;	/* GList of data_link_info_t's */
-	GList		*timestamp_types;   /* GList of timestamp_info_t's */
-} if_capabilities_t;
+        const char *name;
+        bool monitor_mode;
+        const char *auth_username;
+        const char *auth_password;
+} if_cap_query_t;
 
 /*
  * Information about data link types.
@@ -123,14 +155,26 @@ typedef struct {
  * Fetch the linktype list for the specified interface from a child process.
  */
 extern if_capabilities_t *
-capture_get_if_capabilities(const gchar *devname, gboolean monitor_mode,
-                            const gchar *auth_string,
+capture_get_if_capabilities(const char *devname, bool monitor_mode,
+                            const char *auth_string,
+                            char **err_primary_msg, char **err_secondary_msg,
+                            void (*update_cb)(void));
+
+/**
+ * Fetch the linktype list for the specified interface from a child process.
+ */
+extern GHashTable *
+capture_get_if_list_capabilities(GList *if_cap_queries,
                             char **err_primary_msg, char **err_secondary_msg,
                             void (*update_cb)(void));
 
 void free_if_capabilities(if_capabilities_t *caps);
 
+#ifdef HAVE_PCAP_REMOTE
 void add_interface_to_remote_list(if_info_t *if_info);
+
+GList* append_remote_list(GList *iflist);
+#endif
 
 #ifdef __cplusplus
 }

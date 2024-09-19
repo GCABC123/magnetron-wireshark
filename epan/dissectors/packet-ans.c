@@ -38,17 +38,19 @@
 void proto_register_ans(void);
 void proto_reg_handoff_ans(void);
 
-/* Initialize the protocol and registered fields */
-static int proto_ans        = -1;
+static dissector_handle_t ans_handle;
 
-static int hf_ans_app_id    = -1;
-static int hf_ans_rev_id    = -1;
-static int hf_ans_seq_num   = -1;
-static int hf_ans_sender_id = -1;
-static int hf_ans_team_id   = -1;
+/* Initialize the protocol and registered fields */
+static int proto_ans;
+
+static int hf_ans_app_id;
+static int hf_ans_rev_id;
+static int hf_ans_seq_num;
+static int hf_ans_sender_id;
+static int hf_ans_team_id;
 
 /* Initialize the subtree pointers */
-static gint ett_ans = -1;
+static int ett_ans;
 
 /* Code to actually dissect the packets */
 static int
@@ -56,8 +58,8 @@ dissect_ans(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, void* data _U_)
 {
 	proto_item  *ti;
 	proto_tree  *ans_tree;
-	guint16      sender_id;
-	guint32      seq_num;
+	uint16_t     sender_id;
+	uint32_t     seq_num;
 
 	col_set_str(pinfo->cinfo, COL_PROTOCOL, "Intel ANS probe");
 
@@ -111,22 +113,21 @@ proto_register_ans(void)
 		},
 	};
 
-	static gint *ett[] = {
+	static int *ett[] = {
 		&ett_ans,
 	};
 
 	proto_ans = proto_register_protocol("Intel ANS probe", "ANS", "ans");
 	proto_register_field_array(proto_ans, hf, array_length(hf));
 	proto_register_subtree_array(ett, array_length(ett));
+
+	ans_handle = register_dissector("ans", dissect_ans, proto_ans);
 }
 
 
 void
 proto_reg_handoff_ans(void)
 {
-	dissector_handle_t ans_handle;
-
-	ans_handle = create_dissector_handle(dissect_ans, proto_ans);
 	dissector_add_uint("ethertype", ETHERTYPE_INTEL_ANS, ans_handle);
 }
 

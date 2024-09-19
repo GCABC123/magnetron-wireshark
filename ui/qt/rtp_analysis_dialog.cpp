@@ -193,22 +193,16 @@ public:
         switch (treeWidget()->sortColumn()) {
         case (packet_col_):
             return frame_num_ < other_row->frame_num_;
-            break;
         case (sequence_col_):
             return sequence_num_ < other_row->sequence_num_;
-            break;
         case (delta_col_):
             return delta_ < other_row->delta_;
-            break;
         case (jitter_col_):
             return jitter_ < other_row->jitter_;
-            break;
         case (skew_col_):
             return skew_ < other_row->skew_;
-            break;
         case (bandwidth_col_):
             return bandwidth_ < other_row->bandwidth_;
-            break;
         default:
             break;
         }
@@ -277,6 +271,10 @@ RtpAnalysisDialog::RtpAnalysisDialog(QWidget &parent, CaptureFile &cf) :
             this, SLOT(graphClicked(QMouseEvent*)));
 
     graph_ctx_menu_.addAction(ui->actionSaveGraph);
+
+    ui->streamGraph->setContextMenuPolicy(Qt::CustomContextMenu);
+    connect(ui->streamGraph, &QCustomPlot::customContextMenuRequested, this,
+            &RtpAnalysisDialog::showGraphMenu);
 
     ui->streamGraph->xAxis->setLabel("Arrival Time");
     ui->streamGraph->yAxis->setLabel("Value (ms)");
@@ -621,7 +619,7 @@ void RtpAnalysisDialog::on_actionSaveGraph_triggered()
     ui->tabWidget->setCurrentWidget(ui->graphTab);
 
     QString file_name, extension;
-    QDir path(mainApp->lastOpenDir());
+    QDir path(mainApp->openDialogInitialDir());
     QString pdf_filter = tr("Portable Document Format (*.pdf)");
     QString png_filter = tr("Portable Network Graphics (*.png)");
     QString bmp_filter = tr("Windows Bitmap (*.bmp)");
@@ -904,7 +902,7 @@ void RtpAnalysisDialog::saveCsv(RtpAnalysisDialog::StreamDirection direction)
     }
 
     QString file_path = WiresharkFileDialog::getSaveFileName(
-                this, caption, mainApp->lastOpenDir().absoluteFilePath("RTP Packet Data.csv"),
+                this, caption, mainApp->openDialogInitialDir().absoluteFilePath("RTP Packet Data.csv"),
                 tr("Comma-separated values (*.csv)"));
 
     if (file_path.isEmpty()) return;
@@ -967,16 +965,14 @@ bool RtpAnalysisDialog::eventFilter(QObject *, QEvent *event)
     return false;
 }
 
-void RtpAnalysisDialog::graphClicked(QMouseEvent *event)
+void RtpAnalysisDialog::showGraphMenu(const QPoint &pos)
+{
+    graph_ctx_menu_.popup(ui->streamGraph->mapToGlobal(pos));
+}
+
+void RtpAnalysisDialog::graphClicked(QMouseEvent*)
 {
     updateWidgets();
-    if (event->button() == Qt::RightButton) {
-#if QT_VERSION >= QT_VERSION_CHECK(6, 0 ,0)
-        graph_ctx_menu_.popup(event->globalPosition().toPoint());
-#else
-        graph_ctx_menu_.popup(event->globalPos());
-#endif
-    }
 }
 
 void RtpAnalysisDialog::clearLayout(QLayout *layout)

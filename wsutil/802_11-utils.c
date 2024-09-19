@@ -10,12 +10,13 @@
 
 #include "config.h"
 #include "802_11-utils.h"
+#include <wsutil/array.h>
 
 typedef struct freq_cvt_s {
-    guint fmin;         /* Minimum frequency in MHz */
-    guint fmax;         /* Maximum frequency in MHz */
-    gint cmin;          /* Minimum/base channel */
-    gboolean is_bg;     /* B/G channel? */
+    unsigned fmin;         /* Minimum frequency in MHz */
+    unsigned fmax;         /* Maximum frequency in MHz */
+    int cmin;          /* Minimum/base channel */
+    bool is_bg;     /* B/G channel? */
 } freq_cvt_t;
 
 #define FREQ_STEP 5     /* MHz. This seems to be consistent, thankfully */
@@ -34,22 +35,22 @@ typedef struct freq_cvt_s {
  * XXX - what about 802.11ad?
  */
 static freq_cvt_t freq_cvt[] = {
-    { 2412, 2472,   1, TRUE },  /* IEEE Std 802.11-2020: Section 15.4.4.3 and Annex E */
-    { 2484, 2484,  14, TRUE },  /* IEEE Std 802.11-2020: Section 15.4.4.3 and Annex E */
-    { 5000, 5925,   0, FALSE }, /* IEEE Std 802.11-2020: Annex E */
-    { 5950, 7125,   0, FALSE }, /* IEEE Std 802.11ax-2021: Annex E */
-    { 4910, 4980, 182, FALSE },
+    { 2412, 2472,   1, true },  /* IEEE Std 802.11-2020: Section 15.4.4.3 and Annex E */
+    { 2484, 2484,  14, true },  /* IEEE Std 802.11-2020: Section 15.4.4.3 and Annex E */
+    { 5000, 5925,   0, false }, /* IEEE Std 802.11-2020: Annex E */
+    { 5950, 7125,   0, false }, /* IEEE Std 802.11ax-2021: Annex E */
+    { 4910, 4980, 182, false },
 };
 
-#define NUM_FREQ_CVT (sizeof(freq_cvt) / sizeof(freq_cvt_t))
-#define MAX_CHANNEL(fc) ( (gint) ((fc.fmax - fc.fmin) / FREQ_STEP) + fc.cmin )
+#define NUM_FREQ_CVT array_length(freq_cvt)
+#define MAX_CHANNEL(fc) ( (int) ((fc.fmax - fc.fmin) / FREQ_STEP) + fc.cmin )
 
 /*
  * Get channel number given a Frequency
  */
-gint
-ieee80211_mhz_to_chan(guint freq) {
-    guint i;
+int
+ieee80211_mhz_to_chan(unsigned freq) {
+    unsigned i;
 
     for (i = 0; i < NUM_FREQ_CVT; i++) {
         if (freq >= freq_cvt[i].fmin && freq <= freq_cvt[i].fmax) {
@@ -70,9 +71,9 @@ ieee80211_mhz_to_chan(guint freq) {
  * Unfortunately, this is not possible in some cases, so for now, the order on
  * which frequency ranges are defined will favor 2.4 and 5 GHz over 6 GHz.
  */
-guint
-ieee80211_chan_to_mhz(gint chan, gboolean is_bg) {
-    guint i;
+unsigned
+ieee80211_chan_to_mhz(int chan, bool is_bg) {
+    unsigned i;
 
     for (i = 0; i < NUM_FREQ_CVT; i++) {
         if (is_bg == freq_cvt[i].is_bg &&
@@ -84,17 +85,44 @@ ieee80211_chan_to_mhz(gint chan, gboolean is_bg) {
 }
 
 /*
+ * Get Frequency given a Channel number and band.
+ */
+unsigned
+ieee80211_chan_band_to_mhz(int chan, bool is_bg, bool is_6ghz) {
+    unsigned i;
+
+    int start_idx = 0;
+    if (is_6ghz) {
+        start_idx = 3;
+    }
+    for (i = start_idx; i < NUM_FREQ_CVT; i++) {
+        if (is_bg == freq_cvt[i].is_bg &&
+                chan >= freq_cvt[i].cmin && chan <= MAX_CHANNEL(freq_cvt[i])) {
+            return ((chan - freq_cvt[i].cmin) * FREQ_STEP) + freq_cvt[i].fmin;
+        }
+    }
+    return 0;
+}
+
+/*
  * Get channel representation string given a Frequency
  */
-gchar*
-ieee80211_mhz_to_str(guint freq){
-    gint chan = ieee80211_mhz_to_chan(freq);
-    gboolean is_bg = FREQ_IS_BG(freq);
+char*
+ieee80211_mhz_to_str(unsigned freq){
+    int chan = ieee80211_mhz_to_chan(freq);
+    const char* band;
+    if (FREQ_IS_BG(freq)) {
+        band = "2.4 GHz";
+    } else if (FREQ_IS_6G(freq)) {
+        band = "6 GHz";
+    } else {
+        band = "5 GHz";
+    }
 
     if (chan < 0) {
         return ws_strdup_printf("%u", freq);
     } else {
-        return ws_strdup_printf("%u [%s %u]", freq, is_bg ? "BG" : "A",
+        return ws_strdup_printf("%u [%s %u]", freq, band,
             chan);
     }
 }

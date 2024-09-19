@@ -25,6 +25,7 @@
 #include <epan/timestamp.h>
 #include <epan/prefs.h>
 #include <epan/dfilter/dfilter.h>
+#include <epan/dfilter/dfilter-macro.h>
 
 #ifdef HAVE_PLUGINS
 #include <wsutil/plugins.h>
@@ -34,6 +35,7 @@
 #include <wsutil/report_message.h>
 #include <wsutil/wslog.h>
 #include <wsutil/ws_getopt.h>
+#include <wsutil/utf8_entities.h>
 
 #include <wiretap/wtap.h>
 
@@ -42,20 +44,20 @@
 #include "ui/failure_message.h"
 #include "wsutil/version_info.h"
 
-static int opt_verbose = 0;
-#define DFTEST_LOG_NONE     0
-#define DFTEST_LOG_DEBUG    1
-#define DFTEST_LOG_NOISY    2
-static int opt_log_level = DFTEST_LOG_NONE;
-static int opt_flex = 0;
-static int opt_lemon = 0;
-static int opt_syntax_tree = 0;
-static int opt_timer = 0;
+static int opt_verbose;
+static int opt_debug_level; /* currently up to 2 */
+static int opt_flex;
+static int opt_lemon;
+static int opt_syntax_tree;
+static int opt_return_vals;
+static int opt_timer;
 static long opt_optimize = 1;
-static int opt_show_types = 0;
+static int opt_show_types;
+static int opt_dump_refs;
+static int opt_dump_macros;
 
-static gdouble elapsed_expand = 0;
-static gdouble elapsed_compile = 0;
+static int64_t elapsed_expand;
+static int64_t elapsed_compile;
 
 /*
  * Report an error in command-line arguments.
@@ -100,13 +102,21 @@ print_usage(int status)
     fprintf(fp, "Usage: dftest [OPTIONS] -- EXPRESSION\n");
     fprintf(fp, "Options:\n");
     fprintf(fp, "  -V, --verbose       enable verbose mode\n");
-    fprintf(fp, "  -d, --debug         enable compiler debug logs\n");
+    fprintf(fp, "  -d, --debug[=N]     increase or set debug level\n");
+    fprintf(fp, "  -D                  set maximum debug level\n");
     fprintf(fp, "  -f, --flex          enable Flex debug trace\n");
     fprintf(fp, "  -l, --lemon         enable Lemon debug trace\n");
     fprintf(fp, "  -s, --syntax        print syntax tree\n");
+    fprintf(fp, "  -m  --macros        print saved macros\n");
     fprintf(fp, "  -t, --timer         print elapsed compilation time\n");
+    fprintf(fp, "  -r  --return-vals   return field values for the tree root\n");
     fprintf(fp, "  -0, --optimize=0    do not optimize (check syntax)\n");
     fprintf(fp, "      --types         show field value types\n");
+    /* NOTE: References are loaded during runtime and dftest only does compilation.
+     * Unless some static reference data is hard-coded at compile time during
+     * development the --refs option to dftest is useless because it will just
+     * print empty reference vectors. */
+    fprintf(fp, "      --refs          dump some runtime data structures\n");
     fprintf(fp, "  -h, --help          display this help and exit\n");
     fprintf(fp, "  -v, --version       print version\n");
     fprintf(fp, "\n");
@@ -121,9 +131,29 @@ print_syntax_tree(dfilter_t *df)
 }
 
 static void
+print_macros(void)
+{
+    if (dfilter_macro_table_count() == 0) {
+        printf("Macros: (empty)\n\n");
+        return;
+    }
+
+    struct dfilter_macro_table_iter iter;
+    const char *name, *text;
+
+    dfilter_macro_table_iter_init(&iter);
+    printf("Macros:\n");
+    while (dfilter_macro_table_iter_next(&iter, &name, &text)) {
+        printf(" "UTF8_BULLET" %s:\n", name);
+        printf("      %s\n", text);
+    }
+    printf("\n");
+}
+
+static void
 print_warnings(dfilter_t *df)
 {
-    guint i;
+    unsigned i;
     GPtrArray *deprecated;
     int count = 0;
 
@@ -149,35 +179,36 @@ print_warnings(dfilter_t *df)
 static void
 print_elapsed(void)
 {
-    printf("\nElapsed: %.f µs (%.f µs + %.f µs)\n",
-            (elapsed_expand + elapsed_compile) * 1000 * 1000,
-            elapsed_expand * 1000 * 1000,
-            elapsed_compile * 1000 * 1000);
+    printf("\nElapsed: %"PRId64" µs (%"PRId64" µs + %"PRId64" µs)\n",
+            elapsed_expand + elapsed_compile,
+            elapsed_expand,
+            elapsed_compile);
 }
 
 static char *
-expand_filter(const char *text, GTimer *timer)
+expand_filter(const char *text)
 {
     char *expanded = NULL;
-    char *err_msg = NULL;
+    df_error_t *err = NULL;
+    int64_t start;
 
-    g_timer_start(timer);
-    expanded = dfilter_expand(text, &err_msg);
-    g_timer_stop(timer);
-    elapsed_expand = g_timer_elapsed(timer, NULL);
+    start = g_get_monotonic_time();
+    expanded = dfilter_expand(text, &err);
     if (expanded == NULL) {
-        fprintf(stderr, "Error: %s\n", err_msg);
-        g_free(err_msg);
+        fprintf(stderr, "Error: %s\n", err->msg);
+        df_error_free(&err);
     }
+    elapsed_expand = g_get_monotonic_time() - start;
     return expanded;
 }
 
-static gboolean
-compile_filter(const char *text, dfilter_t **dfp, GTimer *timer)
+static bool
+compile_filter(const char *text, dfilter_t **dfp)
 {
     unsigned df_flags = 0;
-    gboolean ok;
+    bool ok;
     df_error_t *df_err = NULL;
+    int64_t start;
 
     if (opt_optimize > 0)
         df_flags |= DF_OPTIMIZE;
@@ -187,21 +218,37 @@ compile_filter(const char *text, dfilter_t **dfp, GTimer *timer)
         df_flags |= DF_DEBUG_FLEX;
     if (opt_lemon)
         df_flags |= DF_DEBUG_LEMON;
+    if (opt_return_vals)
+        df_flags |= DF_RETURN_VALUES;
 
-    g_timer_start(timer);
-    ok = dfilter_compile_real(text, dfp, &df_err, df_flags, "dftest");
-    g_timer_stop(timer);
-    elapsed_compile = g_timer_elapsed(timer, NULL);
-
+    start = g_get_monotonic_time();
+    ok = dfilter_compile_full(text, dfp, &df_err, df_flags, "dftest");
     if (!ok) {
         fprintf(stderr, "Error: %s\n", df_err->msg);
         if (df_err->loc.col_start >= 0) {
             fprintf(stderr, "  %s\n  ", text);
             putloc(stderr, df_err->loc);
         }
-        dfilter_error_free(df_err);
+        df_error_free(&df_err);
     }
+    elapsed_compile = g_get_monotonic_time() - start;
     return ok;
+}
+
+static int
+optarg_to_digit(const char *arg)
+{
+    if (strlen(arg) > 1 || !g_ascii_isdigit(*arg)) {
+        printf("Error: \"%s\" is not a valid number 0-9\n", arg);
+        print_usage(WS_EXIT_INVALID_OPTION);
+    }
+    errno = 0;
+    int digit = (int)strtol(ws_optarg, NULL, 10);
+    if (errno) {
+        printf("Error: %s\n", g_strerror(errno));
+        print_usage(WS_EXIT_INVALID_OPTION);
+    }
+    return digit;
 }
 
 int
@@ -211,7 +258,6 @@ main(int argc, char **argv)
     char        *text = NULL;
     char        *expanded_text = NULL;
     dfilter_t   *df = NULL;
-    GTimer      *timer = NULL;
     int          exit_status = EXIT_FAILURE;
 
     /*
@@ -236,18 +282,21 @@ main(int argc, char **argv)
 
     ws_init_version_info("DFTest", NULL, NULL);
 
-    const char *optstring = "hvdflstV0";
+    const char *optstring = "hvdDflsmrtV0";
     static struct ws_option long_options[] = {
         { "help",     ws_no_argument,   0,  'h' },
         { "version",  ws_no_argument,   0,  'v' },
-        { "debug",    ws_no_argument,   0,  'd' },
+        { "debug",    ws_optional_argument, 0, 'd' },
         { "flex",     ws_no_argument,   0,  'f' },
         { "lemon",    ws_no_argument,   0,  'l' },
         { "syntax",   ws_no_argument,   0,  's' },
+        { "macros",   ws_no_argument,   0,  'm' },
         { "timer",    ws_no_argument,   0,  't' },
         { "verbose",  ws_no_argument,   0,  'V' },
+        { "return-vals", ws_no_argument,   0,  'r' },
         { "optimize", ws_required_argument, 0, 1000 },
         { "types",    ws_no_argument,   0, 2000 },
+        { "refs",     ws_no_argument,   0, 3000 },
         { NULL,       0,                0,  0   }
     };
     int opt;
@@ -262,7 +311,19 @@ main(int argc, char **argv)
                 opt_verbose = 1;
                 break;
             case 'd':
-                opt_log_level = DFTEST_LOG_NOISY;
+                if (ws_optarg) {
+                    opt_debug_level = optarg_to_digit(ws_optarg);
+                }
+                else {
+                    opt_debug_level++;
+                }
+                opt_show_types = 1;
+                break;
+            case 'D':
+                opt_debug_level = 9;
+                opt_lemon = 1;
+                opt_flex = 1;
+                opt_show_types = 1;
                 break;
             case 'f':
                 opt_flex = 1;
@@ -273,29 +334,29 @@ main(int argc, char **argv)
             case 's':
                 opt_syntax_tree = 1;
                 break;
+            case 'm':
+                opt_dump_macros = 1;
+                break;
             case 't':
                 opt_timer = 1;
+                break;
+            case 'r':
+                opt_return_vals = 1;
                 break;
             case '0':
                 opt_optimize = 0;
                 break;
             case 1000:
-                if (strlen(ws_optarg) > 1 || !g_ascii_isdigit(*ws_optarg)) {
-                    printf("Error: \"%s\" is not a valid number 0-9\n", ws_optarg);
-                    print_usage(WS_EXIT_INVALID_OPTION);
-                }
-                errno = 0;
-                opt_optimize = strtol(ws_optarg, NULL, 10);
-                if (errno) {
-                    printf("Error: %s\n", g_strerror(errno));
-                    print_usage(WS_EXIT_INVALID_OPTION);
-                }
+                opt_optimize = optarg_to_digit(ws_optarg);
                 break;
             case 2000:
                 opt_show_types = 1;
                 break;
+            case 3000:
+                opt_dump_refs = 1;
+                break;
             case 'v':
-                show_help_header(NULL);
+                show_version();
                 exit(EXIT_SUCCESS);
                 break;
             case 'h':
@@ -309,19 +370,22 @@ main(int argc, char **argv)
         }
     }
 
-    /* Check for filter on command line */
+    /* Check for filter on command line. */
     if (argv[ws_optind] == NULL) {
-        printf("Error: Missing argument.\n");
-        print_usage(EXIT_FAILURE);
+        /* If not printing macros we need a filter expression to compile. */
+        if (!opt_dump_macros) {
+            printf("Error: Missing argument.\n");
+            print_usage(EXIT_FAILURE);
+        }
     }
 
-    if (opt_log_level == DFTEST_LOG_NOISY) {
+    /* Set dfilter domain logging. */
+    if (opt_debug_level > 1) {
         ws_log_set_noisy_filter(LOG_DOMAIN_DFILTER);
     }
-    else if (opt_flex || opt_lemon) {
-        /* Enable some dfilter logs with flex/lemon traces for context. */
+    else if (opt_debug_level > 0 || opt_flex || opt_lemon) {
+        /* Also enable some dfilter logs with flex/lemon traces for context. */
         ws_log_set_debug_filter(LOG_DOMAIN_DFILTER);
-        opt_log_level = DFTEST_LOG_DEBUG;
     }
 
     /*
@@ -364,13 +428,13 @@ main(int argc, char **argv)
      * dissection-time handlers for file-type-dependent blocks can
      * register using the file type/subtype value for the file type.
      */
-    wtap_init(TRUE);
+    wtap_init(true);
 
     /* Register all dissectors; we must do this before checking for the
        "-g" flag, as the "-g" flag dumps a list of fields registered
        by the dissectors, and we must do it before we read the preferences,
        in case any dissectors register preferences. */
-    if (!epan_init(NULL, NULL, FALSE))
+    if (!epan_init(NULL, NULL, true))
         goto out;
 
     /* Load libwireshark settings from the current profile. */
@@ -380,6 +444,20 @@ main(int argc, char **argv)
        changed either from one of the preferences file or from the command
        line that its preferences have changed. */
     prefs_apply_all();
+
+    if (opt_dump_macros) {
+        print_macros();
+        if (argv[ws_optind] == NULL) {
+            /* No filter expression, we're done. */
+            exit(EXIT_SUCCESS);
+        }
+    }
+
+    /* Check again for filter on command line */
+    if (argv[ws_optind] == NULL) {
+        printf("Error: Missing argument.\n");
+        print_usage(EXIT_FAILURE);
+    }
 
     /* This is useful to prevent confusion with option parsing.
      * Skips printing options and argv[0]. */
@@ -395,10 +473,8 @@ main(int argc, char **argv)
 
     printf("Filter:\n %s\n\n", text);
 
-    timer = g_timer_new();
-
     /* Expand macros. */
-    expanded_text = expand_filter(text, timer);
+    expanded_text = expand_filter(text);
     if (expanded_text == NULL) {
         exit_status = WS_EXIT_INVALID_FILTER;
         goto out;
@@ -408,13 +484,13 @@ main(int argc, char **argv)
         printf("Filter (after expansion):\n %s\n\n", expanded_text);
 
     /* Compile it */
-    if (!compile_filter(expanded_text, &df, timer)) {
+    if (!compile_filter(expanded_text, &df)) {
         exit_status = WS_EXIT_INVALID_FILTER;
         goto out;
     }
 
     /* If logging is enabled add an empty line. */
-    if (opt_log_level > DFTEST_LOG_NONE) {
+    if (opt_debug_level > 0) {
         printf("\n");
     }
 
@@ -430,6 +506,9 @@ main(int argc, char **argv)
     uint16_t dump_flags = 0;
     if (opt_show_types)
         dump_flags |= DF_DUMP_SHOW_FTYPE;
+    if (opt_dump_refs)
+        dump_flags |= DF_DUMP_REFERENCES;
+
     dfilter_dump(stdout, df, dump_flags);
 
     print_warnings(df);
@@ -444,7 +523,5 @@ out:
     dfilter_free(df);
     g_free(text);
     g_free(expanded_text);
-    if (timer != NULL)
-        g_timer_destroy(timer);
     exit(exit_status);
 }

@@ -72,7 +72,7 @@ extern "C" {
 #endif
 
 #ifndef ETHERTYPE_WOL
-#define ETHERTYPE_WOL			0x0842	/* Wake on LAN. Not offically registered. */
+#define ETHERTYPE_WOL			0x0842	/* Wake on LAN. Not officially registered. */
 #endif
 
 #ifndef ETHERTYPE_WMX_M2M
@@ -345,8 +345,16 @@ extern "C" {
 #define ETHERTYPE_EAPOL			0x888E	/* 802.1x Authentication */
 #endif
 
+#ifndef ETHERTYPE_FORTINET_FGCP_HB  /* Not register https://community.fortinet.com/t5/FortiGate/Technical-Tip-FortiGate-HA-Heartbeat-packet-Ethertypes/ta-p/197807 */
+#define ETHERTYPE_FORTINET_FGCP_HB	0x8890	/* Fortinet FGCP HeartBeat */
+#endif
+
 #ifndef ETHERTYPE_PROFINET
 #define ETHERTYPE_PROFINET		0x8892	/* PROFIBUS PROFINET protocol */
+#endif
+
+#ifndef ETHERTYPE_FORTINET_FGCP_SESSION  /* Not register https://community.fortinet.com/t5/FortiGate/Technical-Tip-FortiGate-HA-Heartbeat-packet-Ethertypes/ta-p/197807 */
+#define ETHERTYPE_FORTINET_FGCP_SESSION	0x8893	/* Fortinet FGCP HeartBeat */
 #endif
 
 #ifndef ETHERTYPE_REALTEK
@@ -452,7 +460,7 @@ extern "C" {
 #endif
 
 #ifndef ETHERTYPE_3GPP2
-#define ETHERTYPE_3GPP2			0x88D2	/* This will be used in a revision of the Interoperabi */
+#define ETHERTYPE_3GPP2			0x88D2	/* This will be used in a revision of the Interoperability */
 #endif						/* Specification (IOS) for cdma2000 Access Network Interfaces (document numbers A.S0011-B */
 						/* through A.S0017-B v1.0). This document already uses the Ether type 8881 */
 
@@ -519,7 +527,7 @@ extern "C" {
 #endif
 
 #ifndef ETHERTYPE_CFM
-#define ETHERTYPE_CFM			0x8902	/* IEEE 802.1ag Connectivity Fault Management(CFM) protocol */
+#define ETHERTYPE_CFM			0x8902	/* IEEE 802.1Q Connectivity Fault Management(CFM) protocol */
 #endif
 
 #ifndef ETHERTYPE_DCE
@@ -623,7 +631,7 @@ extern "C" {
 #endif
 
 #ifndef ETHERTYPE_TECMP
-#define ETHERTYPE_TECMP			0x99FE	/* Technically Enhanced Capture Module Protocol (TECMP) */
+#define ETHERTYPE_TECMP			0x99FE	/* Technically Enhanced Capture Module Protocol (TECMP) and ASAM Capture Module Protocol (CMP)*/
 #endif
 
 #ifndef ETHERTYPE_6LOWPAN
@@ -660,6 +668,10 @@ extern "C" {
 
 #ifndef ETHERTYPE_EXEH
 #define ETHERTYPE_EXEH			0xE555	/* EXos internal Extra Header */
+#endif
+
+#ifndef ETHERTYPE_ATRL
+#define ETHERTYPE_ATRL			0xFBAC	/* Allied Telesis Resiliency Link frames */
 #endif
 
 #ifndef ETHERTYPE_FCFT

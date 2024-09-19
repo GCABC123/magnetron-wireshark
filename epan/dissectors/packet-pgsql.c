@@ -14,6 +14,7 @@
 
 #include <epan/packet.h>
 
+#include "packet-gssapi.h"
 #include "packet-tls-utils.h"
 #include "packet-tcp.h"
 
@@ -21,83 +22,93 @@ void proto_register_pgsql(void);
 void proto_reg_handoff_pgsql(void);
 
 static dissector_handle_t pgsql_handle;
+static dissector_handle_t pgsql_gssapi_handle;
 static dissector_handle_t tls_handle;
+static dissector_handle_t gssapi_handle;
+static dissector_handle_t ntlmssp_handle;
 
-static int proto_pgsql = -1;
-static int hf_frontend = -1;
-static int hf_type = -1;
-static int hf_length = -1;
-static int hf_version_major = -1;
-static int hf_version_minor = -1;
-static int hf_supported_minor_version = -1;
-static int hf_number_nonsupported_options = -1;
-static int hf_nonsupported_option = -1;
-static int hf_parameter_name = -1;
-static int hf_parameter_value = -1;
-static int hf_query = -1;
-static int hf_authtype = -1;
-static int hf_passwd = -1;
-static int hf_salt = -1;
-static int hf_gssapi_sspi_data = -1;
-static int hf_sasl_auth_mech = -1;
-static int hf_sasl_auth_data = -1;
-static int hf_sasl_auth_data_length = -1;
-static int hf_statement = -1;
-static int hf_portal = -1;
-static int hf_return = -1;
-static int hf_tag = -1;
-static int hf_status = -1;
-static int hf_copydata = -1;
-static int hf_error = -1;
-static int hf_pid = -1;
-static int hf_key = -1;
-static int hf_condition = -1;
-static int hf_text = -1;
-static int hf_tableoid = -1;
-static int hf_typeoid = -1;
-static int hf_oid = -1;
-static int hf_format = -1;
-static int hf_field_count = -1;
-static int hf_val_name = -1;
-static int hf_val_idx = -1;
-static int hf_val_length = -1;
-static int hf_val_data = -1;
-static int hf_val_mod = -1;
-static int hf_severity = -1;
-static int hf_code = -1;
-static int hf_message = -1;
-static int hf_detail = -1;
-static int hf_hint = -1;
-static int hf_position = -1;
-static int hf_internal_position = -1;
-static int hf_internal_query = -1;
-static int hf_where = -1;
-static int hf_schema_name = -1;
-static int hf_table_name = -1;
-static int hf_column_name = -1;
-static int hf_type_name = -1;
-static int hf_constraint_name = -1;
-static int hf_file = -1;
-static int hf_line = -1;
-static int hf_routine = -1;
+static int proto_pgsql;
+static int hf_frontend;
+static int hf_type;
+static int hf_length;
+static int hf_version_major;
+static int hf_version_minor;
+static int hf_request_code;
+static int hf_supported_minor_version;
+static int hf_number_nonsupported_options;
+static int hf_nonsupported_option;
+static int hf_parameter_name;
+static int hf_parameter_value;
+static int hf_query;
+static int hf_authtype;
+static int hf_passwd;
+static int hf_salt;
+static int hf_gssapi_sspi_data;
+static int hf_sasl_auth_mech;
+static int hf_sasl_auth_data;
+static int hf_sasl_auth_data_length;
+static int hf_statement;
+static int hf_portal;
+static int hf_return;
+static int hf_tag;
+static int hf_status;
+static int hf_copydata;
+static int hf_error;
+static int hf_pid;
+static int hf_key;
+static int hf_condition;
+static int hf_text;
+static int hf_tableoid;
+static int hf_typeoid;
+static int hf_oid;
+static int hf_format;
+static int hf_field_count;
+static int hf_val_name;
+static int hf_val_idx;
+static int hf_val_length;
+static int hf_val_data;
+static int hf_val_mod;
+static int hf_severity;
+static int hf_code;
+static int hf_message;
+static int hf_detail;
+static int hf_hint;
+static int hf_position;
+static int hf_internal_position;
+static int hf_internal_query;
+static int hf_where;
+static int hf_schema_name;
+static int hf_table_name;
+static int hf_column_name;
+static int hf_type_name;
+static int hf_constraint_name;
+static int hf_file;
+static int hf_line;
+static int hf_routine;
+static int hf_ssl_response;
+static int hf_gssenc_response;
+static int hf_gssapi_encrypted_payload;
 
-static gint ett_pgsql = -1;
-static gint ett_values = -1;
+static int ett_pgsql;
+static int ett_values;
 
 #define PGSQL_PORT 5432
-static gboolean pgsql_desegment = TRUE;
-static gboolean first_message = TRUE;
+static bool pgsql_desegment = true;
+static bool first_message = true;
 
 typedef enum {
-  PGSQL_AUTH_STATE_NONE,               /*  No authentication seen or used */
+  /* Reserve 0 (== GPOINTER_TO_UINT(NULL)) for no PGSQL detected */
+  PGSQL_AUTH_STATE_NONE = 1,           /* No authentication seen or used */
   PGSQL_AUTH_SASL_REQUESTED,           /* Server sends SASL auth request with supported SASL mechanisms*/
-  PGSQL_AUTH_SASL_CONTINUE,            /* Server and/or client send further SASL challange-response messages */
+  PGSQL_AUTH_SASL_CONTINUE,            /* Server and/or client send further SASL challenge-response messages */
   PGSQL_AUTH_GSSAPI_SSPI_DATA,         /* GSSAPI/SSPI in use */
+  PGSQL_AUTH_SSL_REQUESTED,            /* Client sends SSL encryption request */
+  PGSQL_AUTH_GSSENC_REQUESTED,         /* Client sends GSSAPI encryption request */
 } pgsql_auth_state_t;
 
 typedef struct pgsql_conn_data {
-    gboolean    ssl_requested;
-    pgsql_auth_state_t auth_state; /* Current authentication state */
+    wmem_tree_t *state_tree;   /* Tree of encryption and auth state changes */
+    uint32_t     server_port;
 } pgsql_conn_data_t;
 
 static const value_string fe_messages[] = {
@@ -189,20 +200,47 @@ static const value_string format_vals[] = {
     { 0, NULL }
 };
 
-static void dissect_pgsql_fe_msg(guchar type, guint length, tvbuff_t *tvb,
-                                 gint n, proto_tree *tree, packet_info *pinfo,
+#define PGSQL_CANCELREQUEST 80877102
+#define PGSQL_SSLREQUEST    80877103
+#define PGSQL_GSSENCREQUEST 80877104
+
+static const value_string request_code_vals[] = {
+    { PGSQL_CANCELREQUEST, "CancelRequest" },
+    { PGSQL_SSLREQUEST,    "SSLRequest" },
+    { PGSQL_GSSENCREQUEST, "GSSENCRequest" },
+    { 0, NULL }
+};
+
+static const value_string ssl_response_vals[] = {
+    { 'N', "Unwilling to perform SSL" },
+    { 'S', "Willing to perform SSL" },
+    { 0, NULL }
+};
+
+static const value_string gssenc_response_vals[] = {
+    { 'G', "Willing to perform GSSAPI encryption" },
+    { 'N', "Unwilling to perform GSSAPI encryption" },
+    { 0, NULL }
+};
+
+static void dissect_pgsql_fe_msg(unsigned char type, unsigned length, tvbuff_t *tvb,
+                                 int n, proto_tree *tree, packet_info *pinfo,
                                  pgsql_conn_data_t *conv_data)
 {
-    guchar c;
-    gint i, siz;
+    unsigned char c;
+    int i, siz;
     char *s;
     proto_tree *shrub;
-    gint32 data_length;
+    int32_t data_length;
+    pgsql_auth_state_t   state;
+    tvbuff_t *next_tvb;
+    dissector_handle_t payload_handle;
 
     switch (type) {
     /* Password, SASL or GSSAPI Response, depending on context */
     case 'p':
-        switch(conv_data->auth_state) {
+        state = GPOINTER_TO_UINT(wmem_tree_lookup32_le(conv_data->state_tree, pinfo->num));
+        switch(state) {
 
             case PGSQL_AUTH_SASL_REQUESTED:
                 /* SASLInitResponse */
@@ -221,7 +259,25 @@ static void dissect_pgsql_fe_msg(guchar type, guint length, tvbuff_t *tvb,
                 break;
 
             case PGSQL_AUTH_GSSAPI_SSPI_DATA:
-                proto_tree_add_item(tree, hf_gssapi_sspi_data, tvb, n, length-4, ENC_NA);
+                next_tvb = tvb_new_subset_length(tvb, n, length - 4);
+                /* https://www.postgresql.org/docs/current/sspi-auth.html
+                 * "PostgreSQL will use SSPI in negotiate mode, which will use
+                 * Kerberos when possible and automatically fall back to NTLM
+                 * in other cases... When using Kerberos authentication, SSPI
+                 * works the same way GSSAPI does."
+                 * Assume this means the Kerberos mode for SSPI works like
+                 * GSSAPI, and not, say, SPNEGO the way TDS does. (Need
+                 * a sample.)
+                 */
+                if (tvb_strneql(next_tvb, 0, "NTLMSSP", 7) == 0) {
+                    payload_handle = ntlmssp_handle;
+                } else {
+                    payload_handle = gssapi_handle;
+                }
+                n = call_dissector_only(payload_handle, next_tvb, pinfo, tree, NULL);
+                if ((length = tvb_reported_length_remaining(next_tvb, n))) {
+                    proto_tree_add_item(tree, hf_gssapi_sspi_data, next_tvb, n, length, ENC_NA);
+                }
                 break;
 
             default:
@@ -312,7 +368,7 @@ static void dissect_pgsql_fe_msg(guchar type, guint length, tvbuff_t *tvb,
     /* Describe, Close */
     case 'D':
     case 'C':
-        c = tvb_get_guint8(tvb, n);
+        c = tvb_get_uint8(tvb, n);
         if (c == 'P')
             i = hf_portal;
         else
@@ -345,19 +401,25 @@ static void dissect_pgsql_fe_msg(guchar type, guint length, tvbuff_t *tvb,
                 length -= i;
 
                 n += siz+i;
-                if (length == 1 && tvb_get_guint8(tvb, n) == 0)
+                if (length == 1 && tvb_get_uint8(tvb, n) == 0)
                     break;
             }
             break;
 
-        /* SSL request */
-        case 80877103:
+        case PGSQL_SSLREQUEST:
+            proto_tree_add_item(tree, hf_request_code, tvb, n-4, 4, ENC_BIG_ENDIAN);
             /* Next reply will be a single byte. */
-            conv_data->ssl_requested = TRUE;
+            wmem_tree_insert32(conv_data->state_tree, pinfo->num, GUINT_TO_POINTER(PGSQL_AUTH_SSL_REQUESTED));
             break;
 
-        /* Cancellation request */
-        case 80877102:
+        case PGSQL_GSSENCREQUEST:
+            proto_tree_add_item(tree, hf_request_code, tvb, n-4, 4, ENC_BIG_ENDIAN);
+            /* Next reply will be a single byte. */
+            wmem_tree_insert32(conv_data->state_tree, pinfo->num, GUINT_TO_POINTER(PGSQL_AUTH_GSSENC_REQUESTED));
+            break;
+
+        case PGSQL_CANCELREQUEST:
+            proto_tree_add_item(tree, hf_request_code, tvb, n-4, 4, ENC_BIG_ENDIAN);
             proto_tree_add_item(tree, hf_pid, tvb, n,   4, ENC_BIG_ENDIAN);
             proto_tree_add_item(tree, hf_key, tvb, n+4, 4, ENC_BIG_ENDIAN);
             break;
@@ -407,17 +469,17 @@ static void dissect_pgsql_fe_msg(guchar type, guint length, tvbuff_t *tvb,
 }
 
 
-static void dissect_pgsql_be_msg(guchar type, guint length, tvbuff_t *tvb,
-                                 gint n, proto_tree *tree, packet_info *pinfo,
+static void dissect_pgsql_be_msg(unsigned char type, unsigned length, tvbuff_t *tvb,
+                                 int n, proto_tree *tree, packet_info *pinfo,
                                  pgsql_conn_data_t *conv_data)
 {
-    guchar c;
-    gint i, siz;
+    unsigned char c;
+    int i, siz;
     char *s, *t;
-    gint32 num_nonsupported_options;
+    int32_t num_nonsupported_options;
     proto_item *ti;
     proto_tree *shrub;
-    guint32 auth_type;
+    uint32_t auth_type;
 
     switch (type) {
     /* Authentication request */
@@ -431,13 +493,16 @@ static void dissect_pgsql_be_msg(guchar type, guint length, tvbuff_t *tvb,
             proto_tree_add_item(tree, hf_salt, tvb, n, siz, ENC_NA);
             break;
         case PGSQL_AUTH_TYPE_GSSAPI_SSPI_CONTINUE:
-            conv_data->auth_state = PGSQL_AUTH_GSSAPI_SSPI_DATA;
             proto_tree_add_item(tree, hf_gssapi_sspi_data, tvb, n, length-8, ENC_NA);
+            /* FALLTHROUGH */
+        case PGSQL_AUTH_TYPE_GSSAPI:
+        case PGSQL_AUTH_TYPE_SSPI:
+            wmem_tree_insert32(conv_data->state_tree, pinfo->num, GUINT_TO_POINTER(PGSQL_AUTH_GSSAPI_SSPI_DATA));
             break;
         case PGSQL_AUTH_TYPE_SASL:
-            conv_data->auth_state = PGSQL_AUTH_SASL_REQUESTED;
+            wmem_tree_insert32(conv_data->state_tree, pinfo->num, GUINT_TO_POINTER(PGSQL_AUTH_SASL_REQUESTED));
             n += 4;
-            while ((guint)n < length) {
+            while ((unsigned)n < length) {
                 siz = tvb_strsize(tvb, n);
                 proto_tree_add_item(tree, hf_sasl_auth_mech, tvb, n, siz, ENC_ASCII);
                 n += siz;
@@ -445,9 +510,9 @@ static void dissect_pgsql_be_msg(guchar type, guint length, tvbuff_t *tvb,
             break;
         case PGSQL_AUTH_TYPE_SASL_CONTINUE:
         case PGSQL_AUTH_TYPE_SASL_COMPLETE:
-            conv_data->auth_state = PGSQL_AUTH_SASL_CONTINUE;
+            wmem_tree_insert32(conv_data->state_tree, pinfo->num, GUINT_TO_POINTER(PGSQL_AUTH_SASL_CONTINUE));
             n += 4;
-            if ((guint)n < length) {
+            if ((unsigned)n < length) {
                 proto_tree_add_item(tree, hf_sasl_auth_data, tvb, n, length-8, ENC_NA);
             }
             break;
@@ -540,9 +605,10 @@ static void dissect_pgsql_be_msg(guchar type, guint length, tvbuff_t *tvb,
     case 'N':
         length -= 4;
         while ((signed)length > 0) {
-            c = tvb_get_guint8(tvb, n);
+            c = tvb_get_uint8(tvb, n);
             if (c == '\0')
                 break;
+            --length;
             s = tvb_get_stringz_enc(pinfo->pool, tvb, n+1, &siz, ENC_ASCII);
             i = hf_text;
             switch (c) {
@@ -627,20 +693,30 @@ static void dissect_pgsql_be_msg(guchar type, guint length, tvbuff_t *tvb,
 
 /* This function is called by tcp_dissect_pdus() to find the size of the
    message starting at tvb[offset]. */
-static guint
+static unsigned
 pgsql_length(packet_info *pinfo _U_, tvbuff_t *tvb, int offset, void *data _U_)
 {
-    gint n = 0;
-    guchar type;
-    guint length;
+    int n = 0;
+    unsigned char type;
+    unsigned length;
 
     /* The length is either the four bytes after the type, or, if the
        type is 0, the first four bytes. */
-    type = tvb_get_guint8(tvb, offset);
+    type = tvb_get_uint8(tvb, offset);
     if (type != '\0')
         n = 1;
     length = tvb_get_ntohl(tvb, offset+n);
     return length+n;
+}
+
+/* This function is called by tcp_dissect_pdus() to find the size of the
+   wrapped GSS-API message starting at tvb[offset] whe. */
+static unsigned
+pgsql_gssapi_length(packet_info *pinfo _U_, tvbuff_t *tvb, int offset, void *data _U_)
+{
+    /* The length of the GSS-API message is the first four bytes, and does
+     * not include the 4 byte length (the gss_wrap). */
+    return tvb_get_ntohl(tvb, offset) + 4;
 }
 
 
@@ -653,24 +729,28 @@ dissect_pgsql_msg(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, void* dat
     proto_tree *ptree;
     conversation_t      *conversation;
     pgsql_conn_data_t   *conn_data;
+    pgsql_auth_state_t   state;
 
-    gint n;
-    guchar type;
+    int n;
+    unsigned char type;
     const char *typestr;
-    guint length;
-    gboolean fe = (pinfo->match_uint == pinfo->destport);
+    unsigned length;
+    bool fe;
 
     conversation = find_or_create_conversation(pinfo);
     conn_data = (pgsql_conn_data_t *)conversation_get_proto_data(conversation, proto_pgsql);
     if (!conn_data) {
         conn_data = wmem_new(wmem_file_scope(), pgsql_conn_data_t);
-        conn_data->ssl_requested = FALSE;
-        conn_data->auth_state = PGSQL_AUTH_STATE_NONE;
+        conn_data->state_tree = wmem_tree_new(wmem_file_scope());
+        conn_data->server_port = pinfo->match_uint;
+        wmem_tree_insert32(conn_data->state_tree, pinfo->num, GUINT_TO_POINTER(PGSQL_AUTH_STATE_NONE));
         conversation_add_proto_data(conversation, proto_pgsql, conn_data);
     }
 
+    fe = (conn_data->server_port == pinfo->destport);
+
     n = 0;
-    type = tvb_get_guint8(tvb, 0);
+    type = tvb_get_uint8(tvb, 0);
     if (type != '\0')
         n += 1;
     length = tvb_get_ntohl(tvb, n);
@@ -683,20 +763,21 @@ dissect_pgsql_msg(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, void* dat
            We identify them by the fact that the first byte of their length
            must be zero, and that the next four bytes are a unique tag. */
         if (type == '\0') {
-            guint tag = tvb_get_ntohl(tvb, 4);
+            unsigned tag = tvb_get_ntohl(tvb, 4);
 
-            if (length == 16 && tag == 80877102)
+            if (length == 16 && tag == PGSQL_CANCELREQUEST)
                 typestr = "Cancel request";
-            else if (length == 8 && tag == 80877103)
+            else if (length == 8 && tag == PGSQL_SSLREQUEST)
                 typestr = "SSL request";
-            else if (length == 8 && tag == 80877104)
+            else if (length == 8 && tag == PGSQL_GSSENCREQUEST)
                 typestr = "GSS encrypt request";
             else if (tag == 196608)
                 typestr = "Startup message";
             else
                 typestr = "Unknown";
         } else if (type == 'p') {
-            switch (conn_data->auth_state) {
+            state = GPOINTER_TO_UINT(wmem_tree_lookup32_le(conn_data->state_tree, pinfo->num));
+            switch (state) {
                 case PGSQL_AUTH_SASL_REQUESTED:
                     typestr = "SASLInitialResponse message";
                     break;
@@ -722,7 +803,7 @@ dissect_pgsql_msg(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, void* dat
         done any better? */
     col_append_fstr(pinfo->cinfo, COL_INFO, "%s%c",
                     ( first_message ? "" : "/" ), g_ascii_isprint(type) ? type : '?');
-    first_message = FALSE;
+    first_message = false;
 
     {
         ti = proto_tree_add_item(tree, proto_pgsql, tvb, 0, -1, ENC_NA);
@@ -746,6 +827,84 @@ dissect_pgsql_msg(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, void* dat
     return tvb_captured_length(tvb);
 }
 
+static int
+dissect_pgsql_gssapi_wrap(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, void *data)
+{
+    proto_item *ti;
+    proto_tree *ptree;
+
+    conversation_t      *conversation;
+    pgsql_conn_data_t   *conn_data;
+
+    conversation = find_or_create_conversation(pinfo);
+    conn_data = (pgsql_conn_data_t *)conversation_get_proto_data(conversation, proto_pgsql);
+
+    if (!conn_data) {
+        /* This shouldn't happen. */
+        conn_data = wmem_new0(wmem_file_scope(), pgsql_conn_data_t);
+        conn_data->state_tree = wmem_tree_new(wmem_file_scope());
+        conn_data->server_port = pinfo->match_uint;
+        wmem_tree_insert32(conn_data->state_tree, pinfo->num, GUINT_TO_POINTER(PGSQL_AUTH_GSSAPI_SSPI_DATA));
+        conversation_add_proto_data(conversation, proto_pgsql, conn_data);
+    }
+
+    bool fe = (pinfo->destport == conn_data->server_port);
+
+    col_set_str(pinfo->cinfo, COL_PROTOCOL, "PGSQL");
+    col_set_str(pinfo->cinfo, COL_INFO,
+                    fe ? ">" : "<");
+
+    ti = proto_tree_add_item(tree, proto_pgsql, tvb, 0, -1, ENC_NA);
+    ptree = proto_item_add_subtree(ti, ett_pgsql);
+
+    proto_tree_add_string(ptree, hf_type, tvb, 0, 0, "GSS-API encrypted message");
+    proto_tree_add_item(ptree, hf_length, tvb, 0, 4, ENC_BIG_ENDIAN);
+
+    gssapi_encrypt_info_t encrypt;
+    memset(&encrypt, 0, sizeof(encrypt));
+    encrypt.decrypt_gssapi_tvb = DECRYPT_GSSAPI_NORMAL;
+
+    int ver_len;
+    tvbuff_t *gssapi_tvb = tvb_new_subset_remaining(tvb, 4);
+
+    ver_len = call_dissector_with_data(gssapi_handle, gssapi_tvb, pinfo, ptree, &encrypt);
+    if (ver_len == 0) {
+        /* GSS-API couldn't do anything with it. */
+        return tvb_captured_length(tvb);
+    }
+    if (encrypt.gssapi_data_encrypted) {
+        if (encrypt.gssapi_decrypted_tvb) {
+            tvbuff_t *decr_tvb = encrypt.gssapi_decrypted_tvb;
+            add_new_data_source(pinfo, encrypt.gssapi_decrypted_tvb, "Decrypted GSS-API");
+            dissect_pgsql_msg(decr_tvb, pinfo, ptree, data);
+        } else {
+            /* Encrypted but couldn't be decrypted. */
+            proto_tree_add_item(ptree, hf_gssapi_encrypted_payload, gssapi_tvb, ver_len, -1, ENC_NA);
+        }
+    } else {
+        /* No encrypted (sealed) payload. If any bytes are left, that is
+         * signed-only payload. */
+        tvbuff_t *plain_tvb;
+        if (encrypt.gssapi_decrypted_tvb) {
+            plain_tvb = encrypt.gssapi_decrypted_tvb;
+        } else {
+            plain_tvb = tvb_new_subset_remaining(gssapi_tvb, ver_len);
+        }
+        if (tvb_reported_length(plain_tvb)) {
+            dissect_pgsql_msg(plain_tvb, pinfo, ptree, data);
+        }
+    }
+    return tvb_captured_length(tvb);
+}
+
+static int
+dissect_pgsql_gssapi(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, void *data)
+{
+    tcp_dissect_pdus(tvb, pinfo, tree, pgsql_desegment, 4,
+                     pgsql_gssapi_length, dissect_pgsql_gssapi_wrap, data);
+    return tvb_captured_length(tvb);
+}
+
 /* This function is called once per TCP packet. It sets COL_PROTOCOL and
  * identifies FE/BE messages by adding a ">" or "<" to COL_INFO. Then it
  * arranges for each message to be dissected individually. */
@@ -753,33 +912,106 @@ dissect_pgsql_msg(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, void* dat
 static int
 dissect_pgsql(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, void* data)
 {
+    proto_item          *ti;
+    proto_tree          *ptree;
     conversation_t      *conversation;
     pgsql_conn_data_t   *conn_data;
+    pgsql_auth_state_t   state;
 
-    first_message = TRUE;
+    first_message = true;
 
     conversation = find_or_create_conversation(pinfo);
     conn_data = (pgsql_conn_data_t *)conversation_get_proto_data(conversation, proto_pgsql);
 
+    bool fe = (pinfo->match_uint == pinfo->destport);
+
+    if (fe && tvb_get_uint8(tvb, 0) == 0x16 &&
+        (!conn_data || wmem_tree_lookup32_le(conn_data->state_tree, pinfo->num) == NULL))
+    {
+        /* This is the first message in the conversation, and it looks
+         * like a TLS handshake. Assume the client is performing
+         * "direct SSL" negotiation.
+         */
+        tls_set_appdata_dissector(tls_handle, pinfo, pgsql_handle);
+    }
+
+    if (!tvb_ascii_isprint(tvb, 0, 1) && tvb_get_uint8(tvb, 0) != '\0') {
+        /* Doesn't look like the start of a PostgreSQL packet. Have we
+         * seen Postgres yet?
+         */
+        if (!conn_data || wmem_tree_lookup32_le(conn_data->state_tree, pinfo->num) == NULL) {
+            /* No. Reject. This might be PostgreSQL over TLS and we missed
+             * the start of the transaction. The TLS dissector should get
+             * a chance.
+             */
+            return 0;
+        }
+        /* Was there segmentation, and we lost a packet or were out of
+         * order without out of order processing, or we couldn't do
+         * desegmentation of a segment because of a bad checksum?
+         * XXX: Should we call this Continuation Data if this happens,
+         * so we don't send it to tcp_dissect_pdus()?
+         */
+    }
+
     col_set_str(pinfo->cinfo, COL_PROTOCOL, "PGSQL");
     col_set_str(pinfo->cinfo, COL_INFO,
-                    (pinfo->match_uint == pinfo->destport) ?
-                     ">" : "<");
+                    fe ? ">" : "<");
 
-    if (conn_data && conn_data->ssl_requested) {
-        /* Response to SSLRequest. */
-        switch (tvb_get_guint8(tvb, 0)) {
-        case 'S':   /* Willing to perform SSL */
-            /* Next packet will start using SSL. */
-            ssl_starttls_ack(tls_handle, pinfo, pgsql_handle);
-            break;
-        case 'N':   /* Unwilling to perform SSL */
-        default:    /* ErrorMessage when server does not support SSL. */
-            /* TODO: maybe add expert info here? */
-            break;
+    if (conn_data && !fe) {
+        state = GPOINTER_TO_UINT(wmem_tree_lookup32_le(conn_data->state_tree, pinfo->num));
+        if (state == PGSQL_AUTH_SSL_REQUESTED) {
+            /* Response to SSLRequest. */
+            wmem_tree_insert32(conn_data->state_tree, pinfo->num + 1, GUINT_TO_POINTER(PGSQL_AUTH_STATE_NONE));
+            ti = proto_tree_add_item(tree, proto_pgsql, tvb, 0, -1, ENC_NA);
+            ptree = proto_item_add_subtree(ti, ett_pgsql);
+            proto_tree_add_string(ptree, hf_type, tvb, 0, 0, "SSL response");
+            proto_tree_add_item(ptree, hf_ssl_response, tvb, 0, 1, ENC_NA);
+            switch (tvb_get_uint8(tvb, 0)) {
+            case 'S':   /* Willing to perform SSL */
+                /* Next packet will start using SSL. */
+                ssl_starttls_ack(tls_handle, pinfo, pgsql_handle);
+                break;
+            case 'E':   /* ErrorResponse when server does not support SSL. */
+                /* Process normally. */
+                tcp_dissect_pdus(tvb, pinfo, tree, pgsql_desegment, 5,
+                                 pgsql_length, dissect_pgsql_msg, data);
+                break;
+            case 'N':   /* Unwilling to perform SSL */
+            default:    /* Unexpected response. */
+                /* TODO: maybe add expert info here? */
+                break;
+            }
+            /* XXX: If it's anything other than 'E', a length of more
+             * than one character is unexpected and should possibly have
+             * an expert info (possible MitM:
+             * https://www.postgresql.org/support/security/CVE-2021-23222/ )
+             */
+            return tvb_captured_length(tvb);
+        } else if (state == PGSQL_AUTH_GSSENC_REQUESTED) {
+            /* Response to GSSENCRequest. */
+            wmem_tree_insert32(conn_data->state_tree, pinfo->num + 1, GUINT_TO_POINTER(PGSQL_AUTH_STATE_NONE));
+            ti = proto_tree_add_item(tree, proto_pgsql, tvb, 0, -1, ENC_NA);
+            ptree = proto_item_add_subtree(ti, ett_pgsql);
+            proto_tree_add_string(ptree, hf_type, tvb, 0, 0, "GSS encrypt response");
+            proto_tree_add_item(ptree, hf_gssenc_response, tvb, 0, 1, ENC_NA);
+            switch (tvb_get_uint8(tvb, 0)) {
+            case 'E':   /* ErrorResponse; server does not support GSSAPI. */
+                /* Process normally. */
+                tcp_dissect_pdus(tvb, pinfo, tree, pgsql_desegment, 5,
+                                 pgsql_length, dissect_pgsql_msg, data);
+                break;
+            case 'G':   /* Willing to perform GSSAPI Enc */
+                wmem_tree_insert32(conn_data->state_tree, pinfo->num + 1, GUINT_TO_POINTER(PGSQL_AUTH_GSSAPI_SSPI_DATA));
+                conversation_set_dissector_from_frame_number(conversation, pinfo->num + 1, pgsql_gssapi_handle);
+                break;
+            case 'N':   /* Unwilling to perform GSSAPI Enc */
+            default:    /* Unexpected response. */
+                /* TODO: maybe add expert info here? */
+                break;
+            }
+            return tvb_captured_length(tvb);
         }
-        conn_data->ssl_requested = FALSE;
-        return tvb_captured_length(tvb);
     }
 
     tcp_dissect_pdus(tvb, pinfo, tree, pgsql_desegment, 5,
@@ -812,6 +1044,10 @@ proto_register_pgsql(void)
         { &hf_version_minor,
           { "Protocol minor version", "pgsql.version_minor", FT_UINT16, BASE_DEC, NULL, 0,
             NULL, HFILL }
+        },
+        { &hf_request_code,
+          { "Request code", "pgsql.request_code", FT_UINT32, BASE_DEC,
+            VALS(request_code_vals), 0, NULL, HFILL }
         },
         { &hf_supported_minor_version,
           { "Supported minor version", "pgsql.version_supported_minor", FT_UINT32, BASE_DEC, NULL, 0,
@@ -853,7 +1089,7 @@ proto_register_pgsql(void)
             "The salt to use while encrypting a password.", HFILL }
         },
         { &hf_gssapi_sspi_data,
-          { "GSSAPI or SSPI data", "pgsql.auth.gssapi_sspi.data", FT_BYTES, BASE_NONE, NULL, 0,
+          { "GSSAPI or SSPI authentication data", "pgsql.auth.gssapi_sspi.data", FT_BYTES, BASE_NONE, NULL, 0,
             NULL, HFILL }
         },
         { &hf_sasl_auth_mech,
@@ -1021,10 +1257,22 @@ proto_register_pgsql(void)
         { &hf_routine,
           { "Routine", "pgsql.routine", FT_STRINGZ, BASE_NONE, NULL, 0,
             "The routine that reported an error.", HFILL }
-        }
+        },
+        { &hf_ssl_response,
+          { "SSL Response", "pgsql.ssl_response", FT_CHAR, BASE_HEX,
+            VALS(ssl_response_vals), 0, NULL, HFILL }
+        },
+        { &hf_gssenc_response,
+          { "GSSAPI Encrypt Response", "pgsql.gssenc_response", FT_CHAR,
+            BASE_HEX, VALS(gssenc_response_vals), 0, NULL, HFILL }
+        },
+        { &hf_gssapi_encrypted_payload,
+          { "GSS-API encrypted payload", "pgsql.gssapi.encrypted_payload", FT_BYTES, BASE_NONE, NULL, 0,
+            NULL, HFILL }
+        },
     };
 
-    static gint *ett[] = {
+    static int *ett[] = {
         &ett_pgsql,
         &ett_values
     };
@@ -1033,6 +1281,13 @@ proto_register_pgsql(void)
     pgsql_handle = register_dissector("pgsql", dissect_pgsql, proto_pgsql);
     proto_register_field_array(proto_pgsql, hf, array_length(hf));
     proto_register_subtree_array(ett, array_length(ett));
+
+    /* Unfortunately there's no way to set up a GSS-API conversation
+     * instructing the GSS-API dissector to use our wrap handle; that
+     * only works for protocols that have an OID and that begin the
+     * GSS-API conversation by sending that OID.
+     */
+    pgsql_gssapi_handle = register_dissector("pgsql.gssapi", dissect_pgsql_gssapi, proto_pgsql);
 }
 
 void
@@ -1041,6 +1296,8 @@ proto_reg_handoff_pgsql(void)
     dissector_add_uint_with_preference("tcp.port", PGSQL_PORT, pgsql_handle);
 
     tls_handle = find_dissector_add_dependency("tls", proto_pgsql);
+    gssapi_handle = find_dissector_add_dependency("gssapi", proto_pgsql);
+    ntlmssp_handle = find_dissector_add_dependency("ntlmssp", proto_pgsql);
 }
 
 /*

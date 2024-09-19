@@ -18,6 +18,8 @@
 void proto_register_jmirror(void);
 void proto_reg_handoff_jmirror(void);
 
+static dissector_handle_t jmirror_handle;
+
 #define MIRROR_HDR_SZ           8
 #define MIRROR_ID_SZ            4
 #define SESSION_ID_SZ           4
@@ -28,10 +30,10 @@ void proto_reg_handoff_jmirror(void);
  */
 
 /* Jmirror protocol variables */
-static int proto_jmirror = -1;
-static int hf_jmirror_mid = -1;
-static int hf_jmirror_sid = -1;
-static gint ett_jmirror = -1;
+static int proto_jmirror;
+static int hf_jmirror_mid;
+static int hf_jmirror_sid;
+static int ett_jmirror;
 
 /* Handles which point to the packet dissectors */
 static dissector_handle_t ipv4_handle;
@@ -60,10 +62,10 @@ get_heuristic_handle(tvbuff_t *tvb)
 		return NULL;   /* Not enough bytes for heuristic test */
 
 	/* Filter for IPv4 and IPv6 packets */
-	byte0 = tvb_get_guint8(tvb, offset + 0);
-	byte1 = tvb_get_guint8(tvb, offset + 1);
-	byte2 = tvb_get_guint8(tvb, offset + 2);
-	byte3 = tvb_get_guint8(tvb, offset + 3);
+	byte0 = tvb_get_uint8(tvb, offset + 0);
+	byte1 = tvb_get_uint8(tvb, offset + 1);
+	byte2 = tvb_get_uint8(tvb, offset + 2);
+	byte3 = tvb_get_uint8(tvb, offset + 3);
 
 	/* Look for IPv4 with standard header length */
 	if ( byte0 == 0x45 && ipv4_handle )
@@ -154,7 +156,7 @@ proto_register_jmirror(void)
 		    "Unique identifier of the user session", HFILL }
 		}
 	};
-	static gint *jmirror_ett[] = {
+	static int *jmirror_ett[] = {
 		&ett_jmirror
 	};
 
@@ -164,19 +166,19 @@ proto_register_jmirror(void)
 	/* Register the Jmirror subfields for filters */
 	proto_register_field_array(proto_jmirror, jmirror_hf, array_length(jmirror_hf));
 	proto_register_subtree_array(jmirror_ett, array_length(jmirror_ett));
+
+	/* Create a dissector handle for the Jmirror protocol */
+	jmirror_handle = register_dissector("jmirror", dissect_jmirror, proto_jmirror);
+
 }
 
 /* Create attachment point for dissector in Wireshark */
 void
 proto_reg_handoff_jmirror(void)
 {
-	dissector_handle_t jmirror_handle;
 
 	/* register as heuristic dissector for UDP */
 	/* heur_dissector_add("udp", dissect_jmirror, proto_jmirror); */
-
-	/* Create a dissector handle for the Jmirror protocol */
-	jmirror_handle = create_dissector_handle(dissect_jmirror, proto_jmirror);
 
 	/* Create pointer to ipv4, ipv6, ppp and data dissectors */
 	ipv4_handle = find_dissector_add_dependency("ip", proto_jmirror);

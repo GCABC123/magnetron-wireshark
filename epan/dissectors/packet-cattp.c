@@ -18,6 +18,7 @@
 #include <epan/prefs.h>
 #include <epan/expert.h>
 #include <epan/in_cksum.h>
+#include <epan/unit_strings.h>
 
 #define CATTP_SHORTNAME "CAT-TP"
 #define CATTP_HBLEN 18
@@ -38,23 +39,25 @@
 
 #define ICCID_PREFIX 0x98
 
-static int proto_cattp = -1;
+static dissector_handle_t cattp_handle;
 
-static gint ett_cattp = -1;
-static gint ett_cattp_id = -1;
-static gint ett_cattp_flags = -1;
-static gint ett_cattp_eaks = -1;
+static int proto_cattp;
 
-static int hf_cattp_flags = -1;
+static int ett_cattp;
+static int ett_cattp_id;
+static int ett_cattp_flags;
+static int ett_cattp_eaks;
+
+static int hf_cattp_flags;
 
 /* flag components */
-static int hf_cattp_flag_syn = -1;
-static int hf_cattp_flag_ack = -1;
-static int hf_cattp_flag_eak = -1;
-static int hf_cattp_flag_rst = -1;
-static int hf_cattp_flag_nul = -1;
-static int hf_cattp_flag_seg = -1;
-static int hf_cattp_version = -1;
+static int hf_cattp_flag_syn;
+static int hf_cattp_flag_ack;
+static int hf_cattp_flag_eak;
+static int hf_cattp_flag_rst;
+static int hf_cattp_flag_nul;
+static int hf_cattp_flag_seg;
+static int hf_cattp_version;
 
 /* structure of flag components */
 static int * const cattp_flags[] = {
@@ -68,28 +71,28 @@ static int * const cattp_flags[] = {
     NULL
 };
 
-static int hf_cattp_hlen = -1;
-static int hf_cattp_srcport = -1;
-static int hf_cattp_dstport = -1;
-static int hf_cattp_datalen = -1;
-static int hf_cattp_seq = -1;
-static int hf_cattp_ack = -1;
-static int hf_cattp_windowsize = -1;
-static int hf_cattp_checksum = -1;
-static int hf_cattp_checksum_status = -1;
-static int hf_cattp_identification = -1;
-static int hf_cattp_iccid = -1;
-static int hf_cattp_idlen = -1;
-static int hf_cattp_maxpdu = -1;
-static int hf_cattp_maxsdu = -1;
-static int hf_cattp_rc = -1;
-static int hf_cattp_eaklen = -1;
-static int hf_cattp_eaks = -1;
+static int hf_cattp_hlen;
+static int hf_cattp_srcport;
+static int hf_cattp_dstport;
+static int hf_cattp_datalen;
+static int hf_cattp_seq;
+static int hf_cattp_ack;
+static int hf_cattp_windowsize;
+static int hf_cattp_checksum;
+static int hf_cattp_checksum_status;
+static int hf_cattp_identification;
+static int hf_cattp_iccid;
+static int hf_cattp_idlen;
+static int hf_cattp_maxpdu;
+static int hf_cattp_maxsdu;
+static int hf_cattp_rc;
+static int hf_cattp_eaklen;
+static int hf_cattp_eaks;
 
-static expert_field ei_cattp_checksum = EI_INIT;
+static expert_field ei_cattp_checksum;
 
 /* Preference to control whether to check the CATTP checksum */
-static gboolean cattp_check_checksum = TRUE;
+static bool cattp_check_checksum = true;
 
 /* Reason code mapping */
 static const value_string cattp_reset_reason[] = {
@@ -106,16 +109,16 @@ static const value_string cattp_reset_reason[] = {
 
 static const unit_name_string units_pdu = { "PDU", "PDUs" };
 
-/* Forward declartion due to use of heuristic dissection preference. */
+/* Forward declaration due to use of heuristic dissection preference. */
 void proto_reg_handoff_cattp(void);
 void proto_register_cattp(void);
 
 /* Dissection of SYN PDUs */
-static guint32
-dissect_cattp_synpdu(tvbuff_t *tvb, packet_info *pinfo, proto_tree *cattp_tree, guint32 offset)
+static uint32_t
+dissect_cattp_synpdu(tvbuff_t *tvb, packet_info *pinfo, proto_tree *cattp_tree, uint32_t offset)
 {
     proto_item *idi, *id_tree;
-    guint8      idlen;
+    uint8_t     idlen;
 
     proto_tree_add_item(cattp_tree, hf_cattp_maxpdu, tvb, offset, 2, ENC_BIG_ENDIAN);
     offset += 2;
@@ -123,7 +126,7 @@ dissect_cattp_synpdu(tvbuff_t *tvb, packet_info *pinfo, proto_tree *cattp_tree, 
     proto_tree_add_item(cattp_tree, hf_cattp_maxsdu, tvb, offset, 2, ENC_BIG_ENDIAN);
     offset += 2;
 
-    idlen = tvb_get_guint8(tvb, offset);
+    idlen = tvb_get_uint8(tvb, offset);
     idi = proto_tree_add_uint(cattp_tree, hf_cattp_idlen, tvb, offset, 1, idlen);
     offset += 1;
 
@@ -132,9 +135,9 @@ dissect_cattp_synpdu(tvbuff_t *tvb, packet_info *pinfo, proto_tree *cattp_tree, 
     id_tree = proto_item_add_subtree(idi, ett_cattp_id);
 
     if (idlen > 0) {
-        guint8 first_id_byte;
+        uint8_t first_id_byte;
 
-        first_id_byte = tvb_get_guint8(tvb, offset);
+        first_id_byte = tvb_get_uint8(tvb, offset);
         proto_tree_add_item(id_tree, hf_cattp_identification, tvb, offset, idlen, ENC_NA);
 
         /* Optional code. Checks whether identification field may be an ICCID.
@@ -148,9 +151,9 @@ dissect_cattp_synpdu(tvbuff_t *tvb, packet_info *pinfo, proto_tree *cattp_tree, 
 
             /* switch nibbles */
             for (i = 0; i < idlen; i++) {
-                guint8 c, n;
+                uint8_t c, n;
 
-                c = tvb_get_guint8(tvb, offset + i);
+                c = tvb_get_uint8(tvb, offset + i);
                 n = ((c & 0xF0) >> 4) + ((c & 0x0F) << 4);
                 wmem_strbuf_append_printf(buf, "%02X", n);
             }
@@ -164,11 +167,11 @@ dissect_cattp_synpdu(tvbuff_t *tvb, packet_info *pinfo, proto_tree *cattp_tree, 
 }
 
 /* Dissection of Extended Acknowledgement PDUs */
-static guint32
-dissect_cattp_eakpdu(tvbuff_t *tvb, packet_info *pinfo, proto_tree *cattp_tree, guint32 offset, guint8 hlen)
+static uint32_t
+dissect_cattp_eakpdu(tvbuff_t *tvb, packet_info *pinfo, proto_tree *cattp_tree, uint32_t offset, uint8_t hlen)
 {
     proto_item *eaki;
-    guint8      eak_count;
+    uint8_t     eak_count;
 
     eak_count = (hlen - offset) >> 1;
     eaki = proto_tree_add_uint(cattp_tree, hf_cattp_eaklen, tvb, offset, eak_count * 2, eak_count);
@@ -190,13 +193,13 @@ dissect_cattp_eakpdu(tvbuff_t *tvb, packet_info *pinfo, proto_tree *cattp_tree, 
 }
 
 /* Dissection of Extended Acknowledgement PDUs */
-static guint32
-dissect_cattp_rstpdu(tvbuff_t *tvb, packet_info *pinfo, proto_tree *cattp_tree, guint32 offset)
+static uint32_t
+dissect_cattp_rstpdu(tvbuff_t *tvb, packet_info *pinfo, proto_tree *cattp_tree, uint32_t offset)
 {
-    guint8       rc;
-    const gchar *rc_str;
+    uint8_t      rc;
+    const char *rc_str;
 
-    rc = tvb_get_guint8(tvb, offset); /* reason code of RST */
+    rc = tvb_get_uint8(tvb, offset); /* reason code of RST */
     rc_str = val_to_str(rc, cattp_reset_reason, "Unknown reason code: 0x%02x");
     col_append_fstr(pinfo->cinfo, COL_INFO, " Reason=\"%s\" ", rc_str);
 
@@ -210,19 +213,19 @@ dissect_cattp(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, void* data _U
 {
     const char *pdutype = "[Unknown PDU]";
     proto_item *ti, *cattp_tree;
-    guint32     offset;
+    uint32_t    offset;
     vec_t       cksum_vec[1];
     int         header_offset;
-    guint       cksum_data_len;
-    guint8      flags, first_byte, hlen, ver;
-    guint16     plen, ackno, seqno, wsize, sport, dport;
+    unsigned    cksum_data_len;
+    uint8_t     flags, first_byte, hlen, ver;
+    uint16_t    plen, ackno, seqno, wsize, sport, dport;
 
     col_set_str(pinfo->cinfo, COL_PROTOCOL, CATTP_SHORTNAME);
 
     /* Clear out stuff in the info column */
     col_clear(pinfo->cinfo, COL_INFO);
 
-    hlen = tvb_get_guint8(tvb, 3); /* lookahead header len. */
+    hlen = tvb_get_uint8(tvb, 3); /* lookahead header len. */
 
     offset = 0;
     ti = proto_tree_add_protocol_format(tree, proto_cattp, tvb, offset, hlen,
@@ -231,7 +234,7 @@ dissect_cattp(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, void* data _U
     cattp_tree = proto_item_add_subtree(ti, ett_cattp);
 
     /* render flags tree */
-    first_byte = tvb_get_guint8(tvb, offset);
+    first_byte = tvb_get_uint8(tvb, offset);
     flags = first_byte & M_FLAGS; /* discard version from first byte for flags */
     ver   = first_byte & M_VERSION; /* discard flags for version */
     proto_tree_add_bitmask(cattp_tree, tvb, offset, hf_cattp_flags, ett_cattp_flags, cattp_flags, ENC_BIG_ENDIAN);
@@ -317,34 +320,34 @@ dissect_cattp(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, void* data _U
 }
 
 /* The heuristic dissector function checks if the UDP packet may be a cattp packet */
-static gboolean
+static bool
 dissect_cattp_heur(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, void *data)
 {
     if (tvb_captured_length(tvb) >= CATTP_HBLEN) { /* check of data is big enough for base header. */
-        guint8  flags, ver, hlen;
-        guint16 plen;
+        uint8_t flags, ver, hlen;
+        uint16_t plen;
 
-        hlen = tvb_get_guint8(tvb, 3); /* header len  */
+        hlen = tvb_get_uint8(tvb, 3); /* header len  */
         plen = tvb_get_ntohs(tvb, 8);  /* payload len */
 
         if (hlen+plen != tvb_reported_length(tvb)) /* check if data length is ok. */
-            return FALSE;
+            return false;
 
         /* ETSI TS 102 127 V15.0.0 and earlier releases say explicitly that
            the version bits must be 0. */
-        ver = tvb_get_guint8(tvb, 0) & M_VERSION;
+        ver = tvb_get_uint8(tvb, 0) & M_VERSION;
         if (ver != 0)
-            return FALSE;
+            return false;
 
-        flags = tvb_get_guint8(tvb, 0) & M_FLAGS;
+        flags = tvb_get_uint8(tvb, 0) & M_FLAGS;
         if ( (flags & M_PDU_SYN) == F_SYN ||
              (flags & M_PDU_RST) == F_RST ||
              (flags & M_PDU_ACK) == F_ACK ) { /* check if flag combi is valid */
             dissect_cattp(tvb, pinfo, tree, data);
-            return TRUE;
+            return true;
         }
     }
-    return FALSE;
+    return false;
 }
 
 /* Function to register the dissector, called by infrastructure. */
@@ -523,14 +526,14 @@ proto_register_cattp(void)
         {
             &hf_cattp_eaklen,
             {
-                "Extended Acknowledgement Numbers", "cattp.eaks", FT_UINT16, BASE_DEC|BASE_UNIT_STRING, &units_pdu, 0x0,
+                "Extended Acknowledgement Numbers", "cattp.eaks", FT_UINT16, BASE_DEC|BASE_UNIT_STRING, UNS(&units_pdu), 0x0,
                 NULL, HFILL
             }
         }
     };
 
     /* Setup protocol subtree array */
-    static gint *ett[] = {
+    static int *ett[] = {
         &ett_cattp,
         &ett_cattp_flags,
         &ett_cattp_id,
@@ -562,17 +565,16 @@ proto_register_cattp(void)
                                    &cattp_check_checksum);
 
     prefs_register_obsolete_preference(cattp_module, "enable");
+
+    /* Register dissector handle */
+    cattp_handle = register_dissector("cattp", dissect_cattp, proto_cattp);
+
 }
 
 /* Handoff */
 void
 proto_reg_handoff_cattp(void)
 {
-    dissector_handle_t cattp_handle;
-
-    /* Create dissector handle */
-    cattp_handle = create_dissector_handle(dissect_cattp, proto_cattp);
-
     heur_dissector_add("udp", dissect_cattp_heur, "CAT-TP over UDP", "cattp_udp", proto_cattp, HEURISTIC_DISABLE);
     dissector_add_for_decode_as_with_preference("udp.port", cattp_handle);
 }

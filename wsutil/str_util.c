@@ -13,6 +13,8 @@
 #include "str_util.h"
 
 #include <string.h>
+#include <locale.h>
+#include <math.h>
 
 #include <ws_codepoints.h>
 
@@ -22,30 +24,30 @@
 static const char hex[16] = { '0', '1', '2', '3', '4', '5', '6', '7',
                               '8', '9', 'A', 'B', 'C', 'D', 'E', 'F' };
 
-gchar *
-wmem_strconcat(wmem_allocator_t *allocator, const gchar *first, ...)
+char *
+wmem_strconcat(wmem_allocator_t *allocator, const char *first, ...)
 {
-    gsize   len;
+    size_t  len;
     va_list args;
-    gchar   *s;
-    gchar   *concat;
-    gchar   *ptr;
+    char    *s;
+    char    *concat;
+    char    *ptr;
 
     if (!first)
         return NULL;
 
     len = 1 + strlen(first);
     va_start(args, first);
-    while ((s = va_arg(args, gchar*))) {
+    while ((s = va_arg(args, char*))) {
         len += strlen(s);
     }
     va_end(args);
 
-    ptr = concat = (gchar *)wmem_alloc(allocator, len);
+    ptr = concat = (char *)wmem_alloc(allocator, len);
 
     ptr = g_stpcpy(ptr, first);
     va_start(args, first);
-    while ((s = va_arg(args, gchar*))) {
+    while ((s = va_arg(args, char*))) {
         ptr = g_stpcpy(ptr, s);
     }
     va_end(args);
@@ -53,16 +55,16 @@ wmem_strconcat(wmem_allocator_t *allocator, const gchar *first, ...)
     return concat;
 }
 
-gchar *
+char *
 wmem_strjoin(wmem_allocator_t *allocator,
-             const gchar *separator, const gchar *first, ...)
+             const char *separator, const char *first, ...)
 {
-    gsize   len;
+    size_t  len;
     va_list args;
-    gsize separator_len;
-    gchar   *s;
-    gchar   *concat;
-    gchar   *ptr;
+    size_t separator_len;
+    char    *s;
+    char    *concat;
+    char    *ptr;
 
     if (!first)
         return NULL;
@@ -75,15 +77,15 @@ wmem_strjoin(wmem_allocator_t *allocator,
 
     len = 1 + strlen(first); /* + 1 for null byte */
     va_start(args, first);
-    while ((s = va_arg(args, gchar*))) {
+    while ((s = va_arg(args, char*))) {
         len += (separator_len + strlen(s));
     }
     va_end(args);
 
-    ptr = concat = (gchar *)wmem_alloc(allocator, len);
+    ptr = concat = (char *)wmem_alloc(allocator, len);
     ptr = g_stpcpy(ptr, first);
     va_start(args, first);
-    while ((s = va_arg(args, gchar*))) {
+    while ((s = va_arg(args, char*))) {
         ptr = g_stpcpy(ptr, separator);
         ptr = g_stpcpy(ptr, s);
     }
@@ -93,23 +95,22 @@ wmem_strjoin(wmem_allocator_t *allocator,
 
 }
 
-gchar *
+char *
 wmem_strjoinv(wmem_allocator_t *allocator,
-              const gchar *separator, gchar **str_array)
+              const char *separator, char **str_array)
 {
-    gchar *string = NULL;
+    char *string = NULL;
 
-    if (!str_array)
-        return NULL;
+    ws_return_val_if(!str_array, NULL);
 
     if (separator == NULL) {
         separator = "";
     }
 
     if (str_array[0]) {
-        gint i;
-        gchar *ptr;
-        gsize len, separator_len;
+        int i;
+        char *ptr;
+        size_t len, separator_len;
 
         separator_len = strlen(separator);
 
@@ -122,40 +123,42 @@ wmem_strjoinv(wmem_allocator_t *allocator,
         }
 
         /* Allocate and build the string. */
-        string = (gchar *)wmem_alloc(allocator, len);
+        string = (char *)wmem_alloc(allocator, len);
         ptr = g_stpcpy(string, str_array[0]);
         for (i = 1; str_array[i] != NULL; i++) {
             ptr = g_stpcpy(ptr, separator);
             ptr = g_stpcpy(ptr, str_array[i]);
         }
+    } else {
+        string = wmem_strdup(allocator, "");
     }
 
     return string;
 
 }
 
-gchar **
-wmem_strsplit(wmem_allocator_t *allocator, const gchar *src,
-        const gchar *delimiter, int max_tokens)
+char **
+wmem_strsplit(wmem_allocator_t *allocator, const char *src,
+        const char *delimiter, int max_tokens)
 {
-    gchar *splitted;
-    gchar *s;
-    guint tokens;
-    guint sep_len;
-    guint i;
-    gchar **vec;
+    char *splitted;
+    char *s;
+    unsigned tokens;
+    unsigned sep_len;
+    unsigned i;
+    char **vec;
 
     if (!src || !delimiter || !delimiter[0])
         return NULL;
 
     /* An empty string results in an empty vector. */
     if (!src[0]) {
-        vec = wmem_new0(allocator, gchar *);
+        vec = wmem_new0(allocator, char *);
         return vec;
     }
 
     splitted = wmem_strdup(allocator, src);
-    sep_len = (guint)strlen(delimiter);
+    sep_len = (unsigned)strlen(delimiter);
 
     if (max_tokens < 1)
         max_tokens = INT_MAX;
@@ -163,18 +166,18 @@ wmem_strsplit(wmem_allocator_t *allocator, const gchar *src,
     /* Calculate the number of fields. */
     s = splitted;
     tokens = 1;
-    while (tokens < (guint)max_tokens && (s = strstr(s, delimiter))) {
+    while (tokens < (unsigned)max_tokens && (s = strstr(s, delimiter))) {
         s += sep_len;
         tokens++;
     }
 
-    vec = wmem_alloc_array(allocator, gchar *, tokens + 1);
+    vec = wmem_alloc_array(allocator, char *, tokens + 1);
 
     /* Populate the array of string tokens. */
     s = splitted;
     vec[0] = s;
     tokens = 1;
-    while (tokens < (guint)max_tokens && (s = strstr(s, delimiter))) {
+    while (tokens < (unsigned)max_tokens && (s = strstr(s, delimiter))) {
         for (i = 0; i < sep_len; i++)
             s[i] = '\0';
         s += sep_len;
@@ -192,10 +195,10 @@ wmem_strsplit(wmem_allocator_t *allocator, const gchar *src,
  * wmem_ascii_strdown:
  * based on g_ascii_strdown.
  */
-gchar*
-wmem_ascii_strdown(wmem_allocator_t *allocator, const gchar *str, gssize len)
+char*
+wmem_ascii_strdown(wmem_allocator_t *allocator, const char *str, ssize_t len)
 {
-    gchar *result, *s;
+    char *result, *s;
 
     g_return_val_if_fail (str != NULL, NULL);
 
@@ -234,57 +237,57 @@ ws_xton(char ch)
 }
 
 /* Convert all ASCII letters to lower case, in place. */
-gchar *
-ascii_strdown_inplace(gchar *str)
+char *
+ascii_strdown_inplace(char *str)
 {
-    gchar *s;
+    char *s;
 
     for (s = str; *s; s++)
-        /* What 'g_ascii_tolower (gchar c)' does, this should be slightly more efficient */
+        /* What 'g_ascii_tolower (char c)' does, this should be slightly more efficient */
         *s = g_ascii_isupper (*s) ? *s - 'A' + 'a' : *s;
 
     return (str);
 }
 
 /* Convert all ASCII letters to upper case, in place. */
-gchar *
-ascii_strup_inplace(gchar *str)
+char *
+ascii_strup_inplace(char *str)
 {
-    gchar *s;
+    char *s;
 
     for (s = str; *s; s++)
-        /* What 'g_ascii_toupper (gchar c)' does, this should be slightly more efficient */
+        /* What 'g_ascii_toupper (char c)' does, this should be slightly more efficient */
         *s = g_ascii_islower (*s) ? *s - 'a' + 'A' : *s;
 
     return (str);
 }
 
 /* Check if an entire string is printable. */
-gboolean
-isprint_string(const gchar *str)
+bool
+isprint_string(const char *str)
 {
-    guint pos;
+    unsigned pos;
 
     /* Loop until we reach the end of the string (a null) */
     for(pos = 0; str[pos] != '\0'; pos++){
         if(!g_ascii_isprint(str[pos])){
             /* The string contains a non-printable character */
-            return FALSE;
+            return false;
         }
     }
 
     /* The string contains only printable characters */
-    return TRUE;
+    return true;
 }
 
 /* Check if an entire UTF-8 string is printable. */
-gboolean
-isprint_utf8_string(const gchar *str, const guint length)
+bool
+isprint_utf8_string(const char *str, const unsigned length)
 {
-    const gchar *strend = str + length;
+    const char *strend = str + length;
 
     if (!g_utf8_validate(str, length, NULL)) {
-        return FALSE;
+        return false;
     }
 
     while (str < strend) {
@@ -294,40 +297,41 @@ isprint_utf8_string(const gchar *str, const guint length)
          * U+00AD SOFT HYPHEN? If so, format_text() should be changed too.
          */
         if (!g_unichar_isprint(g_utf8_get_char(str))) {
-            return FALSE;
+            return false;
         }
         str = g_utf8_next_char(str);
     }
 
-    return TRUE;
+    return true;
 }
 
 /* Check if an entire string is digits. */
-gboolean
-isdigit_string(const guchar *str)
+bool
+isdigit_string(const unsigned char *str)
 {
-    guint pos;
+    unsigned pos;
 
     /* Loop until we reach the end of the string (a null) */
     for(pos = 0; str[pos] != '\0'; pos++){
         if(!g_ascii_isdigit(str[pos])){
             /* The string contains a non-digit character */
-            return FALSE;
+            return false;
         }
     }
 
     /* The string contains only digits */
-    return TRUE;
+    return true;
 }
 
 const char *
-ws_strcasestr(const char *haystack, const char *needle)
+ws_ascii_strcasestr(const char *haystack, const char *needle)
 {
-#ifdef HAVE_STRCASESTR
-    return strcasestr(haystack, needle);
-#else
-    gsize hlen = strlen(haystack);
-    gsize nlen = strlen(needle);
+    /* Do not use strcasestr() here, even if a system has it, as it is
+     * locale-dependent (and has different results for e.g. Turkic languages.)
+     * FreeBSD, NetBSD, macOS have a strcasestr_l() that could be used.
+     */
+    size_t hlen = strlen(haystack);
+    size_t nlen = strlen(needle);
 
     while (hlen-- >= nlen) {
         if (!g_ascii_strncasecmp(haystack, needle, nlen))
@@ -335,13 +339,43 @@ ws_strcasestr(const char *haystack, const char *needle)
         haystack++;
     }
     return NULL;
-#endif /* HAVE_STRCASESTR */
+}
+
+/* Return the last occurrence of ch in the n bytes of haystack.
+ * If not found or n is 0, return NULL. */
+const uint8_t *
+ws_memrchr(const void *_haystack, int ch, size_t n)
+{
+#ifdef HAVE_MEMRCHR
+    return memrchr(_haystack, ch, n);
+#else
+    /* A generic implementation. This could be optimized considerably,
+     * e.g. by fetching a word at a time.
+     */
+    if (n == 0) {
+        return NULL;
+    }
+    const uint8_t *haystack = _haystack;
+    const uint8_t *p;
+    uint8_t c = (uint8_t)ch;
+
+    const uint8_t *const end = haystack + n - 1;
+
+    for (p = end; p >= haystack; --p) {
+        if (*p == c) {
+            return p;
+        }
+    }
+
+    return NULL;
+#endif /* HAVE_MEMRCHR */
 }
 
 #define FORMAT_SIZE_UNIT_MASK 0x00ff
 #define FORMAT_SIZE_PFX_MASK 0xff00
 
-static const char *thousands_grouping_fmt = NULL;
+static const char *thousands_grouping_fmt;
+static const char *thousands_grouping_fmt_flt;
 
 DIAG_OFF(format)
 static void test_printf_thousands_grouping(void) {
@@ -350,16 +384,213 @@ static void test_printf_thousands_grouping(void) {
     wmem_strbuf_append_printf(buf, "%'d", 22);
     if (g_strcmp0(wmem_strbuf_get_str(buf), "22") == 0) {
         thousands_grouping_fmt = "%'"PRId64;
+        thousands_grouping_fmt_flt = "%'.*f";
     } else {
         /* Don't use */
         thousands_grouping_fmt = "%"PRId64;
+        thousands_grouping_fmt_flt = "%.*f";
     }
     wmem_strbuf_destroy(buf);
 }
 DIAG_ON(format)
 
+static const char* decimal_point = NULL;
+
+static void truncate_numeric_strbuf(wmem_strbuf_t *strbuf, int n) {
+
+    const char *s = wmem_strbuf_get_str(strbuf);
+    char *p;
+    int count;
+
+    if (decimal_point == NULL) {
+        decimal_point = localeconv()->decimal_point;
+    }
+
+    p = strchr(s, decimal_point[0]);
+    if (p != NULL) {
+        count = n;
+        while (count >= 0) {
+            count--;
+            if (*p == '\0')
+                break;
+            p++;
+        }
+
+        p--;
+        while (*p == '0') {
+            p--;
+        }
+
+        if (*p != decimal_point[0]) {
+            p++;
+        }
+        wmem_strbuf_truncate(strbuf, p - s);
+    }
+}
+
+/* Given a floating point value, return it in a human-readable format,
+ * using units with metric prefixes (falling back to scientific notation
+ * with the base units if outside the range.)
+ */
+char *
+format_units(wmem_allocator_t *allocator, double size,
+             format_size_units_e unit, uint16_t flags,
+             int precision)
+{
+    wmem_strbuf_t *human_str = wmem_strbuf_new(allocator, NULL);
+    double power = 1000.0;
+    int pfx_off = 6;
+    bool is_small = false;
+    /* is_small is when to use the longer, spelled out unit.
+     * We use it for inf, NaN, 0, and unprefixed small values,
+     * but not for unprefixed values using scientific notation
+     * the value is outside the supported prefix range.
+     */
+    bool scientific = false;
+    double abs_size = fabs(size);
+    int exponent = 0;
+    static const char * const si_prefix[] = {" a", " f", " p", " n", " μ", " m", " ", " k", " M", " G", " T", " P", " E"};
+    static const char * const iec_prefix[] = {" ", " Ki", " Mi", " Gi", " Ti", " Pi", " Ei"};
+    const char * const *prefix = si_prefix;
+    int max_exp = (int)G_N_ELEMENTS(si_prefix) - 1;
+
+    char *ret_val;
+
+    if (thousands_grouping_fmt == NULL)
+        test_printf_thousands_grouping();
+
+    if (flags & FORMAT_SIZE_PREFIX_IEC) {
+        prefix = iec_prefix;
+        max_exp = (int)G_N_ELEMENTS(iec_prefix) - 1;
+        power = 1024.0;
+    }
+
+    if (isfinite(size) && size != 0.0) {
+
+        double comp = precision == 0 ? 10.0 : 1.0;
+
+        /* For precision 0, use the range [10, 10*power) because only
+         * one significant digit is not as useful. This is what format_size
+         * does for integers. ("ls -h" uses one digit after the decimal
+         * point only for the [1, 10) range, g_format_size() always displays
+         * tenths.) Prefer non-prefixed units for the range [1,10), though.
+         *
+         * We have a limited number of units to check, so this (which
+         * can be unrolled) is presumably faster than log + floor + pow/exp
+         */
+        if (abs_size < 1.0) {
+            while (abs_size < comp) {
+                abs_size *= power;
+                exponent--;
+                if ((exponent + pfx_off) < 0) {
+                    scientific = true;
+                    break;
+                }
+            }
+        } else {
+            while (abs_size >= comp*power) {
+                abs_size *= 1/power;
+                exponent++;
+                if ((exponent + pfx_off) > max_exp) {
+                    scientific = true;
+                    break;
+                }
+            }
+        }
+    }
+
+    if (scientific) {
+        wmem_strbuf_append_printf(human_str, "%.*g", precision + 1, size);
+        exponent = 0;
+    } else {
+        if (exponent == 0) {
+            is_small = true;
+        }
+        size = copysign(abs_size, size);
+        // Truncate trailing zeros, but do it this way because we know
+        // we don't want scientific notation, and we don't want %g to
+        // switch to that if precision is small. (We could always use
+        // %g when precision is large.)
+        wmem_strbuf_append_printf(human_str, thousands_grouping_fmt_flt, precision, size);
+        truncate_numeric_strbuf(human_str, precision);
+        // XXX - when rounding to a certain precision, printf might
+        // round up to "power" from something like 999.99999995, which
+        // looks a little odd on a graph when transitioning from 1,000 bytes
+        // (for values just under 1 kB) to 1 kB (for values 1 kB and larger.)
+        // Due to edge cases in binary fp representation and how printf might
+        // round things, the right way to handle it is taking the printf output
+        // and comparing it to "1000" and "1024" and adjusting the exponent
+        // if so - though we need to compare to the version with the thousands
+        // separator if we have that (which makes it harder to use strnatcmp
+        // as is.)
+    }
+
+    if ((size_t)(pfx_off + exponent) < G_N_ELEMENTS(si_prefix)) {
+        wmem_strbuf_append(human_str, prefix[pfx_off+exponent]);
+    }
+
+    switch (unit) {
+        case FORMAT_SIZE_UNIT_NONE:
+            break;
+        case FORMAT_SIZE_UNIT_BYTES:
+            wmem_strbuf_append(human_str, is_small ? "bytes" : "B");
+            break;
+        case FORMAT_SIZE_UNIT_BITS:
+            wmem_strbuf_append(human_str, is_small ? "bits" : "b");
+            break;
+        case FORMAT_SIZE_UNIT_BITS_S:
+            wmem_strbuf_append(human_str, is_small ? "bits/s" : "bps");
+            break;
+        case FORMAT_SIZE_UNIT_BYTES_S:
+            wmem_strbuf_append(human_str, is_small ? "bytes/s" : "Bps");
+            break;
+        case FORMAT_SIZE_UNIT_PACKETS:
+            wmem_strbuf_append(human_str, is_small ? "packets" : "pkts");
+            break;
+        case FORMAT_SIZE_UNIT_PACKETS_S:
+            wmem_strbuf_append(human_str, is_small ? "packets/s" : "pkts/s");
+            break;
+        case FORMAT_SIZE_UNIT_EVENTS:
+            wmem_strbuf_append(human_str, is_small ? "events" : "evts");
+            break;
+        case FORMAT_SIZE_UNIT_EVENTS_S:
+            wmem_strbuf_append(human_str, is_small ? "events/s" : "evts/s");
+            break;
+        case FORMAT_SIZE_UNIT_FIELDS:
+            wmem_strbuf_append(human_str, is_small ? "fields" : "flds");
+            break;
+        case FORMAT_SIZE_UNIT_SECONDS:
+            wmem_strbuf_append(human_str, is_small ? "seconds" : "s");
+            break;
+        case FORMAT_SIZE_UNIT_ERLANGS:
+            wmem_strbuf_append(human_str, is_small ? "erlangs" : "E");
+            break;
+        default:
+            ws_assert_not_reached();
+    }
+
+    ret_val = wmem_strbuf_finalize(human_str);
+    /* Convention is a space between the value and the units. If we have
+     * a prefix, the space is before the prefix. There are two possible
+     * uses of FORMAT_SIZE_UNIT_NONE:
+     * 1. Add a unit immediately after the string returned. In this case,
+     *    we would want the string to end with a space if there's no prefix.
+     * 2. The unit appears somewhere else, e.g. in a legend, header, or
+     *    different column. In this case, we don't want the string to end
+     *    with a space if there's no prefix.
+     * chomping the string here, as we've traditionally done, optimizes for
+     * the latter case but makes the former case harder.
+     * Perhaps the right approach is to distinguish the cases with a new
+     * enum value.
+     */
+    return g_strchomp(ret_val);
+}
+
 /* Given a size, return its value in a human-readable format */
-/* This doesn't handle fractional values. We might want to make size a double. */
+/* This doesn't handle fractional values. We might want to just
+ * call the version with the double and precision 0 (possibly
+ * slower due to the use of floating point math, but do we care?)
+ */
 char *
 format_size_wmem(wmem_allocator_t *allocator, int64_t size,
                         format_size_units_e unit, uint16_t flags)
@@ -367,9 +598,9 @@ format_size_wmem(wmem_allocator_t *allocator, int64_t size,
     wmem_strbuf_t *human_str = wmem_strbuf_new(allocator, NULL);
     int power = 1000;
     int pfx_off = 0;
-    gboolean is_small = FALSE;
-    static const gchar *prefix[] = {" T", " G", " M", " k", " Ti", " Gi", " Mi", " Ki"};
-    gchar *ret_val;
+    bool is_small = false;
+    static const char *prefix[] = {" T", " G", " M", " k", " Ti", " Gi", " Mi", " Ki"};
+    char *ret_val;
 
     if (thousands_grouping_fmt == NULL)
         test_printf_thousands_grouping();
@@ -393,7 +624,7 @@ format_size_wmem(wmem_allocator_t *allocator, int64_t size,
         wmem_strbuf_append(human_str, prefix[pfx_off+3]);
     } else {
         wmem_strbuf_append_printf(human_str, thousands_grouping_fmt, size);
-        is_small = TRUE;
+        is_small = true;
     }
 
     switch (unit) {
@@ -417,6 +648,18 @@ format_size_wmem(wmem_allocator_t *allocator, int64_t size,
         case FORMAT_SIZE_UNIT_PACKETS_S:
             wmem_strbuf_append(human_str, is_small ? " packets/s" : "packets/s");
             break;
+        case FORMAT_SIZE_UNIT_FIELDS:
+            wmem_strbuf_append(human_str, is_small ? " fields" : "fields");
+            break;
+        /* These aren't that practical to use with integers, but
+         * perhaps better than asserting.
+         */
+        case FORMAT_SIZE_UNIT_SECONDS:
+            wmem_strbuf_append(human_str, is_small ? " seconds" : "s");
+            break;
+        case FORMAT_SIZE_UNIT_ERLANGS:
+            wmem_strbuf_append(human_str, is_small ? " erlangs" : "E");
+            break;
         default:
             ws_assert_not_reached();
     }
@@ -425,8 +668,8 @@ format_size_wmem(wmem_allocator_t *allocator, int64_t size,
     return g_strchomp(ret_val);
 }
 
-gchar
-printable_char_or_period(gchar c)
+char
+printable_char_or_period(char c)
 {
     return g_ascii_isprint(c) ? c : '.';
 }
@@ -442,8 +685,9 @@ escape_char(char c, char *p)
     ws_assert(p);
 
     /*
-     * Backslashes and double-quotes must
-     * be escaped. Whitespace is also escaped.
+     * backslashes and double-quotes must be escaped (double-quotes
+     * are escaped by passing '"' as quote_char in escape_string_len)
+     * whitespace is also escaped.
      */
     switch (c) {
         case '\a': r = 'a'; break;
@@ -453,7 +697,6 @@ escape_char(char c, char *p)
         case '\r': r = 'r'; break;
         case '\t': r = 't'; break;
         case '\v': r = 'v'; break;
-        case '"':  r = '"'; break;
         case '\\': r = '\\'; break;
         case '\0': r = '0'; break;
     }
@@ -478,7 +721,8 @@ escape_null(char c, char *p)
 
 static char *
 escape_string_len(wmem_allocator_t *alloc, const char *string, ssize_t len,
-                    bool (*escape_func)(char c, char *p), bool add_quotes)
+                    bool (*escape_func)(char c, char *p), bool add_quotes,
+                    char quote_char, bool double_quote)
 {
     char c, r;
     wmem_strbuf_t *buf;
@@ -494,8 +738,8 @@ escape_string_len(wmem_allocator_t *alloc, const char *string, ssize_t len,
 
     buf = wmem_strbuf_new_sized(alloc, alloc_size);
 
-    if (add_quotes)
-        wmem_strbuf_append_c(buf, '"');
+    if (add_quotes && quote_char != '\0')
+        wmem_strbuf_append_c(buf, quote_char);
 
     for (i = 0; i < len; i++) {
         c = string[i];
@@ -503,14 +747,30 @@ escape_string_len(wmem_allocator_t *alloc, const char *string, ssize_t len,
             wmem_strbuf_append_c(buf, '\\');
             wmem_strbuf_append_c(buf, r);
         }
+        else if (c == quote_char && quote_char != '\0') {
+            /* If quoting, we must escape the quote_char somehow. */
+            if (double_quote) {
+                wmem_strbuf_append_c(buf, c);
+                wmem_strbuf_append_c(buf, c);
+            } else {
+                wmem_strbuf_append_c(buf, '\\');
+                wmem_strbuf_append_c(buf, c);
+            }
+        }
+        else if (c == '\\' && quote_char != '\0' && !double_quote) {
+            /* If quoting, and escaping the quote_char with a backslash,
+             * then backslash must be escaped, even if escape_func doesn't. */
+            wmem_strbuf_append_c(buf, '\\');
+            wmem_strbuf_append_c(buf, '\\');
+        }
         else {
             /* Other UTF-8 bytes are passed through. */
             wmem_strbuf_append_c(buf, c);
         }
     }
 
-    if (add_quotes)
-        wmem_strbuf_append_c(buf, '"');
+    if (add_quotes && quote_char != '\0')
+        wmem_strbuf_append_c(buf, quote_char);
 
     return wmem_strbuf_finalize(buf);
 }
@@ -518,18 +778,29 @@ escape_string_len(wmem_allocator_t *alloc, const char *string, ssize_t len,
 char *
 ws_escape_string_len(wmem_allocator_t *alloc, const char *string, ssize_t len, bool add_quotes)
 {
-    return escape_string_len(alloc, string, len, escape_char, add_quotes);
+    return escape_string_len(alloc, string, len, escape_char, add_quotes, '"', false);
 }
 
 char *
 ws_escape_string(wmem_allocator_t *alloc, const char *string, bool add_quotes)
 {
-    return escape_string_len(alloc, string, -1, escape_char, add_quotes);
+    return escape_string_len(alloc, string, -1, escape_char, add_quotes, '"', false);
 }
 
 char *ws_escape_null(wmem_allocator_t *alloc, const char *string, size_t len, bool add_quotes)
 {
-    return escape_string_len(alloc, string, len, escape_null, add_quotes);
+    /* XXX: The existing behavior (maintained) here is not to escape
+     * backslashes even though NUL is escaped.
+     */
+    return escape_string_len(alloc, string, len, escape_null, add_quotes, add_quotes ? '"' : '\0', false);
+}
+
+char *ws_escape_csv(wmem_allocator_t *alloc, const char *string, bool add_quotes, char quote_char, bool double_quote, bool escape_whitespace)
+{
+    if (escape_whitespace)
+        return escape_string_len(alloc, string, -1, escape_char, add_quotes, quote_char, double_quote);
+    else
+        return escape_string_len(alloc, string, -1, escape_null, add_quotes, quote_char, double_quote);
 }
 
 const char *
@@ -572,9 +843,9 @@ ws_strdup_underline(wmem_allocator_t *allocator, long offset, size_t len)
  * Declare, and initialize, the variables used for an output buffer.
  */
 #define FMTBUF_VARS \
-    gchar *fmtbuf = (gchar*)wmem_alloc(allocator, INITIAL_FMTBUF_SIZE); \
-    guint fmtbuf_len = INITIAL_FMTBUF_SIZE; \
-    guint column = 0
+    char *fmtbuf = (char*)wmem_alloc(allocator, INITIAL_FMTBUF_SIZE); \
+    unsigned fmtbuf_len = INITIAL_FMTBUF_SIZE; \
+    unsigned column = 0
 
 /*
  * Expand the buffer to be large enough to add nbytes bytes, plus a
@@ -593,7 +864,7 @@ ws_strdup_underline(wmem_allocator_t *allocator, long offset, size_t len)
          * for one more character plus a terminating '\0'. \
          */ \
         fmtbuf_len *= 2; \
-        fmtbuf = (gchar *)wmem_realloc(allocator, fmtbuf, fmtbuf_len); \
+        fmtbuf = (char *)wmem_realloc(allocator, fmtbuf, fmtbuf_len); \
     }
 
 /*
@@ -628,14 +899,14 @@ ws_strdup_underline(wmem_allocator_t *allocator, long offset, size_t len)
 #define FMTBUF_ENDSTR \
     fmtbuf[column] = '\0'
 
-static gchar *
+static char *
 format_text_internal(wmem_allocator_t *allocator,
-                        const guchar *string, size_t len,
-                        gboolean replace_space)
+                        const unsigned char *string, size_t len,
+                        bool replace_space)
 {
     FMTBUF_VARS;
-    const guchar *stringend = string + len;
-    guchar c;
+    const unsigned char *stringend = string + len;
+    unsigned char c;
 
     while (string < stringend) {
         /*
@@ -719,9 +990,9 @@ format_text_internal(wmem_allocator_t *allocator,
              * sequence into c.
              */
             int utf8_len;
-            guchar mask;
+            unsigned char mask;
             gunichar uc;
-            guchar first;
+            unsigned char first;
 
             if ((c & 0xe0) == 0xc0) {
                 /* Starts a 2-byte UTF-8 sequence; 1 byte left */
@@ -958,7 +1229,7 @@ char *
 format_text(wmem_allocator_t *allocator,
                         const char *string, size_t len)
 {
-    return format_text_internal(allocator, string, len, FALSE);
+    return format_text_internal(allocator, string, len, false);
 }
 
 /** Given a wmem scope and a null-terminated string, expected to be in
@@ -982,7 +1253,7 @@ format_text(wmem_allocator_t *allocator,
 char *
 format_text_string(wmem_allocator_t* allocator, const char *string)
 {
-    return format_text_internal(allocator, string, strlen(string), FALSE);
+    return format_text_internal(allocator, string, strlen(string), false);
 }
 
 /*
@@ -994,7 +1265,7 @@ format_text_string(wmem_allocator_t* allocator, const char *string)
 char *
 format_text_wsp(wmem_allocator_t* allocator, const char *string, size_t len)
 {
-    return format_text_internal(allocator, string, len, TRUE);
+    return format_text_internal(allocator, string, len, true);
 }
 
 /*
@@ -1075,7 +1346,7 @@ ws_utf8_truncate(char *string, size_t len)
  * https://web.archive.org/web/20060813174742/http://www.room42.com/store/computer_center/code_tables.shtml
  */
 #if 0
-static const guint8 ASCII_translate_EBCDIC [ 256 ] = {
+static const uint8_t ASCII_translate_EBCDIC [ 256 ] = {
     0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08,
     0x09, 0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x0F,
     0x10, 0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x17, 0x18,
@@ -1111,10 +1382,10 @@ static const guint8 ASCII_translate_EBCDIC [ 256 ] = {
 };
 
 void
-ASCII_to_EBCDIC(guint8 *buf, guint bytes)
+ASCII_to_EBCDIC(uint8_t *buf, unsigned bytes)
 {
-    guint    i;
-    guint8    *bufptr;
+    unsigned i;
+    uint8_t   *bufptr;
 
     bufptr = buf;
 
@@ -1123,14 +1394,14 @@ ASCII_to_EBCDIC(guint8 *buf, guint bytes)
     }
 }
 
-guint8
-ASCII_to_EBCDIC1(guint8 c)
+uint8_t
+ASCII_to_EBCDIC1(uint8_t c)
 {
     return ASCII_translate_EBCDIC[c];
 }
 #endif
 
-static const guint8 EBCDIC_translate_ASCII [ 256 ] = {
+static const uint8_t EBCDIC_translate_ASCII [ 256 ] = {
     0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07,
     0x08, 0x09, 0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x0F,
     0x10, 0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x17,
@@ -1166,10 +1437,10 @@ static const guint8 EBCDIC_translate_ASCII [ 256 ] = {
 };
 
 void
-EBCDIC_to_ASCII(guint8 *buf, guint bytes)
+EBCDIC_to_ASCII(uint8_t *buf, unsigned bytes)
 {
-    guint   i;
-    guint8 *bufptr;
+    unsigned   i;
+    uint8_t *bufptr;
 
     bufptr = buf;
 
@@ -1178,8 +1449,8 @@ EBCDIC_to_ASCII(guint8 *buf, guint bytes)
     }
 }
 
-guint8
-EBCDIC_to_ASCII1(guint8 c)
+uint8_t
+EBCDIC_to_ASCII1(uint8_t c)
 {
     return EBCDIC_translate_ASCII[c];
 }
@@ -1207,18 +1478,18 @@ EBCDIC_to_ASCII1(guint8 c)
                                    offset, 2 blanks separating offset
                                    from data dump, data dump */
 
-gboolean
-hex_dump_buffer(gboolean (*print_line)(void *, const char *), void *fp,
-                                    const guchar *cp, guint length,
+bool
+hex_dump_buffer(bool (*print_line)(void *, const char *), void *fp,
+                                    const unsigned char *cp, unsigned length,
                                     hex_dump_enc encoding,
-                                    guint ascii_option)
+                                    unsigned ascii_option)
 {
     register unsigned int ad, i, j, k, l;
-    guchar                c;
-    gchar                 line[MAX_LINE_LEN + 1];
+    unsigned char         c;
+    char                  line[MAX_LINE_LEN + 1];
     unsigned int          use_digits;
 
-    static gchar binhex[16] = {
+    static char binhex[16] = {
         '0', '1', '2', '3', '4', '5', '6', '7',
         '8', '9', 'a', 'b', 'c', 'd', 'e', 'f'};
 
@@ -1287,11 +1558,11 @@ hex_dump_buffer(gboolean (*print_line)(void *, const char *), void *fp,
                 line[k++] = '|';
             line[k] = '\0';
             if (!print_line(fp, line))
-                return FALSE;
+                return false;
             ad += 16;
         }
     }
-    return TRUE;
+    return true;
 }
 
 /*

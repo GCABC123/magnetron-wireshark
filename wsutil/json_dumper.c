@@ -11,11 +11,15 @@
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
-#include "json_dumper.h"
+#include "config.h"
 #define WS_LOG_DOMAIN LOG_DOMAIN_WSUTIL
 
+#include <glib.h>
+
+#include "json_dumper.h"
 #include <math.h>
 
+#include <wsutil/array.h>
 #include <wsutil/wslog.h>
 
 /*
@@ -47,7 +51,7 @@ static const char *json_dumper_element_type_names[] = {
     [JSON_DUMPER_TYPE_ARRAY] = "array",
     [JSON_DUMPER_TYPE_BASE64] = "base64"
 };
-#define NUM_JSON_DUMPER_ELEMENT_TYPE_NAMES (sizeof json_dumper_element_type_names / sizeof json_dumper_element_type_names[0])
+#define NUM_JSON_DUMPER_ELEMENT_TYPE_NAMES array_length(json_dumper_element_type_names)
 
 #define JSON_DUMPER_FLAGS_ERROR     (1 << 16)   /* Output flag: an error occurred. */
 
@@ -87,7 +91,7 @@ jd_puts(const json_dumper *dumper, const char *s)
 }
 
 static void
-jd_puts_len(const json_dumper *dumper, const char *s, gsize len)
+jd_puts_len(const json_dumper *dumper, const char *s, size_t len)
 {
     if (dumper->output_file) {
         fwrite(s, 1, len, dumper->output_file);
@@ -111,7 +115,7 @@ jd_vprintf(const json_dumper *dumper, const char *format, va_list args)
 }
 
 static void
-json_puts_string(const json_dumper *dumper, const char *str, gboolean dot_to_underscore)
+json_puts_string(const json_dumper *dumper, const char *str, bool dot_to_underscore)
 {
     if (!str) {
         jd_puts(dumper, "null");
@@ -125,9 +129,9 @@ json_puts_string(const json_dumper *dumper, const char *str, gboolean dot_to_und
 
     jd_putc(dumper, '"');
     for (int i = 0; str[i]; i++) {
-        if ((guint)str[i] < 0x20) {
+        if ((unsigned)str[i] < 0x20) {
             jd_putc(dumper, '\\');
-            jd_puts(dumper, json_cntrl[(guint)str[i]]);
+            jd_puts(dumper, json_cntrl[(unsigned)str[i]]);
         } else if (i > 0 && str[i - 1] == '<' && str[i] == '/') {
             // Convert </script> to <\/script> to avoid breaking web pages.
             jd_puts(dumper, "\\/");
@@ -144,17 +148,17 @@ json_puts_string(const json_dumper *dumper, const char *str, gboolean dot_to_und
     jd_putc(dumper, '"');
 }
 
-static inline guint8
+static inline uint8_t
 json_dumper_get_prev_state(json_dumper *dumper)
 {
-    guint depth = dumper->current_depth;
+    unsigned depth = dumper->current_depth;
     return depth != 0 ? dumper->state[depth - 1] : 0;
 }
 
-static inline guint8
+static inline uint8_t
 json_dumper_get_curr_state(json_dumper *dumper)
 {
-    guint depth = dumper->current_depth;
+    unsigned depth = dumper->current_depth;
     return dumper->state[depth];
 }
 
@@ -183,8 +187,8 @@ json_dumper_bad(json_dumper *dumper, const char *what)
     char unknown_curr_type_name[10+1];
     char unknown_prev_type_name[10+1];
     const char *curr_type_name, *prev_type_name;
-    guint8 curr_state = json_dumper_get_curr_state(dumper);
-    guint8 curr_type = JSON_DUMPER_TYPE(curr_state);
+    uint8_t curr_state = json_dumper_get_curr_state(dumper);
+    uint8_t curr_type = JSON_DUMPER_TYPE(curr_state);
     if (curr_type < NUM_JSON_DUMPER_ELEMENT_TYPE_NAMES) {
         curr_type_name = json_dumper_element_type_names[curr_type];
     } else {
@@ -192,8 +196,8 @@ json_dumper_bad(json_dumper *dumper, const char *what)
         curr_type_name = unknown_curr_type_name;
     }
     if (dumper->current_depth != 0) {
-        guint8 prev_state = json_dumper_get_prev_state(dumper);
-        guint8 prev_type = JSON_DUMPER_TYPE(prev_state);
+        uint8_t prev_state = json_dumper_get_prev_state(dumper);
+        uint8_t prev_type = JSON_DUMPER_TYPE(prev_state);
         if (prev_type < NUM_JSON_DUMPER_ELEMENT_TYPE_NAMES) {
             prev_type_name = json_dumper_element_type_names[prev_type];
         } else {
@@ -208,47 +212,47 @@ json_dumper_bad(json_dumper *dumper, const char *what)
     /* NOTREACHED */
 }
 
-static inline gboolean
+static inline bool
 json_dumper_stack_would_overflow(json_dumper *dumper)
 {
     if (dumper->current_depth + 1 >= JSON_DUMPER_MAX_DEPTH) {
         json_dumper_bad(dumper, "JSON dumper stack overflow");
-        return TRUE;
+        return true;
     }
-    return FALSE;
+    return false;
 }
 
-static inline gboolean
+static inline bool
 json_dumper_stack_would_underflow(json_dumper *dumper)
 {
     if (dumper->current_depth == 0) {
         json_dumper_bad(dumper, "JSON dumper stack underflow");
-        return TRUE;
+        return true;
     }
-    return FALSE;
+    return false;
 }
 
 /**
  * Checks that the dumper has not already had an error.  Fail, and
- * return FALSE, to tell our caller not to do any more work, if it
+ * return false, to tell our caller not to do any more work, if it
  * has.
  */
-static gboolean
+static bool
 json_dumper_check_previous_error(json_dumper *dumper)
 {
     if ((dumper->flags & JSON_DUMPER_FLAGS_ERROR)) {
         json_dumper_bad(dumper, "previous corruption detected");
-        return FALSE;
+        return false;
     }
-    return TRUE;
+    return true;
 }
 
 static void
-print_newline_indent(const json_dumper *dumper, guint depth)
+print_newline_indent(const json_dumper *dumper, unsigned depth)
 {
     if ((dumper->flags & JSON_DUMPER_FLAGS_PRETTY_PRINT)) {
         jd_putc(dumper, '\n');
-        for (guint i = 0; i < depth; i++) {
+        for (unsigned i = 0; i < depth; i++) {
             jd_puts(dumper, "  ");
         }
     }
@@ -265,7 +269,7 @@ prepare_token(json_dumper *dumper)
         // not part of an array or object.
         return;
     }
-    guint8 prev_state = dumper->state[dumper->current_depth - 1];
+    uint8_t prev_state = dumper->state[dumper->current_depth - 1];
 
     // While processing the object value, reset the key state as it is consumed.
     dumper->state[dumper->current_depth - 1] &= ~JSON_DUMPER_HAS_NAME;
@@ -284,7 +288,7 @@ prepare_token(json_dumper *dumper)
             return;
     }
 
-    guint8 curr_state = json_dumper_get_curr_state(dumper);
+    uint8_t curr_state = json_dumper_get_curr_state(dumper);
     if (curr_state != JSON_DUMPER_TYPE_NONE) {
         jd_putc(dumper, ',');
     }
@@ -297,16 +301,16 @@ prepare_token(json_dumper *dumper)
  *
  * It also makes various correctness checks.
  */
-static gboolean
+static bool
 json_dumper_begin_nested_element(json_dumper *dumper, enum json_dumper_element_type type)
 {
     if (!json_dumper_check_previous_error(dumper)) {
-        return FALSE;
+        return false;
     }
 
     /* Make sure we won't overflow the dumper stack */
     if (json_dumper_stack_would_overflow(dumper)) {
-        return FALSE;
+        return false;
     }
 
     prepare_token(dumper);
@@ -325,17 +329,17 @@ json_dumper_begin_nested_element(json_dumper *dumper, enum json_dumper_element_t
             break;
         default:
             json_dumper_bad(dumper, "beginning unknown nested element type");
-            return FALSE;
+            return false;
     }
 
     dumper->state[dumper->current_depth] = type;
     /*
      * Guaranteed not to overflow, as json_dumper_stack_would_overflow()
-     * returned FALSE.
+     * returned false.
      */
     ++dumper->current_depth;
     dumper->state[dumper->current_depth] = JSON_DUMPER_TYPE_NONE;
-    return TRUE;
+    return true;
 }
 
 /**
@@ -345,47 +349,52 @@ json_dumper_begin_nested_element(json_dumper *dumper, enum json_dumper_element_t
  *
  * It also makes various correctness checks.
  */
-static gboolean
+static bool
 json_dumper_end_nested_element(json_dumper *dumper, enum json_dumper_element_type type)
 {
     if (!json_dumper_check_previous_error(dumper)) {
-        return FALSE;
+        return false;
     }
 
-    guint8 prev_state = json_dumper_get_prev_state(dumper);
+    uint8_t prev_state = json_dumper_get_prev_state(dumper);
 
     switch (type) {
         case JSON_DUMPER_TYPE_OBJECT:
             if (JSON_DUMPER_TYPE(prev_state) != JSON_DUMPER_TYPE_OBJECT) {
                 json_dumper_bad(dumper, "ending non-object nested item type as object");
-                return FALSE;
+                return false;
             }
             break;
         case JSON_DUMPER_TYPE_ARRAY:
             if (JSON_DUMPER_TYPE(prev_state) != JSON_DUMPER_TYPE_ARRAY) {
                 json_dumper_bad(dumper, "ending non-array nested item type as array");
-                return FALSE;
+                return false;
             }
             break;
         case JSON_DUMPER_TYPE_BASE64:
             if (JSON_DUMPER_TYPE(prev_state) != JSON_DUMPER_TYPE_BASE64) {
                 json_dumper_bad(dumper, "ending non-base64 nested item type as base64");
-                return FALSE;
+                return false;
             }
             break;
         default:
             json_dumper_bad(dumper, "ending unknown nested element type");
-            return FALSE;
+            return false;
     }
 
     if (prev_state & JSON_DUMPER_HAS_NAME) {
         json_dumper_bad(dumper, "finishing object with last item having name but no value");
-        return FALSE;
+        return false;
     }
 
     /* Make sure we won't underflow the dumper stack */
     if (json_dumper_stack_would_underflow(dumper)) {
-        return FALSE;
+        return false;
+    }
+
+    // if the object/array was non-empty, add a newline and indentation.
+    if (dumper->state[dumper->current_depth]) {
+        print_newline_indent(dumper, dumper->current_depth - 1);
     }
 
     switch (type) {
@@ -397,26 +406,26 @@ json_dumper_end_nested_element(json_dumper *dumper, enum json_dumper_element_typ
             break;
         case JSON_DUMPER_TYPE_BASE64:
         {
-            gchar buf[4];
-            gsize wrote;
+            char buf[4];
+            size_t wrote;
 
-            wrote = g_base64_encode_close(FALSE, buf, &dumper->base64_state, &dumper->base64_save);
+            wrote = g_base64_encode_close(false, buf, &dumper->base64_state, &dumper->base64_save);
             jd_puts_len(dumper, buf, wrote);
 
             jd_putc(dumper, '"');
             break;
         }
         default:
-            json_dumper_bad(dumper, "endning unknown nested element type");
-            return FALSE;
+            json_dumper_bad(dumper, "ending unknown nested element type");
+            return false;
     }
 
     /*
      * Guaranteed not to underflow, as json_dumper_stack_would_underflow()
-     * returned FALSE.
+     * returned false.
      */
     --dumper->current_depth;
-    return TRUE;
+    return true;
 }
 
 void
@@ -432,7 +441,7 @@ json_dumper_set_member_name(json_dumper *dumper, const char *name)
         return;
     }
 
-    guint8 prev_state = json_dumper_get_prev_state(dumper);
+    uint8_t prev_state = json_dumper_get_prev_state(dumper);
 
     /* Only object members, not array members, have names. */
     if (JSON_DUMPER_TYPE(prev_state) != JSON_DUMPER_TYPE_OBJECT) {
@@ -473,10 +482,10 @@ json_dumper_end_array(json_dumper *dumper)
     json_dumper_end_nested_element(dumper, JSON_DUMPER_TYPE_ARRAY);
 }
 
-static gboolean
+static bool
 json_dumper_setting_value_ok(json_dumper *dumper)
 {
-    guint8 prev_state = json_dumper_get_prev_state(dumper);
+    uint8_t prev_state = json_dumper_get_prev_state(dumper);
 
     switch (JSON_DUMPER_TYPE(prev_state)) {
         case JSON_DUMPER_TYPE_OBJECT:
@@ -486,7 +495,7 @@ json_dumper_setting_value_ok(json_dumper *dumper)
              */
             if (!(prev_state & JSON_DUMPER_HAS_NAME)) {
                 json_dumper_bad(dumper, "setting value of object member without a name");
-                return FALSE;
+                return false;
             }
             break;
         case JSON_DUMPER_TYPE_ARRAY:
@@ -503,11 +512,11 @@ json_dumper_setting_value_ok(json_dumper *dumper)
              * for that; we can't add individual values to it.
              */
             json_dumper_bad(dumper, "attempt to set value of base64 item to something not base64-encoded");
-            return FALSE;
+            return false;
         case JSON_DUMPER_TYPE_NONE:
         case JSON_DUMPER_TYPE_VALUE:
         {
-            guint8 curr_state = json_dumper_get_curr_state(dumper);
+            uint8_t curr_state = json_dumper_get_curr_state(dumper);
             switch (JSON_DUMPER_TYPE(curr_state)) {
                 case JSON_DUMPER_TYPE_NONE:
                     /*
@@ -520,7 +529,7 @@ json_dumper_setting_value_ok(json_dumper *dumper)
                      * and we've already put one value.
                      */
                     json_dumper_bad(dumper, "value not in object or array immediately follows another value");
-                    return FALSE;
+                    return false;
                 case JSON_DUMPER_TYPE_OBJECT:
                 case JSON_DUMPER_TYPE_ARRAY:
                 case JSON_DUMPER_TYPE_BASE64:
@@ -545,18 +554,18 @@ json_dumper_setting_value_ok(json_dumper *dumper)
                      *    but that's not the previous type.
                      */
                     json_dumper_bad(dumper, "internal error setting value - should not happen");
-                    return FALSE;
+                    return false;
                 default:
                     json_dumper_bad(dumper, "internal error setting value, bad current state - should not happen");
-                    return FALSE;
+                    return false;
             }
             break;
         }
         default:
             json_dumper_bad(dumper, "internal error setting value, bad previous state - should not happen");
-            return FALSE;
+            return false;
     }
-    return TRUE;
+    return true;
 }
 
 void
@@ -570,7 +579,7 @@ json_dumper_value_string(json_dumper *dumper, const char *value)
     }
 
     prepare_token(dumper);
-    json_puts_string(dumper, value, FALSE);
+    json_puts_string(dumper, value, false);
 
     dumper->state[dumper->current_depth] = JSON_DUMPER_TYPE_VALUE;
 }
@@ -587,7 +596,7 @@ json_dumper_value_double(json_dumper *dumper, double value)
     }
 
     prepare_token(dumper);
-    gchar buffer[G_ASCII_DTOSTR_BUF_SIZE] = { 0 };
+    char buffer[G_ASCII_DTOSTR_BUF_SIZE] = { 0 };
     if (isfinite(value) && g_ascii_dtostr(buffer, G_ASCII_DTOSTR_BUF_SIZE, value) && buffer[0]) {
         jd_puts(dumper, buffer);
     } else {
@@ -624,21 +633,21 @@ json_dumper_value_anyf(json_dumper *dumper, const char *format, ...)
     va_end(ap);
 }
 
-gboolean
+bool
 json_dumper_finish(json_dumper *dumper)
 {
     if (!json_dumper_check_previous_error(dumper)) {
-        return FALSE;
+        return false;
     }
 
     if (dumper->current_depth != 0) {
         json_dumper_bad(dumper, "JSON dumper stack not empty at finish");
-        return FALSE;
+        return false;
     }
 
     jd_putc(dumper, '\n');
     dumper->state[0] = JSON_DUMPER_TYPE_NONE;
-    return TRUE;
+    return true;
 }
 
 void
@@ -648,13 +657,13 @@ json_dumper_begin_base64(json_dumper *dumper)
 }
 
 void
-json_dumper_write_base64(json_dumper* dumper, const guchar *data, size_t len)
+json_dumper_write_base64(json_dumper* dumper, const unsigned char *data, size_t len)
 {
     if (!json_dumper_check_previous_error(dumper)) {
         return;
     }
 
-    guint8 prev_state = json_dumper_get_prev_state(dumper);
+    uint8_t prev_state = json_dumper_get_prev_state(dumper);
 
     if (JSON_DUMPER_TYPE(prev_state) != JSON_DUMPER_TYPE_BASE64) {
         json_dumper_bad(dumper, "writing base64 data to a non-base64 value");
@@ -662,11 +671,11 @@ json_dumper_write_base64(json_dumper* dumper, const guchar *data, size_t len)
     }
 
     #define CHUNK_SIZE 1024
-    gchar buf[(CHUNK_SIZE / 3 + 1) * 4 + 4];
+    char buf[(CHUNK_SIZE / 3 + 1) * 4 + 4];
 
     while (len > 0) {
-        gsize chunk_size = len < CHUNK_SIZE ? len : CHUNK_SIZE;
-        gsize output_size = g_base64_encode_step(data, chunk_size, FALSE, buf, &dumper->base64_state, &dumper->base64_save);
+        size_t chunk_size = len < CHUNK_SIZE ? len : CHUNK_SIZE;
+        size_t output_size = g_base64_encode_step(data, chunk_size, false, buf, &dumper->base64_state, &dumper->base64_save);
         jd_puts_len(dumper, buf, output_size);
         data += chunk_size;
         len -= chunk_size;

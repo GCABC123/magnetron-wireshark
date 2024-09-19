@@ -12,6 +12,7 @@
 #include "config.h"
 
 #include <epan/packet.h>
+#include <epan/tfs.h>
 #include "packet-mpeg-sect.h"
 #include "packet-mpeg-descriptor.h"
 
@@ -20,27 +21,27 @@ void proto_reg_handoff_dvb_bat(void);
 
 static dissector_handle_t dvb_bat_handle;
 
-static int proto_dvb_bat = -1;
-static int hf_dvb_bat_bouquet_id = -1;
-static int hf_dvb_bat_reserved1 = -1;
-static int hf_dvb_bat_version_number = -1;
-static int hf_dvb_bat_current_next_indicator = -1;
-static int hf_dvb_bat_section_number = -1;
-static int hf_dvb_bat_last_section_number = -1;
+static int proto_dvb_bat;
+static int hf_dvb_bat_bouquet_id;
+static int hf_dvb_bat_reserved1;
+static int hf_dvb_bat_version_number;
+static int hf_dvb_bat_current_next_indicator;
+static int hf_dvb_bat_section_number;
+static int hf_dvb_bat_last_section_number;
 
-static int hf_dvb_bat_reserved2 = -1;
-static int hf_dvb_bat_bouquet_descriptors_length = -1;
+static int hf_dvb_bat_reserved2;
+static int hf_dvb_bat_bouquet_descriptors_length;
 
-static int hf_dvb_bat_reserved3 = -1;
-static int hf_dvb_bat_transport_stream_loop_length = -1;
+static int hf_dvb_bat_reserved3;
+static int hf_dvb_bat_transport_stream_loop_length;
 
-static int hf_dvb_bat_transport_stream_id = -1;
-static int hf_dvb_bat_original_network_id = -1;
-static int hf_dvb_bat_reserved4 = -1;
-static int hf_dvb_bat_transport_descriptors_length = -1;
+static int hf_dvb_bat_transport_stream_id;
+static int hf_dvb_bat_original_network_id;
+static int hf_dvb_bat_reserved4;
+static int hf_dvb_bat_transport_descriptors_length;
 
-static gint ett_dvb_bat = -1;
-static gint ett_dvb_bat_transport_stream = -1;
+static int ett_dvb_bat;
+static int ett_dvb_bat_transport_stream;
 
 
 #define DVB_BAT_RESERVED1_MASK                      0xC0
@@ -55,13 +56,6 @@ static gint ett_dvb_bat_transport_stream = -1;
 
 #define DVB_BAT_RESERVED4_MASK                    0xF000
 #define DVB_BAT_TRANSPORT_DESCRIPTORS_LENGTH_MASK 0x0FFF
-
-static const value_string dvb_bat_cur_next_vals[] = {
-    { 0, "Not yet applicable" },
-    { 1, "Currently applicable" },
-
-    { 0, NULL }
-};
 
 #if 0
 static const value_string dvb_bat_running_status_vals[] = {
@@ -87,8 +81,8 @@ static int
 dissect_dvb_bat(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, void* data _U_)
 {
 
-    guint   offset = 0, length = 0, ts_loop_end;
-    guint16 ts_id, descriptor_len, ts_loop_len;
+    unsigned   offset = 0, length = 0, ts_loop_end;
+    uint16_t ts_id, descriptor_len, ts_loop_len;
 
     proto_item *ti;
     proto_tree *dvb_bat_tree;
@@ -178,7 +172,7 @@ proto_register_dvb_bat(void)
 
         { &hf_dvb_bat_current_next_indicator, {
             "Current/Next Indicator", "dvb_bat.cur_next_ind",
-            FT_UINT8, BASE_DEC, VALS(dvb_bat_cur_next_vals), DVB_BAT_CURRENT_NEXT_INDICATOR_MASK, NULL, HFILL
+            FT_BOOLEAN, 8, TFS(&tfs_current_not_yet), DVB_BAT_CURRENT_NEXT_INDICATOR_MASK, NULL, HFILL
         } },
 
         { &hf_dvb_bat_section_number, {
@@ -233,7 +227,7 @@ proto_register_dvb_bat(void)
 
     };
 
-    static gint *ett[] = {
+    static int *ett[] = {
         &ett_dvb_bat,
         &ett_dvb_bat_transport_stream
     };

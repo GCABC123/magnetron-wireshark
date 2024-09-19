@@ -21,6 +21,7 @@
 #include <windows.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdbool.h>
 #include <evntrace.h>
 #include <evntcons.h>
 #include <tdh.h>
@@ -86,12 +87,12 @@ static const char* DOT11_PHY_TYPE_NAMES[] = {
     "802.11ax"        // dot11_phy_type_he = 10
 };
 
-unsigned long long NumFramesConverted = 0;
+unsigned long long NumFramesConverted;
 char AuxFragBuf[MAX_PACKET_SIZE] = {0};
-unsigned long AuxFragBufOffset = 0;
+unsigned long AuxFragBufOffset;
 
 DOT11_EXTSTA_RECV_CONTEXT PacketMetadata;
-BOOLEAN AddWlanMetadata = FALSE;
+BOOLEAN AddWlanMetadata;
 
 typedef struct _NDIS_NET_BUFFER_LIST_8021Q_INFO {
     union {
@@ -134,7 +135,7 @@ typedef struct _VMSWITCH_PACKET_FRAGMENT {
     short VlanId;
 } VMSWITCH_PACKET_FRAGMENT, *PVMSWITCH_PACKET_FRAGMENT;
 
-BOOLEAN CurrentPacketIsVMSwitchPacketFragment = FALSE;
+BOOLEAN CurrentPacketIsVMSwitchPacketFragment;
 VMSWITCH_PACKET_FRAGMENT VMSwitchPacketFragment;
 
 struct INTERFACE {
@@ -150,8 +151,8 @@ struct INTERFACE {
 };
 
 #define IFACE_HT_SIZE 100
-struct INTERFACE* InterfaceHashTable[IFACE_HT_SIZE] = {0};
-unsigned long NumInterfaces = 0;
+struct INTERFACE* InterfaceHashTable[IFACE_HT_SIZE];
+unsigned long NumInterfaces;
 
 void wtap_etl_rec_dump(char* etl_record, ULONG total_packet_length, ULONG original_packet_length, unsigned int interface_id, BOOLEAN is_inbound, ULARGE_INTEGER timestamp, int pkt_encap, char* comment, unsigned short comment_length);
 void wtap_etl_add_interface(int pkt_encap, char* interface_name, unsigned short interface_name_length, char* interface_desc, unsigned short interface_desc_length);
@@ -207,16 +208,16 @@ struct INTERFACE* AddInterface(PEVENT_RECORD ev, unsigned long LowerIfIndex, uns
         sprintf_s(g_err_info, sizeof(g_err_info), "malloc failed to allocate memory for NewIface");
         exit(1);
     }
-    
+
     NewIface->LowerIfIndex = LowerIfIndex;
     NewIface->MiniportIfIndex = MiniportIfIndex;
     NewIface->PktEncapType = Type;
     NewIface->VlanId = 0;
-    NewIface->IsVMNic = FALSE;
+    NewIface->IsVMNic = false;
 
     if (CurrentPacketIsVMSwitchPacketFragment) {
 
-        NewIface->IsVMNic = TRUE;
+        NewIface->IsVMNic = true;
 
         wchar_t Buffer[8192];
         PROPERTY_DATA_DESCRIPTOR Desc;
@@ -315,7 +316,7 @@ struct INTERFACE* AddInterface(PEVENT_RECORD ev, unsigned long LowerIfIndex, uns
     switch (NewIface->PktEncapType) {
     case WTAP_ENCAP_ETHERNET:
         if (NewIface->IsVMNic) {
-            printf("IF: medium=%s\tID=%u\tIfIndex=%u\tVlanID=%i",
+            printf("IF: medium=%s\tID=%lu\tIfIndex=%lu\tVlanID=%i",
                 NewIface->VMNic.SourceNicType,
                 NewIface->PcapNgIfIndex,
                 NewIface->VMNic.SourcePortId,
@@ -337,18 +338,18 @@ struct INTERFACE* AddInterface(PEVENT_RECORD ev, unsigned long LowerIfIndex, uns
         }
         break;
     case WTAP_ENCAP_IEEE_802_11:
-        printf("IF: medium=wifi ID=%u\tIfIndex=%u", NewIface->PcapNgIfIndex, NewIface->LowerIfIndex);
+        printf("IF: medium=wifi ID=%lu\tIfIndex=%lu", NewIface->PcapNgIfIndex, NewIface->LowerIfIndex);
         StringCchPrintfA(IfName, IF_STRING_MAX_SIZE, "wifi:%lu", NewIface->LowerIfIndex);
         break;
     case WTAP_ENCAP_RAW_IP:
-        printf("IF: medium=mbb  ID=%u\tIfIndex=%u", NewIface->PcapNgIfIndex, NewIface->LowerIfIndex);
+        printf("IF: medium=mbb  ID=%lu\tIfIndex=%lu", NewIface->PcapNgIfIndex, NewIface->LowerIfIndex);
         StringCchPrintfA(IfName, IF_STRING_MAX_SIZE, "mbb:%lu", NewIface->LowerIfIndex);
         break;
     }
     StringCchLengthA(IfName, IF_STRING_MAX_SIZE, &IfNameLength);
 
     if (NewIface->LowerIfIndex != NewIface->MiniportIfIndex) {
-        printf("\t(LWF over IfIndex %u)", NewIface->MiniportIfIndex);
+        printf("\t(LWF over IfIndex %lu)", NewIface->MiniportIfIndex);
         StringCchPrintfA(IfDesc, IF_STRING_MAX_SIZE, "LWF over IfIndex %lu", NewIface->MiniportIfIndex);
         StringCchLengthA(IfDesc, IF_STRING_MAX_SIZE, &IfDescLength);
     }
@@ -525,7 +526,7 @@ void etw_dump_write_ndiscap_event(PEVENT_RECORD ev, ULARGE_INTEGER timestamp)
             return;
         }
 
-        AddWlanMetadata = TRUE;
+        AddWlanMetadata = true;
         return;
     }
 
@@ -594,8 +595,9 @@ void etw_dump_write_ndiscap_event(PEVENT_RECORD ev, ULARGE_INTEGER timestamp)
                 PacketMetadata.uPhyId = 0; // Set to unknown if outside known bounds.
             }
 
-            Err = StringCchPrintfA(Comment, COMMENT_MAX_SIZE, "PID=%d Packet Metadata: ReceiveFlags:0x%x, PhyType:%s, CenterCh:%u, NumMPDUsReceived:%u, RSSI:%d, DataRate:%u",
+            Err = StringCchPrintfA(Comment, COMMENT_MAX_SIZE, "PID=%d ProcessorNumber=%d Packet Metadata: ReceiveFlags:0x%x, PhyType:%s, CenterCh:%u, NumMPDUsReceived:%u, RSSI:%d, DataRate:%u",
                 ev->EventHeader.ProcessId,
+                ev->BufferContext.ProcessorNumber,
                 PacketMetadata.uReceiveFlags,
                 DOT11_PHY_TYPE_NAMES[PacketMetadata.uPhyId],
                 PacketMetadata.uChCenterFrequency,
@@ -603,12 +605,13 @@ void etw_dump_write_ndiscap_event(PEVENT_RECORD ev, ULARGE_INTEGER timestamp)
                 PacketMetadata.lRSSI,
                 PacketMetadata.ucDataRate);
 
-            AddWlanMetadata = FALSE;
+            AddWlanMetadata = false;
             memset(&PacketMetadata, 0, sizeof(DOT11_EXTSTA_RECV_CONTEXT));
         } else if (CurrentPacketIsVMSwitchPacketFragment) {
             if (VMSwitchPacketFragment.DestinationCount > 0) {
-                Err = StringCchPrintfA(Comment, COMMENT_MAX_SIZE, "PID=%d VlanId=%d SrcPortId=%d SrcNicType=%s SrcNicName=%s SrcPortName=%s DstNicCount=%d",
+                Err = StringCchPrintfA(Comment, COMMENT_MAX_SIZE, "PID=%d ProcessorNumber=%d VlanId=%d SrcPortId=%d SrcNicType=%s SrcNicName=%s SrcPortName=%s DstNicCount=%d",
                     ev->EventHeader.ProcessId,
+                    ev->BufferContext.ProcessorNumber,
                     Iface->VlanId,
                     Iface->VMNic.SourcePortId,
                     Iface->VMNic.SourceNicType,
@@ -617,8 +620,9 @@ void etw_dump_write_ndiscap_event(PEVENT_RECORD ev, ULARGE_INTEGER timestamp)
                     VMSwitchPacketFragment.DestinationCount
                 );
             } else {
-                Err = StringCchPrintfA(Comment, COMMENT_MAX_SIZE, "PID=%d VlanId=%d SrcPortId=%d SrcNicType=%s SrcNicName=%s SrcPortName=%s",
+                Err = StringCchPrintfA(Comment, COMMENT_MAX_SIZE, "PID=%d ProcessorNumber=%d VlanId=%d SrcPortId=%d SrcNicType=%s SrcNicName=%s SrcPortName=%s",
                     ev->EventHeader.ProcessId,
+                    ev->BufferContext.ProcessorNumber,
                     Iface->VlanId,
                     Iface->VMNic.SourcePortId,
                     Iface->VMNic.SourceNicType,
@@ -627,16 +631,16 @@ void etw_dump_write_ndiscap_event(PEVENT_RECORD ev, ULARGE_INTEGER timestamp)
                     );
             }
         } else {
-            Err = StringCchPrintfA(Comment, COMMENT_MAX_SIZE, "PID=%d", ev->EventHeader.ProcessId);
+            Err = StringCchPrintfA(Comment, COMMENT_MAX_SIZE, "PID=%d ProcessorNumber=%d", ev->EventHeader.ProcessId, ev->BufferContext.ProcessorNumber);
         }
 
         if (Err != NO_ERROR) {
-            printf("Failed converting comment to string with error: %u\n", Err);
+            printf("Failed converting comment to string with error: %d\n", Err);
         } else {
             Err = StringCchLengthA(Comment, COMMENT_MAX_SIZE, &CommentLength);
 
             if (Err != NO_ERROR) {
-                printf("Failed getting length of comment string with error: %u\n", Err);
+                printf("Failed getting length of comment string with error: %d\n", Err);
                 CommentLength = 0;
                 memset(Comment, 0, COMMENT_MAX_SIZE);
             }

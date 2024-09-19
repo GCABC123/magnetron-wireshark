@@ -21,6 +21,9 @@ void proto_register_rsp(void);
 void proto_reg_handoff_rmcp(void);
 void proto_reg_handoff_rsp(void);
 
+static dissector_handle_t rmcp_handle;
+static dissector_handle_t rsp_handle;
+
 /*
  * See
  *	http://www.dmtf.org/standards/standard_alert.php
@@ -28,22 +31,22 @@ void proto_reg_handoff_rsp(void);
  * (the ASF specification includes RMCP)
  */
 
-static int proto_rmcp = -1;
-static int hf_rmcp_version = -1;
-static int hf_rmcp_reserved = -1;
-static int hf_rmcp_sequence = -1;
-static int hf_rmcp_class = -1;
-static int hf_rmcp_type = -1;
-static int hf_rmcp_trailer = -1;
+static int proto_rmcp;
+static int hf_rmcp_version;
+static int hf_rmcp_reserved;
+static int hf_rmcp_sequence;
+static int hf_rmcp_class;
+static int hf_rmcp_type;
+static int hf_rmcp_trailer;
 
-static int proto_rsp = -1;
-static int hf_rsp_session_id = -1;
-static int hf_rsp_sequence = -1;
+static int proto_rsp;
+static int hf_rsp_session_id;
+static int hf_rsp_sequence;
 
-static gint ett_rmcp = -1;
-static gint ett_rmcp_typeclass = -1;
+static int ett_rmcp;
+static int ett_rmcp_typeclass;
 
-static gint ett_rsp = -1;
+static int ett_rsp;
 
 static dissector_table_t rmcp_dissector_table;
 
@@ -78,10 +81,10 @@ dissect_rmcp(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, void *data _U_
 	proto_tree	*rmcp_tree = NULL, *field_tree;
 	proto_item	*ti;
 	tvbuff_t	*next_tvb;
-	guint8		rmcp_class;
-	const gchar	*class_str;
-	guint8		type;
-	guint		len;
+	uint8_t		rmcp_class;
+	const char	*class_str;
+	uint8_t		type;
+	unsigned		len;
 
 	/*
 	 * Check whether it's a known class value; if not, assume it's
@@ -89,7 +92,7 @@ dissect_rmcp(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, void *data _U_
 	 */
 	if (!tvb_bytes_exist(tvb, 3, 1))
 		return 0;	/* class value byte not present */
-	rmcp_class = tvb_get_guint8(tvb, 3);
+	rmcp_class = tvb_get_uint8(tvb, 3);
 
 	/* Get the normal/ack bit from the RMCP class */
 	type = (rmcp_class & RMCP_TYPE_MASK) >> 7;
@@ -199,16 +202,17 @@ proto_register_rmcp(void)
 			FT_BYTES, BASE_NONE, NULL, 0,
 			NULL, HFILL }},
 	};
-	static gint *ett[] = {
+	static int *ett[] = {
 		&ett_rmcp,
 		&ett_rmcp_typeclass
 	};
 
-	proto_rmcp = proto_register_protocol(
-		"Remote Management Control Protocol", "RMCP", "rmcp");
+	proto_rmcp = proto_register_protocol("Remote Management Control Protocol", "RMCP", "rmcp");
 
 	proto_register_field_array(proto_rmcp, hf, array_length(hf));
 	proto_register_subtree_array(ett, array_length(ett));
+
+	rmcp_handle = register_dissector("rmcp", dissect_rmcp, proto_rmcp);
 
 	rmcp_dissector_table = register_dissector_table(
 		"rmcp.class", "RMCP Class", proto_rmcp, FT_UINT8, BASE_HEX);
@@ -227,31 +231,26 @@ proto_register_rsp(void)
 			FT_UINT32, BASE_HEX, NULL, 0,
 			"RSP sequence", HFILL }},
 	};
-	static gint *ett[] = {
+	static int *ett[] = {
 		&ett_rsp
 	};
 
-	proto_rsp = proto_register_protocol(
-		"RMCP Security-extensions Protocol", "RSP", "rsp");
+	proto_rsp = proto_register_protocol("RMCP Security-extensions Protocol", "RSP", "rsp");
 	proto_register_field_array(proto_rsp, hf, array_length(hf));
 	proto_register_subtree_array(ett, array_length(ett));
+
+	rsp_handle = register_dissector("rsp", dissect_rsp, proto_rsp);
 }
 
 void
 proto_reg_handoff_rmcp(void)
 {
-	dissector_handle_t rmcp_handle;
-
-	rmcp_handle = create_dissector_handle(dissect_rmcp, proto_rmcp);
 	dissector_add_uint_with_preference("udp.port", UDP_PORT_RMCP, rmcp_handle);
 }
 
 void
 proto_reg_handoff_rsp(void)
 {
-	dissector_handle_t rsp_handle;
-
-	rsp_handle = create_dissector_handle(dissect_rsp, proto_rsp);
 	dissector_add_uint_with_preference("udp.port", UDP_PORT_RMCP_SECURE, rsp_handle);
 }
 

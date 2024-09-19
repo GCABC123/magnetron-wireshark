@@ -14,5 +14,11 @@
 ** Author: Gerhard Gappmeier <gerhard.gappmeier@ascolab.com>
 ******************************************************************************/
 
+struct ua_metadata;
+
 void registerSecurityLayerTypes(int proto);
-void parseSecurityLayer(proto_tree *tree, tvbuff_t *tvb, gint *pOffset);
+void registerSequenceLayerTypes(int proto);
+void parseSecurityHeader(proto_tree *tree, tvbuff_t *tvb, int *pOffset, struct ua_metadata *data);
+void parseSequenceHeader(proto_tree *tree, tvbuff_t *tvb, int *pOffset, struct ua_metadata *data);
+void parseSecurityFooterSO(proto_tree *tree, tvbuff_t *tvb, int offset, unsigned sig_len);
+void parseSecurityFooterSAE(proto_tree *tree, tvbuff_t *tvb, int offset, unsigned pad_len, unsigned sig_len);

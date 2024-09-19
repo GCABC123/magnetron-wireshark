@@ -23,10 +23,12 @@
 #include <QActionGroup>
 #include <QMouseEvent>
 #include <QPainter>
+#include <QScreen>
 #include <QScrollBar>
 #include <QStyle>
 #include <QStyleOption>
 #include <QTextLayout>
+#include <QWindow>
 
 // To do:
 // - Add recent settings and context menu items to show/hide the offset.
@@ -59,7 +61,7 @@ ByteViewText::ByteViewText(const QByteArray &data, packet_char_enc encoding, QWi
     show_offset_(true),
     show_hex_(true),
     show_ascii_(true),
-    row_width_(recent.gui_bytes_view == BYTES_HEX ? 16 : 8),
+    row_width_(recent.gui_bytes_view == BYTES_BITS ? 8 : 16),
     em_width_(0),
     line_height_(0),
     allow_hover_selection_(false)
@@ -68,6 +70,10 @@ ByteViewText::ByteViewText(const QByteArray &data, packet_char_enc encoding, QWi
 
     offset_normal_fg_ = ColorUtils::alphaBlend(palette().windowText(), palette().window(), 0.35);
     offset_field_fg_ = ColorUtils::alphaBlend(palette().windowText(), palette().window(), 0.65);
+    ctx_menu_.setToolTipsVisible(true);
+
+    window()->winId(); // Required for screenChanged? https://phabricator.kde.org/D20171
+    connect(window()->windowHandle(), &QWindow::screenChanged, viewport(), [=](const QScreen *) { viewport()->update(); });
 
     createContextMenu();
 
@@ -101,6 +107,14 @@ void ByteViewText::createContextMenu()
     action_bytes_hex_ = format_actions->addAction(tr("Show bytes as hexadecimal"));
     action_bytes_hex_->setData(QVariant::fromValue(BYTES_HEX));
     action_bytes_hex_->setCheckable(true);
+
+    action_bytes_dec_ = format_actions->addAction(tr("…as decimal"));
+    action_bytes_dec_->setData(QVariant::fromValue(BYTES_DEC));
+    action_bytes_dec_->setCheckable(true);
+
+    action_bytes_oct_ = format_actions->addAction(tr("…as octal"));
+    action_bytes_oct_->setData(QVariant::fromValue(BYTES_OCT));
+    action_bytes_oct_->setCheckable(true);
 
     action_bytes_bits_ = format_actions->addAction(tr("…as bits"));
     action_bytes_bits_->setData(QVariant::fromValue(BYTES_BITS));
@@ -147,6 +161,12 @@ void ByteViewText::updateContextMenu()
         break;
     case BYTES_BITS:
         action_bytes_bits_->setChecked(true);
+        break;
+    case BYTES_DEC:
+        action_bytes_dec_->setChecked(true);
+        break;
+    case BYTES_OCT:
+        action_bytes_oct_->setChecked(true);
         break;
     }
 
@@ -201,6 +221,18 @@ void ByteViewText::markAppendix(int start, int length)
     viewport()->update();
 }
 
+void ByteViewText::unmarkField()
+{
+    proto_start_ = 0;
+    proto_len_ = 0;
+    field_start_ = 0;
+    field_len_ = 0;
+    marked_byte_offset_ = -1;
+    field_a_start_ = 0;
+    field_a_len_ = 0;
+    viewport()->update();
+}
+
 void ByteViewText::setMonospaceFont(const QFont &mono_font)
 {
     QFont int_font(mono_font);
@@ -217,11 +249,16 @@ void ByteViewText::setMonospaceFont(const QFont &mono_font)
 
 void ByteViewText::updateByteViewSettings()
 {
-    row_width_ = recent.gui_bytes_view == BYTES_HEX ? 16 : 8;
+    row_width_ = recent.gui_bytes_view == BYTES_BITS ? 8 : 16;
 
     updateContextMenu();
     updateScrollbars();
     viewport()->update();
+}
+
+void ByteViewText::detachData()
+{
+    data_.detach();
 }
 
 void ByteViewText::paintEvent(QPaintEvent *)
@@ -371,11 +408,7 @@ void ByteViewText::updateLayoutMetrics()
 
 int ByteViewText::stringWidth(const QString &line)
 {
-#if (QT_VERSION >= QT_VERSION_CHECK(5, 11, 0))
     return viewport()->fontMetrics().horizontalAdvance(line);
-#else
-    return viewport()->fontMetrics().boundingRect(line).width();
-#endif
 }
 
 // Draw a line of byte view text for a given offset.
@@ -412,6 +445,7 @@ void ByteViewText::drawLine(QPainter *painter, const int offset, const int row_y
         int ascii_start = static_cast<int>(line.length()) + DataPrinter::hexChars() + 3;
         // Extra hover space before and after each byte.
         int slop = em_width_ / 2;
+        unsigned char c;
 
         if (build_x_pos) {
             x_pos_to_column_ += QVector<int>().fill(-1, slop);
@@ -436,12 +470,37 @@ void ByteViewText::drawLine(QPainter *painter, const int offset, const int row_y
                     line += (data_[tvb_pos] & (1 << j)) ? '1' : '0';
                 }
                 break;
+            case BYTES_DEC:
+                c = data_[tvb_pos];
+                line += c < 100 ? ' ' : hexchars[c / 100];
+                line += c < 10 ? ' ' : hexchars[(c / 10) % 10];
+                line += hexchars[c % 10];
+                break;
+            case BYTES_OCT:
+                line += hexchars[(data_[tvb_pos] & 0xc0) >> 6];
+                line += hexchars[(data_[tvb_pos] & 0x38) >> 3];
+                line += hexchars[data_[tvb_pos] & 0x07];
+                break;
             }
             if (build_x_pos) {
                 x_pos_to_column_ += QVector<int>().fill(tvb_pos - offset, stringWidth(line) - x_pos_to_column_.size() + slop);
             }
             if (tvb_pos == hovered_byte_offset_ || tvb_pos == marked_byte_offset_) {
-                int ho_len = recent.gui_bytes_view == BYTES_HEX ? 2 : 8;
+                int ho_len;
+                switch (recent.gui_bytes_view) {
+                case BYTES_HEX:
+                    ho_len = 2;
+                    break;
+                case BYTES_BITS:
+                    ho_len = 8;
+                    break;
+                case BYTES_DEC:
+                case BYTES_OCT:
+                    ho_len = 3;
+                    break;
+                default:
+                    ws_assert_not_reached();
+                }
                 QRect ho_rect = painter->boundingRect(QRect(), Qt::AlignHCenter|Qt::AlignVCenter, line.right(ho_len));
                 ho_rect.moveRight(stringWidth(line));
                 ho_rect.moveTop(row_y);
@@ -572,7 +631,21 @@ bool ByteViewText::addHexFormatRange(QList<QTextLayout::FormatRange> &fmt_list, 
     if (mark_start < 0 || mark_length < 1) return false;
     if (mark_start > max_tvb_pos && mark_end < tvb_offset) return false;
 
-    int chars_per_byte = recent.gui_bytes_view == BYTES_HEX ? 2 : 8;
+    int chars_per_byte;
+    switch (recent.gui_bytes_view) {
+    case BYTES_HEX:
+        chars_per_byte = 2;
+        break;
+    case BYTES_BITS:
+        chars_per_byte = 8;
+        break;
+    case BYTES_DEC:
+    case BYTES_OCT:
+        chars_per_byte = 3;
+        break;
+    default:
+        ws_assert_not_reached();
+    }
     int chars_plus_pad = chars_per_byte + 1;
     int byte_start = qMax(tvb_offset, mark_start) - tvb_offset;
     int byte_end = qMin(max_tvb_pos, mark_end) - tvb_offset;
@@ -668,7 +741,7 @@ void ByteViewText::copyBytes(bool)
 
     int dump_type = action->data().toInt();
 
-    if (dump_type <= DataPrinter::DP_Binary) {
+    if (dump_type <= DataPrinter::DP_MimeData) {
         DataPrinter printer;
         printer.toClipboard((DataPrinter::DumpType) dump_type, this);
     }

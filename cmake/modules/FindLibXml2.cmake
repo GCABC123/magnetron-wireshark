@@ -50,7 +50,7 @@ The following cache variables may also be set:
 include(FindWSWinLibs)
 FindWSWinLibs("vcpkg-export-.*" LIBXML2_HINTS)
 
-if (NOT WIN32) # else we'll find Strawberry Perl's pkgconfig
+if (NOT USE_REPOSITORY) # else we'll find Strawberry Perl's pkgconfig
     # use pkg-config to get the directories and then use these values
     # in the find_path() and find_library() calls
     find_package(PkgConfig QUIET)
@@ -64,6 +64,11 @@ find_path(LIBXML2_INCLUDE_DIR NAMES libxml/xpath.h
    ${PC_LIBXML_INCLUDE_DIRS}
    ${LIBXML2_HINTS}/include
    PATH_SUFFIXES libxml2
+   )
+
+find_path(ICONV_INCLUDE_DIR  NAMES iconv.h
+   HINTS
+   ${LIBXML2_HINTS}/include
    )
 
 # CMake 3.9 and below used 'LIBXML2_LIBRARIES' as the name of
@@ -98,7 +103,7 @@ elseif(LIBXML2_INCLUDE_DIR AND EXISTS "${LIBXML2_INCLUDE_DIR}/libxml/xmlversion.
     unset(libxml2_version_str)
 endif()
 
-set(LIBXML2_INCLUDE_DIRS ${LIBXML2_INCLUDE_DIR} ${PC_LIBXML_INCLUDE_DIRS})
+set(LIBXML2_INCLUDE_DIRS ${LIBXML2_INCLUDE_DIR} ${PC_LIBXML_INCLUDE_DIRS} ${ICONV_INCLUDE_DIR})
 set(LIBXML2_LIBRARIES ${LIBXML2_LIBRARY})
 
 include(FindPackageHandleStandardArgs)

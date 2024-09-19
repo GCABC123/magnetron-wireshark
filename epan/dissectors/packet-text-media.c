@@ -22,7 +22,7 @@
 
 #include <epan/packet.h>
 
-#include "packet-http.h"
+#include "packet-media-type.h"
 
 /*
  * Media dissector for line-based text media like text/plain, message/http.
@@ -33,10 +33,10 @@ void proto_register_text_lines(void);
 void proto_reg_handoff_text_lines(void);
 
 /* Filterable header fields */
-static gint proto_text_lines = -1;
+static int proto_text_lines;
 
 /* Subtrees */
-static gint ett_text_lines = -1;
+static int ett_text_lines;
 
 /* Dissector handles */
 static dissector_handle_t xml_handle;
@@ -46,9 +46,9 @@ dissect_text_lines(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, void* da
 {
 	proto_tree	*subtree;
 	proto_item	*ti;
-	gint		offset = 0, next_offset;
-	gint		len;
-	http_message_info_t *message_info;
+	int		offset = 0, next_offset;
+	int		len;
+	media_content_info_t *content_info;
 	const char	*data_name;
 	int length = tvb_captured_length(tvb);
 
@@ -68,14 +68,14 @@ dissect_text_lines(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, void* da
 		/*
 		 * No information from "match_string"
 		 */
-		message_info = (http_message_info_t *)data;
-		if (message_info == NULL) {
+		content_info = (media_content_info_t *)data;
+		if (content_info == NULL) {
 			/*
 			 * No information from dissector data
 			 */
 			data_name = NULL;
 		} else {
-			data_name = message_info->media_str;
+			data_name = content_info->media_str;
 			if (! (data_name && data_name[0])) {
 				/*
 				 * No information from dissector data
@@ -90,7 +90,7 @@ dissect_text_lines(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, void* da
 				data_name);
 
 	if (tree) {
-		guint lines_read = 0;
+		unsigned lines_read = 0;
 		ti = proto_tree_add_item(tree, proto_text_lines,
 				tvb, 0, -1, ENC_NA);
 		if (data_name)
@@ -107,7 +107,7 @@ dissect_text_lines(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, void* da
 			 * as "iso-10646-ucs-2", or might require other
 			 * special processing.
 			 */
-			len = tvb_find_line_end(tvb, offset, -1, &next_offset, FALSE);
+			len = tvb_find_line_end(tvb, offset, -1, &next_offset, false);
 			if (len == -1)
 				break;
 
@@ -128,16 +128,13 @@ dissect_text_lines(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, void* da
 void
 proto_register_text_lines(void)
 {
-	static gint *ett[] = {
+	static int *ett[] = {
 		&ett_text_lines,
 	};
 
 	proto_register_subtree_array(ett, array_length(ett));
 
-	proto_text_lines = proto_register_protocol(
-			"Line-based text data",	/* Long name */
-			"Line-based text data",	/* Short name */
-			"data-text-lines");		/* Filter name */
+	proto_text_lines = proto_register_protocol("Line-based text data", "Line-based text data", "data-text-lines");
 	register_dissector("data-text-lines", dissect_text_lines, proto_text_lines);
 }
 

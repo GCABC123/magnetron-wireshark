@@ -22,17 +22,18 @@
 void proto_register_echo(void);
 void proto_reg_handoff_echo(void);
 
-static int proto_echo = -1;
+static dissector_handle_t echo_handle;
+static int proto_echo;
 
-static int hf_echo_data = -1;
-static int hf_echo_request = -1;
-static int hf_echo_response = -1;
+static int hf_echo_data;
+static int hf_echo_request;
+static int hf_echo_response;
 
-static gint ett_echo = -1;
+static int ett_echo;
 
 static int dissect_echo(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, void* data _U_)
 {
-  gboolean    request;
+  bool        request;
   proto_tree *echo_tree;
   proto_item *ti, *hidden_item;
 
@@ -68,21 +69,18 @@ void proto_register_echo(void)
         NULL, 0x0, NULL, HFILL }}
   };
 
-  static gint *ett[] = {
+  static int *ett[] = {
     &ett_echo
   };
 
   proto_echo = proto_register_protocol("Echo", "ECHO", "echo");
   proto_register_field_array(proto_echo, hf, array_length(hf));
   proto_register_subtree_array(ett, array_length(ett));
+  echo_handle = register_dissector("echo", dissect_echo, proto_echo);
 }
 
 void proto_reg_handoff_echo(void)
 {
-  dissector_handle_t echo_handle;
-
-  echo_handle = create_dissector_handle(dissect_echo, proto_echo);
-
   dissector_add_uint_with_preference("udp.port", ECHO_PORT, echo_handle);
   dissector_add_uint_with_preference("tcp.port", ECHO_PORT, echo_handle);
 }

@@ -15,15 +15,15 @@
 void proto_register_ascend(void);
 void proto_reg_handoff_ascend(void);
 
-static int proto_ascend  = -1;
-static int hf_link_type  = -1;
-static int hf_session_id = -1;
-static int hf_called_number = -1;
-static int hf_chunk      = -1;
-static int hf_task       = -1;
-static int hf_user_name  = -1;
+static int proto_ascend;
+static int hf_link_type;
+static int hf_session_id;
+static int hf_called_number;
+static int hf_chunk;
+static int hf_task;
+static int hf_user_name;
 
-static gint ett_raw = -1;
+static int ett_raw;
 
 static const value_string encaps_vals[] = {
   {ASCEND_PFX_WDS_X,  "PPP Transmit"               },
@@ -35,6 +35,7 @@ static const value_string encaps_vals[] = {
   {0,                  NULL                        }
 };
 
+static dissector_handle_t ascend_handle;
 static dissector_handle_t eth_withoutfcs_handle;
 static dissector_handle_t ppp_hdlc_handle;
 static dissector_handle_t lapd_phdr_handle;
@@ -113,12 +114,12 @@ dissect_ascend(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, void* data _
       call_dissector(eth_withoutfcs_handle, tvb, pinfo, tree);
       break;
     case ASCEND_PFX_ISDN_X:
-      isdn.uton = TRUE;
+      isdn.uton = true;
       isdn.channel = 0;
       call_dissector_with_data(lapd_phdr_handle, tvb, pinfo, tree, &isdn);
       break;
     case ASCEND_PFX_ISDN_R:
-      isdn.uton = FALSE;
+      isdn.uton = false;
       isdn.channel = 0;
       call_dissector_with_data(lapd_phdr_handle, tvb, pinfo, tree, &isdn);
       break;
@@ -156,7 +157,7 @@ proto_register_ascend(void)
       { "User name",      "ascend.user",  FT_STRING, BASE_NONE,   NULL, 0x0,
         NULL, HFILL }},
   };
-  static gint *ett[] = {
+  static int *ett[] = {
     &ett_raw,
   };
 
@@ -164,13 +165,13 @@ proto_register_ascend(void)
                                          "Lucent/Ascend", "ascend");
   proto_register_field_array(proto_ascend, hf, array_length(hf));
   proto_register_subtree_array(ett, array_length(ett));
+
+  ascend_handle = register_dissector("ascend", dissect_ascend, proto_ascend);
 }
 
 void
 proto_reg_handoff_ascend(void)
 {
-  dissector_handle_t ascend_handle;
-
   /*
    * Get handles for the Ethernet, PPP-in-HDLC-like-framing, and
    * LAPD-with-pseudoheader dissectors.
@@ -179,7 +180,6 @@ proto_reg_handoff_ascend(void)
   ppp_hdlc_handle = find_dissector_add_dependency("ppp_hdlc", proto_ascend);
   lapd_phdr_handle = find_dissector_add_dependency("lapd-phdr", proto_ascend);
 
-  ascend_handle = create_dissector_handle(dissect_ascend, proto_ascend);
   dissector_add_uint("wtap_encap", WTAP_ENCAP_ASCEND, ascend_handle);
 }
 

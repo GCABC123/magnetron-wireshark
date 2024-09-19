@@ -22,18 +22,20 @@
 void proto_register_mac_mgmt_msg_dsx_rvd(void);
 void proto_reg_handoff_mac_mgmt_msg_dsx_rvd(void);
 
-static gint proto_mac_mgmt_msg_dsx_rvd_decoder = -1;
-static gint ett_mac_mgmt_msg_dsx_rvd_decoder = -1;
+static dissector_handle_t dsx_rvd_handle;
+
+static int proto_mac_mgmt_msg_dsx_rvd_decoder;
+static int ett_mac_mgmt_msg_dsx_rvd_decoder;
 
 /* fix fields */
-static gint hf_dsx_rvd_transaction_id = -1;
-static gint hf_dsx_rvd_confirmation_code = -1;
+static int hf_dsx_rvd_transaction_id;
+static int hf_dsx_rvd_confirmation_code;
 
 
 /* Decode DSX-RVD messages. */
 static int dissect_mac_mgmt_msg_dsx_rvd_decoder(tvbuff_t *tvb, packet_info *pinfo _U_, proto_tree *tree, void* data _U_)
 {
-	guint offset = 0;
+	unsigned offset = 0;
 	proto_item *dsx_rvd_item;
 	proto_tree *dsx_rvd_tree;
 
@@ -69,7 +71,7 @@ void proto_register_mac_mgmt_msg_dsx_rvd(void)
 	};
 
 	/* Setup protocol subtree array */
-	static gint *ett[] =
+	static int *ett[] =
 		{
 			&ett_mac_mgmt_msg_dsx_rvd_decoder,
 		};
@@ -82,15 +84,13 @@ void proto_register_mac_mgmt_msg_dsx_rvd(void)
 
 	proto_register_field_array(proto_mac_mgmt_msg_dsx_rvd_decoder, hf_dsx_rvd, array_length(hf_dsx_rvd));
 	proto_register_subtree_array(ett, array_length(ett));
+	dsx_rvd_handle = register_dissector("mac_mgmt_msg_dsx_rvd_handler", dissect_mac_mgmt_msg_dsx_rvd_decoder, proto_mac_mgmt_msg_dsx_rvd_decoder);
 }
 
 void
 proto_reg_handoff_mac_mgmt_msg_dsx_rvd(void)
 {
-	dissector_handle_t handle;
-
-	handle = create_dissector_handle(dissect_mac_mgmt_msg_dsx_rvd_decoder, proto_mac_mgmt_msg_dsx_rvd_decoder);
-	dissector_add_uint("wmx.mgmtmsg", MAC_MGMT_MSG_DSX_RVD, handle);
+	dissector_add_uint("wmx.mgmtmsg", MAC_MGMT_MSG_DSX_RVD, dsx_rvd_handle);
 }
 
 /*

@@ -127,15 +127,15 @@ void FirewallRulesDialog::updateWidgets()
 }
 
 #define ADDR_BUF_LEN 200
-void FirewallRulesDialog::addRule(QString description, syntax_func rule_func, address *addr, guint32 port)
+void FirewallRulesDialog::addRule(QString description, syntax_func rule_func, address *addr, uint32_t port)
 {
     if (!rule_func) return;
 
     char addr_buf[ADDR_BUF_LEN];
     QString comment_pfx = firewall_product_comment_prefix(prod_);
     GString *rule_str = g_string_new("");
-    gboolean inbound = ui->inboundCheckBox->isChecked();
-    gboolean deny = ui->denyCheckBox->isChecked();
+    bool inbound = ui->inboundCheckBox->isChecked();
+    bool deny = ui->denyCheckBox->isChecked();
 
     address_to_str_buf(addr, addr_buf, ADDR_BUF_LEN);
     rule_func(rule_str, addr_buf, port, ptype_, inbound, deny);
@@ -172,7 +172,7 @@ void FirewallRulesDialog::on_buttonBox_clicked(QAbstractButton *button)
                 .arg(firewall_product_name(prod_));
         QByteArray file_name = WiresharkFileDialog::getSaveFileName(this,
                                                  save_title,
-                                                 mainApp->lastOpenDir().canonicalPath(),
+                                                 mainApp->openDialogInitialDir().canonicalPath(),
                                                  tr("Text file (*.txt);;All Files (" ALL_FILES_WILDCARD ")")
                                                  ).toUtf8();
         if (file_name.length() > 0) {

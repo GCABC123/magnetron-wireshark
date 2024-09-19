@@ -13,10 +13,7 @@ set -e -u -o pipefail
 
 eval "$(brew shellenv)"
 
-# Update to last brew release
-if [ -z "$HOMEBREW_NO_AUTO_UPDATE" ] ; then
-    brew update
-fi
+HOMEBREW_NO_AUTO_UPDATE=${HOMEBREW_NO_AUTO_UPDATE:-}
 
 function print_usage() {
     printf "\\nUtility to setup a macOS system for Wireshark Development using Homebrew.\\n"
@@ -26,7 +23,8 @@ function print_usage() {
     printf "\\t--install-dmg-deps: install packages required to build the .dmg file\\n"
     printf "\\t--install-sparkle-deps: install the Sparkle automatic updater\\n"
     printf "\\t--install-all: install everything\\n"
-    printf "\\t[other]: other options are passed as-is to apt\\n"
+    printf "\\t--install-logray: install everything to compile Logray and falco bridge\\n"
+    printf "\\t[other]: other options are passed as-is to brew\\n"
 }
 
 INSTALLED_FORMULAE=$( brew list --formulae )
@@ -45,8 +43,11 @@ function install_formulae() {
 }
 
 INSTALL_OPTIONAL=0
+INSTALL_DOC_DEPS=0
 INSTALL_DMG_DEPS=0
 INSTALL_SPARKLE_DEPS=0
+INSTALL_TEST_DEPS=0
+INSTALL_LOGRAY=0
 OPTIONS=()
 for arg; do
     case $arg in
@@ -57,16 +58,27 @@ for arg; do
         --install-optional)
             INSTALL_OPTIONAL=1
             ;;
+        --install-doc-deps)
+            INSTALL_DOC_DEPS=1
+            ;;
         --install-dmg-deps)
             INSTALL_DMG_DEPS=1
             ;;
         --install-sparkle-deps)
             INSTALL_SPARKLE_DEPS=1
             ;;
+        --install-test-deps)
+            INSTALL_TEST_DEPS=1
+            ;;
+        --install-logray)
+            INSTALL_LOGRAY=1
+            ;;
         --install-all)
             INSTALL_OPTIONAL=1
+            INSTALL_DOC_DEPS=1
             INSTALL_DMG_DEPS=1
             INSTALL_SPARKLE_DEPS=1
+            INSTALL_TEST_DEPS=1
             ;;
         *)
             OPTIONS+=("$arg")
@@ -96,17 +108,33 @@ ADDITIONAL_LIST=(
     gnutls
     libilbc
     libmaxminddb
+    libnghttp2
+    libnghttp3
     libsmi
     libssh
     libxml2
-    lua@5.1
+    lua
     lz4
     minizip
-    nghttp2
+    minizip-ng
+    opencore-amr
     opus
     snappy
     spandsp
+    zlib-ng
     zstd
+)
+
+DOC_DEPS_LIST=(
+    asciidoctor
+    docbook
+    docbook-xsl
+)
+
+LOGRAY_LIST=(
+    jsoncpp
+    onetbb
+    re2
 )
 
 ACTUAL_LIST=( "${BUILD_LIST[@]}" "${REQUIRED_LIST[@]}" )
@@ -116,20 +144,54 @@ if [ $INSTALL_OPTIONAL -ne 0 ] ; then
     ACTUAL_LIST+=( "${ADDITIONAL_LIST[@]}" )
 fi
 
+if [ $INSTALL_DOC_DEPS -ne 0 ] ; then
+    ACTUAL_LIST+=( "${DOC_DEPS_LIST[@]}" )
+fi
+
+if [ $INSTALL_LOGRAY -ne 0 ] ; then
+    ACTUAL_LIST+=( "${LOGRAY_LIST[@]}" )
+fi
+
 if (( ${#OPTIONS[@]} != 0 )); then
     ACTUAL_LIST+=( "${OPTIONS[@]}" )
 fi
 
 install_formulae "${ACTUAL_LIST[@]}"
 
-
 if [ $INSTALL_DMG_DEPS -ne 0 ] ; then
-    pip3 install dmgbuild
-    pip3 install biplist
+    printf "Sorry, you'll have to install dmgbuild yourself for the time being.\\n"
+    # pip3 install dmgbuild
 fi
 
 if [ $INSTALL_SPARKLE_DEPS -ne 0 ] ; then
     brew cask install sparkle
+fi
+
+if [ $INSTALL_TEST_DEPS -ne 0 ] ; then
+    printf "Sorry, you'll have to install pytest and pytest-xdist yourself for the time being.\\n"
+    # pip3 install pytest pytest-xdist
+fi
+
+if [ $INSTALL_LOGRAY -ne 0 ] ; then
+    FALCO_LIBS_VERSION=0.17.1
+    if [ "$FALCO_LIBS_VERSION" ] && [ ! -f "falco-libs-$FALCO_LIBS_VERSION-done" ] ; then
+        echo "Downloading, building, and installing libsinsp and libscap:"
+        [ -f "falco-libs-$FALCO_LIBS_VERSION.tar.gz" ] || curl -L -O --remote-header-name "https://github.com/falcosecurity/libs/archive/refs/tags/$FALCO_LIBS_VERSION.tar.gz"
+        mv "libs-$FALCO_LIBS_VERSION.tar.gz" "falco-libs-$FALCO_LIBS_VERSION.tar.gz"
+        tar -xf "falco-libs-$FALCO_LIBS_VERSION.tar.gz"
+        mv "libs-$FALCO_LIBS_VERSION" "falco-libs-$FALCO_LIBS_VERSION"
+        cd "falco-libs-$FALCO_LIBS_VERSION"
+        patch -p1 < "../tools/macos-setup-patches/falco-uthash_h-install.patch"
+        mkdir build_dir
+        cd build_dir
+        cmake -DBUILD_SHARED_LIBS=ON -DMINIMAL_BUILD=ON -DCREATE_TEST_TARGETS=OFF \
+            -DUSE_BUNDLED_DEPS=ON -DUSE_BUNDLED_CARES=OFF -DUSE_BUNDLED_ZLIB=OFF \
+            -DUSE_BUNDLED_JSONCPP=OFF -DUSE_BUNDLED_TBB=OFF -DUSE_BUNDLED_RE2=OFF \
+            ..
+        make
+        sudo make install
+        cd ../..
+    fi
 fi
 
 # Uncomment to add PNG compression utilities used by compress-pngs:
@@ -137,10 +199,6 @@ fi
 
 # Uncomment to enable generation of documentation
 # brew install asciidoctor
-
-if [ -z "$HOMEBREW_NO_AUTO_UPDATE" ] ; then
-    brew doctor
-fi
 
 exit 0
 #

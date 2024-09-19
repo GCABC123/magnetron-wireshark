@@ -19,20 +19,33 @@ extern "C" {
 #endif /* __cplusplus */
 
 WS_DLL_PUBLIC
-gchar *
-wmem_strconcat(wmem_allocator_t *allocator, const gchar *first, ...)
+char *
+wmem_strconcat(wmem_allocator_t *allocator, const char *first, ...)
 G_GNUC_MALLOC G_GNUC_NULL_TERMINATED;
 
 WS_DLL_PUBLIC
-gchar *
+char *
 wmem_strjoin(wmem_allocator_t *allocator,
-             const gchar *separator, const gchar *first, ...)
+             const char *separator, const char *first, ...)
 G_GNUC_MALLOC G_GNUC_NULL_TERMINATED;
 
+/**
+ * As g_strjoinv, with the returned string wmem allocated.
+ * Joins a number of strings together to form one long string,
+ * with the optional separator inserted between each of them.
+ *
+ * @param allocator  The wmem scope to use to allocate the returned string
+ * @param separator A string to insert between each of the strings, or NULL.
+ * @param str_array A NULL-terminated array of strings to join
+ *
+ * @note If str_array has no items, the return value is an empty string.
+ * str_array should not be NULL (NULL is returned with an warning.)
+ * NULL as a separator is equivalent to the empty string.
+ */
 WS_DLL_PUBLIC
-gchar *
+char *
 wmem_strjoinv(wmem_allocator_t *allocator,
-              const gchar *separator, gchar **str_array)
+              const char *separator, char **str_array)
 G_GNUC_MALLOC;
 
 /**
@@ -47,9 +60,9 @@ G_GNUC_MALLOC;
  * Do not use with a NULL allocator, use g_strsplit instead.
  */
 WS_DLL_PUBLIC
-gchar **
-wmem_strsplit(wmem_allocator_t *allocator, const gchar *src,
-        const gchar *delimiter, int max_tokens);
+char **
+wmem_strsplit(wmem_allocator_t *allocator, const char *src,
+        const char *delimiter, int max_tokens);
 
 /**
  * wmem_ascii_strdown:
@@ -67,8 +80,8 @@ wmem_strsplit(wmem_allocator_t *allocator, const gchar *src,
  *               the string in place.)
  **/
 WS_DLL_PUBLIC
-gchar*
-wmem_ascii_strdown(wmem_allocator_t *allocator, const gchar *str, gssize len);
+char*
+wmem_ascii_strdown(wmem_allocator_t *allocator, const char *str, ssize_t len);
 
 /** Convert all upper-case ASCII letters to their ASCII lower-case
  *  equivalents, in place, with a simple non-locale-dependent
@@ -86,7 +99,7 @@ wmem_ascii_strdown(wmem_allocator_t *allocator, const gchar *str, gssize len);
  * @return    ptr to the string
  */
 WS_DLL_PUBLIC
-gchar *ascii_strdown_inplace(gchar *str);
+char *ascii_strdown_inplace(char *str);
 
 /** Convert all lower-case ASCII letters to their ASCII upper-case
  *  equivalents, in place, with a simple non-locale-dependent
@@ -104,15 +117,15 @@ gchar *ascii_strdown_inplace(gchar *str);
  * @return    ptr to the string
  */
 WS_DLL_PUBLIC
-gchar *ascii_strup_inplace(gchar *str);
+char *ascii_strup_inplace(char *str);
 
 /** Check if an entire string consists of printable characters
  *
  * @param str    The string to be checked
- * @return       TRUE if the entire string is printable, otherwise FALSE
+ * @return       true if the entire string is printable, otherwise false
  */
 WS_DLL_PUBLIC
-gboolean isprint_string(const gchar *str);
+bool isprint_string(const char *str);
 
 /** Given a not-necessarily-null-terminated string, expected to be in
  *  UTF-8 but possibly containing invalid sequences (as it may have come
@@ -137,22 +150,29 @@ gboolean isprint_string(const gchar *str);
  *
  * @param str    The string to be checked
  * @param length The number of bytes to validate
- * @return       TRUE if the entire string is valid and printable UTF-8,
- *               otherwise FALSE
+ * @return       true if the entire string is valid and printable UTF-8,
+ *               otherwise false
  */
 WS_DLL_PUBLIC
-gboolean isprint_utf8_string(const gchar *str, const guint length);
+bool isprint_utf8_string(const char *str, const unsigned length);
 
 /** Check if an entire string consists of digits
  *
  * @param str    The string to be checked
- * @return       TRUE if the entire string is digits, otherwise FALSE
+ * @return       true if the entire string is digits, otherwise false
  */
 WS_DLL_PUBLIC
-gboolean isdigit_string(const guchar *str);
+bool isdigit_string(const unsigned char *str);
 
 /** Finds the first occurrence of string 'needle' in string 'haystack'.
- *  The matching is done in a case insensitive manner.
+ *  The matching is done ignoring the case of ASCII characters in a
+ *  non-locale-dependent way.
+ *
+ *  The string is assumed to be in a character encoding, such as
+ *  an ISO 8859 or other EUC encoding, or UTF-8, in which all
+ *  bytes in the range 0x00 through 0x7F are ASCII characters and
+ *  non-ASCII characters are constructed from one or more bytes in
+ *  the range 0x80 through 0xFF.
  *
  * @param haystack The string possibly containing the substring
  * @param needle The substring to be searched
@@ -160,7 +180,18 @@ gboolean isdigit_string(const guchar *str);
  *   Otherwise it returns NULL.
  */
 WS_DLL_PUBLIC
-const char *ws_strcasestr(const char *haystack, const char *needle);
+const char *ws_ascii_strcasestr(const char *haystack, const char *needle);
+
+/** Like the memchr() function, except it scans backwards from the end.
+ *
+ * @param haystack Pointer to the bytes of memory to search
+ * @param ch The character to search
+ * @param n The length of bytes to search from the end
+ * @return A pointer to the last occurrence of "ch" in "haystack".
+ * If "ch" isn't found or "n" is 0, returns NULL.
+ */
+WS_DLL_PUBLIC
+const uint8_t *ws_memrchr(const void *haystack, int ch, size_t n);
 
 WS_DLL_PUBLIC
 char *ws_escape_string(wmem_allocator_t *alloc, const char *string, bool add_quotes);
@@ -172,21 +203,74 @@ char *ws_escape_string_len(wmem_allocator_t *alloc, const char *string, ssize_t 
 WS_DLL_PUBLIC
 char *ws_escape_null(wmem_allocator_t *alloc, const char *string, size_t len, bool add_quotes);
 
+/* Escape as in a number of CSV dialects.
+ *
+ * @param allocator  The wmem scope to use to allocate the returned string
+ * @param string  The input string to escape
+ * @param add_quotes  Whether to surround the string with quote_char
+ * @param quote_char  The quote character, always escaped in some way.
+ * @param double_quote  Whether to escape the quote character by doubling it
+ * @param escape_whitespace  Whether to escape whitespace with a backslash
+ * @return  The escaped string
+ *
+ * @note If double_quote is false, then quote_or_delim is escaped with a
+ * backslash ('\'). The quote character can be '\0', in which case it is
+ * ignored. If any character is being escaped with a backslash (i.e.,
+ * quote_char is not '\0' and double_quote is false, or escape_whitespace
+ * is true), then backslash is also escaped.  If add_quotes is false, then
+ * quote_char can either be a quote character (if the string will be quoted
+ * later after further manipulation) or the delimiter (to escape it, since
+ * the string is not being quoted.).
+ */
+WS_DLL_PUBLIC
+char *ws_escape_csv(wmem_allocator_t *alloc, const char *string, bool add_quotes, char quote_char, bool double_quote, bool escape_whitespace);
+
 WS_DLL_PUBLIC
 int ws_xton(char ch);
 
 typedef enum {
     FORMAT_SIZE_UNIT_NONE,          /**< No unit will be appended. You must supply your own. */
+    /* XXX - This does not append a trailing space if there is no prefix.
+     * That's good if you intend to list the unit somewhere else, e.g. in a
+     * legend, header, or other column, but doesn't work well if intending
+     * to append your own unit. You can test whether there's a prefix or
+     * not with g_ascii_isdigit() (plus special handling for inf and NaN).
+     */
     FORMAT_SIZE_UNIT_BYTES,         /**< "bytes" for un-prefixed sizes, "B" otherwise. */
     FORMAT_SIZE_UNIT_BITS,          /**< "bits" for un-prefixed sizes, "b" otherwise. */
     FORMAT_SIZE_UNIT_BITS_S,        /**< "bits/s" for un-prefixed sizes, "bps" otherwise. */
     FORMAT_SIZE_UNIT_BYTES_S,       /**< "bytes/s" for un-prefixed sizes, "Bps" otherwise. */
     FORMAT_SIZE_UNIT_PACKETS,       /**< "packets" */
     FORMAT_SIZE_UNIT_PACKETS_S,     /**< "packets/s" */
+    FORMAT_SIZE_UNIT_EVENTS,        /**< "events" */
+    FORMAT_SIZE_UNIT_EVENTS_S,      /**< "events/s" */
+    FORMAT_SIZE_UNIT_FIELDS,        /**< "fields" */
+    /* These next two aren't really for format_size (which takes an int) */
+    FORMAT_SIZE_UNIT_SECONDS,       /**< "seconds" for un-prefixed sizes, "s" otherwise. */
+    FORMAT_SIZE_UNIT_ERLANGS,       /**< "erlangs" for un-prefixed sizes, "E" otherwise. */
 } format_size_units_e;
 
 #define FORMAT_SIZE_PREFIX_SI   (1 << 0)    /**< SI (power of 1000) prefixes will be used. */
 #define FORMAT_SIZE_PREFIX_IEC  (1 << 1)    /**< IEC (power of 1024) prefixes will be used. */
+
+/** Given a floating point value, return it in a human-readable format
+ *
+ * Prefixes up to "E/Ei" (exa, exbi) and down to "a" (atto; negative
+ * prefixes are SI-only) are currently supported. Values outside that
+ * range will use scientific notation.
+ *
+ * @param size The size value
+ * @param flags Flags to control the output (unit of measurement,
+ * SI vs IEC, etc). Unit and prefix flags may be ORed together.
+ * @param precision Maximum number of digits to appear after the
+ * decimal point. Trailing zeros are removed, as is the decimal
+ * point if not digits follow it.
+ * @return A newly-allocated string representing the value.
+ */
+WS_DLL_PUBLIC
+char *format_units(wmem_allocator_t *allocator, double size,
+                   format_size_units_e unit, uint16_t flags,
+                   int precision);
 
 /** Given a size, return its value in a human-readable format
  *
@@ -205,7 +289,7 @@ char *format_size_wmem(wmem_allocator_t *allocator, int64_t size,
     format_size_wmem(NULL, size, unit, flags)
 
 WS_DLL_PUBLIC
-gchar printable_char_or_period(gchar c);
+char printable_char_or_period(char c);
 
 WS_DLL_PUBLIC WS_RETNONNULL
 const char *ws_strerrorname_r(int errnum, char *buf, size_t buf_size);
@@ -330,10 +414,10 @@ WS_DLL_PUBLIC
 char* ws_utf8_truncate(char *string, size_t len);
 
 WS_DLL_PUBLIC
-void EBCDIC_to_ASCII(guint8 *buf, guint bytes);
+void EBCDIC_to_ASCII(uint8_t *buf, unsigned bytes);
 
 WS_DLL_PUBLIC
-guint8 EBCDIC_to_ASCII1(guint8 c);
+uint8_t EBCDIC_to_ASCII1(uint8_t c);
 
 /* Types of character encodings */
 typedef enum {
@@ -353,10 +437,10 @@ typedef enum {
 #define HEXDUMP_ASCII_EXCLUDE         (0x0002U) /* exclude ASCII section from hexdump reports, if we really don't want or need it */
 
 WS_DLL_PUBLIC
-gboolean hex_dump_buffer(gboolean (*print_line)(void *, const char *), void *fp,
-                                    const guchar *cp, guint length,
+bool hex_dump_buffer(bool (*print_line)(void *, const char *), void *fp,
+                                    const unsigned char *cp, unsigned length,
                                     hex_dump_enc encoding,
-                                    guint ascii_option);
+                                    unsigned ascii_option);
 
 /* To pass one of two strings, singular or plural */
 #define plurality(d,s,p) ((d) == 1 ? (s) : (p))

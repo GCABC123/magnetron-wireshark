@@ -21,268 +21,270 @@
 #include "config.h"
 
 #include <epan/packet.h>
+#include <epan/tfs.h>
+#include <wsutil/array.h>
 #include "wimax_tlv.h"
 #include "wimax_mac.h"
 #include "wimax_utils.h"
+#include "wimax_prefs.h"
 
 
 void proto_register_mac_mgmt_msg_sbc(void);
 void proto_reg_handoff_mac_mgmt_msg_sbc(void);
 
-/* This is a global variable declared in mac_hd_generic_decoder.c, which determines whether
- *    or not cor2 changes are included */
-extern gboolean include_cor2_changes;
+static dissector_handle_t sbc_req_handle;
+static dissector_handle_t sbc_rsp_handle;
 
-static gint proto_mac_mgmt_msg_sbc_decoder = -1;
-static gint ett_mac_mgmt_msg_sbc_decoder = -1;
-static gint ett_sbc_req_tlv_subtree = -1;
-static gint ett_sbc_rsp_tlv_subtree = -1;
+static int proto_mac_mgmt_msg_sbc_decoder;
+static int ett_mac_mgmt_msg_sbc_decoder;
+static int ett_sbc_req_tlv_subtree;
+static int ett_sbc_rsp_tlv_subtree;
 
 /* fix fields */
-static gint hf_sbc_unknown_type = -1;
+static int hf_sbc_unknown_type;
 
-static gint hf_sbc_bw_alloc_support = -1;
-static gint hf_sbc_bw_alloc_support_rsvd0 = -1;
-static gint hf_sbc_bw_alloc_support_duplex = -1;
-static gint hf_sbc_bw_alloc_support_rsvd1 = -1;
-static gint hf_sbc_curr_transmit_power = -1;
-static gint hf_sbc_transition_gaps = -1;
-static gint hf_sbc_ssttg = -1;
-static gint hf_sbc_ssrtg = -1;
-static gint hf_sbc_mac_pdu = -1;
-static gint hf_sbc_mac_pdu_piggybacked = -1;
-static gint hf_sbc_mac_pdu_fsn = -1;
-static gint hf_sbc_mac_pdu_rsvd = -1;
-static gint hf_sbc_max_transmit_power = -1;
-static gint hf_sbc_bpsk = -1;
-static gint hf_sbc_qpsk = -1;
-static gint hf_sbc_qam16 = -1;
-static gint hf_sbc_qam64 = -1;
-static gint hf_sbc_current_transmitted_power = -1;
-static gint hf_sbc_ss_fft_sizes = -1;
-static gint hf_sbc_ss_fft_256 = -1;
-static gint hf_sbc_ss_fft_2048 = -1;
-static gint hf_sbc_ss_fft_128 = -1;
-static gint hf_sbc_ss_fft_512 = -1;
-static gint hf_sbc_ss_fft_1024 = -1;
-static gint hf_sbc_ss_cinr_measure_capability = -1;
-static gint hf_sbc_ss_phy_cinr_measurement_preamble = -1;
-static gint hf_sbc_ss_phy_cinr_measurement_permutation_zone_from_pilot_subcarriers = -1;
-static gint hf_sbc_ss_phy_cinr_measurement_permutation_zone_from_data_subcarriers = -1;
-static gint hf_sbc_ss_effective_cinr_measurement_preamble = -1;
-static gint hf_sbc_ss_effective_cinr_measurement_permutation_zone_from_pilot_subcarriers = -1;
-static gint hf_sbc_ss_effective_cinr_measurement_permutation_zone_from_data_subcarriers = -1;
-static gint hf_sbc_ss_support_2_concurrent_cqi_channels = -1;
-static gint hf_sbc_ss_frequency_selectivity_characterization_report = -1;
+static int hf_sbc_bw_alloc_support;
+static int hf_sbc_bw_alloc_support_rsvd0;
+static int hf_sbc_bw_alloc_support_duplex;
+static int hf_sbc_bw_alloc_support_rsvd1;
+static int hf_sbc_curr_transmit_power;
+static int hf_sbc_transition_gaps;
+static int hf_sbc_ssttg;
+static int hf_sbc_ssrtg;
+static int hf_sbc_mac_pdu;
+static int hf_sbc_mac_pdu_piggybacked;
+static int hf_sbc_mac_pdu_fsn;
+static int hf_sbc_mac_pdu_rsvd;
+static int hf_sbc_max_transmit_power;
+static int hf_sbc_bpsk;
+static int hf_sbc_qpsk;
+static int hf_sbc_qam16;
+static int hf_sbc_qam64;
+static int hf_sbc_current_transmitted_power;
+static int hf_sbc_ss_fft_sizes;
+static int hf_sbc_ss_fft_256;
+static int hf_sbc_ss_fft_2048;
+static int hf_sbc_ss_fft_128;
+static int hf_sbc_ss_fft_512;
+static int hf_sbc_ss_fft_1024;
+static int hf_sbc_ss_cinr_measure_capability;
+static int hf_sbc_ss_phy_cinr_measurement_preamble;
+static int hf_sbc_ss_phy_cinr_measurement_permutation_zone_from_pilot_subcarriers;
+static int hf_sbc_ss_phy_cinr_measurement_permutation_zone_from_data_subcarriers;
+static int hf_sbc_ss_effective_cinr_measurement_preamble;
+static int hf_sbc_ss_effective_cinr_measurement_permutation_zone_from_pilot_subcarriers;
+static int hf_sbc_ss_effective_cinr_measurement_permutation_zone_from_data_subcarriers;
+static int hf_sbc_ss_support_2_concurrent_cqi_channels;
+static int hf_sbc_ss_frequency_selectivity_characterization_report;
 
-static gint hf_sbc_ss_fft_rsvd1 = -1;
-static gint hf_sbc_ss_fft_rsvd2 = -1;
-static gint hf_sbc_ss_demodulator = -1;
-static gint hf_sbc_ss_demodulator_64qam = -1;
-static gint hf_sbc_ss_demodulator_btc = -1;
-static gint hf_sbc_ss_demodulator_ctc = -1;
-static gint hf_sbc_ss_demodulator_stc = -1;
-static gint hf_sbc_ss_demodulator_cc_with_optional_interleaver = -1;
-static gint hf_sbc_ss_demodulator_harq_chase = -1;
-static gint hf_sbc_ss_demodulator_harq_ctc_ir = -1;
-static gint hf_sbc_ss_demodulator_reserved = -1;
-/* static gint hf_sbc_ss_demodulator_reserved1 = -1; */
-static gint hf_sbc_ss_demodulator_64qam_2 = -1;
-static gint hf_sbc_ss_demodulator_btc_2 = -1;
-static gint hf_sbc_ss_demodulator_ctc_2 = -1;
-static gint hf_sbc_ss_demodulator_stc_2 = -1;
-static gint hf_sbc_ss_demodulator_cc_with_optional_interleaver_2 = -1;
-static gint hf_sbc_ss_demodulator_harq_chase_2 = -1;
-static gint hf_sbc_ss_demodulator_harq_ctc_ir_2 = -1;
-static gint hf_sbc_ss_demodulator_reserved_2 = -1;
-static gint hf_sbc_ss_demodulator_harq_cc_ir_2 = -1;
-static gint hf_sbc_ss_demodulator_ldpc_2 = -1;
-static gint hf_sbc_ss_demodulator_dedicated_pilots_2 = -1;
-static gint hf_sbc_ss_demodulator_reserved1_2 = -1;
+static int hf_sbc_ss_fft_rsvd1;
+static int hf_sbc_ss_fft_rsvd2;
+static int hf_sbc_ss_demodulator;
+static int hf_sbc_ss_demodulator_64qam;
+static int hf_sbc_ss_demodulator_btc;
+static int hf_sbc_ss_demodulator_ctc;
+static int hf_sbc_ss_demodulator_stc;
+static int hf_sbc_ss_demodulator_cc_with_optional_interleaver;
+static int hf_sbc_ss_demodulator_harq_chase;
+static int hf_sbc_ss_demodulator_harq_ctc_ir;
+static int hf_sbc_ss_demodulator_reserved;
+/* static int hf_sbc_ss_demodulator_reserved1; */
+static int hf_sbc_ss_demodulator_64qam_2;
+static int hf_sbc_ss_demodulator_btc_2;
+static int hf_sbc_ss_demodulator_ctc_2;
+static int hf_sbc_ss_demodulator_stc_2;
+static int hf_sbc_ss_demodulator_cc_with_optional_interleaver_2;
+static int hf_sbc_ss_demodulator_harq_chase_2;
+static int hf_sbc_ss_demodulator_harq_ctc_ir_2;
+static int hf_sbc_ss_demodulator_reserved_2;
+static int hf_sbc_ss_demodulator_harq_cc_ir_2;
+static int hf_sbc_ss_demodulator_ldpc_2;
+static int hf_sbc_ss_demodulator_dedicated_pilots_2;
+static int hf_sbc_ss_demodulator_reserved1_2;
 
-static gint hf_sbc_ss_modulator = -1;
-static gint hf_sbc_ss_modulator_64qam = -1;
-static gint hf_sbc_ss_modulator_btc = -1;
-static gint hf_sbc_ss_modulator_ctc = -1;
-static gint hf_sbc_ss_modulator_stc = -1;
-static gint hf_sbc_ss_modulator_harq_chase = -1;
-static gint hf_sbc_ss_modulator_ctc_ir = -1;
-static gint hf_sbc_ss_modulator_cc_ir = -1;
-static gint hf_sbc_ss_modulator_ldpc = -1;
+static int hf_sbc_ss_modulator;
+static int hf_sbc_ss_modulator_64qam;
+static int hf_sbc_ss_modulator_btc;
+static int hf_sbc_ss_modulator_ctc;
+static int hf_sbc_ss_modulator_stc;
+static int hf_sbc_ss_modulator_harq_chase;
+static int hf_sbc_ss_modulator_ctc_ir;
+static int hf_sbc_ss_modulator_cc_ir;
+static int hf_sbc_ss_modulator_ldpc;
 
-static gint hf_sbc_number_ul_arq_ack_channel = -1;
-static gint hf_sbc_number_dl_arq_ack_channel = -1;
-static gint hf_sbc_ss_permutation_support = -1;
-static gint hf_sbc_ss_optimal_pusc = -1;
-static gint hf_sbc_ss_optimal_fusc = -1;
-static gint hf_sbc_ss_amc_1x6 = -1;
-static gint hf_sbc_ss_amc_2x3 = -1;
-static gint hf_sbc_ss_amc_3x2 = -1;
-static gint hf_sbc_ss_amc_with_harq_map = -1;
-static gint hf_sbc_ss_tusc1_support = -1;
-static gint hf_sbc_ss_tusc2_support = -1;
-static gint hf_sbc_ss_ofdma_aas_private = -1;
-static gint hf_sbc_ofdma_aas_harq_map_capability = -1;
-static gint hf_sbc_ofdma_aas_private_map_support = -1;
-static gint hf_sbc_ofdma_aas_reduced_private_map_support = -1;
-static gint hf_sbc_ofdma_aas_private_chain_enable = -1;
-static gint hf_sbc_ofdma_aas_private_map_dl_frame_offset = -1;
-static gint hf_sbc_ofdma_aas_private_ul_frame_offset = -1;
-static gint hf_sbc_ofdma_aas_private_map_concurrency = -1;
-static gint hf_sbc_ofdma_aas_capabilities = -1;
-static gint hf_sbc_ss_ofdma_aas_zone = -1;
-static gint hf_sbc_ss_ofdma_aas_diversity_map_scan = -1;
-static gint hf_sbc_ss_ofdma_aas_fbck_rsp_support = -1;
-static gint hf_sbc_ss_ofdma_downlink_aas_preamble = -1;
-static gint hf_sbc_ss_ofdma_uplink_aas_preamble = -1;
-static gint hf_sbc_ss_ofdma_aas_capabilities_rsvd = -1;
+static int hf_sbc_number_ul_arq_ack_channel;
+static int hf_sbc_number_dl_arq_ack_channel;
+static int hf_sbc_ss_permutation_support;
+static int hf_sbc_ss_optimal_pusc;
+static int hf_sbc_ss_optimal_fusc;
+static int hf_sbc_ss_amc_1x6;
+static int hf_sbc_ss_amc_2x3;
+static int hf_sbc_ss_amc_3x2;
+static int hf_sbc_ss_amc_with_harq_map;
+static int hf_sbc_ss_tusc1_support;
+static int hf_sbc_ss_tusc2_support;
+static int hf_sbc_ss_ofdma_aas_private;
+static int hf_sbc_ofdma_aas_harq_map_capability;
+static int hf_sbc_ofdma_aas_private_map_support;
+static int hf_sbc_ofdma_aas_reduced_private_map_support;
+static int hf_sbc_ofdma_aas_private_chain_enable;
+static int hf_sbc_ofdma_aas_private_map_dl_frame_offset;
+static int hf_sbc_ofdma_aas_private_ul_frame_offset;
+static int hf_sbc_ofdma_aas_private_map_concurrency;
+static int hf_sbc_ofdma_aas_capabilities;
+static int hf_sbc_ss_ofdma_aas_zone;
+static int hf_sbc_ss_ofdma_aas_diversity_map_scan;
+static int hf_sbc_ss_ofdma_aas_fbck_rsp_support;
+static int hf_sbc_ss_ofdma_downlink_aas_preamble;
+static int hf_sbc_ss_ofdma_uplink_aas_preamble;
+static int hf_sbc_ss_ofdma_aas_capabilities_rsvd;
 
-static gint hf_sbc_tlv_t_167_association_type_support = -1;
-static gint hf_sbc_tlv_t_167_association_type_support_bit0 = -1;
-static gint hf_sbc_tlv_t_167_association_type_support_bit1 = -1;
-static gint hf_sbc_tlv_t_167_association_type_support_bit2 = -1;
-static gint hf_sbc_tlv_t_167_association_type_support_bit3  = -1;
-static gint hf_sbc_tlv_t_167_association_type_support_bit4 = -1;
-static gint hf_sbc_tlv_t_167_association_type_support_reserved = -1;
-static gint hf_sbc_ofdma_ss_uplink_power_control_support = -1;
-static gint hf_sbc_ofdma_ss_uplink_power_control_support_open_loop = -1;
-static gint hf_sbc_ofdma_ss_uplink_power_control_support_aas_preamble = -1;
-static gint hf_sbc_ofdma_ss_uplink_power_control_support_rsvd = -1;
-/* static gint hf_sbc_ofdm_ss_minimum_num_of_frames = -1; */
-static gint hf_sbc_tlv_t_27_extension_capability = -1;
-static gint hf_sbc_tlv_t_27_extension_capability_bit0 = -1;
-static gint hf_sbc_tlv_t_27_extension_capability_reserved = -1;
-static gint hf_sbc_tlv_t_28_ho_trigger_metric_support = -1;
-static gint hf_sbc_tlv_t_28_ho_trigger_metric_support_bit0 = -1;
-static gint hf_sbc_tlv_t_28_ho_trigger_metric_support_bit1 = -1;
-static gint hf_sbc_tlv_t_28_ho_trigger_metric_support_bit2 = -1;
-static gint hf_sbc_tlv_t_28_ho_trigger_metric_support_bit3 = -1;
-static gint hf_sbc_tlv_t_28_ho_trigger_metric_support_reserved = -1;
-static gint hf_sbc_tlv_t_171_minimum_num_of_frames = -1;
-static gint hf_sbc_tlv_t_172_harq_map_capability = -1;
-static gint hf_sbc_tlv_t_172_extended_harq_ie_capability = -1;
-static gint hf_sbc_tlv_t_172_sub_map_capability_first_zone = -1;
-static gint hf_sbc_tlv_t_172_sub_map_capability_other_zones = -1;
-static gint hf_sbc_tlv_t_172_dl_region_definition_support = -1;
-static gint hf_sbc_tlv_t_172_reserved = -1;
-static gint hf_sbc_tlv_t_172 = -1;
-static gint hf_sbc_tlv_t_173_ul_ctl_channel_support = -1;
-static gint hf_sbc_tlv_t_173_3_bit_mimo_fast_feedback = -1;
-static gint hf_sbc_tlv_t_173_enhanced_fast_feedback = -1;
-static gint hf_sbc_tlv_t_173_ul_ack = -1;
-static gint hf_sbc_tlv_t_173_reserved = -1;
-static gint hf_sbc_tlv_t_173_uep_fast_feedback = -1;
-static gint hf_sbc_tlv_t_173_measurement_report = -1;
-static gint hf_sbc_tlv_t_173_primary_secondary_fast_feedback = -1;
-static gint hf_sbc_tlv_t_173_diuc_cqi_fast_feedback = -1;
-static gint hf_sbc_tlv_t_174_ofdma_ms_csit_capability = -1;
-static gint hf_sbc_tlv_t_174_csit_compatibility_type_a = -1;
-static gint hf_sbc_tlv_t_174_csit_compatibility_type_b = -1;
-static gint hf_sbc_tlv_t_174_power_assignment_capability = -1;
-static gint hf_sbc_tlv_t_174_sounding_rsp_time_capability = -1;
-static gint hf_sbc_tlv_t_174_max_num_simultanous_sounding_instructions = -1;
-static gint hf_sbc_tlv_t_174_ss_csit_type_a_support  = -1;
-static gint hf_sbc_tlv_t_204_ofdma_parameters_sets = -1;
-static gint hf_sbc_tlv_t_204_ofdma_parameters_sets_phy_set_a = -1;
-static gint hf_sbc_tlv_t_204_ofdma_parameters_sets_phy_set_b = -1;
-static gint hf_sbc_tlv_t_204_ofdma_parameters_sets_harq_parameters_set = -1;
-static gint hf_sbc_tlv_t_204_ofdma_parameters_sets_mac_set_a = -1;
-static gint hf_sbc_tlv_t_204_ofdma_parameters_sets_mac_set_b = -1;
-static gint hf_sbc_tlv_t_204_ofdma_parameters_sets_reserved = -1;
-static gint hf_sbc_tlv_t_174_ss_csit_reserved  = -1;
-static gint hf_sbc_tlv_t_175_max_num_bst_per_frm_capability_harq = -1;
-static gint hf_sbc_tlv_t_175_max_num_ul_harq_bst = -1;
-static gint hf_sbc_tlv_t_175_max_num_ul_harq_per_frm_include_one_non_harq_bst = -1;
-static gint hf_sbc_tlv_t_175_max_num_dl_harq_bst_per_harq_per_frm = -1;
-static gint hf_sbc_tlv_t_176 = -1;
-static gint hf_sbc_tlv_t_176_bit0 = -1;
-static gint hf_sbc_tlv_t_176_bit1 = -1;
-static gint hf_sbc_tlv_t_176_bit2 = -1;
-/* static gint hf_sbc_tlv_t_176_bit2_cor2 = -1; */
-static gint hf_sbc_tlv_t_176_bit3 = -1;
-static gint hf_sbc_tlv_t_176_bit4 = -1;
-static gint hf_sbc_tlv_t_176_bit5 = -1;
-static gint hf_sbc_tlv_t_176_bit6 = -1;
-static gint hf_sbc_tlv_t_176_bit7 = -1;
-static gint hf_sbc_tlv_t_176_bit8 = -1;
-static gint hf_sbc_tlv_t_176_bit9 = -1;
-static gint hf_sbc_tlv_t_176_bit10 = -1;
-static gint hf_sbc_tlv_t_176_bit11 = -1;
-static gint hf_sbc_tlv_t_176_bit12 = -1;
-static gint hf_sbc_tlv_t_176_bit13 = -1;
-static gint hf_sbc_tlv_t_176_bit14 = -1;
-static gint hf_sbc_tlv_t_176_bit15 = -1;
-static gint hf_sbc_tlv_t_176_bit16 = -1;
-static gint hf_sbc_tlv_t_176_bit17 = -1;
-static gint hf_sbc_tlv_t_176_bit18 = -1;
-static gint hf_sbc_tlv_t_176_bit19 = -1;
-static gint hf_sbc_tlv_t_176_reserved = -1;
-static gint hf_sbc_tlv_t_177_ofdma_ss_modulator_for_mimo_support = -1;
-static gint hf_sbc_tlv_t_177_stc_matrix_a = -1;
-static gint hf_sbc_tlv_t_177_stc_matrix_b_vertical = -1;
-static gint hf_sbc_tlv_t_177_stc_matrix_b_horizontal = -1;
-static gint hf_sbc_tlv_t_177_two_transmit_antennas = -1;
-static gint hf_sbc_tlv_t_177_capable_of_transmit_diversity = -1;
-static gint hf_sbc_tlv_t_177_capable_of_spacial_multiplexing = -1;
-static gint hf_sbc_tlv_t_177_beamforming = -1;
-static gint hf_sbc_tlv_t_177_adaptive_rate_ctl = -1;
-static gint hf_sbc_tlv_t_177_single_antenna = -1;
-static gint hf_sbc_tlv_t_177_collaborative_sm_with_one_antenna = -1;
-static gint hf_sbc_tlv_t_177_collaborative_sm_with_two_antennas = -1;
-static gint hf_sbc_tlv_t_177_capable_of_two_antenna = -1;
-static gint hf_sbc_tlv_t_177_rsvd = -1;
-static gint hf_sbc_tlv_t_178_sdma_pilot_capability = -1;
-static gint hf_sbc_tlv_t_178_sdma_pilot_pattern_support_for_amc_zone = -1;
-static gint hf_sbc_tlv_t_178_reserved = -1;
-static gint hf_sbc_tlv_t_179_ofdma_multiple_dl_burst_profile_support = -1;
-static gint hf_sbc_tlv_t_179_dl_bst_profile_for_multiple_fec = -1;
-static gint hf_sbc_tlv_t_179_ul_bst_profile_for_multiple_fec = -1;
-static gint hf_sbc_tlv_t_179_reserved = -1;
-static gint hf_sbc_tlv_t_162_harq_incremental_redundancy_buffer_capability = -1;
-static gint hf_sbc_tlv_t_162_harq_incremental_redundancy_buffer_capability_NEP = -1;
-static gint hf_sbc_tlv_t_162_harq_incremental_redundancy_buffer_capability_aggregation_flag_for_dl = -1;
-static gint hf_sbc_tlv_t_162_harq_incremental_redundancy_buffer_capability_aggregation_flag_for_ul = -1;
-static gint hf_sbc_tlv_t_162_harq_incremental_redundancy_buffer_capability_reserved1 = -1;
-static gint hf_sbc_tlv_t_162_ul_harq_incremental_redundancy_buffer_capability_NEP = -1;
-static gint hf_sbc_tlv_t_162_harq_incremental_redundancy_buffer_capability_reserved2 = -1;
-static gint hf_sbc_tlv_t_163_harq_chase_combining_and_cc_ir_buffer_capability = -1;
-static gint hf_sbc_tlv_t_163_dl_harq_buffering_capability_for_chase_combining = -1;
-static gint hf_sbc_tlv_t_163_harq_chase_combining_and_cc_ir_buffer_capability_aggregation_flag_dl = -1;
-static gint hf_sbc_tlv_t_163_harq_chase_combining_and_cc_ir_buffer_capability_reserved1 = -1;
-static gint hf_sbc_tlv_t_163_ul_harq_buffering_capability_for_chase_combining = -1;
-static gint hf_sbc_tlv_t_163_harq_chase_combining_and_cc_ir_buffer_capability_aggregation_flag_ul = -1;
-static gint hf_sbc_tlv_t_163_harq_chase_combining_and_cc_ir_buffer_capability_reserved2 = -1;
+static int hf_sbc_tlv_t_167_association_type_support;
+static int hf_sbc_tlv_t_167_association_type_support_bit0;
+static int hf_sbc_tlv_t_167_association_type_support_bit1;
+static int hf_sbc_tlv_t_167_association_type_support_bit2;
+static int hf_sbc_tlv_t_167_association_type_support_bit3;
+static int hf_sbc_tlv_t_167_association_type_support_bit4;
+static int hf_sbc_tlv_t_167_association_type_support_reserved;
+static int hf_sbc_ofdma_ss_uplink_power_control_support;
+static int hf_sbc_ofdma_ss_uplink_power_control_support_open_loop;
+static int hf_sbc_ofdma_ss_uplink_power_control_support_aas_preamble;
+static int hf_sbc_ofdma_ss_uplink_power_control_support_rsvd;
+/* static int hf_sbc_ofdm_ss_minimum_num_of_frames; */
+static int hf_sbc_tlv_t_27_extension_capability;
+static int hf_sbc_tlv_t_27_extension_capability_bit0;
+static int hf_sbc_tlv_t_27_extension_capability_reserved;
+static int hf_sbc_tlv_t_28_ho_trigger_metric_support;
+static int hf_sbc_tlv_t_28_ho_trigger_metric_support_bit0;
+static int hf_sbc_tlv_t_28_ho_trigger_metric_support_bit1;
+static int hf_sbc_tlv_t_28_ho_trigger_metric_support_bit2;
+static int hf_sbc_tlv_t_28_ho_trigger_metric_support_bit3;
+static int hf_sbc_tlv_t_28_ho_trigger_metric_support_reserved;
+static int hf_sbc_tlv_t_171_minimum_num_of_frames;
+static int hf_sbc_tlv_t_172_harq_map_capability;
+static int hf_sbc_tlv_t_172_extended_harq_ie_capability;
+static int hf_sbc_tlv_t_172_sub_map_capability_first_zone;
+static int hf_sbc_tlv_t_172_sub_map_capability_other_zones;
+static int hf_sbc_tlv_t_172_dl_region_definition_support;
+static int hf_sbc_tlv_t_172_reserved;
+static int hf_sbc_tlv_t_172;
+static int hf_sbc_tlv_t_173_ul_ctl_channel_support;
+static int hf_sbc_tlv_t_173_3_bit_mimo_fast_feedback;
+static int hf_sbc_tlv_t_173_enhanced_fast_feedback;
+static int hf_sbc_tlv_t_173_ul_ack;
+static int hf_sbc_tlv_t_173_reserved;
+static int hf_sbc_tlv_t_173_uep_fast_feedback;
+static int hf_sbc_tlv_t_173_measurement_report;
+static int hf_sbc_tlv_t_173_primary_secondary_fast_feedback;
+static int hf_sbc_tlv_t_173_diuc_cqi_fast_feedback;
+static int hf_sbc_tlv_t_174_ofdma_ms_csit_capability;
+static int hf_sbc_tlv_t_174_csit_compatibility_type_a;
+static int hf_sbc_tlv_t_174_csit_compatibility_type_b;
+static int hf_sbc_tlv_t_174_power_assignment_capability;
+static int hf_sbc_tlv_t_174_sounding_rsp_time_capability;
+static int hf_sbc_tlv_t_174_max_num_simultanous_sounding_instructions;
+static int hf_sbc_tlv_t_174_ss_csit_type_a_support;
+static int hf_sbc_tlv_t_204_ofdma_parameters_sets;
+static int hf_sbc_tlv_t_204_ofdma_parameters_sets_phy_set_a;
+static int hf_sbc_tlv_t_204_ofdma_parameters_sets_phy_set_b;
+static int hf_sbc_tlv_t_204_ofdma_parameters_sets_harq_parameters_set;
+static int hf_sbc_tlv_t_204_ofdma_parameters_sets_mac_set_a;
+static int hf_sbc_tlv_t_204_ofdma_parameters_sets_mac_set_b;
+static int hf_sbc_tlv_t_204_ofdma_parameters_sets_reserved;
+static int hf_sbc_tlv_t_174_ss_csit_reserved;
+static int hf_sbc_tlv_t_175_max_num_bst_per_frm_capability_harq;
+static int hf_sbc_tlv_t_175_max_num_ul_harq_bst;
+static int hf_sbc_tlv_t_175_max_num_ul_harq_per_frm_include_one_non_harq_bst;
+static int hf_sbc_tlv_t_175_max_num_dl_harq_bst_per_harq_per_frm;
+static int hf_sbc_tlv_t_176;
+static int hf_sbc_tlv_t_176_bit0;
+static int hf_sbc_tlv_t_176_bit1;
+static int hf_sbc_tlv_t_176_bit2;
+/* static int hf_sbc_tlv_t_176_bit2_cor2; */
+static int hf_sbc_tlv_t_176_bit3;
+static int hf_sbc_tlv_t_176_bit4;
+static int hf_sbc_tlv_t_176_bit5;
+static int hf_sbc_tlv_t_176_bit6;
+static int hf_sbc_tlv_t_176_bit7;
+static int hf_sbc_tlv_t_176_bit8;
+static int hf_sbc_tlv_t_176_bit9;
+static int hf_sbc_tlv_t_176_bit10;
+static int hf_sbc_tlv_t_176_bit11;
+static int hf_sbc_tlv_t_176_bit12;
+static int hf_sbc_tlv_t_176_bit13;
+static int hf_sbc_tlv_t_176_bit14;
+static int hf_sbc_tlv_t_176_bit15;
+static int hf_sbc_tlv_t_176_bit16;
+static int hf_sbc_tlv_t_176_bit17;
+static int hf_sbc_tlv_t_176_bit18;
+static int hf_sbc_tlv_t_176_bit19;
+static int hf_sbc_tlv_t_176_reserved;
+static int hf_sbc_tlv_t_177_ofdma_ss_modulator_for_mimo_support;
+static int hf_sbc_tlv_t_177_stc_matrix_a;
+static int hf_sbc_tlv_t_177_stc_matrix_b_vertical;
+static int hf_sbc_tlv_t_177_stc_matrix_b_horizontal;
+static int hf_sbc_tlv_t_177_two_transmit_antennas;
+static int hf_sbc_tlv_t_177_capable_of_transmit_diversity;
+static int hf_sbc_tlv_t_177_capable_of_spacial_multiplexing;
+static int hf_sbc_tlv_t_177_beamforming;
+static int hf_sbc_tlv_t_177_adaptive_rate_ctl;
+static int hf_sbc_tlv_t_177_single_antenna;
+static int hf_sbc_tlv_t_177_collaborative_sm_with_one_antenna;
+static int hf_sbc_tlv_t_177_collaborative_sm_with_two_antennas;
+static int hf_sbc_tlv_t_177_capable_of_two_antenna;
+static int hf_sbc_tlv_t_177_rsvd;
+static int hf_sbc_tlv_t_178_sdma_pilot_capability;
+static int hf_sbc_tlv_t_178_sdma_pilot_pattern_support_for_amc_zone;
+static int hf_sbc_tlv_t_178_reserved;
+static int hf_sbc_tlv_t_179_ofdma_multiple_dl_burst_profile_support;
+static int hf_sbc_tlv_t_179_dl_bst_profile_for_multiple_fec;
+static int hf_sbc_tlv_t_179_ul_bst_profile_for_multiple_fec;
+static int hf_sbc_tlv_t_179_reserved;
+static int hf_sbc_tlv_t_162_harq_incremental_redundancy_buffer_capability;
+static int hf_sbc_tlv_t_162_harq_incremental_redundancy_buffer_capability_NEP;
+static int hf_sbc_tlv_t_162_harq_incremental_redundancy_buffer_capability_aggregation_flag_for_dl;
+static int hf_sbc_tlv_t_162_harq_incremental_redundancy_buffer_capability_aggregation_flag_for_ul;
+static int hf_sbc_tlv_t_162_harq_incremental_redundancy_buffer_capability_reserved1;
+static int hf_sbc_tlv_t_162_ul_harq_incremental_redundancy_buffer_capability_NEP;
+static int hf_sbc_tlv_t_162_harq_incremental_redundancy_buffer_capability_reserved2;
+static int hf_sbc_tlv_t_163_harq_chase_combining_and_cc_ir_buffer_capability;
+static int hf_sbc_tlv_t_163_dl_harq_buffering_capability_for_chase_combining;
+static int hf_sbc_tlv_t_163_harq_chase_combining_and_cc_ir_buffer_capability_aggregation_flag_dl;
+static int hf_sbc_tlv_t_163_harq_chase_combining_and_cc_ir_buffer_capability_reserved1;
+static int hf_sbc_tlv_t_163_ul_harq_buffering_capability_for_chase_combining;
+static int hf_sbc_tlv_t_163_harq_chase_combining_and_cc_ir_buffer_capability_aggregation_flag_ul;
+static int hf_sbc_tlv_t_163_harq_chase_combining_and_cc_ir_buffer_capability_reserved2;
 
-static gint hf_sbc_ss_demodulator_mimo_support = -1;
-static gint hf_sbc_ss_demodulator_mimo_2_ann_stc_matrix_a = -1;
-static gint hf_sbc_ss_demodulator_mimo_2_ann_stc_matrix_b_vertical = -1;
-static gint hf_sbc_ss_demodulator_mimo_2_ann_stc_matrix_b_horizontal = -1;
-static gint hf_sbc_ss_demodulator_mimo_4_ann_stc_matrix_a = -1;
-static gint hf_sbc_ss_demodulator_mimo_4_ann_stc_matrix_b_vertical = -1;
-static gint hf_sbc_ss_demodulator_mimo_4_ann_stc_matrix_b_horizontal = -1;
-static gint hf_sbc_ss_demodulator_mimo_4_ann_stc_matrix_c_vertical = -1;
-static gint hf_sbc_ss_demodulator_mimo_4_ann_stc_matrix_c_horizontal = -1;
-static gint hf_sbc_ss_demodulator_mimo_rsvd = -1;
-static gint hf_sbc_ss_mimo_uplink_support = -1;
-static gint hf_sbc_ss_mimo_uplink_support_2_ann_sttd = -1;
-static gint hf_sbc_ss_mimo_uplink_support_2_ann_sm_vertical = -1;
-static gint hf_sbc_ss_mimo_uplink_support_1_ann_coop_sm = -1;
-static gint hf_sbc_ss_mimo_uplink_support_rsvd = -1;
+static int hf_sbc_ss_demodulator_mimo_support;
+static int hf_sbc_ss_demodulator_mimo_2_ann_stc_matrix_a;
+static int hf_sbc_ss_demodulator_mimo_2_ann_stc_matrix_b_vertical;
+static int hf_sbc_ss_demodulator_mimo_2_ann_stc_matrix_b_horizontal;
+static int hf_sbc_ss_demodulator_mimo_4_ann_stc_matrix_a;
+static int hf_sbc_ss_demodulator_mimo_4_ann_stc_matrix_b_vertical;
+static int hf_sbc_ss_demodulator_mimo_4_ann_stc_matrix_b_horizontal;
+static int hf_sbc_ss_demodulator_mimo_4_ann_stc_matrix_c_vertical;
+static int hf_sbc_ss_demodulator_mimo_4_ann_stc_matrix_c_horizontal;
+static int hf_sbc_ss_demodulator_mimo_rsvd;
+static int hf_sbc_ss_mimo_uplink_support;
+static int hf_sbc_ss_mimo_uplink_support_2_ann_sttd;
+static int hf_sbc_ss_mimo_uplink_support_2_ann_sm_vertical;
+static int hf_sbc_ss_mimo_uplink_support_1_ann_coop_sm;
+static int hf_sbc_ss_mimo_uplink_support_rsvd;
 
-static gint hf_sbc_power_save_class_types_capability = -1;
-static gint hf_sbc_power_save_class_types_capability_bit0 = -1;
-static gint hf_sbc_power_save_class_types_capability_bit1 = -1;
-static gint hf_sbc_power_save_class_types_capability_bit2 = -1;
-static gint hf_sbc_power_save_class_types_capability_bits34 = -1;
-static gint hf_sbc_power_save_class_types_capability_bits567 = -1;
+static int hf_sbc_power_save_class_types_capability;
+static int hf_sbc_power_save_class_types_capability_bit0;
+static int hf_sbc_power_save_class_types_capability_bit1;
+static int hf_sbc_power_save_class_types_capability_bit2;
+static int hf_sbc_power_save_class_types_capability_bits34;
+static int hf_sbc_power_save_class_types_capability_bits567;
 
-static gint hf_sbc_pkm_flow_control = -1;
-static gint hf_sbc_auth_policy = -1;
-static gint hf_sbc_privacy_802_16 = -1;
-static gint hf_sbc_privacy_rsvd = -1;
-static gint hf_sbc_max_security_associations = -1;
+static int hf_sbc_pkm_flow_control;
+static int hf_sbc_auth_policy;
+static int hf_sbc_privacy_802_16;
+static int hf_sbc_privacy_rsvd;
+static int hf_sbc_max_security_associations;
 
-static gint hf_sbc_invalid_tlv = -1;
+static int hf_sbc_invalid_tlv;
 
 static const true_false_string tfs_sbc_bw_alloc_support_duplex =
 {
@@ -556,18 +558,18 @@ static const value_string vals_sbc_sdma_str[ ] =
 };
 
 
-static void sbc_tlv_decoder(tlv_info_t* tlv_info, int ett, proto_tree* sbc_tree, packet_info *pinfo, tvbuff_t *tvb, guint offset, guint tlv_offset)
+static void sbc_tlv_decoder(tlv_info_t* tlv_info, int ett, proto_tree* sbc_tree, packet_info *pinfo, tvbuff_t *tvb, unsigned offset, unsigned tlv_offset)
 {
 	proto_item *tlv_item, *ti;
 	proto_tree *tlv_tree;
-	gint  tlv_type = get_tlv_type(tlv_info),
+	int   tlv_type = get_tlv_type(tlv_info),
 		  tlv_len = get_tlv_length(tlv_info),
 		  value;
-	gfloat power_bpsk;
-	gfloat power_qpsk;
-	gfloat power_qam16;
-	gfloat power_qam64;
-	gfloat current_power;
+	float power_bpsk;
+	float power_qpsk;
+	float power_qam16;
+	float power_qam64;
+	float current_power;
 
 	/* process SBC TLV Encoded information */
 	switch (tlv_type)
@@ -605,23 +607,23 @@ static void sbc_tlv_decoder(tlv_info_t* tlv_info, int ett, proto_tree* sbc_tree,
 			tlv_item = add_tlv_subtree(tlv_info, sbc_tree, hf_sbc_max_transmit_power, tvb, tlv_offset, ENC_BIG_ENDIAN);
 			tlv_tree = proto_item_add_subtree(tlv_item, ett);
 			/* display the detail meanings of the TLV value */
-			power_bpsk = (gfloat)(tvb_get_guint8(tvb, offset) - 128) / 2;
-			power_qpsk = (gfloat)(tvb_get_guint8(tvb, (offset + 1)) - 128) / 2;
-			power_qam16 = (gfloat)(tvb_get_guint8(tvb, (offset + 2)) - 128) / 2;
-			power_qam64 = (gfloat)(tvb_get_guint8(tvb, (offset + 3)) - 128) / 2;
-			proto_tree_add_float_format_value(tlv_tree, hf_sbc_bpsk, tvb, offset, 1, power_bpsk, "%.2f dBm", (gdouble)power_bpsk);
-			proto_tree_add_float_format_value(tlv_tree, hf_sbc_qpsk, tvb, (offset + 1), 1, power_qpsk, "%.2f dBm", (gdouble)power_qpsk);
-			proto_tree_add_float_format_value(tlv_tree, hf_sbc_qam16, tvb, (offset + 2), 1, power_qam16, "%.2f dBm", (gdouble)power_qam16);
-			proto_tree_add_float_format_value(tlv_tree, hf_sbc_qam64, tvb, (offset + 3), 1, power_qam64, "%.2f dBm", (gdouble)power_qam64);
+			power_bpsk = (float)(tvb_get_uint8(tvb, offset) - 128) / 2;
+			power_qpsk = (float)(tvb_get_uint8(tvb, (offset + 1)) - 128) / 2;
+			power_qam16 = (float)(tvb_get_uint8(tvb, (offset + 2)) - 128) / 2;
+			power_qam64 = (float)(tvb_get_uint8(tvb, (offset + 3)) - 128) / 2;
+			proto_tree_add_float_format_value(tlv_tree, hf_sbc_bpsk, tvb, offset, 1, power_bpsk, "%.2f dBm", (double)power_bpsk);
+			proto_tree_add_float_format_value(tlv_tree, hf_sbc_qpsk, tvb, (offset + 1), 1, power_qpsk, "%.2f dBm", (double)power_qpsk);
+			proto_tree_add_float_format_value(tlv_tree, hf_sbc_qam16, tvb, (offset + 2), 1, power_qam16, "%.2f dBm", (double)power_qam16);
+			proto_tree_add_float_format_value(tlv_tree, hf_sbc_qam64, tvb, (offset + 3), 1, power_qam64, "%.2f dBm", (double)power_qam64);
 		break;
 		case SBC_REQ_CURR_TRANSMITTED_POWER:
 			/* add TLV subtree */
 			tlv_item = add_tlv_subtree(tlv_info, sbc_tree, hf_sbc_curr_transmit_power, tvb, tlv_offset, ENC_BIG_ENDIAN);
 			tlv_tree = proto_item_add_subtree(tlv_item, ett);
 			/* display the detail meanings of the TLV value */
-			value = tvb_get_guint8(tvb, offset);
-			current_power = (gfloat)(value - 128) / 2;
-			proto_tree_add_float_format_value(tlv_tree, hf_sbc_current_transmitted_power, tvb, offset, 1, current_power, "%.2f dBm (Value: 0x%x)", (gdouble)current_power, value);
+			value = tvb_get_uint8(tvb, offset);
+			current_power = (float)(value - 128) / 2;
+			proto_tree_add_float_format_value(tlv_tree, hf_sbc_current_transmitted_power, tvb, offset, 1, current_power, "%.2f dBm (Value: 0x%x)", (double)current_power, value);
 		break;
 		case SBC_SS_FFT_SIZES:
 			/* add TLV subtree */
@@ -775,7 +777,7 @@ static void sbc_tlv_decoder(tlv_info_t* tlv_info, int ett, proto_tree* sbc_tree,
 		case SBC_PKM_FLOW_CONTROL:
 			/* add TLV subtree */
 			tlv_item = add_tlv_subtree(tlv_info, sbc_tree, hf_sbc_pkm_flow_control, tvb, tlv_offset, ENC_BIG_ENDIAN);
-			if(tvb_get_guint8(tvb, offset) == 0)
+			if(tvb_get_uint8(tvb, offset) == 0)
 				proto_item_append_text(tlv_item, " (default - no limit)");
 		break;
 		case SBC_AUTH_POLICY_SUPPORT:
@@ -1020,9 +1022,9 @@ static void sbc_tlv_decoder(tlv_info_t* tlv_info, int ett, proto_tree* sbc_tree,
 /* Wimax Mac SBC-REQ Message Dissector */
 static int dissect_mac_mgmt_msg_sbc_req_decoder(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, void* data _U_)
 {
-	guint offset = 0;
-	guint tvb_len;
-	gint  tlv_type, tlv_len, tlv_value_offset;
+	unsigned offset = 0;
+	unsigned tvb_len;
+	int   tlv_type, tlv_len, tlv_value_offset;
 	proto_item *sbc_item;
 	proto_tree *sbc_tree;
 	tlv_info_t tlv_info;
@@ -1074,9 +1076,9 @@ static int dissect_mac_mgmt_msg_sbc_req_decoder(tvbuff_t *tvb, packet_info *pinf
 /* Wimax Mac SBC-RSP Message Dissector */
 static int dissect_mac_mgmt_msg_sbc_rsp_decoder(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, void* data _U_)
 {
-	guint offset = 0;
-	guint tvb_len;
-	gint  tlv_type, tlv_len, tlv_value_offset;
+	unsigned offset = 0;
+	unsigned tvb_len;
+	int   tlv_type, tlv_len, tlv_value_offset;
 	proto_item *sbc_item;
 	proto_tree *sbc_tree;
 	tlv_info_t tlv_info;
@@ -2791,7 +2793,7 @@ void proto_register_mac_mgmt_msg_sbc(void)
 	};
 
 	/* Setup protocol subtree array */
-	static gint *ett_sbc[] =
+	static int *ett_sbc[] =
 		{
 			&ett_mac_mgmt_msg_sbc_decoder,
 			&ett_sbc_req_tlv_subtree,
@@ -2807,19 +2809,15 @@ void proto_register_mac_mgmt_msg_sbc(void)
 	proto_register_field_array(proto_mac_mgmt_msg_sbc_decoder, hf_sbc, array_length(hf_sbc));
 	proto_register_subtree_array(ett_sbc, array_length(ett_sbc));
 
-	register_dissector("mac_mgmt_msg_sbc_rsp_handler", dissect_mac_mgmt_msg_sbc_rsp_decoder, -1);
+	sbc_req_handle = register_dissector("mac_mgmt_msg_sbc_req_handler", dissect_mac_mgmt_msg_sbc_req_decoder, proto_mac_mgmt_msg_sbc_decoder);
+	sbc_rsp_handle = register_dissector("mac_mgmt_msg_sbc_rsp_handler", dissect_mac_mgmt_msg_sbc_rsp_decoder, proto_mac_mgmt_msg_sbc_decoder);
 }
 
 void
 proto_reg_handoff_mac_mgmt_msg_sbc(void)
 {
-	dissector_handle_t sbc_handle;
-
-	sbc_handle = create_dissector_handle(dissect_mac_mgmt_msg_sbc_req_decoder, proto_mac_mgmt_msg_sbc_decoder);
-	dissector_add_uint("wmx.mgmtmsg", MAC_MGMT_MSG_SBC_REQ, sbc_handle);
-
-	sbc_handle = create_dissector_handle(dissect_mac_mgmt_msg_sbc_rsp_decoder, proto_mac_mgmt_msg_sbc_decoder);
-	dissector_add_uint("wmx.mgmtmsg", MAC_MGMT_MSG_SBC_RSP, sbc_handle);
+	dissector_add_uint("wmx.mgmtmsg", MAC_MGMT_MSG_SBC_REQ, sbc_req_handle);
+	dissector_add_uint("wmx.mgmtmsg", MAC_MGMT_MSG_SBC_RSP, sbc_rsp_handle);
 }
 
 

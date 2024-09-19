@@ -1,7 +1,7 @@
 /* Do not modify this file. Changes will be overwritten.                      */
 /* Generated automatically by the ASN.1 to Wireshark dissector compiler       */
 /* packet-pkixtsp.c                                                           */
-/* asn2wrs.py -b -L -p pkixtsp -c ./pkixtsp.cnf -s ./packet-pkixtsp-template -D . -O ../.. PKIXTSP.asn */
+/* asn2wrs.py -b -q -L -p pkixtsp -c ./pkixtsp.cnf -s ./packet-pkixtsp-template -D . -O ../.. PKIXTSP.asn */
 
 /* packet-pkixtsp.c
  * Routines for RFC2634 Extended Security Services packet dissection
@@ -19,6 +19,7 @@
 #include <epan/packet.h>
 
 #include <epan/asn1.h>
+#include <wsutil/array.h>
 #include "packet-ber.h"
 #include "packet-pkixtsp.h"
 #include "packet-pkix1explicit.h"
@@ -32,71 +33,74 @@
 void proto_register_pkixtsp(void);
 void proto_reg_handoff_pkixtsp(void);
 
+static dissector_handle_t timestamp_reply_handle;
+static dissector_handle_t timestamp_query_handle;
+
 /* Initialize the protocol and registered fields */
-static int proto_pkixtsp = -1;
-static int hf_pkixtsp_TimeStampReq_PDU = -1;      /* TimeStampReq */
-static int hf_pkixtsp_TimeStampResp_PDU = -1;     /* TimeStampResp */
-static int hf_pkixtsp_TSTInfo_PDU = -1;           /* TSTInfo */
-static int hf_pkixtsp_SignatureTimeStampToken_PDU = -1;  /* SignatureTimeStampToken */
-static int hf_pkixtsp_version = -1;               /* T_version */
-static int hf_pkixtsp_messageImprint = -1;        /* MessageImprint */
-static int hf_pkixtsp_reqPolicy = -1;             /* TSAPolicyId */
-static int hf_pkixtsp_nonce = -1;                 /* INTEGER */
-static int hf_pkixtsp_certReq = -1;               /* BOOLEAN */
-static int hf_pkixtsp_extensions = -1;            /* Extensions */
-static int hf_pkixtsp_hashAlgorithm = -1;         /* AlgorithmIdentifier */
-static int hf_pkixtsp_hashedMessage = -1;         /* OCTET_STRING */
-static int hf_pkixtsp_status = -1;                /* PKIStatusInfo */
-static int hf_pkixtsp_timeStampToken = -1;        /* TimeStampToken */
-static int hf_pkixtsp_pki_status = -1;            /* PKIStatus */
-static int hf_pkixtsp_failInfo = -1;              /* PKIFailureInfo */
-static int hf_pkixtsp_tst_version = -1;           /* Tst_version */
-static int hf_pkixtsp_policy = -1;                /* TSAPolicyId */
-static int hf_pkixtsp_serialNumber = -1;          /* INTEGER */
-static int hf_pkixtsp_genTime = -1;               /* GeneralizedTime */
-static int hf_pkixtsp_accuracy = -1;              /* Accuracy */
-static int hf_pkixtsp_ordering = -1;              /* BOOLEAN */
-static int hf_pkixtsp_tsa = -1;                   /* GeneralName */
-static int hf_pkixtsp_seconds = -1;               /* INTEGER */
-static int hf_pkixtsp_millis = -1;                /* INTEGER_1_999 */
-static int hf_pkixtsp_micros = -1;                /* INTEGER_1_999 */
+static int proto_pkixtsp;
+static int hf_pkixtsp_TimeStampReq_PDU;           /* TimeStampReq */
+static int hf_pkixtsp_TimeStampResp_PDU;          /* TimeStampResp */
+static int hf_pkixtsp_TSTInfo_PDU;                /* TSTInfo */
+static int hf_pkixtsp_SignatureTimeStampToken_PDU;  /* SignatureTimeStampToken */
+static int hf_pkixtsp_version;                    /* T_version */
+static int hf_pkixtsp_messageImprint;             /* MessageImprint */
+static int hf_pkixtsp_reqPolicy;                  /* TSAPolicyId */
+static int hf_pkixtsp_nonce;                      /* INTEGER */
+static int hf_pkixtsp_certReq;                    /* BOOLEAN */
+static int hf_pkixtsp_extensions;                 /* Extensions */
+static int hf_pkixtsp_hashAlgorithm;              /* AlgorithmIdentifier */
+static int hf_pkixtsp_hashedMessage;              /* OCTET_STRING */
+static int hf_pkixtsp_status;                     /* PKIStatusInfo */
+static int hf_pkixtsp_timeStampToken;             /* TimeStampToken */
+static int hf_pkixtsp_pki_status;                 /* PKIStatus */
+static int hf_pkixtsp_failInfo;                   /* PKIFailureInfo */
+static int hf_pkixtsp_tst_version;                /* Tst_version */
+static int hf_pkixtsp_policy;                     /* TSAPolicyId */
+static int hf_pkixtsp_serialNumber;               /* INTEGER */
+static int hf_pkixtsp_genTime;                    /* GeneralizedTime */
+static int hf_pkixtsp_accuracy;                   /* Accuracy */
+static int hf_pkixtsp_ordering;                   /* BOOLEAN */
+static int hf_pkixtsp_tsa;                        /* GeneralName */
+static int hf_pkixtsp_seconds;                    /* INTEGER */
+static int hf_pkixtsp_millis;                     /* INTEGER_1_999 */
+static int hf_pkixtsp_micros;                     /* INTEGER_1_999 */
 /* named bits */
-static int hf_pkixtsp_PKIFailureInfo_badAlg = -1;
-static int hf_pkixtsp_PKIFailureInfo_spare_bit1 = -1;
-static int hf_pkixtsp_PKIFailureInfo_badRequest = -1;
-static int hf_pkixtsp_PKIFailureInfo_spare_bit3 = -1;
-static int hf_pkixtsp_PKIFailureInfo_spare_bit4 = -1;
-static int hf_pkixtsp_PKIFailureInfo_badDataFormat = -1;
-static int hf_pkixtsp_PKIFailureInfo_spare_bit6 = -1;
-static int hf_pkixtsp_PKIFailureInfo_spare_bit7 = -1;
-static int hf_pkixtsp_PKIFailureInfo_spare_bit8 = -1;
-static int hf_pkixtsp_PKIFailureInfo_spare_bit9 = -1;
-static int hf_pkixtsp_PKIFailureInfo_spare_bit10 = -1;
-static int hf_pkixtsp_PKIFailureInfo_spare_bit11 = -1;
-static int hf_pkixtsp_PKIFailureInfo_spare_bit12 = -1;
-static int hf_pkixtsp_PKIFailureInfo_spare_bit13 = -1;
-static int hf_pkixtsp_PKIFailureInfo_timeNotAvailable = -1;
-static int hf_pkixtsp_PKIFailureInfo_unacceptedPolicy = -1;
-static int hf_pkixtsp_PKIFailureInfo_unacceptedExtension = -1;
-static int hf_pkixtsp_PKIFailureInfo_addInfoNotAvailable = -1;
-static int hf_pkixtsp_PKIFailureInfo_spare_bit18 = -1;
-static int hf_pkixtsp_PKIFailureInfo_spare_bit19 = -1;
-static int hf_pkixtsp_PKIFailureInfo_spare_bit20 = -1;
-static int hf_pkixtsp_PKIFailureInfo_spare_bit21 = -1;
-static int hf_pkixtsp_PKIFailureInfo_spare_bit22 = -1;
-static int hf_pkixtsp_PKIFailureInfo_spare_bit23 = -1;
-static int hf_pkixtsp_PKIFailureInfo_spare_bit24 = -1;
-static int hf_pkixtsp_PKIFailureInfo_systemFailure = -1;
+static int hf_pkixtsp_PKIFailureInfo_badAlg;
+static int hf_pkixtsp_PKIFailureInfo_spare_bit1;
+static int hf_pkixtsp_PKIFailureInfo_badRequest;
+static int hf_pkixtsp_PKIFailureInfo_spare_bit3;
+static int hf_pkixtsp_PKIFailureInfo_spare_bit4;
+static int hf_pkixtsp_PKIFailureInfo_badDataFormat;
+static int hf_pkixtsp_PKIFailureInfo_spare_bit6;
+static int hf_pkixtsp_PKIFailureInfo_spare_bit7;
+static int hf_pkixtsp_PKIFailureInfo_spare_bit8;
+static int hf_pkixtsp_PKIFailureInfo_spare_bit9;
+static int hf_pkixtsp_PKIFailureInfo_spare_bit10;
+static int hf_pkixtsp_PKIFailureInfo_spare_bit11;
+static int hf_pkixtsp_PKIFailureInfo_spare_bit12;
+static int hf_pkixtsp_PKIFailureInfo_spare_bit13;
+static int hf_pkixtsp_PKIFailureInfo_timeNotAvailable;
+static int hf_pkixtsp_PKIFailureInfo_unacceptedPolicy;
+static int hf_pkixtsp_PKIFailureInfo_unacceptedExtension;
+static int hf_pkixtsp_PKIFailureInfo_addInfoNotAvailable;
+static int hf_pkixtsp_PKIFailureInfo_spare_bit18;
+static int hf_pkixtsp_PKIFailureInfo_spare_bit19;
+static int hf_pkixtsp_PKIFailureInfo_spare_bit20;
+static int hf_pkixtsp_PKIFailureInfo_spare_bit21;
+static int hf_pkixtsp_PKIFailureInfo_spare_bit22;
+static int hf_pkixtsp_PKIFailureInfo_spare_bit23;
+static int hf_pkixtsp_PKIFailureInfo_spare_bit24;
+static int hf_pkixtsp_PKIFailureInfo_systemFailure;
 
 /* Initialize the subtree pointers */
-static gint ett_pkixtsp = -1;
-static gint ett_pkixtsp_TimeStampReq = -1;
-static gint ett_pkixtsp_MessageImprint = -1;
-static gint ett_pkixtsp_TimeStampResp = -1;
-static gint ett_pkixtsp_PKIStatusInfo = -1;
-static gint ett_pkixtsp_PKIFailureInfo = -1;
-static gint ett_pkixtsp_TSTInfo = -1;
-static gint ett_pkixtsp_Accuracy = -1;
+static int ett_pkixtsp;
+static int ett_pkixtsp_TimeStampReq;
+static int ett_pkixtsp_MessageImprint;
+static int ett_pkixtsp_TimeStampResp;
+static int ett_pkixtsp_PKIStatusInfo;
+static int ett_pkixtsp_PKIFailureInfo;
+static int ett_pkixtsp_TSTInfo;
+static int ett_pkixtsp_Accuracy;
 
 
 
@@ -107,7 +111,7 @@ static const value_string pkixtsp_T_version_vals[] = {
 
 
 static int
-dissect_pkixtsp_T_version(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_pkixtsp_T_version(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_integer(implicit_tag, actx, tree, tvb, offset, hf_index,
                                                 NULL);
 
@@ -117,7 +121,7 @@ dissect_pkixtsp_T_version(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offs
 
 
 static int
-dissect_pkixtsp_OCTET_STRING(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_pkixtsp_OCTET_STRING(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_octet_string(implicit_tag, actx, tree, tvb, offset, hf_index,
                                        NULL);
 
@@ -132,7 +136,7 @@ static const ber_sequence_t MessageImprint_sequence[] = {
 };
 
 static int
-dissect_pkixtsp_MessageImprint(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_pkixtsp_MessageImprint(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence(implicit_tag, actx, tree, tvb, offset,
                                    MessageImprint_sequence, hf_index, ett_pkixtsp_MessageImprint);
 
@@ -142,7 +146,7 @@ dissect_pkixtsp_MessageImprint(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int
 
 
 static int
-dissect_pkixtsp_TSAPolicyId(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_pkixtsp_TSAPolicyId(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_object_identifier(implicit_tag, actx, tree, tvb, offset, hf_index, NULL);
 
   return offset;
@@ -151,7 +155,7 @@ dissect_pkixtsp_TSAPolicyId(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int of
 
 
 static int
-dissect_pkixtsp_INTEGER(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_pkixtsp_INTEGER(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_integer(implicit_tag, actx, tree, tvb, offset, hf_index,
                                                 NULL);
 
@@ -161,7 +165,7 @@ dissect_pkixtsp_INTEGER(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset
 
 
 static int
-dissect_pkixtsp_BOOLEAN(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_pkixtsp_BOOLEAN(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_boolean(implicit_tag, actx, tree, tvb, offset, hf_index, NULL);
 
   return offset;
@@ -179,7 +183,7 @@ static const ber_sequence_t TimeStampReq_sequence[] = {
 };
 
 static int
-dissect_pkixtsp_TimeStampReq(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_pkixtsp_TimeStampReq(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence(implicit_tag, actx, tree, tvb, offset,
                                    TimeStampReq_sequence, hf_index, ett_pkixtsp_TimeStampReq);
 
@@ -199,7 +203,7 @@ static const value_string pkixtsp_PKIStatus_vals[] = {
 
 
 static int
-dissect_pkixtsp_PKIStatus(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_pkixtsp_PKIStatus(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_integer(implicit_tag, actx, tree, tvb, offset, hf_index,
                                                 NULL);
 
@@ -238,7 +242,7 @@ static int * const PKIFailureInfo_bits[] = {
 };
 
 static int
-dissect_pkixtsp_PKIFailureInfo(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_pkixtsp_PKIFailureInfo(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_bitstring(implicit_tag, actx, tree, tvb, offset,
                                     PKIFailureInfo_bits, 26, hf_index, ett_pkixtsp_PKIFailureInfo,
                                     NULL);
@@ -254,7 +258,7 @@ static const ber_sequence_t PKIStatusInfo_sequence[] = {
 };
 
 static int
-dissect_pkixtsp_PKIStatusInfo(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_pkixtsp_PKIStatusInfo(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence(implicit_tag, actx, tree, tvb, offset,
                                    PKIStatusInfo_sequence, hf_index, ett_pkixtsp_PKIStatusInfo);
 
@@ -264,7 +268,7 @@ dissect_pkixtsp_PKIStatusInfo(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int 
 
 
 static int
-dissect_pkixtsp_TimeStampToken(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_pkixtsp_TimeStampToken(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_cms_ContentInfo(implicit_tag, tvb, offset, actx, tree, hf_index);
 
   return offset;
@@ -278,7 +282,7 @@ static const ber_sequence_t TimeStampResp_sequence[] = {
 };
 
 static int
-dissect_pkixtsp_TimeStampResp(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_pkixtsp_TimeStampResp(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence(implicit_tag, actx, tree, tvb, offset,
                                    TimeStampResp_sequence, hf_index, ett_pkixtsp_TimeStampResp);
 
@@ -293,7 +297,7 @@ static const value_string pkixtsp_Tst_version_vals[] = {
 
 
 static int
-dissect_pkixtsp_Tst_version(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_pkixtsp_Tst_version(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_integer(implicit_tag, actx, tree, tvb, offset, hf_index,
                                                 NULL);
 
@@ -303,7 +307,7 @@ dissect_pkixtsp_Tst_version(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int of
 
 
 static int
-dissect_pkixtsp_GeneralizedTime(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_pkixtsp_GeneralizedTime(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_GeneralizedTime(implicit_tag, actx, tree, tvb, offset, hf_index);
 
   return offset;
@@ -312,7 +316,7 @@ dissect_pkixtsp_GeneralizedTime(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, in
 
 
 static int
-dissect_pkixtsp_INTEGER_1_999(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_pkixtsp_INTEGER_1_999(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_integer(implicit_tag, actx, tree, tvb, offset, hf_index,
                                                 NULL);
 
@@ -328,7 +332,7 @@ static const ber_sequence_t Accuracy_sequence[] = {
 };
 
 static int
-dissect_pkixtsp_Accuracy(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_pkixtsp_Accuracy(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence(implicit_tag, actx, tree, tvb, offset,
                                    Accuracy_sequence, hf_index, ett_pkixtsp_Accuracy);
 
@@ -351,7 +355,7 @@ static const ber_sequence_t TSTInfo_sequence[] = {
 };
 
 static int
-dissect_pkixtsp_TSTInfo(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_pkixtsp_TSTInfo(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence(implicit_tag, actx, tree, tvb, offset,
                                    TSTInfo_sequence, hf_index, ett_pkixtsp_TSTInfo);
 
@@ -361,7 +365,7 @@ dissect_pkixtsp_TSTInfo(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset
 
 
 static int
-dissect_pkixtsp_SignatureTimeStampToken(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_pkixtsp_SignatureTimeStampToken(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_pkixtsp_TimeStampToken(implicit_tag, tvb, offset, actx, tree, hf_index);
 
   return offset;
@@ -372,29 +376,29 @@ dissect_pkixtsp_SignatureTimeStampToken(gboolean implicit_tag _U_, tvbuff_t *tvb
 static int dissect_TimeStampReq_PDU(tvbuff_t *tvb _U_, packet_info *pinfo _U_, proto_tree *tree _U_, void *data _U_) {
   int offset = 0;
   asn1_ctx_t asn1_ctx;
-  asn1_ctx_init(&asn1_ctx, ASN1_ENC_BER, TRUE, pinfo);
-  offset = dissect_pkixtsp_TimeStampReq(FALSE, tvb, offset, &asn1_ctx, tree, hf_pkixtsp_TimeStampReq_PDU);
+  asn1_ctx_init(&asn1_ctx, ASN1_ENC_BER, true, pinfo);
+  offset = dissect_pkixtsp_TimeStampReq(false, tvb, offset, &asn1_ctx, tree, hf_pkixtsp_TimeStampReq_PDU);
   return offset;
 }
 static int dissect_TimeStampResp_PDU(tvbuff_t *tvb _U_, packet_info *pinfo _U_, proto_tree *tree _U_, void *data _U_) {
   int offset = 0;
   asn1_ctx_t asn1_ctx;
-  asn1_ctx_init(&asn1_ctx, ASN1_ENC_BER, TRUE, pinfo);
-  offset = dissect_pkixtsp_TimeStampResp(FALSE, tvb, offset, &asn1_ctx, tree, hf_pkixtsp_TimeStampResp_PDU);
+  asn1_ctx_init(&asn1_ctx, ASN1_ENC_BER, true, pinfo);
+  offset = dissect_pkixtsp_TimeStampResp(false, tvb, offset, &asn1_ctx, tree, hf_pkixtsp_TimeStampResp_PDU);
   return offset;
 }
 static int dissect_TSTInfo_PDU(tvbuff_t *tvb _U_, packet_info *pinfo _U_, proto_tree *tree _U_, void *data _U_) {
   int offset = 0;
   asn1_ctx_t asn1_ctx;
-  asn1_ctx_init(&asn1_ctx, ASN1_ENC_BER, TRUE, pinfo);
-  offset = dissect_pkixtsp_TSTInfo(FALSE, tvb, offset, &asn1_ctx, tree, hf_pkixtsp_TSTInfo_PDU);
+  asn1_ctx_init(&asn1_ctx, ASN1_ENC_BER, true, pinfo);
+  offset = dissect_pkixtsp_TSTInfo(false, tvb, offset, &asn1_ctx, tree, hf_pkixtsp_TSTInfo_PDU);
   return offset;
 }
 static int dissect_SignatureTimeStampToken_PDU(tvbuff_t *tvb _U_, packet_info *pinfo _U_, proto_tree *tree _U_, void *data _U_) {
   int offset = 0;
   asn1_ctx_t asn1_ctx;
-  asn1_ctx_init(&asn1_ctx, ASN1_ENC_BER, TRUE, pinfo);
-  offset = dissect_pkixtsp_SignatureTimeStampToken(FALSE, tvb, offset, &asn1_ctx, tree, hf_pkixtsp_SignatureTimeStampToken_PDU);
+  asn1_ctx_init(&asn1_ctx, ASN1_ENC_BER, true, pinfo);
+  offset = dissect_pkixtsp_SignatureTimeStampToken(false, tvb, offset, &asn1_ctx, tree, hf_pkixtsp_SignatureTimeStampToken_PDU);
   return offset;
 }
 
@@ -406,7 +410,7 @@ dissect_timestamp_reply(tvbuff_t *tvb, packet_info *pinfo, proto_tree *parent_tr
 	proto_item *item=NULL;
 	proto_tree *tree=NULL;
 	asn1_ctx_t asn1_ctx;
-	asn1_ctx_init(&asn1_ctx, ASN1_ENC_BER, TRUE, pinfo);
+	asn1_ctx_init(&asn1_ctx, ASN1_ENC_BER, true, pinfo);
 
 	col_set_str(pinfo->cinfo, COL_PROTOCOL, "PKIXTSP");
 
@@ -418,7 +422,7 @@ dissect_timestamp_reply(tvbuff_t *tvb, packet_info *pinfo, proto_tree *parent_tr
 		tree = proto_item_add_subtree(item, ett_pkixtsp);
 	}
 
-	return dissect_pkixtsp_TimeStampResp(FALSE, tvb, 0, &asn1_ctx, tree, -1);
+	return dissect_pkixtsp_TimeStampResp(false, tvb, 0, &asn1_ctx, tree, -1);
 }
 
 static int
@@ -427,7 +431,7 @@ dissect_timestamp_query(tvbuff_t *tvb, packet_info *pinfo, proto_tree *parent_tr
 	proto_item *item=NULL;
 	proto_tree *tree=NULL;
 	asn1_ctx_t asn1_ctx;
-	asn1_ctx_init(&asn1_ctx, ASN1_ENC_BER, TRUE, pinfo);
+	asn1_ctx_init(&asn1_ctx, ASN1_ENC_BER, true, pinfo);
 
 	col_set_str(pinfo->cinfo, COL_PROTOCOL, "PKIXTSP");
 
@@ -439,7 +443,7 @@ dissect_timestamp_query(tvbuff_t *tvb, packet_info *pinfo, proto_tree *parent_tr
 		tree = proto_item_add_subtree(item, ett_pkixtsp);
 	}
 
-	return dissect_pkixtsp_TimeStampReq(FALSE, tvb, 0, &asn1_ctx, tree, -1);
+	return dissect_pkixtsp_TimeStampReq(false, tvb, 0, &asn1_ctx, tree, -1);
 }
 
 
@@ -659,7 +663,7 @@ void proto_register_pkixtsp(void) {
   };
 
   /* List of subtrees */
-  static gint *ett[] = {
+  static int *ett[] = {
 	&ett_pkixtsp,
     &ett_pkixtsp_TimeStampReq,
     &ett_pkixtsp_MessageImprint,
@@ -677,6 +681,9 @@ void proto_register_pkixtsp(void) {
   proto_register_field_array(proto_pkixtsp, hf, array_length(hf));
   proto_register_subtree_array(ett, array_length(ett));
 
+  timestamp_reply_handle = register_dissector(PFNAME "_reply", dissect_timestamp_reply, proto_pkixtsp);
+  timestamp_query_handle = register_dissector(PFNAME "_query", dissect_timestamp_query, proto_pkixtsp);
+
   register_ber_syntax_dissector("TimeStampReq", proto_pkixtsp, dissect_TimeStampReq_PDU);
   register_ber_syntax_dissector("TimeStampResp", proto_pkixtsp, dissect_TimeStampResp_PDU);
 
@@ -687,13 +694,7 @@ void proto_register_pkixtsp(void) {
 
 /*--- proto_reg_handoff_pkixtsp -------------------------------------------*/
 void proto_reg_handoff_pkixtsp(void) {
-	dissector_handle_t timestamp_reply_handle;
-	dissector_handle_t timestamp_query_handle;
-
-	timestamp_reply_handle = create_dissector_handle(dissect_timestamp_reply, proto_pkixtsp);
 	dissector_add_string("media_type", "application/timestamp-reply", timestamp_reply_handle);
-
-	timestamp_query_handle = create_dissector_handle(dissect_timestamp_query, proto_pkixtsp);
 	dissector_add_string("media_type", "application/timestamp-query", timestamp_query_handle);
 
   register_ber_oid_dissector("1.2.840.113549.1.9.16.2.14", dissect_SignatureTimeStampToken_PDU, proto_pkixtsp, "id-aa-timeStampToken");

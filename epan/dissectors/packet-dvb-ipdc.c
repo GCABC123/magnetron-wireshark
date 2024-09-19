@@ -17,18 +17,20 @@ void proto_register_dvb_ipdc(void);
 void proto_reg_handoff_dvb_ipdc(void);
 
 /* Initialize the protocol and registered fields */
-static int proto_ipdc = -1;
+static int proto_ipdc;
 
-/* static int hf_ipdc_esg_bootstrap_xml = -1; */
+/* static int hf_ipdc_esg_bootstrap_xml; */
 
 /* Initialize the subtree pointers */
-static gint ett_ipdc = -1;
+static int ett_ipdc;
 
 
 enum {
     DVB_IPDC_SUB_FLUTE,
     DVB_IPDC_SUB_MAX
 };
+
+static dissector_handle_t ipdc_handle;
 
 static dissector_handle_t sub_handles[DVB_IPDC_SUB_MAX];
 
@@ -70,7 +72,7 @@ proto_register_dvb_ipdc(void)
     };
 #endif
 
-    static gint *ett[] = {
+    static int *ett[] = {
         &ett_ipdc,
     };
 
@@ -81,17 +83,14 @@ proto_register_dvb_ipdc(void)
 #endif
     proto_register_subtree_array(ett, array_length(ett));
 
-    register_dissector("dvb_ipdc", dissect_ipdc, proto_ipdc);
+    ipdc_handle = register_dissector("dvb_ipdc", dissect_ipdc, proto_ipdc);
 }
 
 void
 proto_reg_handoff_dvb_ipdc(void)
 {
-    dissector_handle_t ipdc_handle;
-
     sub_handles[DVB_IPDC_SUB_FLUTE] = find_dissector_add_dependency("alc", proto_ipdc);
 
-    ipdc_handle = create_dissector_handle(dissect_ipdc, proto_ipdc);
     dissector_add_uint_with_preference("udp.port", UDP_PORT_IPDC_ESG_BOOTSTRAP, ipdc_handle);
 }
 

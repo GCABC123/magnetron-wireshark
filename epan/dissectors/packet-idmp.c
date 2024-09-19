@@ -1,7 +1,7 @@
 /* Do not modify this file. Changes will be overwritten.                      */
 /* Generated automatically by the ASN.1 to Wireshark dissector compiler       */
 /* packet-idmp.c                                                              */
-/* asn2wrs.py -b -L -p idmp -c ./idmp.cnf -s ./packet-idmp-template -D . -O ../.. IDMProtocolSpecification.asn CommonProtocolSpecification.asn */
+/* asn2wrs.py -b -q -L -p idmp -c ./idmp.cnf -s ./packet-idmp-template -D . -O ../.. IDMProtocolSpecification.asn CommonProtocolSpecification.asn */
 
 /* packet-idmp.c
  * Routines for X.519 Internet Directly Mapped Procotol (IDMP) packet dissection
@@ -26,6 +26,7 @@
 #include <epan/strutil.h>
 
 #include <wsutil/str_util.h>
+#include <wsutil/array.h>
 
 #include "packet-tcp.h"
 
@@ -42,40 +43,40 @@ void proto_register_idmp(void);
 void proto_reg_handoff_idm(void);
 void register_idmp_protocol_info(const char *oid, const ros_info_t *rinfo, int proto _U_, const char *name);
 
-static gboolean           idmp_desegment       = TRUE;
+static bool           idmp_desegment       = true;
 #define IDMP_TCP_PORT     1102 /* made up for now - not IANA registered */
-static gboolean           idmp_reassemble      = TRUE;
-static dissector_handle_t idmp_handle          = NULL;
+static bool           idmp_reassemble      = true;
+static dissector_handle_t idmp_handle;
 
-static proto_tree *top_tree         = NULL;
-static const char *protocolID       = NULL;
-static const char *saved_protocolID = NULL;
-static guint32     opcode           = -1;
+static proto_tree *top_tree;
+static const char *protocolID;
+static const char *saved_protocolID;
+static uint32_t    opcode           = -1;
 
 /* Initialize the protocol and registered fields */
-int proto_idmp = -1;
+int proto_idmp;
 
-static int hf_idmp_version = -1;
-static int hf_idmp_final = -1;
-static int hf_idmp_length = -1;
-static int hf_idmp_PDU = -1;
+static int hf_idmp_version;
+static int hf_idmp_final;
+static int hf_idmp_length;
+static int hf_idmp_PDU;
 
 static reassembly_table idmp_reassembly_table;
 
-static int hf_idmp_fragments = -1;
-static int hf_idmp_fragment = -1;
-static int hf_idmp_fragment_overlap = -1;
-static int hf_idmp_fragment_overlap_conflicts = -1;
-static int hf_idmp_fragment_multiple_tails = -1;
-static int hf_idmp_fragment_too_long_fragment = -1;
-static int hf_idmp_fragment_error = -1;
-static int hf_idmp_fragment_count = -1;
-static int hf_idmp_reassembled_in = -1;
-static int hf_idmp_reassembled_length = -1;
-static int hf_idmp_segment_data = -1;
+static int hf_idmp_fragments;
+static int hf_idmp_fragment;
+static int hf_idmp_fragment_overlap;
+static int hf_idmp_fragment_overlap_conflicts;
+static int hf_idmp_fragment_multiple_tails;
+static int hf_idmp_fragment_too_long_fragment;
+static int hf_idmp_fragment_error;
+static int hf_idmp_fragment_count;
+static int hf_idmp_reassembled_in;
+static int hf_idmp_reassembled_length;
+static int hf_idmp_segment_data;
 
-static gint ett_idmp_fragment = -1;
-static gint ett_idmp_fragments = -1;
+static int ett_idmp_fragment;
+static int ett_idmp_fragments;
 
 static const fragment_items idmp_frag_items = {
     /* Fragment subtrees */
@@ -119,56 +120,56 @@ static int call_idmp_oid_callback(tvbuff_t *tvb, int offset, packet_info *pinfo,
 
 }
 
-static int hf_idmp_bind = -1;                     /* IdmBind */
-static int hf_idmp_bindResult = -1;               /* IdmBindResult */
-static int hf_idmp_bindError = -1;                /* IdmBindError */
-static int hf_idmp_request = -1;                  /* Request */
-static int hf_idmp_idm_result = -1;               /* IdmResult */
-static int hf_idmp_idm_error = -1;                /* Error */
-static int hf_idmp_reject = -1;                   /* IdmReject */
-static int hf_idmp_unbind = -1;                   /* Unbind */
-static int hf_idmp_abort = -1;                    /* Abort */
-static int hf_idmp_startTLS = -1;                 /* StartTLS */
-static int hf_idmp_tLSResponse = -1;              /* TLSResponse */
-static int hf_idmp_protocolID = -1;               /* OBJECT_IDENTIFIER */
-static int hf_idmp_callingAETitle = -1;           /* GeneralName */
-static int hf_idmp_calledAETitle = -1;            /* GeneralName */
-static int hf_idmp_bind_argument = -1;            /* Bind_argument */
-static int hf_idmp_respondingAETitle = -1;        /* GeneralName */
-static int hf_idmp_bind_result = -1;              /* Bind_result */
-static int hf_idmp_bind_errcode = -1;             /* Bind_errcode */
-static int hf_idmp_aETitleError = -1;             /* T_aETitleError */
-static int hf_idmp_bind_error = -1;               /* Bind_error */
-static int hf_idmp_invokeID = -1;                 /* INTEGER */
-static int hf_idmp_opcode = -1;                   /* Code */
-static int hf_idmp_argument = -1;                 /* T_argument */
-static int hf_idmp_idm_invokeID = -1;             /* InvokeId */
-static int hf_idmp_result = -1;                   /* T_result */
-static int hf_idmp_errcode = -1;                  /* T_errcode */
-static int hf_idmp_error = -1;                    /* T_error */
-static int hf_idmp_reason = -1;                   /* T_reason */
-static int hf_idmp_local = -1;                    /* T_local */
-static int hf_idmp_global = -1;                   /* OBJECT_IDENTIFIER */
-static int hf_idmp_present = -1;                  /* INTEGER */
-static int hf_idmp_absent = -1;                   /* NULL */
+static int hf_idmp_bind;                          /* IdmBind */
+static int hf_idmp_bindResult;                    /* IdmBindResult */
+static int hf_idmp_bindError;                     /* IdmBindError */
+static int hf_idmp_request;                       /* Request */
+static int hf_idmp_idm_result;                    /* IdmResult */
+static int hf_idmp_idm_error;                     /* Error */
+static int hf_idmp_reject;                        /* IdmReject */
+static int hf_idmp_unbind;                        /* Unbind */
+static int hf_idmp_abort;                         /* Abort */
+static int hf_idmp_startTLS;                      /* StartTLS */
+static int hf_idmp_tLSResponse;                   /* TLSResponse */
+static int hf_idmp_protocolID;                    /* OBJECT_IDENTIFIER */
+static int hf_idmp_callingAETitle;                /* GeneralName */
+static int hf_idmp_calledAETitle;                 /* GeneralName */
+static int hf_idmp_bind_argument;                 /* Bind_argument */
+static int hf_idmp_respondingAETitle;             /* GeneralName */
+static int hf_idmp_bind_result;                   /* Bind_result */
+static int hf_idmp_bind_errcode;                  /* Bind_errcode */
+static int hf_idmp_aETitleError;                  /* T_aETitleError */
+static int hf_idmp_bind_error;                    /* Bind_error */
+static int hf_idmp_invokeID;                      /* INTEGER */
+static int hf_idmp_opcode;                        /* Code */
+static int hf_idmp_argument;                      /* T_argument */
+static int hf_idmp_idm_invokeID;                  /* InvokeId */
+static int hf_idmp_result;                        /* T_result */
+static int hf_idmp_errcode;                       /* T_errcode */
+static int hf_idmp_error;                         /* T_error */
+static int hf_idmp_reason;                        /* T_reason */
+static int hf_idmp_local;                         /* T_local */
+static int hf_idmp_global;                        /* OBJECT_IDENTIFIER */
+static int hf_idmp_present;                       /* INTEGER */
+static int hf_idmp_absent;                        /* NULL */
 
 /* Initialize the subtree pointers */
-static gint ett_idmp = -1;
-static gint ett_idmp_IDM_PDU = -1;
-static gint ett_idmp_IdmBind = -1;
-static gint ett_idmp_IdmBindResult = -1;
-static gint ett_idmp_IdmBindError = -1;
-static gint ett_idmp_Request = -1;
-static gint ett_idmp_IdmResult = -1;
-static gint ett_idmp_Error = -1;
-static gint ett_idmp_IdmReject = -1;
-static gint ett_idmp_Code = -1;
-static gint ett_idmp_InvokeId = -1;
+static int ett_idmp;
+static int ett_idmp_IDM_PDU;
+static int ett_idmp_IdmBind;
+static int ett_idmp_IdmBindResult;
+static int ett_idmp_IdmBindError;
+static int ett_idmp_Request;
+static int ett_idmp_IdmResult;
+static int ett_idmp_Error;
+static int ett_idmp_IdmReject;
+static int ett_idmp_Code;
+static int ett_idmp_InvokeId;
 
 
 
 static int
-dissect_idmp_OBJECT_IDENTIFIER(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_idmp_OBJECT_IDENTIFIER(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_object_identifier_str(implicit_tag, actx, tree, tvb, offset, hf_index, &protocolID);
 
   return offset;
@@ -177,7 +178,7 @@ dissect_idmp_OBJECT_IDENTIFIER(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int
 
 
 static int
-dissect_idmp_Bind_argument(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_idmp_Bind_argument(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
 	struct SESSION_DATA_STRUCTURE *session = (struct SESSION_DATA_STRUCTURE*)actx->private_data;
 
 	return call_idmp_oid_callback(tvb, offset, actx->pinfo, (ROS_OP_BIND | ROS_OP_ARGUMENT), top_tree, session);
@@ -196,7 +197,7 @@ static const ber_sequence_t IdmBind_sequence[] = {
 };
 
 static int
-dissect_idmp_IdmBind(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_idmp_IdmBind(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
 	protocolID = saved_protocolID = NULL;
   offset = dissect_ber_sequence(implicit_tag, actx, tree, tvb, offset,
                                    IdmBind_sequence, hf_index, ett_idmp_IdmBind);
@@ -210,7 +211,7 @@ dissect_idmp_IdmBind(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U
 
 
 static int
-dissect_idmp_Bind_result(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_idmp_Bind_result(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
 	struct SESSION_DATA_STRUCTURE *session = (struct SESSION_DATA_STRUCTURE*)actx->private_data;
 
 	return call_idmp_oid_callback(tvb, offset, actx->pinfo, (ROS_OP_BIND | ROS_OP_RESULT), top_tree, session);
@@ -228,7 +229,7 @@ static const ber_sequence_t IdmBindResult_sequence[] = {
 };
 
 static int
-dissect_idmp_IdmBindResult(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_idmp_IdmBindResult(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence(implicit_tag, actx, tree, tvb, offset,
                                    IdmBindResult_sequence, hf_index, ett_idmp_IdmBindResult);
 
@@ -238,7 +239,7 @@ dissect_idmp_IdmBindResult(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int off
 
 
 static int
-dissect_idmp_Bind_errcode(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_idmp_Bind_errcode(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
 
 
   return offset;
@@ -253,7 +254,7 @@ static const value_string idmp_T_aETitleError_vals[] = {
 
 
 static int
-dissect_idmp_T_aETitleError(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_idmp_T_aETitleError(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_integer(implicit_tag, actx, tree, tvb, offset, hf_index,
                                   NULL);
 
@@ -263,7 +264,7 @@ dissect_idmp_T_aETitleError(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int of
 
 
 static int
-dissect_idmp_Bind_error(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_idmp_Bind_error(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
 	struct SESSION_DATA_STRUCTURE *session = (struct SESSION_DATA_STRUCTURE*)actx->private_data;
 
 	return call_idmp_oid_callback(tvb, offset, actx->pinfo, (ROS_OP_BIND| ROS_OP_ERROR), top_tree, session);
@@ -283,7 +284,7 @@ static const ber_sequence_t IdmBindError_sequence[] = {
 };
 
 static int
-dissect_idmp_IdmBindError(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_idmp_IdmBindError(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence(implicit_tag, actx, tree, tvb, offset,
                                    IdmBindError_sequence, hf_index, ett_idmp_IdmBindError);
 
@@ -293,7 +294,7 @@ dissect_idmp_IdmBindError(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offs
 
 
 static int
-dissect_idmp_INTEGER(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_idmp_INTEGER(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_integer(implicit_tag, actx, tree, tvb, offset, hf_index,
                                                 NULL);
 
@@ -303,7 +304,7 @@ dissect_idmp_INTEGER(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U
 
 
 static int
-dissect_idmp_T_local(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_idmp_T_local(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_integer(implicit_tag, actx, tree, tvb, offset, hf_index,
                                                 &opcode);
 
@@ -324,7 +325,7 @@ static const ber_choice_t Code_choice[] = {
 };
 
 static int
-dissect_idmp_Code(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_idmp_Code(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_choice(actx, tree, tvb, offset,
                                  Code_choice, hf_index, ett_idmp_Code,
                                  NULL);
@@ -335,7 +336,7 @@ dissect_idmp_Code(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, 
 
 
 static int
-dissect_idmp_T_argument(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_idmp_T_argument(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
 	struct SESSION_DATA_STRUCTURE *session = (struct SESSION_DATA_STRUCTURE*)actx->private_data;
 
 	return call_idmp_oid_callback(tvb, offset, actx->pinfo, (ROS_OP_INVOKE | ROS_OP_ARGUMENT | opcode), top_tree, session);
@@ -353,7 +354,7 @@ static const ber_sequence_t Request_sequence[] = {
 };
 
 static int
-dissect_idmp_Request(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_idmp_Request(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence(implicit_tag, actx, tree, tvb, offset,
                                    Request_sequence, hf_index, ett_idmp_Request);
 
@@ -363,7 +364,7 @@ dissect_idmp_Request(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U
 
 
 static int
-dissect_idmp_NULL(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_idmp_NULL(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_null(implicit_tag, actx, tree, tvb, offset, hf_index);
 
   return offset;
@@ -383,7 +384,7 @@ static const ber_choice_t InvokeId_choice[] = {
 };
 
 static int
-dissect_idmp_InvokeId(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_idmp_InvokeId(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_choice(actx, tree, tvb, offset,
                                  InvokeId_choice, hf_index, ett_idmp_InvokeId,
                                  NULL);
@@ -394,7 +395,7 @@ dissect_idmp_InvokeId(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _
 
 
 static int
-dissect_idmp_T_result(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_idmp_T_result(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
 	struct SESSION_DATA_STRUCTURE *session = (struct SESSION_DATA_STRUCTURE*)actx->private_data;
 
 	return call_idmp_oid_callback(tvb, offset, actx->pinfo, (ROS_OP_INVOKE | ROS_OP_RESULT | opcode), top_tree, session);
@@ -412,7 +413,7 @@ static const ber_sequence_t IdmResult_sequence[] = {
 };
 
 static int
-dissect_idmp_IdmResult(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_idmp_IdmResult(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence(implicit_tag, actx, tree, tvb, offset,
                                    IdmResult_sequence, hf_index, ett_idmp_IdmResult);
 
@@ -422,7 +423,7 @@ dissect_idmp_IdmResult(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset 
 
 
 static int
-dissect_idmp_T_errcode(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_idmp_T_errcode(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
 
 
   return offset;
@@ -431,7 +432,7 @@ dissect_idmp_T_errcode(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset 
 
 
 static int
-dissect_idmp_T_error(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_idmp_T_error(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
 
 
   return offset;
@@ -446,7 +447,7 @@ static const ber_sequence_t Error_sequence[] = {
 };
 
 static int
-dissect_idmp_Error(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_idmp_Error(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence(implicit_tag, actx, tree, tvb, offset,
                                    Error_sequence, hf_index, ett_idmp_Error);
 
@@ -471,7 +472,7 @@ static const value_string idmp_T_reason_vals[] = {
 
 
 static int
-dissect_idmp_T_reason(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_idmp_T_reason(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_integer(implicit_tag, actx, tree, tvb, offset, hf_index,
                                   NULL);
 
@@ -486,7 +487,7 @@ static const ber_sequence_t IdmReject_sequence[] = {
 };
 
 static int
-dissect_idmp_IdmReject(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_idmp_IdmReject(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence(implicit_tag, actx, tree, tvb, offset,
                                    IdmReject_sequence, hf_index, ett_idmp_IdmReject);
 
@@ -496,7 +497,7 @@ dissect_idmp_IdmReject(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset 
 
 
 static int
-dissect_idmp_Unbind(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_idmp_Unbind(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_null(implicit_tag, actx, tree, tvb, offset, hf_index);
 
   return offset;
@@ -516,7 +517,7 @@ static const value_string idmp_Abort_vals[] = {
 
 
 static int
-dissect_idmp_Abort(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_idmp_Abort(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_integer(implicit_tag, actx, tree, tvb, offset, hf_index,
                                   NULL);
 
@@ -526,7 +527,7 @@ dissect_idmp_Abort(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_,
 
 
 static int
-dissect_idmp_StartTLS(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_idmp_StartTLS(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_null(implicit_tag, actx, tree, tvb, offset, hf_index);
 
   return offset;
@@ -543,7 +544,7 @@ static const value_string idmp_TLSResponse_vals[] = {
 
 
 static int
-dissect_idmp_TLSResponse(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_idmp_TLSResponse(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_integer(implicit_tag, actx, tree, tvb, offset, hf_index,
                                   NULL);
 
@@ -582,7 +583,7 @@ static const ber_choice_t IDM_PDU_choice[] = {
 };
 
 static int
-dissect_idmp_IDM_PDU(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_idmp_IDM_PDU(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_choice(actx, tree, tvb, offset,
                                  IDM_PDU_choice, hf_index, ett_idmp_IDM_PDU,
                                  NULL);
@@ -595,7 +596,7 @@ void
 register_idmp_protocol_info(const char *oid, const ros_info_t *rinfo, int proto _U_, const char *name)
 {
     /* just register with ROS for now */
-    register_ros_protocol_info(oid, rinfo, proto, name, FALSE);
+    register_ros_protocol_info(oid, rinfo, proto, name, false);
 }
 
 
@@ -607,13 +608,13 @@ static int dissect_idmp(tvbuff_t *tvb, packet_info *pinfo, proto_tree *parent_tr
     proto_tree                    *tree;
     asn1_ctx_t                     asn1_ctx;
     struct SESSION_DATA_STRUCTURE  session;
-    gboolean                       idmp_final;
-    guint32                        idmp_length;
+    bool                           idmp_final;
+    uint32_t                       idmp_length;
     fragment_head                 *fd_head;
     conversation_t                *conv;
-    guint32                        dst_ref = 0;
+    uint32_t                       dst_ref = 0;
 
-    asn1_ctx_init(&asn1_ctx, ASN1_ENC_BER, TRUE, pinfo);
+    asn1_ctx_init(&asn1_ctx, ASN1_ENC_BER, true, pinfo);
 
     conv = find_conversation_pinfo(pinfo, 0);
     if (conv) {
@@ -633,7 +634,7 @@ static int dissect_idmp(tvbuff_t *tvb, packet_info *pinfo, proto_tree *parent_tr
 
     proto_tree_add_item(tree, hf_idmp_version, tvb, offset, 1, ENC_BIG_ENDIAN); offset++;
     proto_tree_add_item(tree, hf_idmp_final, tvb, offset, 1, ENC_BIG_ENDIAN);
-    idmp_final = tvb_get_guint8(tvb, offset); offset++;
+    idmp_final = tvb_get_uint8(tvb, offset); offset++;
     proto_tree_add_item(tree, hf_idmp_length, tvb, offset, 4, ENC_BIG_ENDIAN);
     idmp_length = tvb_get_ntohl(tvb, offset); offset += 4;
 
@@ -679,16 +680,16 @@ static int dissect_idmp(tvbuff_t *tvb, packet_info *pinfo, proto_tree *parent_tr
     /* not reassembling - just dissect */
     if(idmp_final) {
         asn1_ctx.private_data = &session;
-        dissect_idmp_IDM_PDU(FALSE, tvb, offset, &asn1_ctx, tree, hf_idmp_PDU);
+        dissect_idmp_IDM_PDU(false, tvb, offset, &asn1_ctx, tree, hf_idmp_PDU);
     }
 
     return tvb_captured_length(tvb);
 }
 
-static guint get_idmp_pdu_len(packet_info *pinfo _U_, tvbuff_t *tvb,
+static unsigned get_idmp_pdu_len(packet_info *pinfo _U_, tvbuff_t *tvb,
                               int offset, void *data _U_)
 {
-    guint32 len;
+    uint32_t len;
 
     len = tvb_get_ntohl(tvb, offset + 2);
 
@@ -897,7 +898,7 @@ void proto_register_idmp(void)
     };
 
     /* List of subtrees */
-    static gint *ett[] = {
+    static int *ett[] = {
         &ett_idmp,
         &ett_idmp_fragment,
         &ett_idmp_fragments,

@@ -26,6 +26,8 @@
 void proto_register_m2tp(void);
 void proto_reg_handoff_m2tp(void);
 
+static dissector_handle_t m2tp_handle;
+
 #define SCTP_PORT_M2TP        9908  /* unassigned port number (not assigned by IANA) */
 
 #define VERSION_LENGTH         1
@@ -207,35 +209,35 @@ static const value_string m2tp_reason_code_values[] = {
 
 
 /* Initialize the protocol and registered fields */
-static int proto_m2tp = -1;
-static int hf_m2tp_version = -1;
-static int hf_m2tp_reserved = -1;
-static int hf_m2tp_message_class = -1;
-static int hf_m2tp_message_type = -1;
-static int hf_m2tp_message_length = -1;
-static int hf_m2tp_parameter_tag = -1;
-static int hf_m2tp_parameter_length = -1;
-static int hf_m2tp_parameter_value = -1;
-static int hf_m2tp_parameter_padding = -1;
-static int hf_m2tp_interface_identifier = -1;
-static int hf_m2tp_user = -1;
-static int hf_m2tp_master_slave = -1;
-static int hf_m2tp_info_string = -1;
-static int hf_m2tp_heartbeat_data = -1;
-static int hf_m2tp_diagnostic_info = -1;
-static int hf_m2tp_error_code = -1;
-static int hf_m2tp_reason = -1;
+static int proto_m2tp;
+static int hf_m2tp_version;
+static int hf_m2tp_reserved;
+static int hf_m2tp_message_class;
+static int hf_m2tp_message_type;
+static int hf_m2tp_message_length;
+static int hf_m2tp_parameter_tag;
+static int hf_m2tp_parameter_length;
+static int hf_m2tp_parameter_value;
+static int hf_m2tp_parameter_padding;
+static int hf_m2tp_interface_identifier;
+static int hf_m2tp_user;
+static int hf_m2tp_master_slave;
+static int hf_m2tp_info_string;
+static int hf_m2tp_heartbeat_data;
+static int hf_m2tp_diagnostic_info;
+static int hf_m2tp_error_code;
+static int hf_m2tp_reason;
 
 /* Initialize the subtree pointers */
-static gint ett_m2tp = -1;
-static gint ett_m2tp_parameter = -1;
+static int ett_m2tp;
+static int ett_m2tp_parameter;
 
 static dissector_handle_t mtp2_handle;
 
-static guint
-nr_of_padding_bytes (guint length)
+static unsigned
+nr_of_padding_bytes (unsigned length)
 {
-  guint remainder;
+  unsigned remainder;
 
   remainder = length % 4;
 
@@ -249,14 +251,14 @@ nr_of_padding_bytes (guint length)
 static void
 dissect_m2tp_common_header(tvbuff_t *common_header_tvb, packet_info *pinfo, proto_tree *m2tp_tree)
 {
-  guint8  version, reserved, message_class, message_type;
-  guint32 message_length;
+  uint8_t version, reserved, message_class, message_type;
+  uint32_t message_length;
 
   /* Extract the common header */
-  version        = tvb_get_guint8(common_header_tvb, VERSION_OFFSET);
-  reserved       = tvb_get_guint8(common_header_tvb, RESERVED_OFFSET);
-  message_class  = tvb_get_guint8(common_header_tvb, MESSAGE_CLASS_OFFSET);
-  message_type   = tvb_get_guint8(common_header_tvb, MESSAGE_TYPE_OFFSET);
+  version        = tvb_get_uint8(common_header_tvb, VERSION_OFFSET);
+  reserved       = tvb_get_uint8(common_header_tvb, RESERVED_OFFSET);
+  message_class  = tvb_get_uint8(common_header_tvb, MESSAGE_CLASS_OFFSET);
+  message_type   = tvb_get_uint8(common_header_tvb, MESSAGE_TYPE_OFFSET);
   message_length = tvb_get_ntohl (common_header_tvb, MESSAGE_LENGTH_OFFSET);
 
   col_add_fstr(pinfo->cinfo, COL_INFO, "%s ", val_to_str_const(message_class * 256 + message_type, m2tp_message_class_type_acro_values, "reserved"));
@@ -278,7 +280,7 @@ dissect_m2tp_common_header(tvbuff_t *common_header_tvb, packet_info *pinfo, prot
 static void
 dissect_m2tp_interface_identifier_parameter(tvbuff_t *parameter_tvb, packet_info *pinfo _U_, proto_tree *parameter_tree, proto_item *parameter_item)
 {
-  guint32 parameter_value;
+  uint32_t parameter_value;
 
   if (parameter_tree) {
     parameter_value = tvb_get_ntohl(parameter_tvb, PARAMETER_VALUE_OFFSET);
@@ -291,7 +293,7 @@ dissect_m2tp_interface_identifier_parameter(tvbuff_t *parameter_tvb, packet_info
 static void
 dissect_m2tp_master_slave_parameter (tvbuff_t *parameter_tvb, packet_info *pinfo _U_, proto_tree *parameter_tree, proto_item *parameter_item)
 {
-  guint32 parameter_value;
+  uint32_t parameter_value;
 
   if (parameter_tree) {
     parameter_value = tvb_get_ntohl(parameter_tvb, PARAMETER_VALUE_OFFSET);
@@ -304,7 +306,7 @@ dissect_m2tp_master_slave_parameter (tvbuff_t *parameter_tvb, packet_info *pinfo
 static void
 dissect_m2tp_user_identifier_parameter (tvbuff_t *parameter_tvb, packet_info *pinfo _U_, proto_tree *parameter_tree, proto_item *parameter_item)
 {
-  guint32 parameter_value;
+  uint32_t parameter_value;
 
   if (parameter_tree) {
     parameter_value = tvb_get_ntohl(parameter_tvb, PARAMETER_VALUE_OFFSET);
@@ -317,8 +319,8 @@ dissect_m2tp_user_identifier_parameter (tvbuff_t *parameter_tvb, packet_info *pi
 static void
 dissect_m2tp_info_parameter(tvbuff_t *parameter_tvb, packet_info *pinfo, proto_tree *parameter_tree, proto_item *parameter_item)
 {
-  guint16 length, info_string_length;
-  const guint8 *info_string;
+  uint16_t length, info_string_length;
+  const uint8_t *info_string;
 
   if (parameter_tree) {
     length = tvb_get_ntohs(parameter_tvb, PARAMETER_LENGTH_OFFSET);
@@ -332,7 +334,7 @@ dissect_m2tp_info_parameter(tvbuff_t *parameter_tvb, packet_info *pinfo, proto_t
 static void
 dissect_m2tp_diagnostic_information_parameter(tvbuff_t *parameter_tvb, packet_info *pinfo _U_, proto_tree *parameter_tree, proto_item *parameter_item)
 {
-  guint16 length, diagnostic_info_length;
+  uint16_t length, diagnostic_info_length;
 
   if (parameter_tree) {
     length = tvb_get_ntohs(parameter_tvb, PARAMETER_LENGTH_OFFSET);
@@ -346,7 +348,7 @@ dissect_m2tp_diagnostic_information_parameter(tvbuff_t *parameter_tvb, packet_in
 static void
 dissect_m2tp_heartbeat_data_parameter(tvbuff_t *parameter_tvb, packet_info *pinfo _U_, proto_tree *parameter_tree, proto_item *parameter_item)
 {
-  guint16 length, heartbeat_data_length;
+  uint16_t length, heartbeat_data_length;
 
   if (parameter_tree) {
     length = tvb_get_ntohs(parameter_tvb, PARAMETER_LENGTH_OFFSET);
@@ -360,7 +362,7 @@ dissect_m2tp_heartbeat_data_parameter(tvbuff_t *parameter_tvb, packet_info *pinf
 static void
 dissect_m2tp_reason_parameter(tvbuff_t *parameter_tvb, packet_info *pinfo _U_, proto_tree *parameter_tree, proto_item *parameter_item)
 {
-  guint32 reason;
+  uint32_t reason;
 
   if (parameter_tree) {
     reason = tvb_get_ntohl(parameter_tvb, REASON_OFFSET);
@@ -373,7 +375,7 @@ dissect_m2tp_reason_parameter(tvbuff_t *parameter_tvb, packet_info *pinfo _U_, p
 static void
 dissect_m2tp_error_code_parameter(tvbuff_t *parameter_tvb, packet_info *pinfo _U_, proto_tree *parameter_tree, proto_item *parameter_item)
 {
-  guint32 error_code;
+  uint32_t error_code;
 
   if (parameter_tree) {
     error_code = tvb_get_ntohl(parameter_tvb, ERROR_CODE_OFFSET);
@@ -386,7 +388,7 @@ dissect_m2tp_error_code_parameter(tvbuff_t *parameter_tvb, packet_info *pinfo _U
 static void
 dissect_m2tp_protocol_data_parameter(tvbuff_t *parameter_tvb, packet_info *pinfo, proto_tree *parameter_tree, proto_item *parameter_item, proto_item *m2tp_item, proto_tree *tree)
 {
-  guint16 length, protocol_data_length, padding_length;
+  uint16_t length, protocol_data_length, padding_length;
   tvbuff_t *mtp2_tvb;
 
   length               = tvb_get_ntohs(parameter_tvb, PARAMETER_LENGTH_OFFSET);
@@ -408,7 +410,7 @@ dissect_m2tp_protocol_data_parameter(tvbuff_t *parameter_tvb, packet_info *pinfo
 static void
 dissect_m2tp_unknown_parameter(tvbuff_t *parameter_tvb, packet_info *pinfo _U_, proto_tree *parameter_tree, proto_item *parameter_item)
 {
-  guint16 tag, length, parameter_value_length;
+  uint16_t tag, length, parameter_value_length;
 
   if (parameter_tree) {
     tag    = tvb_get_ntohs(parameter_tvb, PARAMETER_TAG_OFFSET);
@@ -425,7 +427,7 @@ dissect_m2tp_unknown_parameter(tvbuff_t *parameter_tvb, packet_info *pinfo _U_, 
 static void
 dissect_m2tp_parameter(tvbuff_t *parameter_tvb, packet_info *pinfo, proto_tree *m2tp_tree, proto_item *m2tp_item, proto_tree *tree)
 {
-  guint16 tag, length, padding_length, total_length;
+  uint16_t tag, length, padding_length, total_length;
   proto_item *parameter_item = NULL;
   proto_tree *parameter_tree = NULL;
 
@@ -488,7 +490,7 @@ dissect_m2tp_parameter(tvbuff_t *parameter_tvb, packet_info *pinfo, proto_tree *
 static void
 dissect_m2tp_message(tvbuff_t *message_tvb, packet_info *pinfo, proto_item *m2tp_item, proto_tree *m2tp_tree, proto_tree *tree)
 {
-  gint offset, length, padding_length, total_length;
+  int offset, length, padding_length, total_length;
   tvbuff_t *common_header_tvb, *parameter_tvb;
 
   offset = 0;
@@ -625,7 +627,7 @@ proto_register_m2tp(void)
   };
 
   /* Setup protocol subtree array */
-  static gint *ett[] = {
+  static int *ett[] = {
     &ett_m2tp,
     &ett_m2tp_parameter,
   };
@@ -636,14 +638,15 @@ proto_register_m2tp(void)
   /* Required function calls to register the header fields and subtrees used */
   proto_register_field_array(proto_m2tp, hf, array_length(hf));
   proto_register_subtree_array(ett, array_length(ett));
+
+  /* Register the dissector */
+  m2tp_handle = register_dissector("m2tp", dissect_m2tp, proto_m2tp);
 }
 
 void
 proto_reg_handoff_m2tp(void)
 {
-  dissector_handle_t m2tp_handle;
-  mtp2_handle   = find_dissector_add_dependency("mtp2", proto_m2tp);
-  m2tp_handle   = create_dissector_handle(dissect_m2tp, proto_m2tp);
+  mtp2_handle = find_dissector_add_dependency("mtp2", proto_m2tp);
   dissector_add_uint("sctp.ppi",  M2TP_PAYLOAD_PROTOCOL_ID, m2tp_handle);
   dissector_add_uint("sctp.port", SCTP_PORT_M2TP, m2tp_handle);
 }

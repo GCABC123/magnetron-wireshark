@@ -26,10 +26,26 @@
 #define BLOCK_TYPE_ARINC_429              0x00000008 /* ARINC 429 in AFDX Encapsulation Information Block */
 #define BLOCK_TYPE_SYSTEMD_JOURNAL_EXPORT 0x00000009 /* systemd journal entry */
 #define BLOCK_TYPE_DSB                    0x0000000A /* Decryption Secrets Block */
+#define BLOCK_TYPE_SYSDIG_MI              0x00000201 /* Sysdig Machine Info Block */
+#define BLOCK_TYPE_SYSDIG_PL_V1           0x00000202 /* Sysdig Process List Block */
+#define BLOCK_TYPE_SYSDIG_FDL_V1          0x00000203 /* Sysdig File Descriptor List Block */
 #define BLOCK_TYPE_SYSDIG_EVENT           0x00000204 /* Sysdig Event Block */
+#define BLOCK_TYPE_SYSDIG_IL_V1           0x00000205 /* Sysdig Interface List Block */
+#define BLOCK_TYPE_SYSDIG_UL_V1           0x00000206 /* Sysdig User List Block */
+#define BLOCK_TYPE_SYSDIG_PL_V2           0x00000207 /* Sysdig Process List Block version 2 */
 #define BLOCK_TYPE_SYSDIG_EVF             0x00000208 /* Sysdig Event Block with flags */
+#define BLOCK_TYPE_SYSDIG_PL_V3           0x00000209 /* Sysdig Process List Block version 3 */
+#define BLOCK_TYPE_SYSDIG_PL_V4           0x00000210 /* Sysdig Process List Block version 4 */
+#define BLOCK_TYPE_SYSDIG_PL_V5           0x00000211 /* Sysdig Process List Block version 5 */
+#define BLOCK_TYPE_SYSDIG_PL_V6           0x00000212 /* Sysdig Process List Block version 6 */
+#define BLOCK_TYPE_SYSDIG_PL_V7           0x00000213 /* Sysdig Process List Block version 7 */
+#define BLOCK_TYPE_SYSDIG_PL_V8           0x00000214 /* Sysdig Process List Block version 8 */
+#define BLOCK_TYPE_SYSDIG_PL_V9           0x00000215 /* Sysdig Process List Block version 9 */
 #define BLOCK_TYPE_SYSDIG_EVENT_V2        0x00000216 /* Sysdig Event Block version 2 */
 #define BLOCK_TYPE_SYSDIG_EVF_V2          0x00000217 /* Sysdig Event Block with flags version 2 */
+#define BLOCK_TYPE_SYSDIG_FDL_V2          0x00000218 /* Sysdig File Descriptor List Block */
+#define BLOCK_TYPE_SYSDIG_IL_V2           0x00000219 /* Sysdig Interface List Block version 2 */
+#define BLOCK_TYPE_SYSDIG_UL_V2           0x00000220 /* Sysdig User List Block version 2 */
 #define BLOCK_TYPE_SYSDIG_EVENT_V2_LARGE  0x00000221 /* Sysdig Event Block version 2 with large payload */
 #define BLOCK_TYPE_SYSDIG_EVF_V2_LARGE    0x00000222 /* Sysdig Event Block with flags version 2 with large payload */
 #define BLOCK_TYPE_CB_COPY                0x00000BAD /* Custom Block which can be copied */
@@ -47,8 +63,8 @@
 
 /* Block data to be passed between functions during reading */
 typedef struct wtapng_block_s {
-    guint32      type;           /* block_type as defined by pcapng */
-    gboolean     internal;       /* TRUE if this block type shouldn't be returned from pcapng_read() */
+    uint32_t     type;           /* block_type as defined by pcapng */
+    bool         internal;       /* true if this block type shouldn't be returned from pcapng_read() */
     wtap_block_t block;
     wtap_rec     *rec;
     Buffer       *frame_buffer;
@@ -60,43 +76,43 @@ typedef struct wtapng_block_s {
  * BBLog blocks and options.
  */
 typedef struct section_info_t {
-    gboolean byte_swapped;        /**< TRUE if this section is not in our byte order */
-    guint16 version_major;        /**< Major version number of this section */
-    guint16 version_minor;        /**< Minor version number of this section */
+    bool byte_swapped;        /**< true if this section is not in our byte order */
+    uint16_t version_major;        /**< Major version number of this section */
+    uint16_t version_minor;        /**< Minor version number of this section */
     GArray *interfaces;           /**< Interfaces found in this section */
-    gint64 shb_off;               /**< File offset of the SHB for this section */
-    guint32 bblog_version;        /**< BBLog: version used */
-    guint64 bblog_offset_tv_sec;  /**< BBLog: UTC offset */
-    guint64 bblog_offset_tv_usec;
+    int64_t shb_off;               /**< File offset of the SHB for this section */
+    uint32_t bblog_version;        /**< BBLog: version used */
+    uint64_t bblog_offset_tv_sec;  /**< BBLog: UTC offset */
+    uint64_t bblog_offset_tv_usec;
 } section_info_t;
 
 /*
  * Reader and writer routines for pcapng block types.
  */
-typedef gboolean (*block_reader)(FILE_T fh, guint32 block_read,
-                                 gboolean byte_swapped,
+typedef bool (*block_reader)(FILE_T fh, uint32_t block_read,
+                                 bool byte_swapped,
                                  wtapng_block_t *wblock,
-                                 int *err, gchar **err_info);
-typedef gboolean (*block_writer)(wtap_dumper *wdh, const wtap_rec *rec,
-                                 const guint8 *pd, int *err);
+                                 int *err, char **err_info);
+typedef bool (*block_writer)(wtap_dumper *wdh, const wtap_rec *rec,
+                                 const uint8_t *pd, int *err);
 
 /*
  * Register a handler for a pcapng block type.
  */
 WS_DLL_PUBLIC
-void register_pcapng_block_type_handler(guint block_type, block_reader reader,
+void register_pcapng_block_type_handler(unsigned block_type, block_reader reader,
                                         block_writer writer);
 
 /*
  * Handler routines for pcapng option type.
  */
-typedef gboolean (*option_parser)(wtap_block_t block,
-                                  gboolean byte_swapped,
-                                  guint option_length,
-                                  const guint8 *option_content,
-                                  int *err, gchar **err_info);
-typedef guint32 (*option_sizer)(guint option_id, wtap_optval_t *optval);
-typedef gboolean (*option_writer)(wtap_dumper *wdh, guint option_id,
+typedef bool (*option_parser)(wtap_block_t block,
+                                  bool byte_swapped,
+                                  unsigned option_length,
+                                  const uint8_t *option_content,
+                                  int *err, char **err_info);
+typedef uint32_t (*option_sizer)(unsigned option_id, wtap_optval_t *optval);
+typedef bool (*option_writer)(wtap_dumper *wdh, unsigned option_id,
                   wtap_optval_t *optval, int *err);
 
 /*
@@ -104,7 +120,7 @@ typedef gboolean (*option_writer)(wtap_dumper *wdh, guint option_id,
  * type.
  */
 WS_DLL_PUBLIC
-void register_pcapng_option_handler(guint block_type, guint option_code,
+void register_pcapng_option_handler(unsigned block_type, unsigned option_code,
                                     option_parser parser,
                                     option_sizer sizer,
                                     option_writer writer);
@@ -136,16 +152,16 @@ typedef enum {
  * options.
  */
 WS_DLL_PUBLIC
-gboolean pcapng_process_options(FILE_T fh, wtapng_block_t *wblock,
+bool pcapng_process_options(FILE_T fh, wtapng_block_t *wblock,
                                 section_info_t *section_info,
-                                guint opt_cont_buf_len,
-                                gboolean (*process_option)(wtapng_block_t *,
+                                unsigned opt_cont_buf_len,
+                                bool (*process_option)(wtapng_block_t *,
                                                            const section_info_t *,
-                                                           guint16, guint16,
-                                                           const guint8 *,
-                                                           int *, gchar **),
+                                                           uint16_t, uint16_t,
+                                                           const uint8_t *,
+                                                           int *, char **),
                                 pcapng_opt_byte_order_e byte_order,
-                                int *err, gchar **err_info);
+                                int *err, char **err_info);
 
 /*
  * Helper routines to process options with types used in more than one
@@ -153,36 +169,43 @@ gboolean pcapng_process_options(FILE_T fh, wtapng_block_t *wblock,
  */
 WS_DLL_PUBLIC
 void pcapng_process_uint8_option(wtapng_block_t *wblock,
-                                 guint16 option_code, guint16 option_length,
-                                 const guint8 *option_content);
+                                 uint16_t option_code, uint16_t option_length,
+                                 const uint8_t *option_content);
 
 WS_DLL_PUBLIC
 void pcapng_process_uint32_option(wtapng_block_t *wblock,
                                   const section_info_t *section_info,
                                   pcapng_opt_byte_order_e byte_order,
-                                  guint16 option_code, guint16 option_length,
-                                  const guint8 *option_content);
+                                  uint16_t option_code, uint16_t option_length,
+                                  const uint8_t *option_content);
 
 WS_DLL_PUBLIC
 void pcapng_process_timestamp_option(wtapng_block_t *wblock,
                                      const section_info_t *section_info,
                                      pcapng_opt_byte_order_e byte_order,
-                                     guint16 option_code, guint16 option_length,
-                                     const guint8 *option_content);
+                                     uint16_t option_code, uint16_t option_length,
+                                     const uint8_t *option_content);
 
 WS_DLL_PUBLIC
 void pcapng_process_uint64_option(wtapng_block_t *wblock,
                                   const section_info_t *section_info,
                                   pcapng_opt_byte_order_e byte_order,
-                                  guint16 option_code, guint16 option_length,
-                                  const guint8 *option_content);
+                                  uint16_t option_code, uint16_t option_length,
+                                  const uint8_t *option_content);
 
 WS_DLL_PUBLIC
-void pcapng_process_string_option(wtapng_block_t *wblock, guint16 option_code,
-                                  guint16 option_length, const guint8 *option_content);
+void pcapng_process_int64_option(wtapng_block_t *wblock,
+                                 const section_info_t *section_info,
+                                 pcapng_opt_byte_order_e byte_order,
+                                 uint16_t option_code, uint16_t option_length,
+                                 const uint8_t *option_content);
 
 WS_DLL_PUBLIC
-void pcapng_process_bytes_option(wtapng_block_t *wblock, guint16 option_code,
-                                 guint16 option_length, const guint8 *option_content);
+void pcapng_process_string_option(wtapng_block_t *wblock, uint16_t option_code,
+                                  uint16_t option_length, const uint8_t *option_content);
+
+WS_DLL_PUBLIC
+void pcapng_process_bytes_option(wtapng_block_t *wblock, uint16_t option_code,
+                                 uint16_t option_length, const uint8_t *option_content);
 
 #endif /* __PCAP_MODULE_H__ */

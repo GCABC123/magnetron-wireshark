@@ -23,14 +23,16 @@
 void proto_register_mac_mgmt_msg_prc_lt_ctrl(void);
 void proto_reg_handoff_mac_mgmt_msg_prc_lt_ctrl(void);
 
-static gint proto_mac_mgmt_msg_prc_lt_ctrl_decoder = -1;
+static dissector_handle_t prc_handle;
 
-static gint ett_mac_mgmt_msg_prc_lt_ctrl_decoder = -1;
+static int proto_mac_mgmt_msg_prc_lt_ctrl_decoder;
+
+static int ett_mac_mgmt_msg_prc_lt_ctrl_decoder;
 
 /* PRC-LT-CTRL fields */
-static gint hf_prc_lt_ctrl_precoding = -1;
-static gint hf_prc_lt_ctrl_precoding_delay = -1;
-/* static gint hf_prc_lt_ctrl_invalid_tlv = -1; */
+static int hf_prc_lt_ctrl_precoding;
+static int hf_prc_lt_ctrl_precoding_delay;
+/* static int hf_prc_lt_ctrl_invalid_tlv; */
 
 static const value_string vals_turn_on[] = {
 	{0, "Turn off"},
@@ -42,7 +44,7 @@ static const value_string vals_turn_on[] = {
 /* Decode PRC-LT-CTRL messages. */
 static int dissect_mac_mgmt_msg_prc_lt_ctrl_decoder(tvbuff_t *tvb, packet_info *pinfo _U_, proto_tree *tree, void* data _U_)
 {
-	guint offset = 0;
+	unsigned offset = 0;
 	proto_item *prc_lt_ctrl_item;
 	proto_tree *prc_lt_ctrl_tree;
 
@@ -83,7 +85,7 @@ void proto_register_mac_mgmt_msg_prc_lt_ctrl(void)
 			&hf_prc_lt_ctrl_precoding,
 			{
 				"Setup/Tear-down long-term precoding with feedback",
-				"wimax.prc_lt_ctrl.precoding",
+				"wmx.prc_lt_ctrl.precoding",
 				FT_UINT8, BASE_DEC, VALS(vals_turn_on), 0x80, NULL, HFILL
 			}
 		},
@@ -91,14 +93,14 @@ void proto_register_mac_mgmt_msg_prc_lt_ctrl(void)
 			&hf_prc_lt_ctrl_precoding_delay,
 			{
 				"BS precoding application delay",
-				"wimax.prc_lt_ctrl.precoding_delay",
+				"wmx.prc_lt_ctrl.precoding_delay",
 				FT_UINT8, BASE_DEC, NULL, 0x60, NULL, HFILL
 			}
 		}
 	};
 
 	/* Setup protocol subtree array */
-	static gint *ett[] =
+	static int *ett[] =
 		{
 			&ett_mac_mgmt_msg_prc_lt_ctrl_decoder,
 		};
@@ -106,20 +108,18 @@ void proto_register_mac_mgmt_msg_prc_lt_ctrl(void)
 	proto_mac_mgmt_msg_prc_lt_ctrl_decoder = proto_register_protocol (
 		"WiMax PRC-LT-CTRL Message", /* name       */
 		"WiMax PRC-LT-CTRL (prc)",   /* short name */
-		"wmx.prc"                    /* abbrev     */
+		"wmx.prc_lt_ctrl"            /* abbrev     */
 		);
 
 	proto_register_field_array(proto_mac_mgmt_msg_prc_lt_ctrl_decoder, hf, array_length(hf));
 	proto_register_subtree_array(ett, array_length(ett));
+	prc_handle = register_dissector("mac_mgmt_msg_prc_lt_ctrl_handler", dissect_mac_mgmt_msg_prc_lt_ctrl_decoder, proto_mac_mgmt_msg_prc_lt_ctrl_decoder);
 }
 
 void
 proto_reg_handoff_mac_mgmt_msg_prc_lt_ctrl(void)
 {
-	dissector_handle_t handle;
-
-	handle = create_dissector_handle(dissect_mac_mgmt_msg_prc_lt_ctrl_decoder, proto_mac_mgmt_msg_prc_lt_ctrl_decoder);
-	dissector_add_uint("wmx.mgmtmsg", MAC_MGMT_MSG_PRC_LT_CTRL, handle);
+	dissector_add_uint("wmx.mgmtmsg", MAC_MGMT_MSG_PRC_LT_CTRL, prc_handle);
 }
 
 /*

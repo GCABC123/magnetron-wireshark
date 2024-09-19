@@ -9,10 +9,6 @@
 
 #include <config.h>
 
-#include <errno.h>
-
-#include <glib.h>
-
 #include <wsutil/filter_files.h>
 #include <wsutil/filesystem.h>
 
@@ -61,32 +57,43 @@ FilterDialog::FilterDialog(QWidget *parent, FilterType filter_type, QString new_
     ui->filterTreeView->setAcceptDrops(true);
     ui->filterTreeView->setDropIndicatorShown(true);
 
-    const gchar * filename = NULL;
+    const char * filename = NULL;
     QString newFilterText;
-    if (filter_type == CaptureFilter) {
-        setWindowTitle(mainApp->windowTitleString(tr("Capture Filters")));
-        filename = CFILTER_FILE_NAME;
-        newFilterText = tr("New capture filter");
-        model_ = new FilterListModel(FilterListModel::Capture, this);
-    } else {
-        setWindowTitle(mainApp->windowTitleString(tr("Display Filters")));
-        filename = DFILTER_FILE_NAME;
-        newFilterText = tr("New display filter");
-        model_ = new FilterListModel(FilterListModel::Display, this);
+    switch (filter_type) {
+        case CaptureFilter:
+            setWindowTitle(mainApp->windowTitleString(tr("Capture Filters")));
+            filename = CFILTER_FILE_NAME;
+            newFilterText = tr("New capture filter");
+            model_ = new FilterListModel(FilterListModel::Capture, this);
+            break;
+        case DisplayFilter:
+            setWindowTitle(mainApp->windowTitleString(tr("Display Filters")));
+            filename = DFILTER_FILE_NAME;
+            newFilterText = tr("New display filter");
+            model_ = new FilterListModel(FilterListModel::Display, this);
+            break;
+        case DisplayMacro:
+            setWindowTitle(mainApp->windowTitleString(tr("Display Filter Macros")));
+            filename = DMACROS_FILE_NAME;
+            newFilterText = tr("New macro");
+            model_ = new FilterListModel(FilterListModel::DisplayMacro, this);
+            break;
+        default:
+            ws_assert_not_reached();
     }
-
-    if (new_filter_.length() > 0)
-        model_->addFilter(newFilterText, new_filter_);
 
     ui->filterTreeView->setModel(model_);
 
     ui->filterTreeView->setItemDelegate(new FilterTreeDelegate(this, filter_type));
 
+    if (new_filter_.length() > 0)
+        addFilter(newFilterText, new_filter_, true);
+
     ui->filterTreeView->resizeColumnToContents(FilterListModel::ColumnName);
 
     connect(ui->filterTreeView->selectionModel(), &QItemSelectionModel::selectionChanged, this, &FilterDialog::selectionChanged);
 
-    QString abs_path = gchar_free_to_qstring(get_persconffile_path(filename, TRUE));
+    QString abs_path = gchar_free_to_qstring(get_persconffile_path(filename, true));
     if (file_exists(abs_path.toUtf8().constData())) {
         ui->pathLabel->setText(abs_path);
         ui->pathLabel->setUrl(QUrl::fromLocalFile(abs_path).toString());
@@ -105,8 +112,11 @@ void FilterDialog::addFilter(QString name, QString filter, bool start_editing)
     if (model_)
     {
         QModelIndex idx = model_->addFilter(name, filter);
+        ui->filterTreeView->scrollTo(idx);
         if (start_editing)
             ui->filterTreeView->edit(idx);
+        else
+            ui->filterTreeView->selectionModel()->select(idx,QItemSelectionModel::ClearAndSelect|QItemSelectionModel::Rows);
     }
 }
 
@@ -131,14 +141,24 @@ void FilterDialog::on_newToolButton_clicked()
     QString name;
     QString filter;
 
-    if (filter_type_ == CaptureFilter) {
-        //: This text is automatically filled in when a new filter is created
-        name = tr("New capture filter");
-        filter = "ip host host.example.com";
-    } else {
-        //: This text is automatically filled in when a new filter is created
-        name = tr("New display filter");
-        filter = "ip.host == host.example.com";
+    switch (filter_type_) {
+        case CaptureFilter:
+            //: This text is automatically filled in when a new filter is created
+            name = tr("New capture filter");
+            filter = "ip host host.example.com";
+            break;
+        case DisplayFilter:
+            //: This text is automatically filled in when a new filter is created
+            name = tr("New display filter");
+            filter = "ip.host == host.example.com";
+            break;
+        case DisplayMacro:
+            //: This text is automatically filled in when a new filter is created
+            name = "eq_example_com";
+            filter = "$1 == host.example.com";
+            break;
+        default:
+            ws_assert_not_reached();
     }
 
     addFilter(name, filter, true);
@@ -174,19 +194,43 @@ void FilterDialog::on_buttonBox_accepted()
 {
     model_->saveList();
 
-    if (filter_type_ == CaptureFilter) {
-        mainApp->emitAppSignal(MainApplication::CaptureFilterListChanged);
-    } else {
-        mainApp->emitAppSignal(MainApplication::DisplayFilterListChanged);
+    switch (filter_type_) {
+        case CaptureFilter:
+            mainApp->emitAppSignal(MainApplication::CaptureFilterListChanged);
+            break;
+        case DisplayFilter:
+            mainApp->emitAppSignal(MainApplication::DisplayFilterListChanged);
+            break;
+        case DisplayMacro:
+            mainApp->reloadDisplayFilterMacros();
+            // The function above emits MainApplication::FieldsChanged, which
+            // takes care of invalidating the current display filter text if
+            // it no longer compiles.
+            // XXX - What if the current display filter means something
+            // different now? Should we force a refilter (not redissection,
+            // the dissection shouldn't have changed) with the current display
+            // filter, or wait for the user to refilter?
+            // The UAT based display macro system did not refilter.
+            break;
+        default:
+            ws_assert_not_reached();
     }
 }
 
 void FilterDialog::on_buttonBox_helpRequested()
 {
-    if (filter_type_ == CaptureFilter) {
-        mainApp->helpTopicAction(HELP_CAPTURE_FILTERS_DIALOG);
-    } else {
-        mainApp->helpTopicAction(HELP_DISPLAY_FILTERS_DIALOG);
+    switch (filter_type_) {
+        case CaptureFilter:
+            mainApp->helpTopicAction(HELP_CAPTURE_FILTERS_DIALOG);
+            break;
+        case DisplayFilter:
+            mainApp->helpTopicAction(HELP_DISPLAY_FILTERS_DIALOG);
+            break;
+        case DisplayMacro:
+            mainApp->helpTopicAction(HELP_DISPLAY_MACRO_DIALOG);
+            break;
+        default:
+            ws_assert_not_reached();
     }
 }
 
@@ -206,17 +250,26 @@ QWidget *FilterTreeDelegate::createEditor(QWidget *parent, const QStyleOptionVie
     if (index.column() != FilterListModel::ColumnExpression) {
         w = QStyledItemDelegate::createEditor(parent, option, index);
     }
-    else
-    {
-        if (filter_type_ == FilterDialog::CaptureFilter) {
-            w = new CaptureFilterEdit(parent, true);
-        } else {
-            w = new DisplayFilterEdit(parent, DisplayFilterToEnter);
-        }
+    else if (filter_type_ == FilterDialog::CaptureFilter) {
+        w = new CaptureFilterEdit(parent, true);
+    }
+    else if (filter_type_ == FilterDialog::DisplayFilter) {
+        w = new DisplayFilterEdit(parent, DisplayFilterToEnter);
+    }
+    else {
+        w = QStyledItemDelegate::createEditor(parent, option, index);
     }
 
-    if (qobject_cast<QLineEdit *>(w) && index.column() == FilterListModel::ColumnName)
-        qobject_cast<QLineEdit *>(w)->setValidator(new FilterValidator());
+    if (qobject_cast<QLineEdit *>(w)) {
+        if (index.column() == FilterListModel::ColumnName) {
+            if (filter_type_ == FilterDialog::DisplayMacro) {
+                qobject_cast<QLineEdit *>(w)->setValidator(new MacroNameValidator());
+            }
+            else {
+                qobject_cast<QLineEdit *>(w)->setValidator(new FilterValidator());
+            }
+        }
+    }
 
     return w;
 }
@@ -243,6 +296,20 @@ QValidator::State FilterValidator::validate(QString & input, int & /*pos*/) cons
     foreach (QString key, invalidKeys)
         if (input.indexOf(key) >= 0)
             return QValidator::Invalid;
+
+    return QValidator::Acceptable;
+}
+
+QValidator::State MacroNameValidator::validate(QString &input, int & /*pos*/) const
+{
+    if (input.length() <= 0)
+        return QValidator::Intermediate;
+
+    for (QChar ch: input) {
+        if (!ch.isLetterOrNumber() && ch != '_') {
+            return QValidator::Invalid;
+        }
+    }
 
     return QValidator::Acceptable;
 }

@@ -44,20 +44,20 @@ my @register;
 my $script_name = File::Spec->abs2rel ($0,  $srcdir);
 
 my %basictype = (
-    char =>   { size => 1, encoding => 'ENC_ASCII|ENC_NA', type => 'FT_STRING', base => 'BASE_NONE',    get => 'tvb_get_guint8',  list => 'listOfByte', },
-    void =>   { size => 1, encoding => 'ENC_NA',           type => 'FT_BYTES',  base => 'BASE_NONE',    get => 'tvb_get_guint8',  list => 'listOfByte', },
-    BYTE =>   { size => 1, encoding => 'ENC_NA',           type => 'FT_BYTES',  base => 'BASE_NONE',    get => 'tvb_get_guint8',  list => 'listOfByte', },
-    CARD8 =>  { size => 1, encoding => 'byte_order',       type => 'FT_UINT8',  base => 'BASE_HEX_DEC', get => 'tvb_get_guint8',  list => 'listOfByte', },
-    CARD16 => { size => 2, encoding => 'byte_order',       type => 'FT_UINT16', base => 'BASE_HEX_DEC', get => 'tvb_get_guint16', list => 'listOfCard16', },
-    CARD32 => { size => 4, encoding => 'byte_order',       type => 'FT_UINT32', base => 'BASE_HEX_DEC', get => 'tvb_get_guint32', list => 'listOfCard32', },
-    CARD64 => { size => 8, encoding => 'byte_order',       type => 'FT_UINT64', base => 'BASE_HEX_DEC', get => 'tvb_get_guint64', list => 'listOfCard64', },
-    INT8 =>   { size => 1, encoding => 'byte_order',       type => 'FT_INT8',   base => 'BASE_DEC',     get => 'tvb_get_guint8',  list => 'listOfByte', },
-    INT16 =>  { size => 2, encoding => 'byte_order',       type => 'FT_INT16',  base => 'BASE_DEC',     get => 'tvb_get_guint16', list => 'listOfInt16', },
-    INT32 =>  { size => 4, encoding => 'byte_order',       type => 'FT_INT32',  base => 'BASE_DEC',     get => 'tvb_get_guint32', list => 'listOfInt32', },
-    INT64 =>  { size => 8, encoding => 'byte_order',       type => 'FT_INT64',  base => 'BASE_DEC',     get => 'tvb_get_guint64', list => 'listOfInt64', },
+    char =>   { size => 1, encoding => 'ENC_ASCII|ENC_NA', type => 'FT_STRING', base => 'BASE_NONE',    get => 'tvb_get_uint8',  list => 'listOfByte', },
+    void =>   { size => 1, encoding => 'ENC_NA',           type => 'FT_BYTES',  base => 'BASE_NONE',    get => 'tvb_get_uint8',  list => 'listOfByte', },
+    BYTE =>   { size => 1, encoding => 'ENC_NA',           type => 'FT_BYTES',  base => 'BASE_NONE',    get => 'tvb_get_uint8',  list => 'listOfByte', },
+    CARD8 =>  { size => 1, encoding => 'byte_order',       type => 'FT_UINT8',  base => 'BASE_HEX_DEC', get => 'tvb_get_uint8',  list => 'listOfByte', },
+    CARD16 => { size => 2, encoding => 'byte_order',       type => 'FT_UINT16', base => 'BASE_HEX_DEC', get => 'tvb_get_uint16', list => 'listOfCard16', },
+    CARD32 => { size => 4, encoding => 'byte_order',       type => 'FT_UINT32', base => 'BASE_HEX_DEC', get => 'tvb_get_uint32', list => 'listOfCard32', },
+    CARD64 => { size => 8, encoding => 'byte_order',       type => 'FT_UINT64', base => 'BASE_HEX_DEC', get => 'tvb_get_uint64', list => 'listOfCard64', },
+    INT8 =>   { size => 1, encoding => 'byte_order',       type => 'FT_INT8',   base => 'BASE_DEC',     get => 'tvb_get_uint8',  list => 'listOfByte', },
+    INT16 =>  { size => 2, encoding => 'byte_order',       type => 'FT_INT16',  base => 'BASE_DEC',     get => 'tvb_get_uint16', list => 'listOfInt16', },
+    INT32 =>  { size => 4, encoding => 'byte_order',       type => 'FT_INT32',  base => 'BASE_DEC',     get => 'tvb_get_uint32', list => 'listOfInt32', },
+    INT64 =>  { size => 8, encoding => 'byte_order',       type => 'FT_INT64',  base => 'BASE_DEC',     get => 'tvb_get_uint64', list => 'listOfInt64', },
     float =>  { size => 4, encoding => 'byte_order',       type => 'FT_FLOAT',  base => 'BASE_NONE',    get => 'tvb_get_ieee_float',   list => 'listOfFloat', },
     double => { size => 8, encoding => 'byte_order',       type => 'FT_DOUBLE', base => 'BASE_NONE',    get => 'tvb_get_ieee_double',  list => 'listOfDouble', },
-    BOOL =>   { size => 1, encoding => 'byte_order',       type => 'FT_BOOLEAN',base => 'BASE_NONE',    get => 'tvb_get_guint8',  list => 'listOfByte', },
+    BOOL =>   { size => 1, encoding => 'byte_order',       type => 'FT_BOOLEAN',base => 'BASE_NONE',    get => 'tvb_get_uint8',  list => 'listOfByte', },
 );
 
 my %simpletype;  # Reset at the beginning of each extension
@@ -124,6 +124,7 @@ my %struct =  # Not reset; contains structures already defined.
     'xinput:ButtonClass' => 1,
     'xinput:KeyClass' => 1,
     'xinput:ScrollClass' => 1,
+    'xinput:GestureClass' => 1,
     'xinput:TouchClass' => 1,
     'xinput:ValuatorClass' => 1,
 
@@ -200,7 +201,7 @@ sub mesa_type {
     if($name eq 'enum') {
         # enum does not have a direct X equivalent
         $gltype{'GLenum'} = { size => 4, encoding => 'byte_order', type => 'FT_UINT32', base => 'BASE_HEX|BASE_EXT_STRING',
-                              get => 'tvb_get_guint32', list => 'listOfCard32',
+                              get => 'tvb_get_uint32', list => 'listOfCard32',
                               val => '&mesa_enum_ext', };
         return;
     }
@@ -258,13 +259,13 @@ sub mesa_function {
     # Wireshark defines _U_ to mean "Unused" (compiler specific define)
     if (!@elements) {
         print $impl <<eot
-static void mesa_$name(tvbuff_t *tvb _U_, int *offsetp _U_, proto_tree *t _U_, guint byte_order _U_, int length _U_)
+static void mesa_$name(tvbuff_t *tvb _U_, int *offsetp _U_, proto_tree *t _U_, unsigned byte_order _U_, int length _U_)
 {
 eot
 ;
     } else {
         print $impl <<eot
-static void mesa_$name(tvbuff_t *tvb, int *offsetp, proto_tree *t, guint byte_order, int length _U_)
+static void mesa_$name(tvbuff_t *tvb, int *offsetp, proto_tree *t, unsigned byte_order, int length _U_)
 {
 eot
 ;
@@ -299,28 +300,28 @@ eot
         my $variable_param = $e->att('variable_param');
 
         if ($list and $count and $variable_param) {
-            print $decl "static int ${regname} = -1;\n";
+            print $decl "static int ${regname};\n";
             print $reg "{ &$regname, { \"$fieldname\", \"x11.glx.render.$name.$fieldname\", FT_NONE, BASE_NONE, NULL, 0, NULL, HFILL }},\n";
-            print $decl "static int ${regname}_signed = -1;\n";
+            print $decl "static int ${regname}_signed;\n";
             print $reg "{ &${regname}_signed, { \"$fieldname\", \"x11.glx.render.$name.$fieldname\", FT_INT8, BASE_DEC, NULL, 0, NULL, HFILL }},\n";
-            print $decl "static int ${regname}_unsigned = -1;\n";
+            print $decl "static int ${regname}_unsigned;\n";
             print $reg "{ &${regname}_unsigned, { \"$fieldname\", \"x11.glx.render.$name.$fieldname\", FT_UINT8, BASE_DEC, NULL, 0, NULL, HFILL }},\n";
-            print $decl "static int ${regname}_item_card16 = -1;\n";
+            print $decl "static int ${regname}_item_card16;\n";
             print $reg "{ &${regname}_item_card16, { \"$fieldname\", \"x11.glx.render.$name.$fieldname\", FT_UINT16, BASE_DEC, NULL, 0, NULL, HFILL }},\n";
-            print $decl "static int ${regname}_item_int16 = -1;\n";
+            print $decl "static int ${regname}_item_int16;\n";
             print $reg "{ &${regname}_item_int16, { \"$fieldname\", \"x11.glx.render.$name.$fieldname\", FT_INT16, BASE_DEC, NULL, 0, NULL, HFILL }},\n";
-            print $decl "static int ${regname}_item_card32 = -1;\n";
+            print $decl "static int ${regname}_item_card32;\n";
             print $reg "{ &${regname}_item_card32, { \"$fieldname\", \"x11.glx.render.$name.$fieldname\", FT_UINT32, BASE_DEC, NULL, 0, NULL, HFILL }},\n";
-            print $decl "static int ${regname}_item_int32 = -1;\n";
+            print $decl "static int ${regname}_item_int32;\n";
             print $reg "{ &${regname}_item_int32, { \"$fieldname\", \"x11.glx.render.$name.$fieldname\", FT_INT32, BASE_DEC, NULL, 0, NULL, HFILL }},\n";
-            print $decl "static int ${regname}_item_float = -1;\n";
+            print $decl "static int ${regname}_item_float;\n";
             print $reg "{ &${regname}_item_float, { \"$fieldname\", \"x11.glx.render.$name.$fieldname\", FT_FLOAT, BASE_NONE, NULL, 0, NULL, HFILL }},\n";
         } else {
-            print $decl "static int $regname = -1;\n";
+            print $decl "static int $regname;\n";
             if ($list and $info->{'size'} > 1) {
                 print $reg "{ &$regname, { \"$fieldname\", \"x11.glx.render.$name.$fieldname.list\", FT_NONE, BASE_NONE, NULL, 0, NULL, HFILL }},\n";
                 $regname .= '_item';
-                print $decl "static int $regname = -1;\n";
+                print $decl "static int $regname;\n";
             }
             print $reg "{ &$regname, { \"$fieldname\", \"x11.glx.render.$name.$fieldname\", $ft, $base, $val, 0, NULL, HFILL }},\n";
 
@@ -337,7 +338,7 @@ eot
                     my $varname = $wholename;
                     $varname =~ s/\s//g;
                     my $regname = registered_name($name, $varname);
-                    print $decl "static int $regname = -1;\n";
+                    print $decl "static int $regname;\n";
                     print $reg "{ &$regname, { \"$wholename\", \"x11.glx.render.$name.$varname\", FT_BOOLEAN, BASE_NONE, NULL, 0, NULL, HFILL }},\n";
                 }
                 foreach my $wholename (('row length', 'skip rows', 'skip pixels', 'alignment')) {
@@ -345,7 +346,7 @@ eot
                     my $varname = $wholename;
                     $varname =~ s/\s//g;
                     my $regname = registered_name($name, $varname);
-                    print $decl "static int $regname = -1;\n";
+                    print $decl "static int $regname;\n";
                     print $reg "{ &$regname, { \"$wholename\", \"x11.glx.render.$name.$varname\", FT_UINT32, BASE_HEX_DEC, NULL, 0, NULL, HFILL }},\n";
                 }
             }
@@ -397,7 +398,7 @@ eot
             my $get = $info->{'get'};
 
             if ($e->att('counter') or $type_param{$fieldname}) {
-                if ($get ne "tvb_get_guint8") {
+                if ($get ne "tvb_get_uint8") {
                     print $impl "    $fieldname = $get(tvb, *offsetp, $encoding);\n";
                 } else {
                     print $impl "    $fieldname = $get(tvb, *offsetp);\n";
@@ -665,7 +666,7 @@ sub register_element($$$$;$)
 
     given ($e->name()) {
         when ('pad') { return; }     # Pad has no variables
-        when ('switch') { return; }  # Switch defines varaibles in a tighter scope to avoid collisions
+        when ('switch') { return; }  # Switch defines variables in a tighter scope to avoid collisions
     }
 
     # Register field with wireshark
@@ -710,16 +711,16 @@ sub register_element($$$$;$)
             my $itemhuman = $humanname . '.' . $itemname;
             my $bitshift = "1U << $val";
 
-            say $decl "static int $item = -1;";
+            say $decl "static int $item;";
             say $reg "{ &$item, { \"$itemname\", \"$itemhuman\", FT_BOOLEAN, $bitsize, NULL, $bitshift, NULL, HFILL }},";
         }
     }
 
-    print $decl "static int $regname = -1;\n";
+    print $decl "static int $regname;\n";
     if ($e->name() eq 'list' and defined $info->{'size'} and $info->{'size'} > 1) {
         print $reg "{ &$regname, { \"$fieldname\", \"$humanname.list\", FT_NONE, BASE_NONE, NULL, 0, NULL, HFILL }},\n";
         $regname .= '_item';
-        print $decl "static int $regname = -1;\n";
+        print $decl "static int $regname;\n";
     }
     print $reg "{ &$regname, { \"$fieldname\", \"$humanname\", $ft, $base, $vals, 0, NULL, HFILL }},\n";
 
@@ -731,11 +732,11 @@ sub register_element($$$$;$)
         if ($refref->{field}{$fieldname} and get_simple_info($type)) {
             # Pre-declare variable
             if ($ft eq 'FT_FLOAT') {
-                print $impl $indent."gfloat f_$fieldname;\n";
+                print $impl $indent."float f_$fieldname;\n";
             } elsif ($ft eq 'FT_DOUBLE') {
-                print $impl $indent."gdouble f_$fieldname;\n";
+                print $impl $indent."double f_$fieldname;\n";
             } elsif ($ft eq 'FT_INT64' or $ft eq 'FT_UINT64') {
-                print $impl $indent."gint64 f_$fieldname;\n";
+                print $impl $indent."int64_t f_$fieldname;\n";
             } else {
                 print $impl $indent."int f_$fieldname;\n";
             }
@@ -796,7 +797,7 @@ sub dissect_element($$$$$;$$)
                     say $impl "field$fieldsize(tvb, offsetp, t, $regname, byte_order);";
                 } elsif ($e->att('mask')) {
                     if ($refref->{field}{$fieldname}) {
-                        if ($get ne "tvb_get_guint8") {
+                        if ($get ne "tvb_get_uint8") {
                             say $impl $indent."f_$fieldname = $get(tvb, *offsetp, byte_order);";
                         } else {
                             say $impl $indent."f_$fieldname = $get(tvb, *offsetp);";
@@ -804,7 +805,7 @@ sub dissect_element($$$$$;$$)
                     }
                     my $bitmask_field = $fieldname . "_bits";
                     say $impl $indent."{";
-                    say $impl $indent."    int* const $bitmask_field [] = {";
+                    say $impl $indent."    static int* const $bitmask_field [] = {";
                     my $bit = $enum{$enum_name{$e->att('mask')}}{bit};
                     for my $val (sort { $a <=> $b } keys %$bit) {
                         my $item = $regname . '_mask_' . $$bit{$val};
@@ -818,7 +819,7 @@ sub dissect_element($$$$$;$$)
                     say $impl $indent."*offsetp += $size;";
                 } else {
                     if ($refref->{field}{$fieldname}) {
-                        if ($get ne "tvb_get_guint8") {
+                        if ($get ne "tvb_get_uint8") {
                             say $impl $indent."f_$fieldname = $get(tvb, *offsetp, byte_order);";
                         } else {
                             say $impl $indent."f_$fieldname = $get(tvb, *offsetp);";
@@ -871,7 +872,7 @@ sub dissect_element($$$$$;$$)
                     say $impl $indent."{";
                     say $impl $indent."    int i;";
                     say $impl $indent."    for (i = 0; i < $lencalc; i++) {";
-                    if ($get ne "tvb_get_guint8") {
+                    if ($get ne "tvb_get_uint8") {
                         say $impl $indent."        sumof_$fieldname += $get(tvb, *offsetp + i * $size, byte_order);";
                     } else {
                         say $impl $indent."        sumof_$fieldname += $get(tvb, *offsetp + i * $size);";
@@ -1077,7 +1078,7 @@ sub struct {
 
         print $impl <<eot
 
-static int struct_size_$name(tvbuff_t *tvb _U_, int *offsetp _U_, guint byte_order _U_$prefs)
+static int struct_size_$name(tvbuff_t *tvb _U_, int *offsetp _U_, unsigned byte_order _U_$prefs)
 {
     int size = 0;
 eot
@@ -1139,7 +1140,7 @@ eot
                     my $fname = $e->att('name');
                     if (defined($refs{$fname})) {
                         my $get = $info->{'get'};
-                        if ($get ne "tvb_get_guint8") {
+                        if ($get ne "tvb_get_uint8") {
                             say $impl "    f_$fname = $info->{'get'}(tvb, *offsetp + size + $size, byte_order);";
                         } else {
                             say $impl "    f_$fname = $info->{'get'}(tvb, *offsetp + size + $size);";
@@ -1154,12 +1155,12 @@ eot
         $size = 0; # 0 means "dynamic calcuation required"
     }
 
-    print $decl "static int hf_x11_struct_$name = -1;\n";
+    print $decl "static int hf_x11_struct_$name;\n";
     print $reg "{ &hf_x11_struct_$name, { \"$name\", \"x11.struct.$name\", FT_NONE, BASE_NONE, NULL, 0, NULL, HFILL }},\n";
 
     print $impl <<eot
 
-static void struct_$name(tvbuff_t *tvb, int *offsetp, proto_tree *root, guint byte_order _U_, int count$prefs)
+static void struct_$name(tvbuff_t *tvb, int *offsetp, proto_tree *root, unsigned byte_order _U_, int count$prefs)
 {
     int i;
     for (i = 0; i < count; i++) {
@@ -1237,12 +1238,12 @@ sub union {
     @sizes = sort {$b <=> $a} @sizes;
     my $size = $sizes[0];
 
-    print $decl "static int hf_x11_union_$name = -1;\n";
+    print $decl "static int hf_x11_union_$name;\n";
     print $reg "{ &hf_x11_union_$name, { \"$name\", \"x11.union.$name\", FT_NONE, BASE_NONE, NULL, 0, NULL, HFILL }},\n";
 
     print $impl <<eot
 
-static void struct_$name(tvbuff_t *tvb, int *offsetp, proto_tree *root, guint byte_order, int count)
+static void struct_$name(tvbuff_t *tvb, int *offsetp, proto_tree *root, unsigned byte_order, int count)
 {
     int i;
     int base = *offsetp;
@@ -1365,14 +1366,14 @@ sub request {
     if (!@elements) {
         print $impl <<eot
 
-static void $header$name(tvbuff_t *tvb _U_, packet_info *pinfo _U_, int *offsetp _U_, proto_tree *t _U_, guint byte_order _U_, int length _U_)
+static void $header$name(tvbuff_t *tvb _U_, packet_info *pinfo _U_, int *offsetp _U_, proto_tree *t _U_, unsigned byte_order _U_, int length _U_)
 {
 eot
 ;
     } else {
         print $impl <<eot
 
-static void $header$name(tvbuff_t *tvb, packet_info *pinfo _U_, int *offsetp, proto_tree *t, guint byte_order, int length _U_)
+static void $header$name(tvbuff_t *tvb, packet_info *pinfo _U_, int *offsetp, proto_tree *t, unsigned byte_order, int length _U_)
 {
 eot
 ;
@@ -1410,9 +1411,9 @@ eot
 
         # Wireshark defines _U_ to mean "Unused" (compiler specific define)
         if (!@elements) {
-            say $impl "static void $header$name"."_Reply(tvbuff_t *tvb _U_, packet_info *pinfo, int *offsetp _U_, proto_tree *t _U_, guint byte_order _U_)\n{";
+            say $impl "static void $header$name"."_Reply(tvbuff_t *tvb _U_, packet_info *pinfo, int *offsetp _U_, proto_tree *t _U_, unsigned byte_order _U_)\n{";
         } else {
-            say $impl "static void $header$name"."_Reply(tvbuff_t *tvb, packet_info *pinfo, int *offsetp, proto_tree *t, guint byte_order)\n{";
+            say $impl "static void $header$name"."_Reply(tvbuff_t *tvb, packet_info *pinfo, int *offsetp, proto_tree *t, unsigned byte_order)\n{";
         }
         say $impl '    int sequence_number;' if (@elements);
 
@@ -1438,13 +1439,13 @@ eot
             $length = dissect_element($e, $varpat, $humanpat, $length, $refs);
             if ($first) {
                 $first = 0;
-                say $impl '    sequence_number = tvb_get_guint16(tvb, *offsetp, byte_order);';
+                say $impl '    sequence_number = tvb_get_uint16(tvb, *offsetp, byte_order);';
                 say $impl '    proto_tree_add_uint_format_value(t, hf_x11_reply_sequencenumber, tvb, *offsetp, 2, sequence_number,';
                 say $impl '            "%d ('.$header.'-'.$name.')", sequence_number);';
                 say $impl '    *offsetp += 2;';
 
                 if ($refs->{field}{length}) {
-                    say $impl '    f_length = tvb_get_guint32(tvb, *offsetp, byte_order);';
+                    say $impl '    f_length = tvb_get_uint32(tvb, *offsetp, byte_order);';
                 }
                 if ($refs->{length}) {
                     say $impl '    length = f_length * 4 + 32;';
@@ -1465,7 +1466,7 @@ sub defxid(@) {
     my $name;
     while ($name = shift) {
         my $qualname = qualname($name);
-        $simpletype{$qualname} = { size => 4, encoding => 'byte_order', type => 'FT_UINT32',  base => 'BASE_HEX',  get => 'tvb_get_guint32', list => 'listOfCard32', };
+        $simpletype{$qualname} = { size => 4, encoding => 'byte_order', type => 'FT_UINT32',  base => 'BASE_HEX',  get => 'tvb_get_uint32', list => 'listOfCard32', };
         $type_name{$name} = $qualname;
     }
 }
@@ -1534,12 +1535,12 @@ sub event {
         if ($xge) {
             print $impl <<eot
 
-static void $header$name(tvbuff_t *tvb _U_, int length _U_, int *offsetp _U_, proto_tree *t _U_, guint byte_order _U_)
+static void $header$name(tvbuff_t *tvb _U_, int length _U_, int *offsetp _U_, proto_tree *t _U_, unsigned byte_order _U_)
 {
         } else {
             print $impl <<eot
 
-static void $header$name(tvbuff_t *tvb _U_, int *offsetp _U_, proto_tree *t _U_, guint byte_order _U_)
+static void $header$name(tvbuff_t *tvb _U_, int *offsetp _U_, proto_tree *t _U_, unsigned byte_order _U_)
 {
 eot
 ;
@@ -1549,14 +1550,14 @@ eot
             $length = 10;
             print $impl <<eot
 
-static void $header$name(tvbuff_t *tvb, int length _U_, int *offsetp, proto_tree *t, guint byte_order)
+static void $header$name(tvbuff_t *tvb, int length _U_, int *offsetp, proto_tree *t, unsigned byte_order)
 {
 eot
 ;
         } else {
             print $impl <<eot
 
-static void $header$name(tvbuff_t *tvb, int *offsetp, proto_tree *t, guint byte_order)
+static void $header$name(tvbuff_t *tvb, int *offsetp, proto_tree *t, unsigned byte_order)
 {
 eot
 ;
@@ -1650,7 +1651,7 @@ sub xcb_start {
     %enum_name = ();
     %type_name = ();
 
-    print $error "const char *$header"."_errors[] = {\n";
+    print $error "static const char * const $header"."_errors[] = {\n";
 }
 
 sub xcb {
@@ -1663,7 +1664,7 @@ sub xcb {
     my $genevent_name = 'NULL';
     my $reply_name = $header . "_replies";
 
-    print $decl "static int hf_x11_$lookup_name = -1;\n\n";
+    print $decl "static int hf_x11_$lookup_name;\n\n";
 
     print $impl "static const value_string $lookup_name"."[] = {\n";
     foreach my $req (sort {$a <=> $b} keys %request) {
@@ -1672,7 +1673,7 @@ sub xcb {
     print $impl "    { 0, NULL }\n";
     print $impl "};\n";
 
-    say $impl "const x11_event_info $event_name".'[] = {';
+    say $impl "static const x11_event_info $event_name".'[] = {';
     foreach my $e (sort {$a <=> $b} keys %event) {
         say $impl "    { \"$header-$event{$e}\", $header$event{$e} },";
     }
@@ -1691,7 +1692,7 @@ sub xcb {
         say $impl '';
     }
 
-    print $impl "static x11_reply_info $reply_name"."[] = {\n";
+    print $impl "static const x11_reply_info $reply_name"."[] = {\n";
     foreach my $e (sort {$a <=> $b} keys %reply) {
         print $impl "    { $e, $header$reply{$e}_Reply },\n";
     }
@@ -1702,7 +1703,7 @@ sub xcb {
 
     print $impl <<eot
 
-static void dispatch_$header(tvbuff_t *tvb, packet_info *pinfo, int *offsetp, proto_tree *t, guint byte_order)
+static void dispatch_$header(tvbuff_t *tvb, packet_info *pinfo, int *offsetp, proto_tree *t, unsigned byte_order)
 {
     int minor, length;
     minor = CARD8($lookup_name);
@@ -1832,7 +1833,7 @@ if (-e "$mesadir/gl_API.xml") {
     print $enum "};\n";
     $enum->close();
 
-    print $decl "static int hf_x11_glx_render_op_name = -1;\n\n";
+    print $decl "static int hf_x11_glx_render_op_name;\n\n";
 
     print $impl "static const value_string glx_render_op_name"."[] = {\n";
     foreach my $req (sort {$a <=> $b} keys %request) {
@@ -1847,17 +1848,17 @@ if (-e "$mesadir/gl_API.xml") {
 # Uses ett_x11_list_of_rectangle, since I am unable to see how the subtree type matters.
     print $impl <<eot
 
-static void dispatch_glx_render(tvbuff_t *tvb, packet_info *pinfo, int *offsetp, proto_tree *t, guint byte_order, int length)
+static void dispatch_glx_render(tvbuff_t *tvb, packet_info *pinfo, int *offsetp, proto_tree *t, unsigned byte_order, int length)
 {
     while (length >= 4) {
-        guint32 op, len;
+        uint32_t op, len;
         int next;
         proto_item *ti;
         proto_tree *tt;
 
-        len = tvb_get_guint16(tvb, *offsetp, byte_order);
+        len = tvb_get_uint16(tvb, *offsetp, byte_order);
 
-        op = tvb_get_guint16(tvb, *offsetp + 2, byte_order);
+        op = tvb_get_uint16(tvb, *offsetp + 2, byte_order);
         ti = proto_tree_add_uint(t, hf_x11_glx_render_op_name, tvb, *offsetp, len, op);
 
         tt = proto_item_add_subtree(ti, ett_x11_list_of_rectangle);

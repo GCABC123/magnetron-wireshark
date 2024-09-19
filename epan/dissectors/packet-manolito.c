@@ -19,22 +19,24 @@
 void proto_register_manolito(void);
 void proto_reg_handoff_manolito(void);
 
+static dissector_handle_t manolito_handle;
+
 #define MANOLITO_PORT   41170 /* Not IANA registered */
 
-static int proto_manolito = -1;
+static int proto_manolito;
 
-static int hf_manolito_checksum = -1;
-static int hf_manolito_seqno = -1;
-static int hf_manolito_src = -1;
-static int hf_manolito_dest = -1;
-static int hf_manolito_options_short = -1;
-static int hf_manolito_options = -1;
-static int hf_manolito_string = -1;
-static int hf_manolito_integer = -1;
+static int hf_manolito_checksum;
+static int hf_manolito_seqno;
+static int hf_manolito_src;
+static int hf_manolito_dest;
+static int hf_manolito_options_short;
+static int hf_manolito_options;
+static int hf_manolito_string;
+static int hf_manolito_integer;
 
-static gint ett_manolito = -1;
+static int ett_manolito;
 
-static expert_field ei_manolito_type = EI_INIT;
+static expert_field ei_manolito_type;
 
 #define MANOLITO_STRING  1
 #define MANOLITO_INTEGER 0
@@ -68,10 +70,10 @@ static value_string_ext field_longname_ext = VALUE_STRING_EXT_INIT(field_longnam
 static int
 dissect_manolito(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, void* dissector_data _U_)
 {
-	gint offset = 0;
+	int offset = 0;
 	proto_item *ti;
 	proto_tree *manolito_tree;
-	gchar *packet_type = NULL;
+	char *packet_type = NULL;
 
 	col_set_str(pinfo->cinfo, COL_PROTOCOL, "MANOLITO");
 
@@ -115,11 +117,11 @@ dissect_manolito(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, void* diss
 	/* (that many bytes) data follows; else is raw data. */
 	do
 	{
-		guint16     field_name;        /* 16-bit field name */
-		guint8      dtype;             /* data-type */
-		guint8      length;            /* length */
+		uint16_t    field_name;        /* 16-bit field name */
+		uint8_t     dtype;             /* data-type */
+		uint8_t     length;            /* length */
 		int         start;             /* field starting location */
-		guint8     *field_name_str;
+		uint8_t    *field_name_str;
 
 		start = offset;
 
@@ -145,25 +147,25 @@ dissect_manolito(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, void* diss
 		offset += 2;
 
 		/* 1-byte data type */
-		dtype = tvb_get_guint8(tvb, offset);
+		dtype = tvb_get_uint8(tvb, offset);
 		offset++;
-		length = tvb_get_guint8(tvb, offset);
+		length = tvb_get_uint8(tvb, offset);
 		offset++;
 
 		if (dtype == MANOLITO_STRING) {
-			guint8 *str;
+			uint8_t *str;
 
 			str = tvb_get_string_enc(pinfo->pool, tvb, offset, length, ENC_ASCII);
 			proto_tree_add_string_format(manolito_tree, hf_manolito_string, tvb, start,
 					4+length, str, "%s (%s): %s",
 					field_name_str,
-					val_to_str_ext(field_name, &field_longname_ext, "unknown"),
+					val_to_str_ext_const(field_name, &field_longname_ext, "unknown"),
 					str);
 			offset += length;
 		}
 		else if (dtype == MANOLITO_INTEGER) {
-			gboolean len_ok = TRUE;
-			guint64 n = 0;
+			bool len_ok = true;
+			uint64_t n = 0;
 
 			/* integers can be up to 5 bytes */
 			switch(length)
@@ -181,18 +183,18 @@ dissect_manolito(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, void* diss
 					n = tvb_get_ntohs(tvb, offset);
 					break;
 				case 1:
-					n = tvb_get_guint8(tvb, offset);
+					n = tvb_get_uint8(tvb, offset);
 					break;
 
 				default:
-					len_ok = FALSE;
+					len_ok = false;
 			}
 
 			if (len_ok) {
 				proto_tree_add_uint64_format(manolito_tree, hf_manolito_integer, tvb, start,
 						4+length, n, "%s (%s): %" PRIu64,
 						field_name_str,
-						val_to_str_ext(field_name, &field_longname_ext, "unknown"),
+						val_to_str_ext_const(field_name, &field_longname_ext, "unknown"),
 						n);
 			}
 			else {
@@ -260,7 +262,7 @@ proto_register_manolito(void)
 		},
 	};
 
-	static gint *ett[] = {
+	static int *ett[] = {
 		&ett_manolito,
 	};
 
@@ -276,15 +278,14 @@ proto_register_manolito(void)
 	proto_register_subtree_array(ett, array_length(ett));
 	expert_manolito = expert_register_protocol(proto_manolito);
 	expert_register_field_array(expert_manolito, ei, array_length(ei));
+
+	manolito_handle = register_dissector("manolito", dissect_manolito, proto_manolito);
 }
 
 
 void
 proto_reg_handoff_manolito(void)
 {
-	dissector_handle_t manolito_handle;
-
-	manolito_handle = create_dissector_handle(dissect_manolito, proto_manolito);
 	dissector_add_uint_with_preference("udp.port", MANOLITO_PORT, manolito_handle);
 }
 

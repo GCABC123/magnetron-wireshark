@@ -10,6 +10,7 @@
 #include "module_preferences_scroll_area.h"
 #include <ui_module_preferences_scroll_area.h>
 #include <ui/qt/widgets/syntax_line_edit.h>
+#include <ui/qt/widgets/dissector_syntax_line_edit.h>
 #include "ui/qt/widgets/wireshark_file_dialog.h"
 #include <ui/qt/utils/qt_ui_utils.h>
 #include "uat_dialog.h"
@@ -46,7 +47,7 @@ static const QString title_to_shortcut(const char *title) {
     return shortcut_str;
 }
 
-typedef struct 
+typedef struct
 {
     QVBoxLayout *layout;
     QString moduleName;
@@ -56,8 +57,8 @@ extern "C" {
 // Callbacks prefs routines
 
 /* Add a single preference to the QVBoxLayout of a preference page */
-static guint
-pref_show(pref_t *pref, gpointer user_data)
+static unsigned
+pref_show(pref_t *pref, void *user_data)
 {
     prefSearchData * data = static_cast<prefSearchData *>(user_data);
 
@@ -73,13 +74,12 @@ pref_show(pref_t *pref, gpointer user_data)
 
     switch (prefs_get_type(pref)) {
     case PREF_UINT:
-    case PREF_DECODE_AS_UINT:
     {
         QHBoxLayout *hb = new QHBoxLayout();
         QLabel *label = new QLabel(prefs_get_title(pref));
         label->setToolTip(tooltip);
         hb->addWidget(label);
-        QLineEdit *uint_le = new QLineEdit();
+        SyntaxLineEdit *uint_le = new SyntaxLineEdit();
         uint_le->setToolTip(tooltip);
         uint_le->setProperty(pref_prop_, VariantPointer<pref_t>::asQVariant(pref));
         uint_le->setMinimumWidth(uint_le->fontMetrics().height() * 8);
@@ -166,6 +166,21 @@ pref_show(pref_t *pref, gpointer user_data)
         string_le->setProperty(pref_prop_, VariantPointer<pref_t>::asQVariant(pref));
         string_le->setMinimumWidth(string_le->fontMetrics().height() * 20);
         string_le->setEchoMode(QLineEdit::PasswordEchoOnEdit);
+        hb->addWidget(string_le);
+        hb->addSpacerItem(new QSpacerItem(1, 1, QSizePolicy::Expanding, QSizePolicy::Minimum));
+        vb->addLayout(hb);
+        break;
+    }
+    case PREF_DISSECTOR:
+    {
+        QHBoxLayout *hb = new QHBoxLayout();
+        QLabel *label = new QLabel(prefs_get_title(pref));
+        label->setToolTip(tooltip);
+        hb->addWidget(label);
+        QLineEdit *string_le = new DissectorSyntaxLineEdit();
+        string_le->setToolTip(tooltip);
+        string_le->setProperty(pref_prop_, VariantPointer<pref_t>::asQVariant(pref));
+        string_le->setMinimumWidth(string_le->fontMetrics().height() * 20);
         hb->addWidget(string_le);
         hb->addSpacerItem(new QSpacerItem(1, 1, QSizePolicy::Expanding, QSizePolicy::Minimum));
         vb->addLayout(hb);
@@ -305,26 +320,23 @@ ModulePreferencesScrollArea::ModulePreferencesScrollArea(module_t *module, QWidg
 
     /* Show the preference's description at the top of the page */
     QFont font;
-    font.setBold(TRUE);
+    font.setBold(true);
     QLabel *label = new QLabel(module->description);
     label->setFont(font);
     ui->verticalLayout->addWidget(label);
 
-    prefSearchData * searchData = new prefSearchData;
-    searchData->layout = ui->verticalLayout;
-    searchData->moduleName = module->name;
+    prefSearchData searchData;
+    searchData.layout = ui->verticalLayout;
+    searchData.moduleName = module->name;
 
     /* Add items for each of the preferences */
-    prefs_pref_foreach(module, pref_show, (gpointer) searchData);
+    prefs_pref_foreach(module, pref_show, &searchData);
 
     foreach (QLineEdit *le, findChildren<QLineEdit *>()) {
         pref_t *pref = VariantPointer<pref_t>::asPtr(le->property(pref_prop_));
         if (!pref) continue;
 
         switch (prefs_get_type(pref)) {
-        case PREF_DECODE_AS_UINT:
-            connect(le, &QLineEdit::textEdited, this, &ModulePreferencesScrollArea::uintLineEditTextEdited);
-            break;
         case PREF_UINT:
             connect(le, &QLineEdit::textEdited, this, &ModulePreferencesScrollArea::uintLineEditTextEdited);
             break;
@@ -333,6 +345,7 @@ ModulePreferencesScrollArea::ModulePreferencesScrollArea(module_t *module, QWidg
         case PREF_OPEN_FILENAME:
         case PREF_DIRNAME:
         case PREF_PASSWORD:
+        case PREF_DISSECTOR:
             connect(le, &QLineEdit::textEdited, this, &ModulePreferencesScrollArea::stringLineEditTextEdited);
             break;
         case PREF_RANGE:
@@ -471,25 +484,62 @@ void ModulePreferencesScrollArea::updateWidgets()
         }
 
         if (prefs_get_type(pref) == PREF_PROTO_TCP_SNDAMB_ENUM && !prefs_get_enum_radiobuttons(pref)) {
-            MainWindow* topWidget = dynamic_cast<MainWindow*> (mainApp->mainWindow());
-            frame_data * fdata = topWidget->frameDataForRow((topWidget->selectedRows()).at(0));
-            enum_cb->setCurrentIndex(fdata->tcp_snd_manual_analysis);
+            if (prefs_get_list_value(pref, pref_stashed) == NULL) {
+                /* We haven't added a list of frames that could have their
+                 * analysis changed. Set the current value to whatever the
+                 * first selected frame has for its its TCP Sequence Analysis
+                 * override.
+                 */
+                MainWindow* topWidget = qobject_cast<MainWindow*>(mainApp->mainWindow());
+                /* Ensure there is one unique or multiple selections. See issue 18642 */
+                if (topWidget->hasSelection() || topWidget->hasUniqueSelection()) {
+                    frame_data * fdata = topWidget->frameDataForRow((topWidget->selectedRows()).at(0));
+                    enum_cb->setCurrentIndex(enum_cb->findData(fdata->tcp_snd_manual_analysis));
+                    QList<int> rows = topWidget->selectedRows();
+                    foreach (int row, rows) {
+                        frame_data * fdata = topWidget->frameDataForRow(row);
+                        prefs_add_list_value(pref, fdata, pref_stashed);
+                    }
+                }
+            } else {
+                /* The initial value was already set from the selected frames,
+                 * use the current value from when the CB was changed. */
+                enum_cb->setCurrentIndex(enum_cb->findData(prefs_get_enum_value(pref, pref_current)));
+            }
         }
     }
 }
 
 void ModulePreferencesScrollArea::uintLineEditTextEdited(const QString &new_str)
 {
-    QLineEdit *uint_le = qobject_cast<QLineEdit*>(sender());
+    SyntaxLineEdit *uint_le = qobject_cast<SyntaxLineEdit*>(sender());
     if (!uint_le) return;
 
     pref_t *pref = VariantPointer<pref_t>::asPtr(uint_le->property(pref_prop_));
     if (!pref) return;
 
+    if (new_str.isEmpty()) {
+        /* Reset to default value; that is better than "whatever the last
+         * valid edited input was", and probably better than "empty means 0."
+         */
+        uint_le->setSyntaxState(SyntaxLineEdit::Empty);
+        reset_stashed_pref(pref);
+        return;
+    }
+
     bool ok;
     uint new_uint = new_str.toUInt(&ok, 0);
     if (ok) {
+        uint_le->setSyntaxState(SyntaxLineEdit::Valid);
         prefs_set_uint_value(pref, new_uint, pref_stashed);
+    } else {
+        uint_le->setSyntaxState(SyntaxLineEdit::Invalid);
+        /* Reset stashed value to the current real value, i.e., whatever it
+         * was when the dialog was opened. That's better than "whatever the
+         * last valid edited number was."
+         * XXX - The OK/Apply buttons should be disabled when a pref is invalid.
+         */
+        pref_stash(pref, NULL);
     }
 }
 
@@ -637,20 +687,8 @@ void ModulePreferencesScrollArea::enumComboBoxCurrentIndexChanged_PROTO_TCP(int 
     pref_t *pref = VariantPointer<pref_t>::asPtr(enum_cb->property(pref_prop_));
     if (!pref) return;
 
-    MainWindow* topWidget = dynamic_cast<MainWindow*> (mainApp->mainWindow());
-
-    // method 1 : apply to one single packet
-    /* frame_data * fdata = topWidget->frameDataForRow((topWidget->selectedRows()).at(0));
-    fdata->tcp_snd_manual_analysis = enum_cb->itemData(index).toInt();*/
-
-    // method 2 : we can leverage the functionality by allowing multiple selections
-    QList<int> rows = topWidget->selectedRows();
-    foreach (int row, rows) {
-        frame_data * fdata = topWidget->frameDataForRow(row);
-        fdata->tcp_snd_manual_analysis = enum_cb->itemData(index).toInt();
-    }
-
+    // Store the index value in the current value, not the stashed value.
+    // We use the stashed value to store the frame data pointers.
     prefs_set_enum_value(pref, enum_cb->itemData(index).toInt(), pref_current);
     //prefs_set_enum_value(pref, enum_cb->itemData(index).toInt(), pref_stashed);
-    updateWidgets();
 }

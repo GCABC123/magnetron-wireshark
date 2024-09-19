@@ -14,21 +14,50 @@
 #include <epan/packet_info.h>
 #include <epan/proto.h>
 
-/* Flags for CAN FD frames. */
-#define CANFD_BRS	0x01 /* Bit Rate Switch (second bitrate for payload data) */
-#define CANFD_ESI	0x02 /* Error State Indicator of the transmitting node */
-#define CANFD_FDF	0x04 /* FD flag - if set, this is an FD frame */
+/*
+ * Flags for CAN FD frames.
+ * They are in the FD Flags field of a CAN FD frame.
+ *
+ * CANFD_FDF is in that field. and always set, as well as being present
+ * but *never* set in what's at the location corresponding to that field
+ * in a CAN classic frame, so we can distinguish between CAN classic and
+ * CAN FD frames by testing that bit.
+ */
+#define CANFD_BRS 0x01 /* Bit Rate Switch (second bitrate for payload data) */
+#define CANFD_ESI 0x02 /* Error State Indicator of the transmitting node */
+#define CANFD_FDF 0x04 /* FD flag - if set, this is an FD frame */
+
+/*
+ * Flags for CAN XL frames.
+ * They are in the Flags field of a CAN XL frame.
+ *
+ * CANXL_XLF is in that field, and always set. as well as being present
+ * but *never* set in what's the location corresponding to that field
+ * in a CAN classic or CAN FD frame, so we can distinguish between CAN
+ * XL and CAN classic/CAN FD frames by testing that bit.
+ */
+#define CANXL_XLF 0x80 /* XL flag - if set, this is an XL frame */
+#define CANXL_SEC 0x01 /* Simple Extended Content */
+
+/*
+ * CAN frame type.
+ *
+ * CAN_TYPE_CAN_CLASSIC is 0, and CAN_TYPE_CAN_FD is 1, so that the
+ * fd field behaves, for CAN classic and CAN FD frames, the same way
+ * that it did when it was a bool field that was false for CAN classic
+ * frames and true for CAN FD frames.
+ */
+#define CAN_TYPE_CAN_CLASSIC 0
+#define CAN_TYPE_CAN_FD      1
+#define CAN_TYPE_CAN_XL      2
 
 /* Structure that gets passed between dissectors. */
-struct can_info
-{
-	guint32 id;
-	guint32 len;
-	gboolean fd;
-	guint16 bus_id;
-};
-
-typedef struct can_info can_info_t;
+typedef struct can_info {
+    uint32_t id;
+    uint32_t len;
+    unsigned fd;
+    uint16_t bus_id;
+} can_info_t;
 
 /* controller area network (CAN) kernel definitions
  * These masks are usually defined within <linux/can.h> but are not
@@ -68,7 +97,7 @@ typedef struct can_info can_info_t;
 #define CAN_ERR_PROT_BIT1        0x10 /* unable to send recessive bit */
 #define CAN_ERR_PROT_OVERLOAD    0x20 /* bus overload */
 #define CAN_ERR_PROT_ACTIVE      0x40 /* active error announcement */
-#define CAN_ERR_PROT_TX          0x80 /* error occured on transmission */
+#define CAN_ERR_PROT_TX          0x80 /* error occurred on transmission */
 
 /* error in CAN protocol (location) / data[3] */
 #define CAN_ERR_PROT_LOC_UNSPEC  0x00 /* unspecified */
@@ -92,7 +121,21 @@ typedef struct can_info can_info_t;
 #define CAN_ERR_PROT_LOC_EOF     0x1A /* end of frame */
 #define CAN_ERR_PROT_LOC_INTERM  0x12 /* intermission */
 
-gboolean socketcan_call_subdissectors(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, struct can_info *can_info, const gboolean use_heuristics_first);
+bool socketcan_call_subdissectors(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, struct can_info *can_info, const bool use_heuristics_first);
+bool socketcan_set_source_and_destination_columns(packet_info* pinfo, can_info_t *caninfo);
+
+/*
+ * CAN XL SDU types from CAN CiA 611-1
+ */
+#define CANXL_SDU_TYPE_CONTENT_BASED_ADDRESSING 0x01
+#define CANXL_SDU_TYPE_CAN_CC_CAN_FD            0x03
+#define CANXL_SDU_TYPE_IEEE_802_3               0x04
+#define CANXL_SDU_TYPE_IEEE_802_3_EXTENDED      0x05
+#define CANXL_SDU_TYPE_CAN_CC                   0x06
+#define CANXL_SDU_TYPE_CAN_FD                   0x07
+#define CANXL_SDU_TYPE_CIA_611_2                0x08
+#define CANXL_SDU_TYPE_AUTOSAR_MPDU             0x09
+#define CANXL_SDU_TYPE_CIA_613_2                0x0A
 
 #endif /* __PACKET_SOCKETCAN_H__ */
 
@@ -100,11 +143,11 @@ gboolean socketcan_call_subdissectors(tvbuff_t *tvb, packet_info *pinfo, proto_t
  * Editor modelines  -  https://www.wireshark.org/tools/modelines.html
  *
  * Local variables:
- * c-basic-offset: 8
+ * c-basic-offset: 4
  * tab-width: 8
- * indent-tabs-mode: t
+ * indent-tabs-mode: nil
  * End:
  *
- * vi: set shiftwidth=8 tabstop=8 noexpandtab:
- * :indentSize=8:tabSize=8:noTabs=false:
+ * vi: set shiftwidth=4 tabstop=8 expandtab:
+ * :indentSize=4:tabSize=8:noTabs=true:
  */

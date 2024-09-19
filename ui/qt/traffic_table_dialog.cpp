@@ -49,10 +49,14 @@ TrafficTableDialog::TrafficTableDialog(QWidget &parent, CaptureFile &cf, const Q
     copy_bt_ = buttonBox()->addButton(tr("Copy"), QDialogButtonBox::ActionRole);
     copy_bt_->setMenu(ui->trafficTab->createCopyMenu(copy_bt_));
 
-    ui->displayFilterCheckBox->setChecked(cf.displayFilter().length() > 0);
+    if (cf.displayFilter().length() > 0) {
+        ui->displayFilterCheckBox->setChecked(true);
+        ui->trafficTab->setFilter(cf.displayFilter());
+    }
 
     ui->trafficTab->setFocus();
     ui->trafficTab->useNanosecondTimestamps(cf.timestampPrecision() == WTAP_TSPREC_NSEC);
+    connect(ui->displayFilterCheckBox, &QCheckBox::toggled, this, &TrafficTableDialog::displayFilterCheckBoxToggled);
     connect(ui->trafficList, &TrafficTypesList::protocolsChanged, ui->trafficTab, &TrafficTab::setOpenTabs);
     connect(ui->trafficTab, &TrafficTab::tabsChanged, ui->trafficList, &TrafficTypesList::selectProtocols);
 
@@ -88,6 +92,11 @@ QDialogButtonBox *TrafficTableDialog::buttonBox() const
     return ui->btnBoxSettings;
 }
 
+QVBoxLayout *TrafficTableDialog::getVerticalLayout() const
+{
+    return ui->verticalLayout;
+}
+
 QCheckBox *TrafficTableDialog::displayFilterCheckBox() const
 {
     return ui->displayFilterCheckBox;
@@ -120,12 +129,26 @@ void TrafficTableDialog::currentTabChanged()
     }
 }
 
+void TrafficTableDialog::aggregationSummaryOnlyCheckBoxToggled(bool checked)
+{
+    if (!cap_file_.isValid()) {
+        return;
+    }
+
+    ATapDataModel * atdm = trafficTab()->dataModelForTabIndex(1);
+    if(atdm) {
+        atdm->updateFlags(checked);
+    }
+
+    cap_file_.retapPackets();
+}
+
 void TrafficTableDialog::on_nameResolutionCheckBox_toggled(bool checked)
 {
     ui->trafficTab->setNameResolution(checked);
 }
 
-void TrafficTableDialog::on_displayFilterCheckBox_toggled(bool checked)
+void TrafficTableDialog::displayFilterCheckBoxToggled(bool checked)
 {
     if (!cap_file_.isValid()) {
         return;

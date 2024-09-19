@@ -28,9 +28,13 @@
 void proto_register_mac_mgmt_msg_pkm(void);
 void proto_reg_handoff_mac_mgmt_msg_pkm(void);
 
-static gint proto_mac_mgmt_msg_pkm_decoder = -1;
-static gint ett_mac_mgmt_msg_pkm_req_decoder = -1;
-static gint ett_mac_mgmt_msg_pkm_rsp_decoder = -1;
+static dissector_handle_t mac_mgmt_msg_pkm_req_handle;
+static dissector_handle_t mac_mgmt_msg_pkm_rsp_handle;
+
+
+static int proto_mac_mgmt_msg_pkm_decoder;
+static int ett_mac_mgmt_msg_pkm_req_decoder;
+static int ett_mac_mgmt_msg_pkm_rsp_decoder;
 
 static const value_string vals_pkm_msg_code[] =
 {
@@ -66,14 +70,14 @@ static const value_string vals_pkm_msg_code[] =
 };
 
 /* fix fields */
-static gint hf_pkm_msg_code = -1;
-static gint hf_pkm_msg_pkm_id = -1;
+static int hf_pkm_msg_code;
+static int hf_pkm_msg_pkm_id;
 
 
 /* Wimax Mac PKM-REQ Message Dissector */
 static int dissect_mac_mgmt_msg_pkm_req_decoder(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, void* data _U_)
 {
-	guint offset = 0;
+	unsigned offset = 0;
 	proto_item *pkm_item;
 	proto_tree *pkm_tree;
 
@@ -97,7 +101,7 @@ static int dissect_mac_mgmt_msg_pkm_req_decoder(tvbuff_t *tvb, packet_info *pinf
 /* Wimax Mac PKM-RSP Message Dissector */
 static int dissect_mac_mgmt_msg_pkm_rsp_decoder(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, void* data _U_)
 {
-	guint offset = 0;
+	unsigned offset = 0;
 	proto_item *pkm_item;
 	proto_tree *pkm_tree;
 
@@ -136,7 +140,7 @@ void proto_register_mac_mgmt_msg_pkm(void)
 	};
 
 	/* Setup protocol subtree array */
-	static gint *ett_pkm[] =
+	static int *ett_pkm[] =
 		{
 			&ett_mac_mgmt_msg_pkm_req_decoder,
 			&ett_mac_mgmt_msg_pkm_rsp_decoder,
@@ -150,16 +154,13 @@ void proto_register_mac_mgmt_msg_pkm(void)
 
 	proto_register_field_array(proto_mac_mgmt_msg_pkm_decoder, hf_pkm, array_length(hf_pkm));
 	proto_register_subtree_array(ett_pkm, array_length(ett_pkm));
+	mac_mgmt_msg_pkm_req_handle = register_dissector("mac_mgmt_msg_pkm_req_handler", dissect_mac_mgmt_msg_pkm_req_decoder, proto_mac_mgmt_msg_pkm_decoder);
+	mac_mgmt_msg_pkm_rsp_handle = register_dissector("mac_mgmt_msg_pkm_rsp_handler", dissect_mac_mgmt_msg_pkm_rsp_decoder, proto_mac_mgmt_msg_pkm_decoder);
 }
 
 void proto_reg_handoff_mac_mgmt_msg_pkm(void)
 {
-	dissector_handle_t mac_mgmt_msg_pkm_req_handle;
-	dissector_handle_t mac_mgmt_msg_pkm_rsp_handle;
-
-	mac_mgmt_msg_pkm_req_handle = create_dissector_handle(dissect_mac_mgmt_msg_pkm_req_decoder, proto_mac_mgmt_msg_pkm_decoder);
 	dissector_add_uint( "wmx.mgmtmsg", MAC_MGMT_MSG_PKM_REQ, mac_mgmt_msg_pkm_req_handle );
-	mac_mgmt_msg_pkm_rsp_handle = create_dissector_handle(dissect_mac_mgmt_msg_pkm_rsp_decoder, proto_mac_mgmt_msg_pkm_decoder);
 	dissector_add_uint( "wmx.mgmtmsg", MAC_MGMT_MSG_PKM_RSP, mac_mgmt_msg_pkm_rsp_handle );
 }
 

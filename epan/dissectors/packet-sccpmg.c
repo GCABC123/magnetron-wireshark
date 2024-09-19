@@ -42,6 +42,8 @@
 void proto_register_sccpmg(void);
 void proto_reg_handoff_sccpmg(void);
 
+static dissector_handle_t sccpmg_handle;
+
 /* Same as below but with names typed out */
 static const value_string sccpmg_message_type_values[] = {
 	{ SCCPMG_MESSAGE_TYPE_SSA,   "SubSystem Allowed" },
@@ -92,24 +94,24 @@ static const value_string sccpmg_message_type_acro_values[] = {
 #define SCCPMG_SSN_LENGTH    1
 
 /* Initialize the protocol and registered fields */
-static int proto_sccpmg = -1;
-static int hf_sccpmg_message_type = -1;
-static int hf_sccpmg_affected_ssn = -1;
-static int hf_sccpmg_affected_itu_pc = -1;
-static int hf_sccpmg_affected_japan_pc = -1;
-static int hf_sccpmg_affected_ansi_pc = -1;
-static int hf_sccpmg_affected_chinese_pc = -1;
-static int hf_sccpmg_affected_pc_member = -1;
-static int hf_sccpmg_affected_pc_cluster = -1;
-static int hf_sccpmg_affected_pc_network = -1;
-static int hf_sccpmg_smi = -1;
-static int hf_sccpmg_congestion_level = -1;
+static int proto_sccpmg;
+static int hf_sccpmg_message_type;
+static int hf_sccpmg_affected_ssn;
+static int hf_sccpmg_affected_itu_pc;
+static int hf_sccpmg_affected_japan_pc;
+static int hf_sccpmg_affected_ansi_pc;
+static int hf_sccpmg_affected_chinese_pc;
+static int hf_sccpmg_affected_pc_member;
+static int hf_sccpmg_affected_pc_cluster;
+static int hf_sccpmg_affected_pc_network;
+static int hf_sccpmg_smi;
+static int hf_sccpmg_congestion_level;
 
 /* Initialize the subtree pointers */
-static gint ett_sccpmg = -1;
-static gint ett_sccpmg_affected_pc = -1;
+static int ett_sccpmg;
+static int ett_sccpmg_affected_pc;
 
-static expert_field ei_sccpmg_unknown_msg = EI_INIT;
+static expert_field ei_sccpmg_unknown_msg;
 
 static void
 dissect_sccpmg_affected_ssn(tvbuff_t *tvb, proto_tree *sccpmg_tree)
@@ -122,7 +124,7 @@ dissect_sccpmg_affected_ssn(tvbuff_t *tvb, proto_tree *sccpmg_tree)
 static void
 dissect_sccpmg_affected_pc(tvbuff_t *tvb, proto_tree *sccpmg_tree)
 {
-	guint8 offset = SCCPMG_AFFECTED_PC_OFFSET;
+	int offset = SCCPMG_AFFECTED_PC_OFFSET;
 
 	if (mtp3_standard == ITU_STANDARD) {
 		proto_tree_add_item(sccpmg_tree, hf_sccpmg_affected_itu_pc, tvb,
@@ -153,7 +155,7 @@ dissect_sccpmg_affected_pc(tvbuff_t *tvb, proto_tree *sccpmg_tree)
 static void
 dissect_sccpmg_smi(tvbuff_t *tvb, proto_tree *sccpmg_tree)
 {
-	guint8 offset = 0;
+	int offset = 0;
 
 	if (mtp3_standard == ITU_STANDARD || mtp3_standard == JAPAN_STANDARD)
 		offset = ITU_SCCPMG_SMI_OFFSET;
@@ -167,7 +169,7 @@ dissect_sccpmg_smi(tvbuff_t *tvb, proto_tree *sccpmg_tree)
 static void
 dissect_sccpmg_congestion_level(tvbuff_t *tvb, proto_tree *sccpmg_tree)
 {
-	guint8 offset = 0;
+	int offset = 0;
 
 	if (mtp3_standard == CHINESE_ITU_STANDARD)
 		offset = CHINESE_ITU_SCCPMG_CONGESTION_OFFSET;
@@ -181,10 +183,10 @@ dissect_sccpmg_congestion_level(tvbuff_t *tvb, proto_tree *sccpmg_tree)
 static void
 dissect_sccpmg_message(tvbuff_t *tvb, packet_info *pinfo, proto_tree *sccpmg_tree)
 {
-	guint8 message_type;
+	uint8_t message_type;
 
 	/* Extract the message type;  all other processing is based on this */
-	message_type   = tvb_get_guint8(tvb, SCCPMG_MESSAGE_TYPE_OFFSET);
+	message_type   = tvb_get_uint8(tvb, SCCPMG_MESSAGE_TYPE_OFFSET);
 
 	col_add_fstr(pinfo->cinfo, COL_INFO, "%s ", val_to_str_const(message_type, sccpmg_message_type_acro_values, "Unknown"));
 
@@ -316,7 +318,7 @@ proto_register_sccpmg(void)
 	};
 
 	/* Setup protocol subtree array */
-	static gint *ett[] = {
+	static int *ett[] = {
 		&ett_sccpmg,
 		&ett_sccpmg_affected_pc
 	};
@@ -337,15 +339,14 @@ proto_register_sccpmg(void)
 	proto_register_subtree_array(ett, array_length(ett));
 	expert_sccpmg = expert_register_protocol(proto_sccpmg);
 	expert_register_field_array(expert_sccpmg, ei, array_length(ei));
+
+	/* Register the dissector handle */
+	sccpmg_handle = register_dissector("sccpmg", dissect_sccpmg, proto_sccpmg);
 }
 
 void
 proto_reg_handoff_sccpmg(void)
 {
-	dissector_handle_t sccpmg_handle;
-
-	sccpmg_handle = create_dissector_handle(dissect_sccpmg, proto_sccpmg);
-
 	/* Register for SCCP SSN=1 messages */
 	dissector_add_uint("sccp.ssn", SCCPMG_SSN, sccpmg_handle);
 }

@@ -10,6 +10,7 @@
 #include "rtp_audio_routing_filter.h"
 
 AudioRoutingFilter::AudioRoutingFilter(QIODevice *input, bool stereo_required, AudioRouting audio_routing) :
+    QIODevice(input),
     input_(input),
     stereo_required_(stereo_required),
     audio_routing_(audio_routing)
@@ -63,7 +64,7 @@ qint64 AudioRoutingFilter::readData(char *data, qint64 maxSize)
         return input_->read(data, maxSize);
     } else {
         // For stereo
-        gint64 silence = 0;
+        int64_t silence = 0;
 
         // Read half of data
         qint64 readBytes = input_->read(data, maxSize/SAMPLE_BYTES);

@@ -19,19 +19,22 @@
 void proto_register_laplink(void);
 void proto_reg_handoff_laplink(void);
 
+static dissector_handle_t laplink_udp_handle;
+static dissector_handle_t laplink_tcp_handle;
+
 #define TCP_PORT_LAPLINK 1547
 #define UDP_PORT_LAPLINK 1547
 
 /* Initialize the protocol and registered fields */
-static int proto_laplink = -1;
-static int hf_laplink_udp_ident = -1;
-static int hf_laplink_udp_name = -1;
-static int hf_laplink_tcp_ident = -1;
-static int hf_laplink_tcp_length = -1;
-static int hf_laplink_tcp_data = -1;
+static int proto_laplink;
+static int hf_laplink_udp_ident;
+static int hf_laplink_udp_name;
+static int hf_laplink_tcp_ident;
+static int hf_laplink_tcp_length;
+static int hf_laplink_tcp_data;
 
 /* Initialize the subtree pointers */
-static gint ett_laplink = -1;
+static int ett_laplink;
 
 static const value_string laplink_udp_magic[] = {
 	{ 0x0f010000, "Name Solicitation" },
@@ -54,17 +57,17 @@ static const value_string laplink_tcp_magic[] = {
 	{ 0, NULL }
 };
 
-static gboolean laplink_desegment = TRUE;
+static bool laplink_desegment = true;
 
 /* Code to actually dissect the packets - UDP */
-static gint
+static int
 dissect_laplink_udp(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, void *data _U_)
 {
 	int offset = 0;
 	proto_item *ti;
 	proto_tree *laplink_tree;
-	guint32 udp_ident;
-	const gchar *udp_ident_string;
+	uint32_t udp_ident;
+	const char *udp_ident_string;
 
 	/*
 	 * Make sure the identifier is reasonable.
@@ -101,7 +104,7 @@ dissect_laplink_tcp_pdu(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, voi
 	int length = 0;
 	proto_item *ti;
 	proto_tree *laplink_tree;
-	guint32 tcp_ident;
+	uint32_t tcp_ident;
 
 /* Make entries in Protocol column and Info column on summary display */
 	col_set_str(pinfo->cinfo, COL_PROTOCOL, "Laplink");
@@ -133,10 +136,10 @@ dissect_laplink_tcp_pdu(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, voi
 /* If this protocol has a sub-dissector call it here, see section 1.8 */
 }
 
-static guint
+static unsigned
 get_laplink_pdu_len(packet_info *pinfo _U_, tvbuff_t *tvb, int offset, void *data _U_)
 {
-	guint plen;
+	unsigned plen;
 	/*
 	 * The length doesn't include the length or ident fields; add those in.
 	 */
@@ -185,20 +188,19 @@ proto_register_laplink(void)
 		{ &hf_laplink_tcp_data,
 			{ "Unknown TCP data", "laplink.tcp_data",
 			FT_BYTES, BASE_NONE, NULL, 0x0,
-			"TCP data", HFILL }
+			NULL, HFILL }
 		},
 	};
 
 /* Setup protocol subtree array */
-	static gint *ett[] = {
+	static int *ett[] = {
 		&ett_laplink,
 	};
 
 	module_t *laplink_module;
 
 /* Register the protocol name and description */
-	proto_laplink = proto_register_protocol("Laplink",
-	    "Laplink", "laplink");
+	proto_laplink = proto_register_protocol("Laplink", "Laplink", "laplink");
 
 /* Required function calls to register the header fields and subtrees used */
 	proto_register_field_array(proto_laplink, hf, array_length(hf));
@@ -210,6 +212,9 @@ proto_register_laplink(void)
 				       "Whether the Laplink dissector should reassemble messages spanning multiple TCP segments."
 				       " To use this option, you must also enable \"Allow subdissectors to reassemble TCP streams\" in the TCP protocol settings.",
 				       &laplink_desegment);
+
+	laplink_tcp_handle = register_dissector("laplink.tcp", dissect_laplink_tcp, proto_laplink);
+	laplink_udp_handle = register_dissector("laplink.udp", dissect_laplink_udp, proto_laplink);
 }
 
 
@@ -220,13 +225,7 @@ proto_register_laplink(void)
 void
 proto_reg_handoff_laplink(void)
 {
-	dissector_handle_t laplink_udp_handle;
-	dissector_handle_t laplink_tcp_handle;
-
-	laplink_tcp_handle = create_dissector_handle(dissect_laplink_tcp, proto_laplink);
 	dissector_add_uint_with_preference("tcp.port", TCP_PORT_LAPLINK, laplink_tcp_handle);
-
-	laplink_udp_handle = create_dissector_handle(dissect_laplink_udp, proto_laplink);
 	dissector_add_uint_with_preference("udp.port", UDP_PORT_LAPLINK, laplink_udp_handle);
 }
 

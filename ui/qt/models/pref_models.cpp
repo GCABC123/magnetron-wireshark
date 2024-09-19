@@ -23,10 +23,10 @@
 #include <QApplication>
 
 // XXX Should we move this to ui/preference_utils?
-static GHashTable * pref_ptr_to_pref_ = NULL;
+static GHashTable * pref_ptr_to_pref_;
 pref_t *prefFromPrefPtr(void *pref_ptr)
 {
-    return (pref_t *)g_hash_table_lookup(pref_ptr_to_pref_, (gpointer) pref_ptr);
+    return (pref_t *)g_hash_table_lookup(pref_ptr_to_pref_, (void *) pref_ptr);
 }
 
 static void prefInsertPrefPtr(void * pref_ptr, pref_t * pref)
@@ -34,8 +34,8 @@ static void prefInsertPrefPtr(void * pref_ptr, pref_t * pref)
     if (! pref_ptr_to_pref_)
         pref_ptr_to_pref_ = g_hash_table_new_full(g_direct_hash, g_direct_equal, NULL, NULL);
 
-    gpointer key = (gpointer) pref_ptr;
-    gpointer val = (gpointer) pref;
+    void *key = (void *) pref_ptr;
+    void *val = (void *) pref;
 
     /* Already existing entries will be ignored */
     if ((void *)g_hash_table_lookup(pref_ptr_to_pref_, key) == NULL)
@@ -47,6 +47,7 @@ PrefsItem::PrefsItem(module_t *module, pref_t *pref, PrefsItem* parent)
     pref_(pref),
     module_(module),
     name_(module->name ? module->name : module->parent->name),
+    help_(QString()),
     changed_(false)
 {
     if (pref_ != NULL) {
@@ -59,9 +60,19 @@ PrefsItem::PrefsItem(const QString name, PrefsItem* parent)
     pref_(NULL),
     module_(NULL),
     name_(name),
+    help_(QString()),
     changed_(false)
 {
+}
 
+PrefsItem::PrefsItem(PrefsModel::PrefsModelType type, PrefsItem* parent)
+    : ModelHelperTreeItem<PrefsItem>(parent),
+    pref_(NULL),
+    module_(NULL),
+    name_(PrefsModel::typeToString(type)),
+    help_(PrefsModel::typeToHelp(type)),
+    changed_(false)
+{
 }
 
 PrefsItem::~PrefsItem()
@@ -74,14 +85,6 @@ int PrefsItem::getPrefType() const
         return 0;
 
     return prefs_get_type(pref_);
-}
-
-int PrefsItem::getPrefGUIType() const
-{
-    if (pref_ == NULL)
-        return GUI_ALL;
-
-    return prefs_get_gui_type(pref_);
 }
 
 bool PrefsItem::isPrefDefault() const
@@ -119,6 +122,20 @@ QString PrefsItem::getModuleTitle() const
     Q_ASSERT(module_);
 
     return QString(module_->title);
+}
+
+QString PrefsItem::getModuleHelp() const
+{
+    if (module_ == nullptr)
+        return help_;
+
+    module_t *pref_module = module_;
+
+    while (pref_module->help == nullptr && pref_module->parent) {
+        pref_module = pref_module->parent;
+    }
+
+    return pref_module->help;
 }
 
 void PrefsItem::setChanged(bool changed)
@@ -219,7 +236,7 @@ QVariant PrefsModel::data(const QModelIndex &index, int role) const
         return item->getName();
 
     case colStatus:
-        if ((item->getPrefType() == PREF_UAT && (item->getPrefGUIType() == GUI_ALL || item->getPrefGUIType() == GUI_QT)) || item->getPrefType() == PREF_CUSTOM)
+        if (item->getPrefType() == PREF_UAT || item->getPrefType() == PREF_CUSTOM)
             return QObject::tr("Unknown");
 
         if (item->isPrefDefault())
@@ -240,8 +257,8 @@ QVariant PrefsModel::data(const QModelIndex &index, int role) const
     return QVariant();
 }
 
-static guint
-fill_prefs(module_t *module, gpointer root_ptr)
+static unsigned
+fill_prefs(module_t *module, void *root_ptr)
 {
     PrefsItem* root_item = static_cast<PrefsItem*>(root_ptr);
 
@@ -283,32 +300,32 @@ fill_prefs(module_t *module, gpointer root_ptr)
 
 void PrefsModel::populate()
 {
-    prefs_modules_foreach_submodules(NULL, fill_prefs, (gpointer)root_);
+    prefs_modules_foreach_submodules(NULL, fill_prefs, (void *)root_);
 
     //Add the "specially handled" preferences
     PrefsItem *appearance_item, *appearance_subitem, *special_item;
 
-    appearance_item = new PrefsItem(typeToString(PrefsModel::Appearance), root_);
+    appearance_item = new PrefsItem(PrefsModel::Appearance, root_);
     root_->prependChild(appearance_item);
 
-    appearance_subitem = new PrefsItem(typeToString(PrefsModel::Layout), appearance_item);
+    appearance_subitem = new PrefsItem(PrefsModel::Layout, appearance_item);
     appearance_item->prependChild(appearance_subitem);
-    appearance_subitem = new PrefsItem(typeToString(PrefsModel::Columns), appearance_item);
+    appearance_subitem = new PrefsItem(PrefsModel::Columns, appearance_item);
     appearance_item->prependChild(appearance_subitem);
-    appearance_subitem = new PrefsItem(typeToString(PrefsModel::FontAndColors), appearance_item);
+    appearance_subitem = new PrefsItem(PrefsModel::FontAndColors, appearance_item);
     appearance_item->prependChild(appearance_subitem);
 
-    special_item = new PrefsItem(typeToString(PrefsModel::Capture), root_);
+    special_item = new PrefsItem(PrefsModel::Capture, root_);
     root_->prependChild(special_item);
-    special_item = new PrefsItem(typeToString(PrefsModel::Expert), root_);
+    special_item = new PrefsItem(PrefsModel::Expert, root_);
     root_->prependChild(special_item);
-    special_item = new PrefsItem(typeToString(PrefsModel::FilterButtons), root_);
+    special_item = new PrefsItem(PrefsModel::FilterButtons, root_);
     root_->prependChild(special_item);
 #ifdef HAVE_LIBGNUTLS
-    special_item = new PrefsItem(typeToString(PrefsModel::RSAKeys), root_);
+    special_item = new PrefsItem(PrefsModel::RSAKeys, root_);
     root_->prependChild(special_item);
 #endif
-    special_item = new PrefsItem(typeToString(PrefsModel::Advanced), root_);
+    special_item = new PrefsItem(PrefsModel::Advanced, root_);
     root_->prependChild(special_item);
 }
 
@@ -332,9 +349,48 @@ QString PrefsModel::typeToString(int type)
     return typeStr;
 }
 
+QString PrefsModel::typeToHelp(int type)
+{
+    QString helpStr;
+
+    switch(type)
+    {
+        case Appearance:
+            helpStr = QString("ChCustPreferencesSection.html#_appearance");
+            break;
+        case Columns:
+            helpStr = QString("ChCustPreferencesSection.html#_columns");
+            break;
+        case FontAndColors:
+            helpStr = QString("ChCustPreferencesSection.html#_font_and_colors");
+            break;
+        case Layout:
+            helpStr = QString("ChCustPreferencesSection.html#_layout");
+            break;
+        case Capture:
+            helpStr = QString("ChCustPreferencesSection.html#_capture");
+            break;
+        case Expert:
+            helpStr = QString("ChCustPreferencesSection.html#ChCustPrefsExpertSection");
+            break;
+        case FilterButtons:
+            helpStr = QString("ChCustPreferencesSection.html#ChCustFilterButtons");
+            break;
+        case RSAKeys:
+            helpStr = QString("ChCustPreferencesSection.html#ChCustPrefsRSASection");
+            break;
+        case Advanced:
+            helpStr = QString("ChCustPreferencesSection.html#_advanced");
+            break;
+    }
+
+    return helpStr;
+}
+
 AdvancedPrefsModel::AdvancedPrefsModel(QObject * parent)
 : QSortFilterProxyModel(parent),
 filter_(),
+show_changed_values_(false),
 passwordChar_(QApplication::style()->styleHint(QStyle::SH_LineEdit_PasswordCharacter))
 {
 }
@@ -477,11 +533,10 @@ bool AdvancedPrefsModel::setData(const QModelIndex &dataindex, const QVariant &v
         item->setChanged(true);
         switch (item->getPrefType())
         {
-        case PREF_DECODE_AS_UINT:
         case PREF_UINT:
             {
             bool ok;
-            guint new_val = value.toString().toUInt(&ok, prefs_get_uint_base(item->getPref()));
+            unsigned new_val = value.toString().toUInt(&ok, prefs_get_uint_base(item->getPref()));
 
             if (ok)
                 prefs_set_uint_value(item->getPref(), new_val, pref_stashed);
@@ -494,6 +549,7 @@ bool AdvancedPrefsModel::setData(const QModelIndex &dataindex, const QVariant &v
             prefs_set_enum_value(item->getPref(), value.toInt(), pref_stashed);
             break;
         case PREF_STRING:
+        case PREF_DISSECTOR:
             prefs_set_string_value(item->getPref(), value.toString().toStdString().c_str(), pref_stashed);
             break;
         case PREF_PASSWORD:
@@ -530,8 +586,9 @@ bool AdvancedPrefsModel::setData(const QModelIndex &dataindex, const QVariant &v
     roles << role;
 
     // The status field may change as well as the value, so mark them for update
-    emit dataChanged(index(dataindex.row(), AdvancedPrefsModel::colStatus),
-                     index(dataindex.row(), AdvancedPrefsModel::colValue), roles);
+    emit dataChanged(index(dataindex.row(), 0, dataindex.parent()),
+                     index(dataindex.row(), columnCount() - 1, dataindex.parent()),
+                     roles);
 
     return true;
 }
@@ -549,7 +606,7 @@ Qt::ItemFlags AdvancedPrefsModel::flags(const QModelIndex &index) const
 
     Qt::ItemFlags flags = QAbstractItemModel::flags(index);
     if (item->getPref() == NULL) {
-        /* Base modules aren't changable */
+        /* Base modules aren't changeable */
         flags &= ~(Qt::ItemIsEnabled | Qt::ItemIsSelectable);
     } else {
         flags |= Qt::ItemIsEditable;
@@ -588,7 +645,7 @@ void AdvancedPrefsModel::setFirstColumnSpanned(QTreeView* tree, const QModelInde
 
 bool AdvancedPrefsModel::filterAcceptItem(PrefsItem& item) const
 {
-    if (filter_.isEmpty())
+    if (filter_.isEmpty() && !show_changed_values_)
         return true;
 
     QString name, tooltip;
@@ -601,7 +658,18 @@ bool AdvancedPrefsModel::filterAcceptItem(PrefsItem& item) const
         tooltip = prefs_get_description(item.getPref());
     }
 
-    if (name.contains(filter_, Qt::CaseInsensitive) || tooltip.contains(filter_, Qt::CaseInsensitive))
+    if (show_changed_values_ && item.getPref()) {
+        // UATs and custom preferences are "unknown", do not show when show_changed_only.
+        if (item.isPrefDefault() || item.getPrefType() == PREF_UAT || item.getPrefType() == PREF_CUSTOM) {
+            return false;
+        } else if (filter_.isEmpty()) {
+            return true;
+        }
+    }
+
+    // Do not match module title or description when having show_changed_only.
+    if (!(filter_.isEmpty() || (show_changed_values_ && !item.getPref())) &&
+        (name.contains(filter_, Qt::CaseInsensitive) || tooltip.contains(filter_, Qt::CaseInsensitive)))
         return true;
 
     PrefsItem *child_item;
@@ -638,7 +706,11 @@ void AdvancedPrefsModel::setFilter(const QString& filter)
     invalidateFilter();
 }
 
-
+void AdvancedPrefsModel::setShowChangedValues(bool show_changed_values)
+{
+    show_changed_values_ = show_changed_values;
+    invalidateFilter();
+}
 
 
 
@@ -674,6 +746,8 @@ QVariant ModulePrefsModel::data(const QModelIndex &dataindex, int role) const
         return sourceModel()->data(modelIndex, role);
     case ModuleName:
         return item->getModuleName();
+    case ModuleHelp:
+        return item->getModuleHelp();
     default:
         break;
     }

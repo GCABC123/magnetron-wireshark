@@ -156,16 +156,6 @@
         </item>
         <item>
          <widget class="QComboBox" name="addressComboBox">
-          <item>
-           <property name="text">
-            <string>Any</string>
-           </property>
-          </item>
-          <item>
-           <property name="text">
-            <string>Network</string>
-           </property>
-          </item>
          </widget>
         </item>
        </layout>
@@ -414,22 +404,6 @@
  </customwidgets>
  <resources/>
  <connections>
-  <connection>
-   <sender>buttonBox</sender>
-   <signal>accepted()</signal>
-   <receiver>SequenceDialog</receiver>
-   <slot>accept()</slot>
-   <hints>
-    <hint type="sourcelabel">
-     <x>248</x>
-     <y>254</y>
-    </hint>
-    <hint type="destinationlabel">
-     <x>157</x>
-     <y>274</y>
-    </hint>
-   </hints>
-  </connection>
   <connection>
    <sender>buttonBox</sender>
    <signal>rejected()</signal>

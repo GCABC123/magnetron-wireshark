@@ -27,7 +27,7 @@ Specifies the destination directory for the text files. The path must
 contain the pattern "wireshark-*-libs".
 
 .PARAMETER Platform
-Target platform. Must be "win64".
+Target platform. Must be one of "win64" or "arm64".
 
 .PARAMETER CMakeExecutable
 Specifies the path to the CMake executable, which is used to extract archives.
@@ -43,7 +43,7 @@ their compressed archives.
 A manifest file (library-manifest.xml)
 
 .EXAMPLE
-C:\PS> .\tools\win-setup.ps1 -Destination C:\wireshark-master-64-libs -Platform win64
+C:\PS> .\tools\win-setup.ps1 -Destination C:\wireshark-master-64-libs -Platform x64
 #>
 
 Param(
@@ -53,7 +53,7 @@ Param(
     $Destination,
 
     [Parameter(Mandatory=$true, Position=1)]
-    [ValidateSet("win64")]
+    [ValidateSet("x64", "arm64")]
     [String]
     $Platform,
 
@@ -70,32 +70,70 @@ Param(
 $ErrorActionPreference = "Stop"
 
 # Archive file / SHA256
-$Win64Archives = @{
+$X64Archives = @{
     "AirPcap/AirPcap_Devpack_4_1_0_1622.zip" = "09d637f28a79b1d2ecb09f35436271a90c0f69bd0a1ee82b803abaaf63c18a69";
     "bcg729/bcg729-1.0.4-win64ws.zip" = "9a095fda4c39860d96f0c568830faa6651cd17635f68e27aa6de46c689aa0ee2";
     "brotli/brotli-1.0.9-1-win64ws.zip" = "3f8d24aec8668201994327ff8d8542fe507d1d468a500a1aec50d0415f695aab";
-    "c-ares/c-ares-1.18.1-1-win64ws.zip" = "61183970996150e2eb137dfa7f5842ffa6e0eec2819634d5bdadc84013f8411d";
-    "gnutls/gnutls-3.6.3-1-win64ws.zip" = "994ac2578e7b4ca01e589ab2598927d53f7370bc3ff679f3006b0e6bb7a06df4";
-    "krb5/krb5-1.17-1-win64ws.zip" = "1f4a7ab86ae331ea9e58c9776a60def81ae9fe622882b2e8da2ad6ce6f6fb1d8";
-    "libgcrypt/libgcrypt-1.10.1-2-win64ws.zip" = "61e1157f7623ef70e39ddf3aa6689ca581dc2ed14461515f149f83f11d0fb0a5";
-    "libilbc/libilbc-2.0.2-3-win64ws.zip" = "d7baeb98627c405bd7c3e41d6b07c4ea4f0f5db88436e566148320afd10cbb66";
+    "c-ares/c-ares-1.28.1-1-x64-windows-ws.zip" = "6509df8e15ed67e87fac84a3b0acaa7b804b59f272fdf9decfb6157d241e73da";
+    "falcosecurity-libs/falcosecurity-libs-0.17.1-1-x64-ws.zip" = "371278147543e4b92dc404040b01aeacf221347f434f7b67143acd474555eecf";
+    "falcosecurity-libs/falcosecurity-plugins-2024-06-05-1-x64-ws.zip" = "3d19595f4ef9de77fef2ec2233000432b7b1e5a0f9353f6c8d99859205e113f8";
+    "gnutls/gnutls-3.8.4-2-x64-mingw-dynamic-ws.zip" = "e875c6c34f633c487ce390e25a4d26a3e27d3dca3f9fdfa1d8fd66026d1e257c";
+    "krb5/krb5-1.21.3-1-x64-windows-ws.zip" = "49b83da4baa476c4c31ed3ee463f962114a469b8c3d601db68bdb6bc03a88e42";
+    "libgcrypt/libgcrypt-1.10.2-2-x64-mingw-dynamic-ws.zip" = "477cfce91d791b34df75a5ad83626f1ac2ee147eff7965e52266a4fc3da0f920";
+    "libilbc/libilbc-2.0.2-4-x64-windows-ws.zip" = "4f35a1ffa03c89bf473f38249282a7867b203988d2b6d3d2f0924764619fd5f5";
     "libmaxminddb/libmaxminddb-1.4.3-1-win64ws.zip" = "ee89944a19ab6e1c873bdecb9fc6205d317c41e6da6ec1d30bc892fddfd143da";
-    "libpcap/libpcap-1.10.1-1-win64ws.zip" = "59f8e0e90a3ab5671df561266ed2b02870a6f8f3a895b80c9db19fea9a12ffb2";
-    "libsmi/libsmi-svn-40773-win64ws.zip" = "571fcee71d741bf847c3247d4c2e1c42388ca6a9feebe08fc0d4ce053571d15d";
-    "libssh/libssh-0.9.5-win64ws.zip" = "3226fcb89969a77643bd2bca7a1ff6b5a79261b680a09a6bfedb3d40f7a187e3";
-    "lua/lua-5.2.4-unicode-win64-vc14.zip" = "e8968d2c7871ce1ea82cbd29ac1b3a2c59d3dec25e483c5e12de85df66f5d928";
-    "lz4/lz4-1.9.3-1-win64ws.zip" = "7129515893ffdc439f4ffe9673c4bc43f9042e910bb2607e68dde6b99a1ab058";
-    "minizip/minizip-1.2.11-4-win64ws.zip" = "dd6bf24e2d946465ad19aa4f8c38e0db91da6585887935de68011982cd6fb2cb";
-    "nghttp2/nghttp2-1.49.0-1-win64ws.zip" = "215919ec20be62101d4704ec2464bfb72c5677126c5245b92ba495a3d30642ca";
-    "opus/opus-1.3.1-3-win64ws.zip" = "1f7a55a6d2d7215dffa4a43bca8ca05024bd4ba1ac3d0d0c405fd38b09cc2205";
-    "pcre2/pcre2-10.40-1-win64ws.zip" = "17eee615990b23bc859a862c19f5ac10c61776587603bc452285abe073a0fad9";
-    "sbc/sbc-1.3-1-win64ws.zip" = "08cef6898c421277a6582ef3225d8820f74a037cbd5b6e673a4d8f4593ce80a1";
-    "snappy/snappy-1.1.9-1-win64ws.zip" = "fa907724be019bcc55d27ebe88257ba8898b5c38b719099b8164ac78600d81cc";
-    "spandsp/spandsp-0.0.6-2-win64ws.zip" = "2eb8278633037f60f44815ea1606486ab5dcdf3bddc500b20c9fe356856236b2";
+    "libpcap/libpcap-1.10.4-1-x64-windows-ws.zip" = "ad18ee1da72ce9df524b8baf9c185f237e534ef8e356c0b3eb3a5d6762004656";
+    "libsmi/libsmi-2021-01-15-2-x64-windows-ws.zip" = "ee8e349427d2a4ee9c18fc6b5839bd6df41685ecba03506179c21425e04f3413";
+    "libssh/libssh-0.10.6plus-1-x64-mingw-dynamic-ws.zip" = "b4debbc7b5ec34dd998cdc17699526191219e0c593d9797a4bd6147eab020934";
+    "lua/lua-5.4.6-unicode-win64-vc14.zip" = "f0c6c7eb28733425b16717beb338d44c041dfbb5c6807e618d96bd754276aaff";
+    "lz4/lz4-1.9.4-1-x64-windows-ws.zip" = "179cc6b9a509d7bf07b910389886a00c1cf4738164f32b8e6c245bfb973a4dc7";
+    "minizip/minizip-1.3-1-x64-windows-ws.zip" = "eb0bb5fffda5328e192d0d7951ff0254e64dcd736d46909fde7db792c1c53bcc";
+    "minizip-ng/minizip-ng-4.0.5-1-x64-windows-ws.zip" = "965c13ec9944ab3515cdfdec36c361f70d76ec773e0897bbe60bdcf1b4eac01b";
+    "nghttp2/nghttp2-1.62.1-1-x64-windows-ws.zip" = "381f995791bf48c43a4ab4bdbc68f89d51b8cde8501ded9ce280e3697bb911e5";
+    "nghttp3/nghttp3-1.1.0-1-x64-windows-ws.zip" = "e7e181f08ef6e7f592ba0cfef043822c2d516d130c2aad9447a588ade31a258a";
+    "opencore-amr/opencore-amr-0.1.6-1-x64-mingw-dynamic-ws.zip" = "013a7b29b62bec123482fed6acd8aed882be3478870c2ec8aec15b7cb81cda02";
+    "opus/opus-1.5.1-1-x64-windows-ws.zip" = "30d293b6e4902edae0ca5d747881d9a18f7f03b66a4758bf797f341f89592e6a";
+    "sbc/sbc-2.0-1-x64-windows-ws.zip" = "d1a58f977dcffa168b11b280bd10228191582d263b7c901e50cde7c1c43d9c04";
+    "snappy/snappy-1.2.1-1-x64-windows-ws.zip" = "e2ffccb26e91881b42d03061dcc728a98af9037705cb4595c8ccbe8d912b5d68";
+    "spandsp/spandsp-0.0.6-5-x64-windows-ws.zip" = "cbb18310876ec6f081662253a2d37f5174ac60c58b0b7cd6759852fbcfaa7d7f";
     "speexdsp/speexdsp-1.21.1-1-win64ws.zip" = "d36db62e64ffaee38d9f607bef07d3778d8957ad29757f3eba169eb135f1a4e5";
-    "vcpkg-export/vcpkg-export-20220726-1-win64ws.zip" = "b1eaa8124802532fa8d30789219906f90fb80908844e4458327b3f73995a44b0";
-    "WinSparkle/WinSparkle-0.5.7.zip" = "56d396ef0c4e8b0589ea74134e484376ca6459d972cd1ab1da6b9624d82e6d04";
-    "zstd/zstd-1.5.2-1-win64ws.zip" = "d920afe636951cfcf144824d9c075d1f2c13387f4739152fe185fd9c09fc58f2";
+    "vcpkg-export/vcpkg-export-20240524-1-x64-windows-ws.zip" = "c566f41f20ae87fa4357d204f92cbbe2f236bc1df28c3d106fecfe21a8fbfa11";
+    "WinSparkle/WinSparkle-0.8.0-4-gb320893.zip" = "3ae42326bcd34594bc21b1e7948863a839ee76e87d9f4cf6b59b9d9f9a083881";
+    "zlib-ng/zlib-ng-2.1.5-1-x64-windows-ws.zip" = "a9f90e349d041d464afc1e0926d628ebee02e7093ab9983c5a7808e2b70d7873";
+    "zstd/zstd-1.5.6-1-x64-windows-ws.zip" = "f3f59351d273a1c1f2b84b60164556c8d2726155da2148f917d260d9efd16b6e";
+}
+
+
+$Arm64Archives = @{
+    "bcg729/bcg729-1.1.1-1-win64armws.zip" = "f4d76b9acf0d0e12e87a020e9805d136a0e8775e061eeec23910a10828153625";
+    "brotli/brotli-1.0.9-1-win64armws.zip" = "5ba1b62ebc514d55c3eae85a00ff107e587b6e7cb1275e2d33fcddcd49f8e2af";
+    "c-ares/c-ares-1.28.1-1-arm64-windows-ws.zip" = "84954f593d02d1af0ff5c7af1646b0fec5af3260fecda6cda7bbc84f9e343e10";
+    "falcosecurity-libs/falcosecurity-libs-0.17.1-2-arm64-ws.zip" = "c9a2e0ae1636b53fd843c87bb136eebe24595d658eb7a82ca9aff2d25b185902";
+    "falcosecurity-libs/falcosecurity-plugins-2024-06-05-1-arm64-ws.zip" = "81f7b5a918c3b4cd1c0e08d8e2fadd6859363897d9d6a48f8b408aa67f072b5c";
+    "gnutls/gnutls-3.8.4-2-arm64-mingw-dynamic-ws.zip" = "17f28b4a47857db86d9c3f9b7ba12528c8e6368524314fb0fe5ea9303f1a58f9";
+    "krb5/krb5-1.21.3-1-arm64-windows-ws.zip" = "26166173cb653fdf2153c311a9f611a76575359393222cebd5228842632a0ccb";
+    "libgcrypt/libgcrypt-1.10.2-2-arm64-mingw-dynamic-ws.zip" = "cd42fa2739a204e129d655e1b0dda83ceb27399812b8b2eccddae4a9ecd8d0ce";
+    "libilbc/libilbc-2.0.2-4-arm64-windows-ws.zip" = "00a506cc1aac8a2e31856e463a555d899b5a6ccf376485a124104858ccf0be6d";
+    "libmaxminddb/libmaxminddb-1.4.3-1-win64armws.zip" = "9996327f301cb4a4de797bc024ad0471acd95c1850a2afc849c57fcc93360610";
+    "libpcap/libpcap-1.10.4-1-arm64-windows-ws.zip" = "98dbac265e3617eb0ab1a690902a4989e022d0761098c2753bff4cd0189419b3";
+    "libsmi/libsmi-2021-01-15-2-arm64-windows-ws.zip" = "3f5b7507a19436bd6494e2cbc89856a5980950f931f7cf0d637a8e764914d015";
+    "libssh/libssh-0.10.6plus-1-arm64-mingw-dynamic-ws.zip" = "2de3a300b0fbb7593c863aa8f302f801a2a1041ced8dfa8d65b7e7b42008c7ef";
+    "lua/lua-5.4.6-unicode-arm64-windows-vc14.zip" = "a28c38acde71de5c495420cd8bf480e2e41f1a14bac81503b700fc64a9679b95";
+    "lz4/lz4-1.9.4-1-arm64-windows-ws.zip" = "4bb37fb184bcbe350a137df54124faf45fc0871777146b469b7fd08f6dd07337";
+    "minizip/minizip-1.3-1-arm64-windows-ws.zip" = "e5b35d064ff10f1ab1ee9193a0965fd1eb3d1e16eab5a905ab3fea9b14fb5afe";
+    "minizip-ng/minizip-ng-4.0.5-1-arm64-windows-ws.zip" = "66ccd6ae1f6b0078632f87c9c9cc153ab0015874c8c65d855f8b90beef20cd4e";
+    "nghttp2/nghttp2-1.62.1-1-arm64-windows-ws.zip" = "3610c71da9deabf2edab4e09329817911a4e2b493d847035093a7e93d7993c12";
+    "nghttp3/nghttp3-1.1.0-1-arm64-windows-ws.zip" = "ae00b65fda2d5e9ffa979be406f127d050a95b0c59654acf7b7411e77b2feb1f";
+    "opencore-amr/opencore-amr-0.1.6-1-arm64-mingw-dynamic-ws.zip" = "581ec9e8ee4dde2236b689eec4d39802e2f998baa8d1604a4e91c1da32556b57";
+    "opus/opus-1.5.1-1-arm64-windows-ws.zip" = "b50db665b50f12185dacd8efd77cd28eb30e53ac5dcbb09b403e9fb90a9768f4";
+    "sbc/sbc-2.0-1-arm64-windows-ws.zip" = "83cfe4a8b6fa5bae253ecacc1c02e6e4c61b4ad9ad0e5e63f0f30422fb6eac96";
+    "snappy/snappy-1.2.1-1-arm64-windows-ws.zip" = "71d6987360eb1a10abd0d070768e6b7b250c6ea87feaee044ecbc8864c7e57f4";
+    "spandsp/spandsp-0.0.6-5-arm64-windows-ws.zip" = "fdf01e3c33e739ff9399b7d42cd8230c97cb27ce51865a0f06285a8f68206b6c";
+    "speexdsp/speexdsp-1.2.1-1-win64armws.zip" = "1759a9193065f27e50dd79dbb1786d24031ac43ccc48c40dca46d8a48552e3bb";
+    "vcpkg-export/vcpkg-export-20240524-1-arm64-windows-ws.zip" = "5d1e186b77ec3bc7072253be90b6aa36d7e317bccc382209c1570b60e488000b";
+    "WinSparkle/WinSparkle-0.8.0-4-gb320893.zip" = "3ae42326bcd34594bc21b1e7948863a839ee76e87d9f4cf6b59b9d9f9a083881";
+    "zlib-ng/zlib-ng-2.1.5-1-arm64-windows-ws.zip" = "de3a42d0096a17085b27630402a710b036cc8e3c85029ad37536d929697271e5";
+    "zstd/zstd-1.5.6-1-arm64-windows-ws.zip" = "167261f9605a28f8f5a45a2fa400daa5072290a89d5fdc218595da52d57f938b";
 }
 
 # Subdirectory to extract an archive to
@@ -105,13 +143,22 @@ $ArchivesSubDirectory = @{
 
 # Plain file downloads
 
-$Win64Files = @{
-    "Npcap/npcap-1.71.exe" = "5ccb61296c48e3f8cd20db738784bd7bf0daf8fce630f89892678b6dda4e533c";
-    "USBPcap/USBPcapSetup-1.5.4.0.exe" = "87a7edf9bbbcf07b5f4373d9a192a6770d2ff3add7aa1e276e82e38582ccb622";
+$X64Files = @{
+    # Nothing here
 }
 
-$Archives = $Win64Archives;
-$Files = $Win64Files;
+$Arm64Files = @{
+    # Nothing here
+}
+
+$Archives = $X64Archives;
+$Files = $X64Files;
+
+if ($Platform -eq "arm64") {
+    $Archives = $Arm64Archives;
+    $Files = $Arm64Files;
+}
+
 $CurrentManifest = $Archives + $Files
 
 $CleanupItems = @(

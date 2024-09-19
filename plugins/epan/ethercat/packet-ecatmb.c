@@ -14,10 +14,10 @@
 
 #include "config.h"
 
-#include <string.h>
-
 #include <epan/packet.h>
 #include <epan/expert.h>
+#include <epan/tfs.h>
+#include <wsutil/array.h>
 
 #include "packet-ecatmb.h"
 
@@ -32,163 +32,163 @@ static dissector_handle_t ams_handle;
 static dissector_handle_t ecat_mailbox_handle;
 
 /* Define the EtherCAT mailbox proto */
-int proto_ecat_mailbox  = -1;
+int proto_ecat_mailbox;
 
-static int ett_ecat_mailbox = -1;
-static int ett_ecat_mailbox_eoe = -1;
-static int ett_ecat_mailbox_eoe_init = -1;
-static int ett_ecat_mailbox_eoe_macfilter = -1;
-static int ett_ecat_mailbox_eoe_macfilter_filter = -1;
-static int ett_ecat_mailbox_eoe_macfilter_filtermask = -1;
-static int ett_ecat_mailbox_coe = -1;
-static int ett_ecat_mailbox_sdo = -1;
-static int ett_ecat_mailbox_coe_sdoccs = -1;
-static int ett_ecat_mailbox_coe_sdoscs = -1;
-static int ett_ecat_mailbox_foe = -1;
-static int ett_ecat_mailbox_foe_efw = -1;
-static int ett_ecat_mailbox_soeflag = -1;
-static int ett_ecat_mailbox_soe = -1;
-static int ett_ecat_mailbox_fraghead = -1;
-static int ett_ecat_mailbox_header = -1;
+static int ett_ecat_mailbox;
+static int ett_ecat_mailbox_eoe;
+static int ett_ecat_mailbox_eoe_init;
+static int ett_ecat_mailbox_eoe_macfilter;
+static int ett_ecat_mailbox_eoe_macfilter_filter;
+static int ett_ecat_mailbox_eoe_macfilter_filtermask;
+static int ett_ecat_mailbox_coe;
+static int ett_ecat_mailbox_sdo;
+static int ett_ecat_mailbox_coe_sdoccs;
+static int ett_ecat_mailbox_coe_sdoscs;
+static int ett_ecat_mailbox_foe;
+static int ett_ecat_mailbox_foe_efw;
+static int ett_ecat_mailbox_soeflag;
+static int ett_ecat_mailbox_soe;
+static int ett_ecat_mailbox_fraghead;
+static int ett_ecat_mailbox_header;
 
-static int hf_ecat_mailboxlength = -1;
-static int hf_ecat_mailboxaddress = -1;
-static int hf_ecat_mailboxpriority = -1;
-static int hf_ecat_mailboxtype = -1;
-static int hf_ecat_mailboxcounter = -1;
-static int hf_ecat_mailbox_eoe = -1;
-static int hf_ecat_mailbox_eoe_fraghead = -1;
-static int hf_ecat_mailbox_eoe_type = -1;
-static int hf_ecat_mailbox_eoe_fragno = -1;
-static int hf_ecat_mailbox_eoe_offset = -1;
-static int hf_ecat_mailbox_eoe_frame = -1;
-static int hf_ecat_mailbox_eoe_last = -1;
-static int hf_ecat_mailbox_eoe_timestampreq = -1;
-static int hf_ecat_mailbox_eoe_timestampapp = -1;
-static int hf_ecat_mailbox_eoe_fragment = -1;
-static int hf_ecat_mailbox_eoe_init = -1;
-static int hf_ecat_mailbox_eoe_init_contains_macaddr = -1;
-static int hf_ecat_mailbox_eoe_init_contains_ipaddr = -1;
-static int hf_ecat_mailbox_eoe_init_contains_subnetmask = -1;
-static int hf_ecat_mailbox_eoe_init_contains_defaultgateway = -1;
-static int hf_ecat_mailbox_eoe_init_contains_dnsserver = -1;
-static int hf_ecat_mailbox_eoe_init_contains_dnsname = -1;
-static int hf_ecat_mailbox_eoe_init_append_timestamp = -1;
-static int hf_ecat_mailbox_eoe_init_macaddr = -1;
-static int hf_ecat_mailbox_eoe_init_ipaddr = -1;
-static int hf_ecat_mailbox_eoe_init_subnetmask = -1;
-static int hf_ecat_mailbox_eoe_init_defaultgateway = -1;
-static int hf_ecat_mailbox_eoe_init_dnsserver = -1;
-static int hf_ecat_mailbox_eoe_init_dnsname = -1;
-static int hf_ecat_mailbox_eoe_macfilter = -1;
-static int hf_ecat_mailbox_eoe_macfilter_macfiltercount = -1;
-static int hf_ecat_mailbox_eoe_macfilter_maskcount = -1;
-static int hf_ecat_mailbox_eoe_macfilter_nobroadcasts = -1;
+static int hf_ecat_mailboxlength;
+static int hf_ecat_mailboxaddress;
+static int hf_ecat_mailboxpriority;
+static int hf_ecat_mailboxtype;
+static int hf_ecat_mailboxcounter;
+static int hf_ecat_mailbox_eoe;
+static int hf_ecat_mailbox_eoe_fraghead;
+static int hf_ecat_mailbox_eoe_type;
+static int hf_ecat_mailbox_eoe_fragno;
+static int hf_ecat_mailbox_eoe_offset;
+static int hf_ecat_mailbox_eoe_frame;
+static int hf_ecat_mailbox_eoe_last;
+static int hf_ecat_mailbox_eoe_timestampreq;
+static int hf_ecat_mailbox_eoe_timestampapp;
+static int hf_ecat_mailbox_eoe_fragment;
+static int hf_ecat_mailbox_eoe_init;
+static int hf_ecat_mailbox_eoe_init_contains_macaddr;
+static int hf_ecat_mailbox_eoe_init_contains_ipaddr;
+static int hf_ecat_mailbox_eoe_init_contains_subnetmask;
+static int hf_ecat_mailbox_eoe_init_contains_defaultgateway;
+static int hf_ecat_mailbox_eoe_init_contains_dnsserver;
+static int hf_ecat_mailbox_eoe_init_contains_dnsname;
+static int hf_ecat_mailbox_eoe_init_append_timestamp;
+static int hf_ecat_mailbox_eoe_init_macaddr;
+static int hf_ecat_mailbox_eoe_init_ipaddr;
+static int hf_ecat_mailbox_eoe_init_subnetmask;
+static int hf_ecat_mailbox_eoe_init_defaultgateway;
+static int hf_ecat_mailbox_eoe_init_dnsserver;
+static int hf_ecat_mailbox_eoe_init_dnsname;
+static int hf_ecat_mailbox_eoe_macfilter;
+static int hf_ecat_mailbox_eoe_macfilter_macfiltercount;
+static int hf_ecat_mailbox_eoe_macfilter_maskcount;
+static int hf_ecat_mailbox_eoe_macfilter_nobroadcasts;
 static int hf_ecat_mailbox_eoe_macfilter_filter;
-static int hf_ecat_mailbox_eoe_macfilter_filters[16] = {-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1};
-static int hf_ecat_mailbox_eoe_macfilter_filtermask = -1;
-static int hf_ecat_mailbox_eoe_macfilter_filtermasks[4] = {-1,-1,-1,-1};
-static int hf_ecat_mailbox_eoe_timestamp = -1;
-static int hf_ecat_mailbox_coe = -1;
-static int hf_ecat_mailbox_coe_number = -1;
-static int hf_ecat_mailbox_coe_type = -1;
-static int hf_ecat_mailbox_coe_sdoreq = -1;
-static int hf_ecat_mailbox_coe_sdoccsid = -1;
-static int hf_ecat_mailbox_coe_sdoccsid_sizeind = -1;
-static int hf_ecat_mailbox_coe_sdoccsid_expedited = -1;
-static int hf_ecat_mailbox_coe_sdoccsid_size0= -1;
-static int hf_ecat_mailbox_coe_sdoccsid_size1= -1;
-static int hf_ecat_mailbox_coe_sdoccsid_complete = -1;
-static int hf_ecat_mailbox_coe_sdoccsds = -1;
-static int hf_ecat_mailbox_coe_sdoccsds_lastseg = -1;
-static int hf_ecat_mailbox_coe_sdoccsds_size = -1;
-static int hf_ecat_mailbox_coe_sdoccsds_toggle = -1;
-static int hf_ecat_mailbox_coe_sdoccsus = -1;
-static int hf_ecat_mailbox_coe_sdoccsus_toggle = -1;
-static int hf_ecat_mailbox_coe_sdoccsiu = -1;
-/* static int hf_ecat_mailbox_coe_sdoccsiu_complete = -1; */
-static int hf_ecat_mailbox_coe_sdoidx = -1;
-static int hf_ecat_mailbox_coe_sdoabortcode = -1;
-static int hf_ecat_mailbox_coe_sdosub = -1;
-static int hf_ecat_mailbox_coe_sdodata = -1;
-static int hf_ecat_mailbox_coe_sdodata1 = -1;
-static int hf_ecat_mailbox_coe_sdodata2 = -1;
-static int hf_ecat_mailbox_coe_sdoldata = -1;
-static int hf_ecat_mailbox_coe_sdolength = -1;
-/* static int hf_ecat_mailbox_coe_sdoerror = -1; */
-static int hf_ecat_mailbox_coe_sdores = -1;
-static int hf_ecat_mailbox_coe_sdoscsds = -1;
-static int hf_ecat_mailbox_coe_sdoscsds_toggle = -1;
-static int hf_ecat_mailbox_coe_sdoscsiu = -1;
-static int hf_ecat_mailbox_coe_sdoscsiu_sizeind = -1;
-static int hf_ecat_mailbox_coe_sdoscsiu_expedited = -1;
-static int hf_ecat_mailbox_coe_sdoscsiu_size0 = -1;
-static int hf_ecat_mailbox_coe_sdoscsiu_size1 = -1;
-static int hf_ecat_mailbox_coe_sdoscsiu_complete = -1;
-static int hf_ecat_mailbox_coe_sdoscsus = -1;
-static int hf_ecat_mailbox_coe_sdoscsus_lastseg = -1;
-static int hf_ecat_mailbox_coe_sdoscsus_bytes = -1;
-static int hf_ecat_mailbox_coe_sdoscsus_toggle = -1;
-static int hf_ecat_mailbox_coe_sdoinfoopcode = -1;
-static int hf_ecat_mailbox_coe_sdoinfofrag = -1;
-static int hf_ecat_mailbox_coe_sdoinfolisttype = -1;
-static int hf_ecat_mailbox_coe_sdoinfolist = -1;
-static int hf_ecat_mailbox_coe_sdoinfoindex = -1;
-static int hf_ecat_mailbox_coe_sdoinfosubindex = -1;
-static int hf_ecat_mailbox_coe_sdoinfovalueinfo = -1;
-static int hf_ecat_mailbox_coe_sdoinfoerrorcode = -1;
-static int hf_ecat_mailbox_coe_sdoinfodatatype = -1;
-static int hf_ecat_mailbox_coe_sdoinfomaxsub = -1;
-static int hf_ecat_mailbox_coe_sdoinfoobjcode = -1;
-static int hf_ecat_mailbox_coe_sdoinfoname = -1;
-static int hf_ecat_mailbox_coe_sdoinfobitlen = -1;
-static int hf_ecat_mailbox_coe_sdoinfoobjaccess = -1;
-static int hf_ecat_mailbox_coe_sdoinfounittype = -1;
-static int hf_ecat_mailbox_coe_sdoinfodefaultvalue = -1;
-static int hf_ecat_mailbox_coe_sdoinfominvalue = -1;
-static int hf_ecat_mailbox_coe_sdoinfomaxvalue = -1;
-static int hf_ecat_mailboxdata = -1;
-static int hf_ecat_mailbox_foe = -1;
-static int hf_ecat_mailbox_foe_opmode = -1;
-static int hf_ecat_mailbox_foe_filelength = -1;
-static int hf_ecat_mailbox_foe_filename = -1;
-static int hf_ecat_mailbox_foe_packetno = -1;
-static int hf_ecat_mailbox_foe_errcode = -1;
-static int hf_ecat_mailbox_foe_errtext = -1;
-static int hf_ecat_mailbox_foe_busydone = -1;
-static int hf_ecat_mailbox_foe_busyentire = -1;
-static int hf_ecat_mailbox_foe_data = -1;
-static int hf_ecat_mailbox_foe_efw = -1;
-static int hf_ecat_mailbox_foe_efw_cmd = -1;
-static int hf_ecat_mailbox_foe_efw_size = -1;
-static int hf_ecat_mailbox_foe_efw_addresslw = -1;
-static int hf_ecat_mailbox_foe_efw_addresshw = -1;
-static int hf_ecat_mailbox_foe_efw_data = -1;
-static int hf_ecat_mailbox_soe = -1;
-static int hf_ecat_mailbox_soe_header = -1;
+static int hf_ecat_mailbox_eoe_macfilter_filters[16];
+static int hf_ecat_mailbox_eoe_macfilter_filtermask;
+static int hf_ecat_mailbox_eoe_macfilter_filtermasks[4];
+static int hf_ecat_mailbox_eoe_timestamp;
+static int hf_ecat_mailbox_coe;
+static int hf_ecat_mailbox_coe_number;
+static int hf_ecat_mailbox_coe_type;
+static int hf_ecat_mailbox_coe_sdoreq;
+static int hf_ecat_mailbox_coe_sdoccsid;
+static int hf_ecat_mailbox_coe_sdoccsid_sizeind;
+static int hf_ecat_mailbox_coe_sdoccsid_expedited;
+static int hf_ecat_mailbox_coe_sdoccsid_size0;
+static int hf_ecat_mailbox_coe_sdoccsid_size1;
+static int hf_ecat_mailbox_coe_sdoccsid_complete;
+static int hf_ecat_mailbox_coe_sdoccsds;
+static int hf_ecat_mailbox_coe_sdoccsds_lastseg;
+static int hf_ecat_mailbox_coe_sdoccsds_size;
+static int hf_ecat_mailbox_coe_sdoccsds_toggle;
+static int hf_ecat_mailbox_coe_sdoccsus;
+static int hf_ecat_mailbox_coe_sdoccsus_toggle;
+static int hf_ecat_mailbox_coe_sdoccsiu;
+/* static int hf_ecat_mailbox_coe_sdoccsiu_complete; */
+static int hf_ecat_mailbox_coe_sdoidx;
+static int hf_ecat_mailbox_coe_sdoabortcode;
+static int hf_ecat_mailbox_coe_sdosub;
+static int hf_ecat_mailbox_coe_sdodata;
+static int hf_ecat_mailbox_coe_sdodata1;
+static int hf_ecat_mailbox_coe_sdodata2;
+static int hf_ecat_mailbox_coe_sdoldata;
+static int hf_ecat_mailbox_coe_sdolength;
+/* static int hf_ecat_mailbox_coe_sdoerror; */
+static int hf_ecat_mailbox_coe_sdores;
+static int hf_ecat_mailbox_coe_sdoscsds;
+static int hf_ecat_mailbox_coe_sdoscsds_toggle;
+static int hf_ecat_mailbox_coe_sdoscsiu;
+static int hf_ecat_mailbox_coe_sdoscsiu_sizeind;
+static int hf_ecat_mailbox_coe_sdoscsiu_expedited;
+static int hf_ecat_mailbox_coe_sdoscsiu_size0;
+static int hf_ecat_mailbox_coe_sdoscsiu_size1;
+static int hf_ecat_mailbox_coe_sdoscsiu_complete;
+static int hf_ecat_mailbox_coe_sdoscsus;
+static int hf_ecat_mailbox_coe_sdoscsus_lastseg;
+static int hf_ecat_mailbox_coe_sdoscsus_bytes;
+static int hf_ecat_mailbox_coe_sdoscsus_toggle;
+static int hf_ecat_mailbox_coe_sdoinfoopcode;
+static int hf_ecat_mailbox_coe_sdoinfofrag;
+static int hf_ecat_mailbox_coe_sdoinfolisttype;
+static int hf_ecat_mailbox_coe_sdoinfolist;
+static int hf_ecat_mailbox_coe_sdoinfoindex;
+static int hf_ecat_mailbox_coe_sdoinfosubindex;
+static int hf_ecat_mailbox_coe_sdoinfovalueinfo;
+static int hf_ecat_mailbox_coe_sdoinfoerrorcode;
+static int hf_ecat_mailbox_coe_sdoinfodatatype;
+static int hf_ecat_mailbox_coe_sdoinfomaxsub;
+static int hf_ecat_mailbox_coe_sdoinfoobjcode;
+static int hf_ecat_mailbox_coe_sdoinfoname;
+static int hf_ecat_mailbox_coe_sdoinfobitlen;
+static int hf_ecat_mailbox_coe_sdoinfoobjaccess;
+static int hf_ecat_mailbox_coe_sdoinfounittype;
+static int hf_ecat_mailbox_coe_sdoinfodefaultvalue;
+static int hf_ecat_mailbox_coe_sdoinfominvalue;
+static int hf_ecat_mailbox_coe_sdoinfomaxvalue;
+static int hf_ecat_mailboxdata;
+static int hf_ecat_mailbox_foe;
+static int hf_ecat_mailbox_foe_opmode;
+static int hf_ecat_mailbox_foe_filelength;
+static int hf_ecat_mailbox_foe_filename;
+static int hf_ecat_mailbox_foe_packetno;
+static int hf_ecat_mailbox_foe_errcode;
+static int hf_ecat_mailbox_foe_errtext;
+static int hf_ecat_mailbox_foe_busydone;
+static int hf_ecat_mailbox_foe_busyentire;
+static int hf_ecat_mailbox_foe_data;
+static int hf_ecat_mailbox_foe_efw;
+static int hf_ecat_mailbox_foe_efw_cmd;
+static int hf_ecat_mailbox_foe_efw_size;
+static int hf_ecat_mailbox_foe_efw_addresslw;
+static int hf_ecat_mailbox_foe_efw_addresshw;
+static int hf_ecat_mailbox_foe_efw_data;
+static int hf_ecat_mailbox_soe;
+static int hf_ecat_mailbox_soe_header;
 
-static int hf_ecat_mailbox_soe_header_opcode = -1;
-static int hf_ecat_mailbox_soe_header_incomplete = -1;
-static int hf_ecat_mailbox_soe_header_error = -1;
-static int hf_ecat_mailbox_soe_header_driveno = -1;
-static int hf_ecat_mailbox_soe_header_datastate = -1;
-static int hf_ecat_mailbox_soe_header_name = -1;
-static int hf_ecat_mailbox_soe_header_attribute = -1;
-static int hf_ecat_mailbox_soe_header_unit = -1;
-static int hf_ecat_mailbox_soe_header_min = -1;
-static int hf_ecat_mailbox_soe_header_max = -1;
-static int hf_ecat_mailbox_soe_header_value = -1;
-static int hf_ecat_mailbox_soe_header_reserved = -1;
-static int hf_ecat_mailbox_soe_idn = -1;
-static int hf_ecat_mailbox_soe_data = -1;
-static int hf_ecat_mailbox_soe_frag = -1;
-static int hf_ecat_mailbox_soe_error = -1;
+static int hf_ecat_mailbox_soe_header_opcode;
+static int hf_ecat_mailbox_soe_header_incomplete;
+static int hf_ecat_mailbox_soe_header_error;
+static int hf_ecat_mailbox_soe_header_driveno;
+static int hf_ecat_mailbox_soe_header_datastate;
+static int hf_ecat_mailbox_soe_header_name;
+static int hf_ecat_mailbox_soe_header_attribute;
+static int hf_ecat_mailbox_soe_header_unit;
+static int hf_ecat_mailbox_soe_header_min;
+static int hf_ecat_mailbox_soe_header_max;
+static int hf_ecat_mailbox_soe_header_value;
+static int hf_ecat_mailbox_soe_header_reserved;
+static int hf_ecat_mailbox_soe_idn;
+static int hf_ecat_mailbox_soe_data;
+static int hf_ecat_mailbox_soe_frag;
+static int hf_ecat_mailbox_soe_error;
 
-static expert_field ei_ecat_mailbox_error       = EI_INIT;
-static expert_field ei_ecat_mailbox_coe_error   = EI_INIT;
-static expert_field ei_ecat_mailbox_eoe_error   = EI_INIT;
-static expert_field ei_ecat_mailbox_soe_error   = EI_INIT;
-static expert_field ei_ecat_mailbox_foe_error   = EI_INIT;
+static expert_field ei_ecat_mailbox_error;
+static expert_field ei_ecat_mailbox_coe_error;
+static expert_field ei_ecat_mailbox_eoe_error;
+static expert_field ei_ecat_mailbox_soe_error;
+static expert_field ei_ecat_mailbox_foe_error;
 
 
 static const value_string EcMBoxType[] =
@@ -287,54 +287,54 @@ static const true_false_string tfs_complete =
    "Complete", "Legacy"
 };
 
-void init_mbx_header(PETHERCAT_MBOX_HEADER pMbox, tvbuff_t *tvb, gint offset)
+void init_mbx_header(PETHERCAT_MBOX_HEADER pMbox, tvbuff_t *tvb, int offset)
 {
    pMbox->Length = tvb_get_letohs(tvb, offset); offset+=2;
    pMbox->Address = tvb_get_letohs(tvb, offset); offset+=2;
    pMbox->aControlUnion.Control = tvb_get_letohs(tvb, offset);
 }
 
-static void init_eoe_header(PETHERCAT_EOE_HEADER pEoE, tvbuff_t *tvb, gint offset)
+static void init_eoe_header(PETHERCAT_EOE_HEADER pEoE, tvbuff_t *tvb, int offset)
 {
    pEoE->anEoeHeaderInfoUnion.Info = tvb_get_letohs(tvb, offset); offset+=2;
    pEoE->anEoeHeaderDataUnion.Result = tvb_get_letohs(tvb, offset);
 }
 
-static void init_foe_header(PETHERCAT_FOE_HEADER pFoE, tvbuff_t *tvb, gint offset)
+static void init_foe_header(PETHERCAT_FOE_HEADER pFoE, tvbuff_t *tvb, int offset)
 {
-   pFoE->OpMode = tvb_get_guint8(tvb, offset++);
-   pFoE->Reserved1 = tvb_get_guint8(tvb, offset++);
+   pFoE->OpMode = tvb_get_uint8(tvb, offset++);
+   pFoE->Reserved1 = tvb_get_uint8(tvb, offset++);
    pFoE->aFoeHeaderDataUnion.FileLength = tvb_get_letohl(tvb, offset);
 }
 
-static void init_soe_header(PETHERCAT_SOE_HEADER pSoE, tvbuff_t *tvb, gint offset)
+static void init_soe_header(PETHERCAT_SOE_HEADER pSoE, tvbuff_t *tvb, int offset)
 {
-   pSoE->anSoeHeaderControlUnion.v2.Control = tvb_get_guint8(tvb, offset++);
-   pSoE->anSoeHeaderControlUnion.v2.Element = tvb_get_guint8(tvb, offset++);
+   pSoE->anSoeHeaderControlUnion.v2.Control = tvb_get_uint8(tvb, offset++);
+   pSoE->anSoeHeaderControlUnion.v2.Element = tvb_get_uint8(tvb, offset++);
    pSoE->anSoeHeaderDataUnion.FragmentsLeft = tvb_get_letohs(tvb, offset);
 }
 
-static void init_coe_header(PETHERCAT_COE_HEADER pCoE, tvbuff_t *tvb, gint offset)
+static void init_coe_header(PETHERCAT_COE_HEADER pCoE, tvbuff_t *tvb, int offset)
 {
    pCoE->header = tvb_get_letohs(tvb, offset);
 }
 
-static void init_sdo_header(PETHERCAT_SDO_HEADER pSdo, tvbuff_t *tvb, gint offset)
+static void init_sdo_header(PETHERCAT_SDO_HEADER pSdo, tvbuff_t *tvb, int offset)
 {
-   pSdo->anSdoHeaderUnion.CS = tvb_get_guint8(tvb, offset++);
+   pSdo->anSdoHeaderUnion.CS = tvb_get_uint8(tvb, offset++);
    pSdo->Index = tvb_get_letohs(tvb, offset);offset+=2;
-   pSdo->SubIndex = tvb_get_guint8(tvb, offset++);
+   pSdo->SubIndex = tvb_get_uint8(tvb, offset++);
    pSdo->Data = tvb_get_letohl(tvb, offset);
 }
 
-static void init_sdo_info_header(PETHERCAT_SDO_INFO_HEADER pInfo, tvbuff_t *tvb, gint offset)
+static void init_sdo_info_header(PETHERCAT_SDO_INFO_HEADER pInfo, tvbuff_t *tvb, int offset)
 {
-   pInfo->anSdoControlUnion.Control = tvb_get_guint8(tvb, offset++);
-   pInfo->Reserved = tvb_get_guint8(tvb, offset);
+   pInfo->anSdoControlUnion.Control = tvb_get_uint8(tvb, offset++);
+   pInfo->Reserved = tvb_get_uint8(tvb, offset);
    pInfo->FragmentsLeft = 2;
 }
 
-static void CANopenSdoReqFormatter(PETHERCAT_SDO_HEADER pSdo, char *szText, gint nMax)
+static void CANopenSdoReqFormatter(PETHERCAT_SDO_HEADER pSdo, char *szText, int nMax)
 {
    switch ( pSdo->anSdoHeaderUnion.Idq.Ccs )
    {
@@ -358,7 +358,7 @@ static void CANopenSdoReqFormatter(PETHERCAT_SDO_HEADER pSdo, char *szText, gint
    }
 }
 
-static void FoeFormatter(tvbuff_t *tvb, wmem_allocator_t *scope, gint offset, char *szText, gint nMax, guint foe_length)
+static void FoeFormatter(tvbuff_t *tvb, wmem_allocator_t *scope, int offset, char *szText, int nMax, unsigned foe_length)
 {
    ETHERCAT_FOE_HEADER foe;
    char *tmp = NULL;
@@ -395,7 +395,7 @@ static void FoeFormatter(tvbuff_t *tvb, wmem_allocator_t *scope, gint offset, ch
       break;
    case ECAT_FOE_OPMODE_BUSY:
       if ( foe.aFoeHeaderDataUnion.v2.Entire > 0 )
-         snprintf ( szText, nMax, "FoE BUSY (%d%%)", ((guint32)foe.aFoeHeaderDataUnion.v2.Done*100)/foe.aFoeHeaderDataUnion.v2.Entire);
+         snprintf ( szText, nMax, "FoE BUSY (%d%%)", ((uint32_t)foe.aFoeHeaderDataUnion.v2.Done*100)/foe.aFoeHeaderDataUnion.v2.Entire);
       else
          snprintf ( szText, nMax, "FoE BUSY (%d/%d)", foe.aFoeHeaderDataUnion.v2.Done, foe.aFoeHeaderDataUnion.v2.Entire);
       break;
@@ -404,7 +404,7 @@ static void FoeFormatter(tvbuff_t *tvb, wmem_allocator_t *scope, gint offset, ch
    }
 }
 
-static void SoEIdToString( char* txt, guint16 id, int nMax)
+static void SoEIdToString( char* txt, uint16_t id, int nMax)
 {
    if ( id & 0x8000 )
       snprintf(txt, nMax, "P-%d-%04d", (id>>12) & 0x0007, id & 0x0FFF );
@@ -412,7 +412,7 @@ static void SoEIdToString( char* txt, guint16 id, int nMax)
       snprintf(txt, nMax, "S-%d-%04d", id>>12, id & 0x0FFF );
 }
 
-static void SoeFormatter(tvbuff_t *tvb, gint offset, char *szText, gint nMax, guint soe_length)
+static void SoeFormatter(tvbuff_t *tvb, int offset, char *szText, int nMax, unsigned soe_length)
 {
    ETHERCAT_SOE_HEADER soe;
    char tmp[50];
@@ -448,16 +448,16 @@ static void SoeFormatter(tvbuff_t *tvb, gint offset, char *szText, gint nMax, gu
             snprintf ( szText, nMax, "SoE: RRQ (%s, '%s')", tmp, elm);
             break;
          case ECAT_SOE_OPCODE_RRS:
-            snprintf ( szText, nMax, "SoE: RRS (%s, '%s') : %u Bytes", tmp, elm, (guint)(soe_length-ETHERCAT_SOE_HEADER_LEN));
+            snprintf ( szText, nMax, "SoE: RRS (%s, '%s') : %u Bytes", tmp, elm, (unsigned)(soe_length-ETHERCAT_SOE_HEADER_LEN));
             break;
          case ECAT_SOE_OPCODE_WRS:
             snprintf ( szText, nMax, "SoE: WRS (%s, '%s')", tmp, elm);
             break;
          case ECAT_SOE_OPCODE_WRQ:
-            snprintf ( szText, nMax, "SoE: WRQ (%s, '%s') : %u Bytes", tmp, elm, (guint)(soe_length-ETHERCAT_SOE_HEADER_LEN));
+            snprintf ( szText, nMax, "SoE: WRQ (%s, '%s') : %u Bytes", tmp, elm, (unsigned)(soe_length-ETHERCAT_SOE_HEADER_LEN));
             break;
          case ECAT_SOE_OPCODE_NFC:
-            snprintf ( szText, nMax, "SoE: NFC (%s, '%s') : %u Bytes", tmp, elm, (guint)(soe_length-ETHERCAT_SOE_HEADER_LEN));
+            snprintf ( szText, nMax, "SoE: NFC (%s, '%s') : %u Bytes", tmp, elm, (unsigned)(soe_length-ETHERCAT_SOE_HEADER_LEN));
             break;
          case 6:
             snprintf ( szText, nMax, "SoE: EMGCY");
@@ -474,7 +474,7 @@ static void SoeFormatter(tvbuff_t *tvb, gint offset, char *szText, gint nMax, gu
 }
 
 /* ethercat mailbox */
-static void dissect_ecat_coe(tvbuff_t *tvb, gint offset, packet_info *pinfo, proto_tree *tree)
+static void dissect_ecat_coe(tvbuff_t *tvb, int offset, packet_info *pinfo, proto_tree *tree)
 {
    proto_tree *ecat_coe_tree = NULL, *ecat_sdo_tree, *ecat_coe_sdoccs_tree, *ecat_coe_sdoscs_tree;
 
@@ -482,8 +482,8 @@ static void dissect_ecat_coe(tvbuff_t *tvb, gint offset, packet_info *pinfo, pro
    char szText[200];
    int nMax = sizeof(szText)-1;
 
-   guint coe_length = tvb_reported_length(tvb)-offset;
-   guint16 len;
+   unsigned coe_length = tvb_reported_length(tvb)-offset;
+   uint16_t len;
 
    if( tree )
    {
@@ -745,7 +745,7 @@ static void dissect_ecat_coe(tvbuff_t *tvb, gint offset, packet_info *pinfo, pro
                   break;
                case ECAT_COE_INFO_OPCODE_ENTRY_S:
                   {
-                     guint16 objlen;
+                     uint16_t objlen;
 
                      proto_tree_add_item(ecat_coe_tree, hf_ecat_mailbox_coe_sdoinfoindex, tvb, offset, 2, ENC_LITTLE_ENDIAN);
                      offset+=2;
@@ -806,7 +806,7 @@ static void dissect_ecat_coe(tvbuff_t *tvb, gint offset, packet_info *pinfo, pro
    }
 }
 
-static void dissect_ecat_soe(tvbuff_t *tvb, gint offset, packet_info *pinfo, proto_tree *tree)
+static void dissect_ecat_soe(tvbuff_t *tvb, int offset, packet_info *pinfo, proto_tree *tree)
 {
    proto_tree *ecat_soeflag_tree, *ecat_soe_tree;
 
@@ -814,7 +814,7 @@ static void dissect_ecat_soe(tvbuff_t *tvb, gint offset, packet_info *pinfo, pro
    char szText[200];
    int nMax = sizeof(szText)-1;
 
-   guint soe_length = tvb_reported_length(tvb)-offset;
+   unsigned soe_length = tvb_reported_length(tvb)-offset;
 
    if( tree )
    {
@@ -896,7 +896,7 @@ static void dissect_ecat_soe(tvbuff_t *tvb, gint offset, packet_info *pinfo, pro
    }
 }
 
-static void dissect_ecat_eoe(tvbuff_t *tvb, gint offset, packet_info *pinfo, proto_tree *tree)
+static void dissect_ecat_eoe(tvbuff_t *tvb, int offset, packet_info *pinfo, proto_tree *tree)
 {
    proto_tree *ecat_eoe_tree = 0, *ecat_fraghead_tree, *ecat_eoe_init_tree, *ecat_eoe_macfilter_tree,
       *ecat_eoe_macfilter_filter_tree;
@@ -904,7 +904,7 @@ static void dissect_ecat_eoe(tvbuff_t *tvb, gint offset, packet_info *pinfo, pro
    proto_item *anItem = NULL, *aparent = NULL;
    int nCnt;
 
-   guint eoe_length = tvb_reported_length(tvb)-offset;
+   unsigned eoe_length = tvb_reported_length(tvb)-offset;
 
    if( tree )
    {
@@ -1078,7 +1078,7 @@ static void dissect_ecat_eoe(tvbuff_t *tvb, gint offset, packet_info *pinfo, pro
    }
 }
 
-static void dissect_ecat_foe(tvbuff_t *tvb, gint offset, packet_info *pinfo, proto_tree *tree)
+static void dissect_ecat_foe(tvbuff_t *tvb, int offset, packet_info *pinfo, proto_tree *tree)
 {
    proto_tree *ecat_foe_tree,*ecat_foe_efw_tree;
 
@@ -1086,7 +1086,7 @@ static void dissect_ecat_foe(tvbuff_t *tvb, gint offset, packet_info *pinfo, pro
    char szText[200];
    int nMax = sizeof(szText)-1;
 
-   guint foe_length = tvb_reported_length(tvb)-offset;
+   unsigned foe_length = tvb_reported_length(tvb)-offset;
 
    if( tree )
    {
@@ -1183,9 +1183,9 @@ static int dissect_ecat_mailbox(tvbuff_t *tvb, packet_info *pinfo, proto_tree *t
    proto_tree *ecat_mailbox_header_tree = NULL;
    tvbuff_t *next_tvb;
    proto_item *anItem;
-   gint offset = 0;
+   int offset = 0;
 
-   gint mailbox_length = tvb_reported_length(tvb);
+   int mailbox_length = tvb_reported_length(tvb);
 
    if( mailbox_length >= ETHERCAT_MBOX_HEADER_LEN )
    {
@@ -1929,7 +1929,7 @@ void proto_register_ecat_mailbox(void)
       }
    };
 
-   static gint *ett[] =
+   static int *ett[] =
    {
       &ett_ecat_mailbox,
       &ett_ecat_mailbox_eoe,

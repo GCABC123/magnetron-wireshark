@@ -24,6 +24,7 @@
 
 class PacketListHeader;
 class OverlayScrollBar;
+class ProfileSwitcher;
 
 class QAction;
 class QTimerEvent;
@@ -45,20 +46,23 @@ public:
     enum SummaryCopyType {
         CopyAsText,
         CopyAsCSV,
-        CopyAsYAML
+        CopyAsYAML,
+        CopyAsHTML
     };
     Q_ENUM(SummaryCopyType)
 
+    virtual void scrollTo(const QModelIndex &index, QAbstractItemView::ScrollHint hint = EnsureVisible) override;
     QMenu *conversationMenu() { return &conv_menu_; }
     QMenu *colorizeMenu() { return &colorize_menu_; }
     void setProtoTree(ProtoTree *proto_tree);
 
     /** Disable and clear the packet list.
      *
+     * @param keep_current_frame If true, keep the selected frame.
      * Disable packet list widget updates, clear the detail and byte views,
      * and disconnect the model.
      */
-    void freeze();
+    bool freeze(bool keep_current_frame = false);
     /** Enable and restore the packet list.
      *
      * Enable packet list widget updates and reconnect the model.
@@ -66,32 +70,46 @@ public:
      * @param restore_selection If true, redissect the previously selected
      * packet. This includes filling in the detail and byte views.
      */
-    void thaw(bool restore_selection = false);
+    bool thaw(bool restore_selection = false);
     void clear();
     void writeRecent(FILE *rf);
     bool contextMenuActive();
     QString getFilterFromRowAndColumn(QModelIndex idx);
     void resetColorized();
-    QString getPacketComment(guint c_number);
+    QString getPacketComment(unsigned c_number);
     void addPacketComment(QString new_comment);
-    void setPacketComment(guint c_number, QString new_comment);
+    void setPacketComment(unsigned c_number, QString new_comment);
     QString allPacketComments();
     void deleteCommentsFromPackets();
     void deleteAllPacketComments();
     void setVerticalAutoScroll(bool enabled = true);
-    void setCaptureInProgress(bool in_progress = false) { capture_in_progress_ = in_progress; tail_at_end_ = in_progress; }
+    void setCaptureInProgress(bool in_progress = false, bool auto_scroll = true) { capture_in_progress_ = in_progress; tail_at_end_ = in_progress && auto_scroll; }
     void captureFileReadFinished();
     void resetColumns();
     bool haveNextHistory(bool update_cur = false);
     bool havePreviousHistory(bool update_cur = false);
+    void setProfileSwitcher(ProfileSwitcher *profile_switcher);
 
     frame_data * getFDataForRow(int row) const;
 
+    bool uniqueSelectActive();
     bool multiSelectActive();
     QList<int> selectedRows(bool useFrameNum = false);
 
     QString createSummaryText(QModelIndex idx, SummaryCopyType type);
     QString createHeaderSummaryText(SummaryCopyType type);
+
+    QStringList createHeaderPartsForAligned();
+    QList<int> createAlignmentPartsForAligned();
+    QList<int> createSizePartsForAligned(bool useHeader, QStringList hdr_parts, QList<int> rows);
+    QString createHeaderSummaryForAligned(QStringList hdr_parts, QList<int> align_parts, QList<int> size_parts);
+    QString createSummaryForAligned(QModelIndex idx, QList<int> align_parts, QList<int> size_parts);
+
+    QString createDefaultStyleForHtml();
+    QString createOpeningTagForHtml();
+    QString createHeaderSummaryForHtml();
+    QString createSummaryForHtml(QModelIndex idx);
+    QString createClosingTagForHtml();
 
     void resizeAllColumns(bool onlyTimeFormatted = false);
 
@@ -119,7 +137,6 @@ private:
     capture_file *cap_file_;
     QMenu conv_menu_;
     QMenu colorize_menu_;
-    QMenu proto_prefs_menus_;
     int ctx_column_;
     QByteArray column_state_;
     OverlayScrollBar *overlay_sb_;
@@ -127,6 +144,7 @@ private:
     bool create_near_overlay_;
     bool create_far_overlay_;
     QVector<QRgb> overlay_colors_;
+    bool changing_profile_;
 
     QModelIndex mouse_pressed_at_;
 
@@ -134,25 +152,25 @@ private:
     QAction *show_hide_separator_;
     QList<QAction *>show_hide_actions_;
     bool capture_in_progress_;
-    int tail_timer_id_;
     bool tail_at_end_;
-    bool rows_inserted_;
     bool columns_changed_;
     bool set_column_visibility_;
-    QModelIndexList frozen_rows_;
+    bool set_style_sheet_;
+    QModelIndex frozen_current_row_;
+    QModelIndexList frozen_selected_rows_;
     QVector<int> selection_history_;
     int cur_history_;
     bool in_history_;
     GPtrArray *finfo_array; // Packet data from the last selected packet entry
+    ProfileSwitcher *profile_switcher_;
 
-    void setFrameReftime(gboolean set, frame_data *fdata);
+    void setFrameReftime(bool set, frame_data *fdata);
     void setColumnVisibility();
     int sizeHintForColumn(int column) const override;
     void setRecentColumnWidth(int column);
     void drawCurrentPacket();
     void applyRecentColumnWidths();
     void scrollViewChanged(bool at_end);
-    void colorsChanged();
     QString joinSummaryRow(QStringList col_parts, int row, SummaryCopyType type);
 
 signals:
@@ -169,9 +187,10 @@ signals:
 public slots:
     void setCaptureFile(capture_file *cf);
     void setMonospaceFont(const QFont &mono_font);
+    void setRegularFont(const QFont &regular_font);
     void goNextPacket();
     void goPreviousPacket();
-    void goFirstPacket(bool user_selected = true);
+    void goFirstPacket();
     void goLastPacket();
     void goToPacket(int packet, int hf_id = -1);
     void goNextHistoryPacket();
@@ -186,9 +205,11 @@ public slots:
     void recolorPackets();
     void redrawVisiblePackets();
     void redrawVisiblePacketsDontSelectCurrent();
+    void colorsChanged();
     void columnsChanged();
     void fieldsChanged(capture_file *cf);
     void preferencesChanged();
+    void freezePacketList(bool changing_profile);
 
 private slots:
     void columnVisibilityTriggered();

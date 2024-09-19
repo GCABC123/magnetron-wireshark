@@ -8,6 +8,8 @@
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
+#include <stdbool.h>
+
 #include "config.h"
 
 #include <wsutil/feature_list.h>
@@ -34,10 +36,10 @@ without_feature(feature_list l, const char *fmt, ...)
     *l = g_list_prepend(*l, g_string_free(msg, FALSE));
 }
 
-static gint
-feature_sort_alpha(gconstpointer a, gconstpointer b)
+static int
+feature_sort_alpha(const void *a, const void *b)
 {
-    return g_ascii_strcasecmp((gchar *)a + 1, (gchar *)b + 1);
+    return g_ascii_strcasecmp((char *)a + 1, (char *)b + 1);
 }
 
 void

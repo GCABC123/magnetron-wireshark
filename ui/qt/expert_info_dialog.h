@@ -12,8 +12,6 @@
 
 #include <config.h>
 
-#include <glib.h>
-
 #include "filter_action.h"
 #include "wireshark_dialog.h"
 #include <ui/qt/models/expert_info_model.h>
@@ -68,7 +66,7 @@ private slots:
     void collapseTree();
     void expandTree();
 
-    void on_limitCheckBox_toggled(bool);
+    void limitCheckBoxToggled(bool);
     void on_groupBySummaryCheckBox_toggled(bool);
     void on_searchLineEdit_textChanged(const QString &search_re);
     void on_buttonBox_helpRequested();

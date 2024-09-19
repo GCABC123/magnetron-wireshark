@@ -12,7 +12,7 @@ FindWSWinLibs("libpcap-*" "PCAP_HINTS")
 #
 # First, try pkg-config on platforms other than Windows.
 #
-if(NOT WIN32)
+if(NOT USE_REPOSITORY)
   find_package(PkgConfig)
   pkg_search_module(PC_PCAP libpcap)
 endif()
@@ -105,6 +105,8 @@ find_path(PCAP_INCLUDE_DIR
   NAMES
     pcap/pcap.h
     pcap.h
+  PATH_SUFFIXES
+    wpcap
   HINTS
     ${PC_PCAP_INCLUDE_DIRS}
     ${PCAP_CONFIG_INCLUDE_DIRS}
@@ -115,12 +117,13 @@ find_path(PCAP_INCLUDE_DIR
 # capture\capture-wpcap.c. We don't want to link with pcap.lib since
 # that would bring in the non-capturing (null) pcap.dll from the vcpkg
 # library.
-if(WIN32)
+if(WIN32 AND NOT CMAKE_CROSSCOMPILING)
   set(_pkg_required_vars PCAP_INCLUDE_DIR)
 else()
   find_library(PCAP_LIBRARY
     NAMES
       pcap
+      wpcap
     HINTS
       ${PC_PCAP_LIBRARY_DIRS}
       ${PCAP_CONFIG_LIBRARY_DIRS}
@@ -185,7 +188,7 @@ if(PCAP_FOUND)
 
   include(CheckSymbolExists)
 
-  if(WIN32)
+  if(WIN32 AND NOT CMAKE_CROSSCOMPILING)
     #
     # Prepopulate some values. WinPcap 3.1 and later, and Npcap, have these
     # in their SDK, and compilation checks on Windows can be slow.  We check
@@ -215,7 +218,54 @@ if(PCAP_FOUND)
     check_function_exists( "pcap_freecode" HAVE_PCAP_FREECODE )
     check_function_exists( "pcap_create" HAVE_PCAP_CREATE )
     check_function_exists( "pcap_free_datalinks" HAVE_PCAP_FREE_DATALINKS )
-    check_function_exists( "pcap_open" HAVE_PCAP_OPEN )
+    #
+    # macOS Sonoma's libpcap includes stub versions of the remote-
+    # capture APIs.  They are exported as "weakly linked symbols".
+    #
+    # Xcode 15 offers only a macOS Sonoma SDK, which has a .tbd
+    # file for libpcap that claims it includes those APIs.  (Newer
+    # versions of macOS don't provide the system shared libraries,
+    # they only provide the dyld shared cache containing those
+    # libraries, so the OS provides SDKs that include a .tbd file
+    # to use when linking.)
+    #
+    # This means that check_function_exists() will think that
+    # the remote-capture APIs are present, including pcap_open().
+    #
+    # However, they are *not* present in macOS Ventura and earlier,
+    # which means that building on Ventura with Xcode 15 produces
+    # executables that fail to start because one of those APIs
+    # isn't found in the system libpcap.
+    #
+    # Protecting calls to those APIs with __builtin_available()
+    # does not prevent this, because the libpcap header files
+    # in the Sonoma SDK mark them as being first available
+    # in macOS 10.13, just like all the other routines introduced
+    # in libpcap 1.9, even though they're only available if libpcap
+    # is built with remote capture enabled or stub routines are
+    # provided.  (A fix to enable this has been checked into the
+    # libpcap repository, and may end up in a later version of
+    # the SDK.)
+    #
+    # Given all that, and given that the versions of the
+    # remote-capture APIs in Sonoma are stubs that always fail,
+    # there doesn't seem to be any point in checking for pcap_open()
+    # if we're linking against the Apple libpcap.
+    #
+    # However, if we're *not* linking against the Apple libpcap,
+    # we should check for it, so that we can use it if it's present.
+    #
+    # So we check for pcap_open if 1) this isn't macOS or 2) the
+    # the libpcap we found is not a system library, meaning that
+    # its path begins neither with /usr/lib (meaning it's a system
+    # dylib) nor /Application/Xcode.app (meaning it's a file in
+    # the Xcode SDK).
+    #
+    if( NOT APPLE OR NOT
+       (PCAP_LIBRARY MATCHES "/usr/lib/.*" OR
+        PCAP_LIBRARY MATCHES "/Application/Xcode.app/.*"))
+      check_function_exists( "pcap_open" HAVE_PCAP_OPEN )
+    endif()
     if( HAVE_PCAP_OPEN )
       #
       # XXX - this *should* be checked for independently of checking
@@ -238,7 +288,7 @@ if(PCAP_FOUND)
       #
       check_function_exists( "pcap_setsampling" HAVE_PCAP_SETSAMPLING )
     endif( HAVE_PCAP_OPEN )
-  endif(WIN32)
+  endif()
 
   if( HAVE_PCAP_CREATE )
     #
@@ -256,6 +306,9 @@ if(PCAP_FOUND)
   if( HAVE_PCAP_OPEN )
     set( HAVE_PCAP_REMOTE 1 )
   endif()
+
+  check_symbol_exists(PCAP_ERROR_PROMISC_PERM_DENIED ${PCAP_INCLUDE_DIR}/pcap.h HAVE_PCAP_ERROR_PROMISC_PERM_DENIED)
+  check_symbol_exists(PCAP_WARNING_TSTAMP_TYPE_NOTSUP ${PCAP_INCLUDE_DIR}/pcap.h HAVE_PCAP_WARNING_TSTAMP_TYPE_NOTSUP)
 
   cmake_pop_check_state()
 endif()

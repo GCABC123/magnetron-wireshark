@@ -12,14 +12,11 @@ import os
 import re
 import subprocess
 import sys
-import tempfile
 import types
+import pytest
+import shutil
 
-import fixtures
-import subprocesstest
-
-
-@fixtures.fixture(scope='session')
+@pytest.fixture(scope='session')
 def capture_interface(request, cmd_dumpcap):
     '''
     Name of capture interface. Tests will be skipped if dumpcap is not
@@ -27,20 +24,20 @@ def capture_interface(request, cmd_dumpcap):
     '''
     disabled = request.config.getoption('--disable-capture', default=False)
     if disabled:
-        fixtures.skip('Capture tests are disabled via --disable-capture')
+        pytest.skip('Capture tests are disabled via --disable-capture')
     proc = subprocess.Popen((cmd_dumpcap, '-D'), stdout=subprocess.PIPE,
                             stderr=subprocess.PIPE, universal_newlines=True)
     outs, errs = proc.communicate()
     if proc.returncode != 0:
         print('"dumpcap -D" exited with %d. stderr:\n%s' %
               (proc.returncode, errs))
-        fixtures.skip('Test requires capture privileges and an interface.')
+        pytest.skip('Test requires capture privileges and an interface.')
     # Matches: "lo (Loopback)" (Linux), "lo0 (Loopback)" (macOS) or
     # "\Device\NPF_{...} (Npcap Loopback Adapter)" (Windows)
     print('"dumpcap -D" output:\n%s' % (outs,))
-    m = re.search(r'^(\d+)\. .*\(.*Loopback.*\)', outs, re.MULTILINE)
+    m = re.search(r'^(\d+)\. .*\(.*Loopback.*\)', outs, re.MULTILINE|re.IGNORECASE)
     if not m:
-        fixtures.skip('Test requires a capture interface.')
+        pytest.skip('Test requires a capture interface.')
     iface = m.group(1)
     # Interface found, check for capture privileges (needed for Linux).
     try:
@@ -52,10 +49,10 @@ def capture_interface(request, cmd_dumpcap):
         print('"dumpcap -L -i %s" exited with %d. Output:\n%s' % (iface,
                                                                   e.returncode,
                                                                   e.output))
-        fixtures.skip('Test requires capture privileges.')
+        pytest.skip('Test requires capture privileges.')
 
 
-@fixtures.fixture(scope='session')
+@pytest.fixture(scope='session')
 def program_path(request):
     '''
     Path to the Wireshark binaries as set by the --program-path option, the
@@ -63,7 +60,8 @@ def program_path(request):
     '''
     curdir_run = os.path.join(os.curdir, 'run')
     if sys.platform == 'win32':
-        curdir_run_config = os.path.join(curdir_run, 'RelWithDebInfo')
+        build_type = request.config.getoption('--build-type')
+        curdir_run_config = os.path.join(curdir_run, build_type)
         if os.path.exists(curdir_run_config):
             curdir_run = curdir_run_config
     paths = (
@@ -77,7 +75,7 @@ def program_path(request):
     raise AssertionError('Missing directory with Wireshark binaries')
 
 
-@fixtures.fixture(scope='session')
+@pytest.fixture(scope='session')
 def program(program_path, request):
     skip_if_missing = request.config.getoption('--skip-missing-programs',
                                                default='')
@@ -90,75 +88,75 @@ def program(program_path, request):
         path = os.path.abspath(os.path.join(program_path, name + dotexe))
         if not os.access(path, os.X_OK):
             if skip_if_missing == ['all'] or name in skip_if_missing:
-                fixtures.skip('Program %s is not available' % (name,))
+                pytest.skip('Program %s is not available' % (name,))
             raise AssertionError('Program %s is not available' % (name,))
         return path
     return resolver
 
 
-@fixtures.fixture(scope='session')
+@pytest.fixture(scope='session')
 def cmd_capinfos(program):
     return program('capinfos')
 
 
-@fixtures.fixture(scope='session')
+@pytest.fixture(scope='session')
 def cmd_dumpcap(program):
     return program('dumpcap')
 
 
-@fixtures.fixture(scope='session')
+@pytest.fixture(scope='session')
 def cmd_mergecap(program):
     return program('mergecap')
 
 
-@fixtures.fixture(scope='session')
+@pytest.fixture(scope='session')
 def cmd_rawshark(program):
     return program('rawshark')
 
 
-@fixtures.fixture(scope='session')
+@pytest.fixture(scope='session')
 def cmd_tshark(program):
     return program('tshark')
 
 
-@fixtures.fixture(scope='session')
+@pytest.fixture(scope='session')
 def cmd_text2pcap(program):
     return program('text2pcap')
 
 
-@fixtures.fixture(scope='session')
+@pytest.fixture(scope='session')
 def cmd_editcap(program):
     return program('editcap')
 
 
-@fixtures.fixture(scope='session')
+@pytest.fixture(scope='session')
 def cmd_wireshark(program):
     return program('wireshark')
 
 
-@fixtures.fixture(scope='session')
+@pytest.fixture(scope='session')
 def wireshark_command(cmd_wireshark):
     # Windows can always display the GUI and macOS can if we're in a login session.
     # On Linux, headless mode is used, see QT_QPA_PLATFORM in the 'test_env' fixture.
     if sys.platform == 'darwin' and 'SECURITYSESSIONID' not in os.environ:
-        fixtures.skip('Wireshark GUI tests require loginwindow session')
+        pytest.skip('Wireshark GUI tests require loginwindow session')
     if sys.platform not in ('win32', 'darwin', 'linux'):
         if 'DISPLAY' not in os.environ:
-            fixtures.skip('Wireshark GUI tests require DISPLAY')
+            pytest.skip('Wireshark GUI tests require DISPLAY')
     return (cmd_wireshark, '-ogui.update.enabled:FALSE')
 
 
-@fixtures.fixture(scope='session')
+@pytest.fixture(scope='session')
 def cmd_extcap(program):
     def extcap_name(name):
         if sys.platform == 'darwin':
             return program(os.path.join('Wireshark.app/Contents/MacOS/extcap', name))
         else:
-            return program(os.path.join('extcap', name))
+            return program(os.path.join('extcap/wireshark', name))
     return extcap_name
 
 
-@fixtures.fixture(scope='session')
+@pytest.fixture(scope='session')
 def features(cmd_tshark, make_env):
     '''Returns an object describing available features in tshark.'''
     try:
@@ -179,15 +177,17 @@ def features(cmd_tshark, make_env):
         have_lua='with Lua' in tshark_v,
         have_lua_unicode='(with UfW patches)' in tshark_v,
         have_nghttp2='with nghttp2' in tshark_v,
+        have_nghttp3='with nghttp3' in tshark_v,
         have_kerberos='with Kerberos' in tshark_v,
         have_gnutls='with GnuTLS' in tshark_v,
         have_pkcs11='and PKCS #11 support' in tshark_v,
         have_brotli='with brotli' in tshark_v,
+        have_zstd='with Zstandard' in tshark_v,
         have_plugins='binary plugins supported' in tshark_v,
     )
 
 
-@fixtures.fixture(scope='session')
+@pytest.fixture(scope='session')
 def dirs():
     '''Returns fixed directories containing test input.'''
     this_dir = os.path.dirname(__file__)
@@ -199,25 +199,30 @@ def dirs():
         lua_dir=os.path.join(this_dir, 'lua'),
         protobuf_lang_files_dir=os.path.join(this_dir, 'protobuf_lang_files'),
         tools_dir=os.path.join(this_dir, '..', 'tools'),
+        dfilter_dir=os.path.join(this_dir, 'suite_dfilter'),
     )
 
 
-@fixtures.fixture(scope='session')
+@pytest.fixture(scope='session')
 def capture_file(dirs):
     '''Returns the path to a capture file.'''
     def resolver(filename):
         return os.path.join(dirs.capture_dir, filename)
     return resolver
 
+@pytest.fixture
+def result_file(tmp_path):
+    '''Returns the path to a temporary file.'''
+    def result_file_real(filename):
+        return str(tmp_path / filename)
+    return result_file_real
 
-@fixtures.fixture
-def home_path():
-    '''Per-test home directory, removed when finished.'''
-    with tempfile.TemporaryDirectory(prefix='wireshark-tests-home-') as dirname:
-        yield dirname
+@pytest.fixture
+def home_path(tmp_path):
+    '''Per-test home directory.'''
+    return str(tmp_path / 'test-home')
 
-
-@fixtures.fixture
+@pytest.fixture
 def conf_path(home_path):
     '''Path to the Wireshark configuration directory.'''
     if sys.platform.startswith('win32'):
@@ -228,7 +233,7 @@ def conf_path(home_path):
     return conf_path
 
 
-@fixtures.fixture(scope='session')
+@pytest.fixture(scope='session')
 def make_env():
     """A factory for a modified environment to ensure reproducible tests."""
     def make_env_real(home=None):
@@ -250,20 +255,16 @@ def make_env():
     return make_env_real
 
 
-@fixtures.fixture
+@pytest.fixture
 def base_env(home_path, make_env, request):
     """A modified environment to ensure reproducible tests. Tests can modify
     this environment as they see fit."""
     env = make_env(home=home_path)
 
-    # Remove this if test instances no longer inherit from SubprocessTestCase?
-    if isinstance(request.instance, subprocesstest.SubprocessTestCase):
-        # Inject the test environment as default if it was not overridden.
-        request.instance.injected_test_env = env
     return env
 
 
-@fixtures.fixture
+@pytest.fixture
 def test_env(base_env, conf_path, request, dirs):
     '''A process environment with a populated configuration directory.'''
     # Populate our UAT files
@@ -301,14 +302,10 @@ def test_env(base_env, conf_path, request, dirs):
         # Windows it unfortunately crashes (Qt 5.12.0).
         env['QT_QPA_PLATFORM'] = 'minimal'
 
-    # Remove this if test instances no longer inherit from SubprocessTestCase?
-    if isinstance(request.instance, subprocesstest.SubprocessTestCase):
-        # Inject the test environment as default if it was not overridden.
-        request.instance.injected_test_env = env
     return env
 
 
-@fixtures.fixture
+@pytest.fixture
 def test_env_80211_user_tk(base_env, conf_path, request, dirs):
     '''A process environment with a populated configuration directory.'''
     # Populate our UAT files
@@ -340,13 +337,19 @@ def test_env_80211_user_tk(base_env, conf_path, request, dirs):
         # Windows it unfortunately crashes (Qt 5.12.0).
         env['QT_QPA_PLATFORM'] = 'minimal'
 
-    # Remove this if test instances no longer inherit from SubprocessTestCase?
-    if isinstance(request.instance, subprocesstest.SubprocessTestCase):
-        # Inject the test environment as default if it was not overridden.
-        request.instance.injected_test_env = env
     return env
 
-@fixtures.fixture
+@pytest.fixture
+def dfilter_env(base_env, conf_path, request, dirs):
+    '''A process environment with a populated configuration directory.'''
+    src_macro_path = os.path.join(dirs.dfilter_dir, 'test_dmacros')
+    dst_macro_path = os.path.join(conf_path, 'dmacros')
+    shutil.copy(src_macro_path, dst_macro_path)
+
+    env = base_env
+    return env
+
+@pytest.fixture
 def unicode_env(home_path, make_env):
     '''A Wireshark configuration directory with Unicode in its path.'''
     home_env = 'APPDATA' if sys.platform.startswith('win32') else 'HOME'
@@ -364,7 +367,7 @@ def unicode_env(home_path, make_env):
     )
 
 
-@fixtures.fixture(scope='session')
+@pytest.fixture(scope='session')
 def make_screenshot():
     '''Creates a screenshot and save it to a file. Intended for CI purposes.'''
     def make_screenshot_real(filename):
@@ -381,15 +384,15 @@ def make_screenshot():
     return make_screenshot_real
 
 
-@fixtures.fixture
-def make_screenshot_on_error(request, make_screenshot):
+@pytest.fixture
+def make_screenshot_on_error(request, make_screenshot, result_file):
     '''Writes a screenshot when a process times out.'''
     @contextmanager
     def make_screenshot_on_error_real():
         try:
             yield
         except subprocess.TimeoutExpired:
-            filename = request.instance.filename_from_id('screenshot.png')
+            filename = result_file('screenshot.png')
             make_screenshot(filename)
             raise
     return make_screenshot_on_error_real

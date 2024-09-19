@@ -8,7 +8,6 @@
 #define PROGRAM_NAME "@LOG_PROGRAM_NAME@"
 #define TOP_SRC_DIR "@TOP_SRC_DIR@"
 #define WIRESHARK_TARGET_PLATFORM @WIRESHARK_TARGET_PLATFORM@
-#define TARGET_MACHINE @TARGET_MACHINE@
 #define EXTRA_INSTALLER_DIR "@EXTRA_INSTALLER_DIR@"
 #define VERSION @LOG_PROJECT_VERSION@
 #define PRODUCT_VERSION @LOG_PRODUCT_VERSION@
@@ -23,9 +22,11 @@
 
 #cmakedefine MMDBRESOLVE_EXE @MMDBRESOLVE_EXE@
 
-# Skip the User's Guide until we have one of our own.
-#cmakeundefine DOCBOOK_DIR
+# Skip the User's Guide and FAQ until we have one of our own.
+#cmakeundefine DOC_DIR
 
 #cmakedefine SMI_DIR "@SMI_DIR@"
 
 #cmakedefine QT_DIR "@QT_DIR@"
+
+#cmakedefine ENABLE_SIGNED_NSIS

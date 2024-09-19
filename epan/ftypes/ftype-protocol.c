@@ -9,10 +9,9 @@
 #include "config.h"
 
 #include <ftypes-int.h>
-#include <epan/strutil.h>
 #include <epan/to_str.h>
 #include <string.h>
-#include <wsutil/glib-compat.h>
+#include <wsutil/array.h>
 
 #include <epan/exceptions.h>
 #include <wsutil/ws_assert.h>
@@ -22,7 +21,7 @@ value_new(fvalue_t *fv)
 {
 	fv->value.protocol.tvb = NULL;
 	fv->value.protocol.proto_string = NULL;
-	fv->value.protocol.tvb_is_private = FALSE;
+	fv->value.protocol.tvb_is_private = false;
 	fv->value.protocol.length = -1;
 }
 
@@ -31,7 +30,7 @@ value_copy(fvalue_t *dst, const fvalue_t *src)
 {
 	dst->value.protocol.tvb = tvb_clone(src->value.protocol.tvb);
 	dst->value.protocol.proto_string = g_strdup(src->value.protocol.proto_string);
-	dst->value.protocol.tvb_is_private = TRUE;
+	dst->value.protocol.tvb_is_private = true;
 	dst->value.protocol.length = src->value.protocol.length;
 }
 
@@ -45,7 +44,7 @@ value_free(fvalue_t *fv)
 }
 
 static void
-value_set(fvalue_t *fv, tvbuff_t *value, const gchar *name, int length)
+value_set(fvalue_t *fv, tvbuff_t *value, const char *name, int length)
 {
 	if (value != NULL) {
 		/* Free up the old value, if we have one */
@@ -58,11 +57,11 @@ value_set(fvalue_t *fv, tvbuff_t *value, const gchar *name, int length)
 	fv->value.protocol.length = length;
 }
 
-static gboolean
-val_from_string(fvalue_t *fv, const char *s, size_t len, gchar **err_msg _U_)
+static bool
+val_from_string(fvalue_t *fv, const char *s, size_t len, char **err_msg _U_)
 {
 	tvbuff_t *new_tvb;
-	guint8 *private_data;
+	uint8_t *private_data;
 
 	/* Free up the old value, if we have one */
 	value_free(fv);
@@ -72,26 +71,26 @@ val_from_string(fvalue_t *fv, const char *s, size_t len, gchar **err_msg _U_)
 
 	/* Make a tvbuff from the string. We can drop the
 	 * terminating NUL. */
-	private_data = (guint8 *)g_memdup2(s, (guint)len);
+	private_data = (uint8_t *)g_memdup2(s, (unsigned)len);
 	new_tvb = tvb_new_real_data(private_data,
-			(guint)len, (gint)len);
+			(unsigned)len, (int)len);
 
 	/* Let the tvbuff know how to delete the data. */
 	tvb_set_free_cb(new_tvb, g_free);
 
 	/* And let us know that we need to free the tvbuff */
-	fv->value.protocol.tvb_is_private = TRUE;
+	fv->value.protocol.tvb_is_private = true;
 	/* This "field" is a value, it has no protocol description, but
 	 * we might compare it to a protocol with NULL tvb.
 	 * (e.g., proto_expert) */
 	fv->value.protocol.tvb = new_tvb;
 	fv->value.protocol.proto_string = g_strdup("");
 	fv->value.protocol.length = -1;
-	return TRUE;
+	return true;
 }
 
-static gboolean
-val_from_literal(fvalue_t *fv, const char *s, gboolean allow_partial_value _U_, gchar **err_msg)
+static bool
+val_from_literal(fvalue_t *fv, const char *s, bool allow_partial_value _U_, char **err_msg)
 {
 	GByteArray *bytes;
 	tvbuff_t *new_tvb;
@@ -112,25 +111,25 @@ val_from_literal(fvalue_t *fv, const char *s, gboolean allow_partial_value _U_, 
 		tvb_set_free_cb(new_tvb, g_free);
 
 		/* Free GByteArray, but keep data. */
-		g_byte_array_free(bytes, FALSE);
+		g_byte_array_free(bytes, false);
 
 		/* And let us know that we need to free the tvbuff */
-		fv->value.protocol.tvb_is_private = TRUE;
+		fv->value.protocol.tvb_is_private = true;
 		fv->value.protocol.tvb = new_tvb;
 
 		/* This "field" is a value, it has no protocol description, but
 		 * we might compare it to a protocol with NULL tvb.
 		 * (e.g., proto_expert) */
 		fv->value.protocol.proto_string = g_strdup("");
-		return TRUE;
+		return true;
 	}
 
 	/* Not a byte array, forget about it. */
-	return FALSE;
+	return false;
 }
 
-static gboolean
-val_from_charconst(fvalue_t *fv, unsigned long num, gchar **err_msg)
+static bool
+val_from_charconst(fvalue_t *fv, unsigned long num, char **err_msg)
 {
 	GByteArray *bytes;
 	tvbuff_t *new_tvb;
@@ -151,27 +150,27 @@ val_from_charconst(fvalue_t *fv, unsigned long num, gchar **err_msg)
 		tvb_set_free_cb(new_tvb, g_free);
 
 		/* Free GByteArray, but keep data. */
-		g_byte_array_free(bytes, FALSE);
+		g_byte_array_free(bytes, false);
 
 		/* And let us know that we need to free the tvbuff */
-		fv->value.protocol.tvb_is_private = TRUE;
+		fv->value.protocol.tvb_is_private = true;
 		fv->value.protocol.tvb = new_tvb;
 
 		/* This "field" is a value, it has no protocol description, but
 		 * we might compare it to a protocol with NULL tvb.
 		 * (e.g., proto_expert) */
 		fv->value.protocol.proto_string = g_strdup("");
-		return TRUE;
+		return true;
 	}
 
 	/* Not a byte array, forget about it. */
-	return FALSE;
+	return false;
 }
 
 static char *
 val_to_repr(wmem_allocator_t *scope, const fvalue_t *fv, ftrepr_t rtype, int field_display _U_)
 {
-	guint length;
+	unsigned length;
 	char *volatile buf = NULL;
 
 	if (rtype != FTREPR_DFILTER)
@@ -205,10 +204,10 @@ value_get(fvalue_t *fv)
 	return tvb_new_subset_length_caplen(fv->value.protocol.tvb, 0, fv->value.protocol.length, fv->value.protocol.length);
 }
 
-static guint
+static unsigned
 len(fvalue_t *fv)
 {
-	volatile guint length = 0;
+	volatile unsigned length = 0;
 
 	TRY {
 		if (fv->value.protocol.tvb) {
@@ -228,13 +227,13 @@ len(fvalue_t *fv)
 }
 
 static void
-slice(fvalue_t *fv, GByteArray *bytes, guint offset, guint length)
+slice(fvalue_t *fv, GByteArray *bytes, unsigned offset, unsigned length)
 {
-	const guint8* data;
-	volatile guint len = length;
+	const uint8_t* data;
+	volatile unsigned len = length;
 
 	if (fv->value.protocol.tvb) {
-		if (fv->value.protocol.length >= 0 && (guint)fv->value.protocol.length < len) {
+		if (fv->value.protocol.length >= 0 && (unsigned)fv->value.protocol.length < len) {
 			len = fv->value.protocol.length;
 		}
 
@@ -253,8 +252,8 @@ slice(fvalue_t *fv, GByteArray *bytes, guint offset, guint length)
 static int
 _tvbcmp(const protocol_value_t *a, const protocol_value_t *b)
 {
-	guint	a_len;
-	guint	b_len;
+	unsigned	a_len;
+	unsigned	b_len;
 
 	if (a->length < 0)
 		a_len = tvb_captured_length(a->tvb);
@@ -295,21 +294,21 @@ cmp_order(const fvalue_t *fv_a, const fvalue_t *fv_b, int *cmp)
 }
 
 static enum ft_result
-cmp_contains(const fvalue_t *fv_a, const fvalue_t *fv_b, gboolean *contains)
+cmp_contains(const fvalue_t *fv_a, const fvalue_t *fv_b, bool *contains)
 {
-	volatile gboolean yes = FALSE;
+	volatile bool yes = false;
 
 	TRY {
 		/* First see if tvb exists for both sides */
 		if ((fv_a->value.protocol.tvb != NULL) && (fv_b->value.protocol.tvb != NULL)) {
 			if (tvb_find_tvb(fv_a->value.protocol.tvb, fv_b->value.protocol.tvb, 0) > -1) {
-				yes = TRUE;
+				yes = true;
 			}
 		} else {
 			/* Otherwise just compare strings */
 			if ((strlen(fv_b->value.protocol.proto_string) != 0) &&
 				strstr(fv_a->value.protocol.proto_string, fv_b->value.protocol.proto_string)) {
-				yes = TRUE;
+				yes = true;
 			}
 		}
 	}
@@ -323,12 +322,12 @@ cmp_contains(const fvalue_t *fv_a, const fvalue_t *fv_b, gboolean *contains)
 }
 
 static enum ft_result
-cmp_matches(const fvalue_t *fv, const ws_regex_t *regex, gboolean *matches)
+cmp_matches(const fvalue_t *fv, const ws_regex_t *regex, bool *matches)
 {
 	const protocol_value_t *a = (const protocol_value_t *)&fv->value.protocol;
-	volatile gboolean rc = FALSE;
+	volatile bool rc = false;
 	const char *data = NULL; /* tvb data */
-	guint32 tvb_len; /* tvb length */
+	uint32_t tvb_len; /* tvb length */
 
 	if (! regex) {
 		return FT_BADARG;
@@ -343,7 +342,7 @@ cmp_matches(const fvalue_t *fv, const ws_regex_t *regex, gboolean *matches)
 		}
 	}
 	CATCH_ALL {
-		rc = FALSE;
+		rc = false;
 	}
 	ENDTRY;
 
@@ -351,7 +350,14 @@ cmp_matches(const fvalue_t *fv, const ws_regex_t *regex, gboolean *matches)
 	return FT_OK;
 }
 
-static gboolean
+static unsigned
+val_hash(const fvalue_t *fv)
+{
+	const protocol_value_t *value = &fv->value.protocol;
+	return g_direct_hash(value->tvb) ^ g_int_hash(&value->length) ^ g_str_hash(value->proto_string);
+}
+
+static bool
 is_zero(const fvalue_t *fv)
 {
 	const protocol_value_t *a = &fv->value.protocol;
@@ -362,10 +368,8 @@ void
 ftype_register_tvbuff(void)
 {
 
-	static ftype_t protocol_type = {
+	static const ftype_t protocol_type = {
 		FT_PROTOCOL,			/* ftype */
-		"FT_PROTOCOL",			/* name */
-		"Protocol",			/* pretty_name */
 		0,				/* wire_size */
 		value_new,			/* new_value */
 		value_copy,			/* copy_value */
@@ -373,10 +377,14 @@ ftype_register_tvbuff(void)
 		val_from_literal,		/* val_from_literal */
 		val_from_string,		/* val_from_string */
 		val_from_charconst,		/* val_from_charconst */
+		NULL,				/* val_from_uinteger64 */
+		NULL,				/* val_from_sinteger64 */
+		NULL,				/* val_from_double */
 		val_to_repr,			/* val_to_string_repr */
 
 		NULL,				/* val_to_uinteger64 */
 		NULL,				/* val_to_sinteger64 */
+		NULL,				/* val_to_double */
 
 		{ .set_value_protocol = value_set },	/* union set_value */
 		{ .get_value_protocol = value_get },	/* union get_value */
@@ -385,10 +393,11 @@ ftype_register_tvbuff(void)
 		cmp_contains,
 		cmp_matches,
 
+		val_hash,
 		is_zero,
 		NULL,
 		len,
-		slice,
+		(FvalueSlice)slice,
 		NULL,
 		NULL,				/* unary_minus */
 		NULL,				/* add */

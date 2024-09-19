@@ -15,21 +15,19 @@
 #include "randpkt_core.h"
 
 #include <time.h>
-#include <errno.h>
 #include <stdlib.h>
 #include <string.h>
+#include <wsutil/array.h>
 #include <wsutil/file_util.h>
 #include <wsutil/wslog.h>
 #include <wiretap/wtap_opttypes.h>
 
 #include "ui/failure_message.h"
 
-#define array_length(x)	(sizeof x / sizeof x[0])
-
 #define INVALID_LEN 1
 #define WRITE_ERROR 2
 
-GRand *pkt_rand = NULL;
+GRand *pkt_rand;
 
 /* Types of produceable packets */
 enum {
@@ -60,7 +58,7 @@ enum {
 };
 
 /* Ethernet, indicating ARP */
-guint8 pkt_arp[] = {
+uint8_t pkt_arp[] = {
 	0xff, 0xff, 0xff, 0xff,
 	0xff, 0xff, 0x00, 0x00,
 	0x32, 0x25, 0x0f, 0xff,
@@ -68,7 +66,7 @@ guint8 pkt_arp[] = {
 };
 
 /* Ethernet+IP+UDP, indicating DNS */
-guint8 pkt_dns[] = {
+uint8_t pkt_dns[] = {
 	0xff, 0xff, 0xff, 0xff,
 	0xff, 0xff, 0x01, 0x01,
 	0x01, 0x01, 0x01, 0x01,
@@ -86,7 +84,7 @@ guint8 pkt_dns[] = {
 };
 
 /* Ethernet+IP, indicating ICMP */
-guint8 pkt_icmp[] = {
+uint8_t pkt_icmp[] = {
 	0xff, 0xff, 0xff, 0xff,
 	0xff, 0xff, 0x01, 0x01,
 	0x01, 0x01, 0x01, 0x01,
@@ -100,7 +98,7 @@ guint8 pkt_icmp[] = {
 };
 
 /* Ethernet, indicating IP */
-guint8 pkt_ip[] = {
+uint8_t pkt_ip[] = {
 	0xff, 0xff, 0xff, 0xff,
 	0xff, 0xff, 0x01, 0x01,
 	0x01, 0x01, 0x01, 0x01,
@@ -108,7 +106,7 @@ guint8 pkt_ip[] = {
 };
 
 /* Ethernet, indicating IPv6 */
-guint8 pkt_ipv6[] = {
+uint8_t pkt_ipv6[] = {
 	0xff, 0xff, 0xff, 0xff,
 	0xff, 0xff, 0x01, 0x01,
 	0x01, 0x01, 0x01, 0x01,
@@ -116,7 +114,7 @@ guint8 pkt_ipv6[] = {
 };
 
 /* TR, indicating LLC */
-guint8 pkt_llc[] = {
+uint8_t pkt_llc[] = {
 	0x10, 0x40, 0x68, 0x00,
 	0x19, 0x69, 0x95, 0x8b,
 	0x00, 0x01, 0xfa, 0x68,
@@ -124,7 +122,7 @@ guint8 pkt_llc[] = {
 };
 
 /* Ethernet, indicating WiMAX M2M */
-guint8 pkt_m2m[] = {
+uint8_t pkt_m2m[] = {
 	0xff, 0xff, 0xff, 0xff,
 	0xff, 0xff, 0x00, 0x00,
 	0x32, 0x25, 0x0f, 0xff,
@@ -132,7 +130,7 @@ guint8 pkt_m2m[] = {
 };
 
 /* Ethernet+IP+UDP, indicating NBNS */
-guint8 pkt_nbns[] = {
+uint8_t pkt_nbns[] = {
 	0xff, 0xff, 0xff, 0xff,
 	0xff, 0xff, 0x01, 0x01,
 	0x01, 0x01, 0x01, 0x01,
@@ -150,7 +148,7 @@ guint8 pkt_nbns[] = {
 };
 
 /* Ethernet+IP+UDP, indicating syslog */
-guint8 pkt_syslog[] = {
+uint8_t pkt_syslog[] = {
 	0xff, 0xff, 0xff, 0xff,
 	0xff, 0xff, 0x01, 0x01,
 	0x01, 0x01, 0x01, 0x01,
@@ -168,7 +166,7 @@ guint8 pkt_syslog[] = {
 };
 
 /* TR+LLC+IP, indicating TCP */
-guint8 pkt_tcp[] = {
+uint8_t pkt_tcp[] = {
 	0x10, 0x40, 0x68, 0x00,
 	0x19, 0x69, 0x95, 0x8b,
 	0x00, 0x01, 0xfa, 0x68,
@@ -185,7 +183,7 @@ guint8 pkt_tcp[] = {
 };
 
 /* Ethernet+IP, indicating UDP */
-guint8 pkt_udp[] = {
+uint8_t pkt_udp[] = {
 	0xff, 0xff, 0xff, 0xff,
 	0xff, 0xff, 0x01, 0x01,
 	0x01, 0x01, 0x01, 0x01,
@@ -199,7 +197,7 @@ guint8 pkt_udp[] = {
 };
 
 /* Ethernet+IP+UDP, indicating BVLC */
-guint8 pkt_bvlc[] = {
+uint8_t pkt_bvlc[] = {
 	0xff, 0xff, 0xff, 0xff,
 	0xff, 0xff, 0x01, 0x01,
 	0x01, 0x01, 0x01, 0x01,
@@ -216,7 +214,7 @@ guint8 pkt_bvlc[] = {
 };
 
 /* TR+LLC+IPX, indicating NCP, with NCP Type == 0x2222 */
-guint8 pkt_ncp2222[] = {
+uint8_t pkt_ncp2222[] = {
 	0x10, 0x40, 0x00, 0x00,
 	0xf6, 0x7c, 0x9b, 0x70,
 	0x68, 0x00, 0x19, 0x69,
@@ -233,7 +231,7 @@ guint8 pkt_ncp2222[] = {
 };
 
 /* Ethernet+IP+TCP, indicating GIOP */
-guint8 pkt_giop[] = {
+uint8_t pkt_giop[] = {
 	0xff, 0xff, 0xff, 0xff,
 	0xff, 0xff, 0x01, 0x01,
 	0x01, 0x01, 0x01, 0x01,
@@ -263,7 +261,7 @@ guint8 pkt_giop[] = {
 };
 
 /* Ethernet+IP+TCP, indicating BGP */
-guint8 pkt_bgp[] = {
+uint8_t pkt_bgp[] = {
 	0xff, 0xff, 0xff, 0xff,
 	0xff, 0xff, 0x01, 0x01,
 	0x01, 0x01, 0x01, 0x01,
@@ -291,7 +289,7 @@ guint8 pkt_bgp[] = {
 };
 
 /* Ethernet+IP+TCP, indicating TDS NetLib */
-guint8 pkt_tds[] = {
+uint8_t pkt_tds[] = {
 	0x00, 0x50, 0x8b, 0x0d,
 	0x7a, 0xed, 0x00, 0x08,
 	0xa3, 0x98, 0x39, 0x81,
@@ -311,7 +309,7 @@ guint8 pkt_tds[] = {
 };
 
 /* Ethernet+IP, indicating SCTP */
-guint8 pkt_sctp[] = {
+uint8_t pkt_sctp[] = {
 	0x00, 0xa0, 0x80, 0x00,
 	0x5e, 0x46, 0x08, 0x00,
 	0x03, 0x4a, 0x00, 0x35,
@@ -326,7 +324,7 @@ guint8 pkt_sctp[] = {
 
 
 /* Ethernet+IP+SCTP, indicating MEGACO */
-guint8 pkt_megaco[] = {
+uint8_t pkt_megaco[] = {
 	0x00, 0xa0, 0x80, 0x00,
 	0x5e, 0x46, 0x08, 0x00,
 	0x03, 0x4a, 0x00, 0x35,
@@ -535,7 +533,7 @@ static randpkt_example examples[] = {
 
 };
 
-guint randpkt_example_count(void)
+unsigned randpkt_example_count(void)
 {
 	return array_length(examples);
 }
@@ -557,19 +555,19 @@ randpkt_example* randpkt_find_example(int type)
 	return NULL;
 }
 
-void randpkt_loop(randpkt_example* example, guint64 produce_count, guint64 packet_delay_ms)
+void randpkt_loop(randpkt_example* example, uint64_t produce_count, uint64_t packet_delay_ms)
 {
-	guint i, j;
+	unsigned i, j;
 	int err;
-	guint len_random;
-	guint len_this_pkt;
-	gchar* err_info;
+	unsigned len_random;
+	unsigned len_this_pkt;
+	char* err_info;
 	union wtap_pseudo_header* ps_header;
-	guint8* buffer;
+	uint8_t* buffer;
 	wtap_rec* rec;
 
 	rec = g_new0(wtap_rec, 1);
-	buffer = (guint8*)g_malloc0(65536);
+	buffer = (uint8_t*)g_malloc0(65536);
 
 	rec->rec_type = REC_TYPE_PACKET;
 	rec->presence_flags = WTAP_HAS_TS;
@@ -608,7 +606,7 @@ void randpkt_loop(randpkt_example* example, guint64 produce_count, guint64 packe
 		rec->ts.secs = i; /* just for variety */
 
 		for (j = example->pseudo_length; j < (int) sizeof(*ps_header); j++) {
-			((guint8*)ps_header)[j] = g_rand_int_range(pkt_rand, 0, 0x100);
+			((uint8_t*)ps_header)[j] = g_rand_int_range(pkt_rand, 0, 0x100);
 		}
 
 		for (j = example->sample_length; j < len_this_pkt; j++) {
@@ -627,7 +625,7 @@ void randpkt_loop(randpkt_example* example, guint64 produce_count, guint64 packe
 			    wtap_dump_file_type_subtype(example->dump));
 		}
 		if (packet_delay_ms) {
-			g_usleep(1000 * (gulong)packet_delay_ms);
+			g_usleep(1000 * (unsigned long)packet_delay_ms);
 			if (!wtap_dump_flush(example->dump, &err)) {
 				cfile_write_failure_message(NULL,
 				    example->filename, err, NULL, 0,
@@ -640,15 +638,15 @@ void randpkt_loop(randpkt_example* example, guint64 produce_count, guint64 packe
 	g_free(buffer);
 }
 
-gboolean randpkt_example_close(randpkt_example* example)
+bool randpkt_example_close(randpkt_example* example)
 {
 	int err;
-	gchar *err_info;
-	gboolean ok = TRUE;
+	char *err_info;
+	bool ok = true;
 
 	if (!wtap_dump_close(example->dump, NULL, &err, &err_info)) {
 		cfile_close_failure_message(example->filename, err, err_info);
-		ok = FALSE;
+		ok = false;
 	}
 
 	if (pkt_rand != NULL) {
@@ -659,11 +657,10 @@ gboolean randpkt_example_close(randpkt_example* example)
 	return ok;
 }
 
-int randpkt_example_init(randpkt_example* example, char* produce_filename, int produce_max_bytes)
+int randpkt_example_init(randpkt_example* example, char* produce_filename, int produce_max_bytes, int file_type_subtype)
 {
 	int err;
-	gchar *err_info;
-	int file_type_subtype;
+	char *err_info;
 
 	if (pkt_rand == NULL) {
 		pkt_rand = g_rand_new();
@@ -673,7 +670,6 @@ int randpkt_example_init(randpkt_example* example, char* produce_filename, int p
 		.encap = example->sample_wtap_encap,
 		.snaplen = produce_max_bytes,
 	};
-	file_type_subtype = wtap_pcap_file_type_subtype();
 	if (strcmp(produce_filename, "-") == 0) {
 		/* Write to the standard output. */
 		example->dump = wtap_dump_open_stdout(file_type_subtype,

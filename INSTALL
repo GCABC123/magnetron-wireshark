@@ -1,13 +1,14 @@
 See also https://gitlab.com/wireshark/wireshark/-/wikis/Development
 and the Developer's Guide located at https://www.wireshark.org/docs/
-and in the docbook/ subdirectory.
+and in the doc/ subdirectory.
 
 Installation
 ============
 
 These are installation instructions for Unix and Unix-like systems.
 These are not the installation instructions for Windows systems; see
-README.windows for those instructions.
+the Wireshark User's Guide and Wireshark Developer's Guide at
+https://www.wireshark.org/docs/ for those.
 
 0. This is software.  Beware.
 
@@ -189,6 +190,7 @@ README.windows for those instructions.
 10/b. If you 're running a system that supports APT (Debian/Ubuntu/etc.)
    run
 
+        ln -sn packaging/debian
         dpkg-buildpackage -us -uc -rfakeroot
 
    in the source directory right after extracting of checking out

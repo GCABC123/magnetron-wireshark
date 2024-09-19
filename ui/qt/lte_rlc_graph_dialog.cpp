@@ -31,6 +31,8 @@
 #include "ui/qt/widgets/wireshark_file_dialog.h"
 
 #include <epan/dissectors/packet-rlc-lte.h>
+#include <epan/dissectors/packet-rlc-3gpp-common.h>
+
 
 #include <ui/tap-rlc-graph.h>
 
@@ -62,7 +64,7 @@ LteRlcGraphDialog::LteRlcGraphDialog(QWidget &parent, CaptureFile &cf, bool chan
     rp->xAxis->setLabel(tr("Time"));
     rp->yAxis->setLabel(tr("Sequence Number"));
 
-    // TODO: couldn't work out how to tell rp->xAxis not to label fractions of a SN...
+    // TODO: couldn't work out how to tell rp->yAxis not to label fractions of a SN...
 
     ui->dragRadioButton->setChecked(mouse_drags_);
 
@@ -95,6 +97,9 @@ LteRlcGraphDialog::LteRlcGraphDialog(QWidget &parent, CaptureFile &cf, bool chan
     ctx_menu_->addAction(ui->actionSwitchDirection);
     set_action_shortcuts_visible_in_context_menu(ctx_menu_->actions());
 
+    rp->setContextMenuPolicy(Qt::CustomContextMenu);
+    connect(rp, &QCustomPlot::customContextMenuRequested, this, &LteRlcGraphDialog::showContextMenu);
+
     // Zero out this struct.
     memset(&graph_, 0, sizeof(graph_));
 
@@ -111,15 +116,16 @@ LteRlcGraphDialog::~LteRlcGraphDialog()
 }
 
 // Set the channel information that this graph should show.
-void LteRlcGraphDialog::setChannelInfo(guint16 ueid, guint8 rlcMode,
-                                       guint16 channelType, guint16 channelId, guint8 direction,
+void LteRlcGraphDialog::setChannelInfo(uint8_t rat, uint16_t ueid, uint8_t rlcMode,
+                                       uint16_t channelType, uint16_t channelId, uint8_t direction,
                                        bool maybe_empty)
 {
+    graph_.rat = rat;
     graph_.ueid = ueid;
     graph_.rlcMode = rlcMode;
     graph_.channelType = channelType;
     graph_.channelId = channelId;
-    graph_.channelSet = TRUE;
+    graph_.channelSet = true;
     graph_.direction = direction;
 
     completeGraph(maybe_empty);
@@ -135,7 +141,8 @@ void LteRlcGraphDialog::completeGraph(bool may_be_empty)
 
     // Set window title here.
     if (graph_.channelSet) {
-        QString dlg_title = tr("LTE RLC Graph (UE=%1 chan=%2%3 %4 - %5)")
+        QString dlg_title = tr("%1 RLC Graph (UE=%2 chan=%3%4 %5 - %6)")
+                                 .arg((graph_.rat == RLC_RAT_LTE) ? "LTE" : "NR")
                                  .arg(graph_.ueid)
                                  .arg((graph_.channelType == CHANNEL_TYPE_SRB) ? "SRB" : "DRB")
                                  .arg(graph_.channelId)
@@ -144,7 +151,7 @@ void LteRlcGraphDialog::completeGraph(bool may_be_empty)
         setWindowTitle(dlg_title);
     }
     else {
-        setWindowTitle(tr("LTE RLC Graph - no channel selected"));
+        setWindowTitle(tr("3GPP RLC Graph - no channel selected"));
     }
 
     // Set colours/styles for each of the traces on the graph.
@@ -177,7 +184,6 @@ void LteRlcGraphDialog::completeGraph(bool may_be_empty)
         connect(rp, SIGNAL(mouseMove(QMouseEvent*)), this, SLOT(mouseMoved(QMouseEvent*)));
         connect(rp, SIGNAL(mouseRelease(QMouseEvent*)), this, SLOT(mouseReleased(QMouseEvent*)));
     }
-    disconnect(ui->buttonBox, SIGNAL(accepted()), this, SLOT(accept()));
     this->setResult(QDialog::Accepted);
 
     // Extract the data that the graph can use.
@@ -187,7 +193,8 @@ void LteRlcGraphDialog::completeGraph(bool may_be_empty)
 // See if the given segment matches the channel this graph is plotting.
 bool LteRlcGraphDialog::compareHeaders(rlc_segment *seg)
 {
-    return compare_rlc_headers(graph_.ueid, graph_.channelType,
+    return compare_rlc_headers(graph_.rat, seg->rat,
+                               graph_.ueid, graph_.channelType,
                                graph_.channelId, graph_.rlcMode, graph_.direction,
                                seg->ueid, seg->channelType,
                                seg->channelId, seg->rlcMode, seg->direction,
@@ -231,12 +238,12 @@ void LteRlcGraphDialog::fillGraph()
         return;
     }
 
-    tracer_->setGraph(NULL);
-
     base_graph_->setLineStyle(QCPGraph::lsNone);       // dot
     reseg_graph_->setLineStyle(QCPGraph::lsNone);      // dot
     acks_graph_->setLineStyle(QCPGraph::lsStepLeft);   // to get step effect...
     nacks_graph_->setLineStyle(QCPGraph::lsNone);      // dot, but bigger.
+
+    tracer_->setGraph(NULL);
 
     // Will show all graphs with data we find.
     for (int i = 0; i < sp->graphCount(); i++) {
@@ -253,14 +260,13 @@ void LteRlcGraphDialog::fillGraph()
     // NACKs are shown bigger than others.
     nacks_graph_->setScatterStyle(QCPScatterStyle(QCPScatterStyle::ssDisc, pkt_point_size_*2));
 
-    // Map timestamps -> segments in first pass.
+    // Map timestamps -> segments (time_stamp_map_) in first pass.
     time_stamp_map_.clear();
     for (struct rlc_segment *seg = graph_.segments; seg != NULL; seg = seg->next) {
         if (!compareHeaders(seg)) {
             continue;
         }
         double ts = seg->rel_secs + seg->rel_usecs / 1000000.0;
-
         time_stamp_map_.insert(ts, seg);
     }
 
@@ -269,12 +275,23 @@ void LteRlcGraphDialog::fillGraph()
                     reseg_seq_time, reseg_seq,
                     acks_time, acks,
                     nacks_time, nacks;
+
+    uint32_t last_ackSN = uint32_t(-1);  // start with invalid value
+    uint32_t maxSN = 0;
+
+    // Note the max possible SN
+    if (graph_.segments) {
+        maxSN = (1 << graph_.segments->sequenceNumberLength);
+    }
+
+    // Run through the segments to get data
     for (struct rlc_segment *seg = graph_.segments; seg != NULL; seg = seg->next) {
         double ts = seg->rel_secs + (seg->rel_usecs / 1000000.0);
         if (compareHeaders(seg)) {
             if (!seg->isControlPDU) {
-                // Data
+                // Data PDUs
                 if (seg->isResegmented) {
+                    // LTE only
                     reseg_seq_time.append(ts);
                     reseg_seq.append(seg->SN);
                 }
@@ -284,22 +301,31 @@ void LteRlcGraphDialog::fillGraph()
                 }
             }
             else {
-                // Status (ACKs/NACKs)
-                acks_time.append(ts);
-                acks.append(seg->ACKNo-1);
-                for (int n=0; n < seg->noOfNACKs; n++) {
-                    nacks_time.append(ts);
-                    nacks.append(seg->NACKs[n]);
+                // Status PDUs
+
+                // Filter out ACKS that are likely caused by MAC retx, so track last ACK
+                if (seg->ACKNo != last_ackSN) {
+                    // Status (ACKs/NACKs)
+                    acks_time.append(ts);
+                    acks.append((seg->ACKNo-1) % maxSN);
+                    last_ackSN = seg->ACKNo;
+
+                    // Any NACKs
+                    for (int n=0; n < seg->noOfNACKs; n++) {
+                        nacks_time.append(ts);
+                        nacks.append(seg->NACKs[n]);
+                    }
                 }
             }
         }
     }
 
     // Add the data from the graphs.
-    base_graph_->setData(seq_time, seq);
-    reseg_graph_->setData(reseg_seq_time, reseg_seq);
-    acks_graph_->setData(acks_time, acks);
-    nacks_graph_->setData(nacks_time, nacks);
+    // N.B. passing true to assume the timestamps are already sorted..
+    base_graph_->setData(seq_time, seq, true);
+    reseg_graph_->setData(reseg_seq_time, reseg_seq, true);
+    acks_graph_->setData(acks_time, acks, true);
+    nacks_graph_->setData(nacks_time, nacks, true);
 
     sp->setEnabled(true);
 
@@ -534,19 +560,16 @@ QRectF LteRlcGraphDialog::getZoomRanges(QRect zoom_rect)
     return zoom_ranges;
 }
 
+void LteRlcGraphDialog::showContextMenu(const QPoint &pos)
+{
+    ctx_menu_->popup(ui->rlcPlot->mapToGlobal(pos));
+}
+
 void LteRlcGraphDialog::graphClicked(QMouseEvent *event)
 {
     QCustomPlot *rp = ui->rlcPlot;
 
-    if (event->button() == Qt::RightButton) {
-        // XXX We should find some way to get rlcPlot to handle a
-        // contextMenuEvent instead.
-#if QT_VERSION >= QT_VERSION_CHECK(6, 0 ,0)
-        ctx_menu_->popup(event->globalPosition().toPoint());
-#else
-        ctx_menu_->popup(event->globalPos());
-#endif
-    } else  if (mouse_drags_) {
+    if (mouse_drags_) {
         if (rp->axisRect()->rect().contains(event->pos())) {
             rp->setCursor(QCursor(Qt::ClosedHandCursor));
         }
@@ -676,21 +699,21 @@ void LteRlcGraphDialog::resetAxes()
 {
     QCustomPlot *rp = ui->rlcPlot;
 
-    QCPRange x_range = rp->xAxis->scaleType() == QCPAxis::stLogarithmic ?
-                rp->xAxis->range().sanitizedForLogScale() : rp->xAxis->range();
-
     double pixel_pad = 10.0; // per side
 
     rp->rescaleAxes(true);
-    base_graph_->rescaleValueAxis(false, true);
+
+    QCPRange x_range = rp->xAxis->range();
 
     double axis_pixels = rp->xAxis->axisRect()->width();
     rp->xAxis->scaleRange((axis_pixels + (pixel_pad * 2)) / axis_pixels, x_range.center());
 
     axis_pixels = rp->yAxis->axisRect()->height();
-    rp->yAxis->scaleRange((axis_pixels + (pixel_pad * 2)) / axis_pixels, rp->yAxis->range().center());
+    rp->yAxis->scaleRange((axis_pixels + (pixel_pad * 2)) / axis_pixels,
+                          rp->yAxis->range().center());
 
-    rp->replot(QCustomPlot::rpQueuedReplot);
+    // N.B. TCP Stream Dialog uses default (rpRefreshHint) - was using QCustomPlot::rpQueuedReplot
+    rp->replot();
 }
 
 void LteRlcGraphDialog::on_actionGoToPacket_triggered()
@@ -801,7 +824,8 @@ void LteRlcGraphDialog::on_actionSwitchDirection_triggered()
 {
     // Channel settings exactly the same, except change direction.
     // N.B. do not fail and close if there are no packets in opposite direction.
-    setChannelInfo(graph_.ueid,
+    setChannelInfo(graph_.rat,
+                   graph_.ueid,
                    graph_.rlcMode,
                    graph_.channelType,
                    graph_.channelId,
@@ -850,7 +874,7 @@ void LteRlcGraphDialog::on_otherDirectionButton_clicked()
 void LteRlcGraphDialog::on_buttonBox_accepted()
 {
     QString file_name, extension;
-    QDir path(mainApp->lastOpenDir());
+    QDir path(mainApp->openDialogInitialDir());
     QString pdf_filter = tr("Portable Document Format (*.pdf)");
     QString png_filter = tr("Portable Network Graphics (*.png)");
     QString bmp_filter = tr("Windows Bitmap (*.bmp)");

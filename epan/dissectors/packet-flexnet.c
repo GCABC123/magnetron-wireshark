@@ -30,17 +30,19 @@
 void proto_register_flexnet(void);
 void proto_reg_handoff_flexnet(void);
 
+static dissector_handle_t flexnet_handle;
+
 #define FLEXNET_ADRLEN  15
 #define FLEXNET_CTLLEN  15
 #define FLEXNET_HDRLEN  (FLEXNET_ADRLEN + FLEXNET_ADRLEN + FLEXNET_CTLLEN)
 
-static int proto_flexnet	= -1;
-static int hf_flexnet_dst	= -1;
-static int hf_flexnet_src	= -1;
-static int hf_flexnet_ctl	= -1;
+static int proto_flexnet;
+static int hf_flexnet_dst;
+static int hf_flexnet_src;
+static int hf_flexnet_ctl;
 
-static gint ett_flexnet = -1;
-static gint ett_flexnet_ctl = -1;
+static int ett_flexnet;
+static int ett_flexnet_ctl;
 
 static int
 dissect_flexnet(tvbuff_t *tvb, packet_info *pinfo, proto_tree *parent_tree, void* data _U_)
@@ -104,7 +106,7 @@ proto_register_flexnet(void)
 	};
 
 	/* Setup protocol subtree array */
-	static gint *ett[] = {
+	static int *ett[] = {
 		&ett_flexnet,
 		&ett_flexnet_ctl,
 	};
@@ -115,12 +117,14 @@ proto_register_flexnet(void)
 	/* Required function calls to register the header fields and subtrees used */
 	proto_register_field_array( proto_flexnet, hf, array_length( hf ) );
 	proto_register_subtree_array( ett, array_length( ett ) );
+
+	flexnet_handle = register_dissector( "flexnet", dissect_flexnet, proto_flexnet );
 }
 
 void
 proto_reg_handoff_flexnet(void)
 {
-	dissector_add_uint( "ax25.pid", AX25_P_FLEXNET, create_dissector_handle( dissect_flexnet, proto_flexnet ) );
+	dissector_add_uint( "ax25.pid", AX25_P_FLEXNET, flexnet_handle );
 }
 
 /*

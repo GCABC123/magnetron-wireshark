@@ -21,47 +21,50 @@ void proto_register_vdp(void);
 void proto_reg_handoff_ecp_21(void);
 void proto_reg_handoff_vdp(void);
 
-static int proto_ecp = -1;
-static int hf_ecp_version = -1;
-static int hf_ecp_op = -1;
-static int hf_ecp_subtype = -1;
-static int hf_ecp_seqno = -1;
+static dissector_handle_t ecp_handle;
+static dissector_handle_t vdp_handle;
 
-static int proto_vdp = -1;
-static int hf_vdp_tlv_type = -1;
-static int hf_vdp_tlv_len = -1;
-static int hf_vdp_tlv_assoc_reason = -1;
-static int hf_vdp_vidstr_ps = -1;
-static int hf_vdp_vidstr_pcp = -1;
-static int hf_vdp_vidstr_vid = -1;
-static int hf_vdp_vsitypeid = -1;
-static int hf_vdp_vsiversion = -1;
-static int hf_vdp_vsiid_format = -1;
-static int hf_vdp_vsiid = -1;
-static int hf_vdp_filter_format = -1;
-static int hf_vdp_assoc_mac_id = -1;
-static int hf_vdp_manager_id = -1;
-static int hf_vdp_data = -1;
-static int hf_vdp_tlv_org_oui = -1;
-static int hf_vdp_tlv_oracle_subtype = -1;
-static int hf_vdp_tlv_assoc_flag_mbit = -1;
-static int hf_vdp_tlv_assoc_flag_sbit = -1;
-static int hf_vdp_tlv_assoc_flag_req_rsp = -1;
-static int hf_vdp_tlv_assoc_request_flags = -1;
-static int hf_vdp_tlv_assoc_flag_hard_error = -1;
-static int hf_vdp_tlv_assoc_flag_keep = -1;
-static int hf_vdp_tlv_assoc_error = -1;
-static int hf_vdp_tlv_assoc_response_flags = -1;
+static int proto_ecp;
+static int hf_ecp_version;
+static int hf_ecp_op;
+static int hf_ecp_subtype;
+static int hf_ecp_seqno;
 
-static int hf_oui_oracle_encoding = -1;
+static int proto_vdp;
+static int hf_vdp_tlv_type;
+static int hf_vdp_tlv_len;
+static int hf_vdp_tlv_assoc_reason;
+static int hf_vdp_vidstr_ps;
+static int hf_vdp_vidstr_pcp;
+static int hf_vdp_vidstr_vid;
+static int hf_vdp_vsitypeid;
+static int hf_vdp_vsiversion;
+static int hf_vdp_vsiid_format;
+static int hf_vdp_vsiid;
+static int hf_vdp_filter_format;
+static int hf_vdp_assoc_mac_id;
+static int hf_vdp_manager_id;
+static int hf_vdp_data;
+static int hf_vdp_tlv_org_oui;
+static int hf_vdp_tlv_oracle_subtype;
+static int hf_vdp_tlv_assoc_flag_mbit;
+static int hf_vdp_tlv_assoc_flag_sbit;
+static int hf_vdp_tlv_assoc_flag_req_rsp;
+static int hf_vdp_tlv_assoc_request_flags;
+static int hf_vdp_tlv_assoc_flag_hard_error;
+static int hf_vdp_tlv_assoc_flag_keep;
+static int hf_vdp_tlv_assoc_error;
+static int hf_vdp_tlv_assoc_response_flags;
 
-static gint ett_ecp = -1;
-static gint ett_vdp_tlv = -1;
-static gint ett_vdp_tlv_assoc = -1;
-static gint ett_vdp_tlv_org = -1;
-static gint ett_vdp_assoc_flags = -1;
+static int hf_oui_oracle_encoding;
 
-static expert_field ei_vdp_tlvlen_bad = EI_INIT;
+static int ett_ecp;
+static int ett_vdp_tlv;
+static int ett_vdp_tlv_assoc;
+static int ett_vdp_tlv_org;
+static int ett_vdp_assoc_flags;
+
+static expert_field ei_vdp_tlvlen_bad;
 
 static dissector_table_t   ecp_subdissector_table;
 
@@ -164,7 +167,7 @@ static const value_string vdp_filter_format_vals[] = {
 };
 
 static void
-vdp_add_vidstr(tvbuff_t *tvb, proto_tree *tree, guint32 offset)
+vdp_add_vidstr(tvbuff_t *tvb, proto_tree *tree, uint32_t offset)
 {
 	if (tree) {
 		proto_tree_add_item(tree, hf_vdp_vidstr_ps, tvb, offset, 2, ENC_BIG_ENDIAN);
@@ -174,11 +177,11 @@ vdp_add_vidstr(tvbuff_t *tvb, proto_tree *tree, guint32 offset)
 }
 
 static void
-dissect_vdp_tlv_assoc(tvbuff_t *tvb, packet_info *pinfo _U_, proto_tree *tree, proto_item* length_item _U_, int offset, guint8 tlvtype, int tlvlen _U_)
+dissect_vdp_tlv_assoc(tvbuff_t *tvb, packet_info *pinfo _U_, proto_tree *tree, proto_item* length_item _U_, int offset, uint8_t tlvtype, int tlvlen _U_)
 {
 	proto_tree *vdp_tlv_assoc_tree;
 	proto_item *associate_item;
-	guint8 reason, filter_format;
+	uint8_t reason, filter_format;
 	int start_offset = offset;
 
 	if (tlvtype == VDP_TLV_ASSOC)
@@ -189,7 +192,7 @@ dissect_vdp_tlv_assoc(tvbuff_t *tvb, packet_info *pinfo _U_, proto_tree *tree, p
 			ett_vdp_tlv_assoc, &associate_item, "VDP DeAssociate");
 
 	/* Reason */
-	reason = tvb_get_guint8(tvb, offset);
+	reason = tvb_get_uint8(tvb, offset);
 	if (reason & 0x40) {
 		static int * const response_flags[] = {
 			&hf_vdp_tlv_assoc_flag_hard_error,
@@ -229,7 +232,7 @@ dissect_vdp_tlv_assoc(tvbuff_t *tvb, packet_info *pinfo _U_, proto_tree *tree, p
 
 	/* Filter Format */
 	proto_tree_add_item(vdp_tlv_assoc_tree, hf_vdp_filter_format, tvb, offset, 1, ENC_BIG_ENDIAN);
-	filter_format = tvb_get_guint8(tvb, offset);
+	filter_format = tvb_get_uint8(tvb, offset);
 	offset++;
 
 	switch (filter_format) {
@@ -259,7 +262,7 @@ dissect_vdp_tlv_mgrid(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, proto
 }
 
 static void
-dissect_oracle_tlv(tvbuff_t *tvb, packet_info *pinfo _U_, proto_tree *tree, guint32 offset)
+dissect_oracle_tlv(tvbuff_t *tvb, packet_info *pinfo _U_, proto_tree *tree, uint32_t offset)
 {
 	proto_tree_add_item(tree, hf_oui_oracle_encoding, tvb, offset, 1, ENC_BIG_ENDIAN);
 }
@@ -267,8 +270,8 @@ dissect_oracle_tlv(tvbuff_t *tvb, packet_info *pinfo _U_, proto_tree *tree, guin
 static void
 dissect_vdp_tlv_org(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, proto_item* length_item, int offset, int tlvlen)
 {
-	guint32 oui;
-	guint8 subtype;
+	uint32_t oui;
+	uint8_t subtype;
 
 	if (tlvlen < 3) {
 		expert_add_info(pinfo, length_item, &ei_vdp_tlvlen_bad);
@@ -283,7 +286,7 @@ dissect_vdp_tlv_org(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, proto_i
 		return;
 
 	proto_tree_add_item(tree, hf_vdp_tlv_oracle_subtype, tvb, offset, 1, ENC_NA);
-	subtype = tvb_get_guint8(tvb, offset);
+	subtype = tvb_get_uint8(tvb, offset);
 	offset++;
 
 	switch (subtype) {
@@ -299,8 +302,8 @@ dissect_vdp(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, void *data _U_)
 	proto_tree *vdp_tlv_tree;
 	proto_item *ti, *length_item;
 	int offset = 0;
-	guint8	tlvtype;
-	guint16 tlvhdr;
+	uint8_t	tlvtype;
+	uint16_t tlvhdr;
 	int tlvlen = 0;
 
 	while (tvb_reported_length_remaining(tvb, offset) > 0) {
@@ -352,7 +355,7 @@ dissect_ecp(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, void *data _U_)
 	proto_tree *ecp_tree = NULL;
 	int offset = 0;
 	tvbuff_t *next_tvb;
-	guint16 hdr, ver, op, subtype, seqno;
+	uint16_t hdr, ver, op, subtype, seqno;
 
 	col_set_str(pinfo->cinfo, COL_PROTOCOL, "ECP");
 	col_clear(pinfo->cinfo, COL_INFO);
@@ -423,7 +426,7 @@ proto_register_ecp(void)
 		    NULL, 0x0, NULL, HFILL }},
 	};
 
-	static gint *ett[] = {
+	static int *ett[] = {
 		&ett_ecp,
 	};
 
@@ -431,6 +434,7 @@ proto_register_ecp(void)
 	proto_register_field_array(proto_ecp, hf, array_length(hf));
 	proto_register_subtree_array(ett, array_length(ett));
 
+	ecp_handle = register_dissector("ecp21", dissect_ecp, proto_ecp);
 	ecp_subdissector_table = register_dissector_table("ecp.subtype", "ECP Subtypes", proto_ecp, FT_UINT32, BASE_DEC);
 }
 
@@ -464,7 +468,7 @@ proto_register_vdp(void)
 			NULL, 0x20, NULL, HFILL }},
 		{ &hf_vdp_tlv_assoc_flag_req_rsp,
 		{ "Response", "vdp21.assoc.flags.req_rsp", FT_BOOLEAN, 8,
-			TFS(&tfs_true_false), 0x40, NULL, HFILL }},
+			NULL, 0x40, NULL, HFILL }},
 		{ &hf_vdp_tlv_assoc_flag_hard_error,
 		{ "Hard Error", "vdp21.assoc.flags.hard_error", FT_BOOLEAN, 8,
 			NULL, 0x10, NULL, HFILL }},
@@ -518,7 +522,7 @@ proto_register_vdp(void)
 			VALS(oui_oracle_subtype_vals), 0x0, NULL, HFILL }},
 	};
 
-	static gint *ett[] = {
+	static int *ett[] = {
 		&ett_vdp_tlv,
 		&ett_vdp_tlv_assoc,
 		&ett_vdp_tlv_org,
@@ -537,23 +541,18 @@ proto_register_vdp(void)
 	expert_vdp = expert_register_protocol(proto_vdp);
 	expert_register_field_array(expert_vdp, ei, array_length(ei));
 
+	vdp_handle = register_dissector("vdp21", dissect_vdp, proto_vdp);
 }
 
 void
 proto_reg_handoff_ecp_21(void)
 {
-	dissector_handle_t ecp_handle;
-
-	ecp_handle = create_dissector_handle(dissect_ecp, proto_ecp);
 	dissector_add_uint("ethertype", ETHERTYPE_ECP, ecp_handle);
 }
 
 void
 proto_reg_handoff_vdp(void)
 {
-	dissector_handle_t vdp_handle;
-
-	vdp_handle = create_dissector_handle(dissect_vdp, proto_vdp);
 	dissector_add_uint("ecp.subtype", ECP_SUBTYPE_VDP, vdp_handle);
 }
 

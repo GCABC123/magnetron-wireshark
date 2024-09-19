@@ -25,11 +25,12 @@
 void proto_reg_handoff_telkonet(void);
 void proto_register_telkonet(void);
 
-static int proto_telkonet = -1;
-static int hf_telkonet_type = -1;
+static int proto_telkonet;
+static int hf_telkonet_type;
 
-static gint ett_telkonet = -1;
+static int ett_telkonet;
 
+static dissector_handle_t telkonet_handle;
 static dissector_handle_t eth_withoutfcs_handle;
 
 typedef enum {
@@ -52,7 +53,7 @@ dissect_telkonet(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, void* data
 	col_set_str(pinfo->cinfo, COL_PROTOCOL, "TELKONET");
 	col_clear(pinfo->cinfo, COL_INFO);
 
-	type = (telkonet_type_t)tvb_get_guint8(tvb, offset);
+	type = (telkonet_type_t)tvb_get_uint8(tvb, offset);
 	col_add_fstr(pinfo->cinfo, COL_INFO, "Telkonet type: %s",
 		val_to_str(type, telkonet_type_vals, "Unknown (0x%02x)"));
 
@@ -77,23 +78,21 @@ proto_register_telkonet(void)
 		{ "Type", "telkonet.type", FT_BYTES, BASE_NONE, NULL,
 			0x0, "TELKONET type", HFILL }},
 	};
-	static gint *ett[] = {
+	static int *ett[] = {
 		&ett_telkonet,
 	};
 
 	proto_telkonet = proto_register_protocol("Telkonet powerline", "TELKONET", "telkonet");
 	proto_register_field_array(proto_telkonet, hf, array_length(hf));
 	proto_register_subtree_array(ett, array_length(ett));
+	telkonet_handle = register_dissector("telkonet", dissect_telkonet, proto_telkonet);
 }
 
 void
 proto_reg_handoff_telkonet(void)
 {
-	dissector_handle_t telkonet_handle;
-
 	eth_withoutfcs_handle = find_dissector_add_dependency("eth_withoutfcs", proto_telkonet);
 
-	telkonet_handle = create_dissector_handle(dissect_telkonet, proto_telkonet);
 	dissector_add_uint("ethertype", ETHERTYPE_TELKONET, telkonet_handle);
 }
 

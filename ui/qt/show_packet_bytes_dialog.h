@@ -11,7 +11,6 @@
 #define SHOW_PACKET_BYTES_DIALOG_H
 
 #include <config.h>
-#include <glib.h>
 #include <stdio.h>
 
 #ifdef HAVE_UNISTD_H
@@ -30,6 +29,11 @@ namespace Ui {
 class ShowPacketBytesDialog;
 class ShowPacketBytesTextEdit;
 }
+
+struct uncompress_list_t {
+    QString name;
+    tvbuff_t *(*function)(tvbuff_t *, int, int);
+};
 
 class ShowPacketBytesDialog : public WiresharkDialog
 {
@@ -65,40 +69,13 @@ private slots:
     void saveAs();
 
 private:
-    /* Keep these enums in the same order (generally alphabetically)
-     * that they are added to the combo boxes.
-     */
-    enum DecodeAsType {
-        DecodeAsNone,
-        DecodeAsBASE64,
-        DecodeAsCompressed,
-        DecodeAsHexDigits,
-        DecodeAsPercentEncoding,
-        DecodeAsQuotedPrintable,
-        DecodeAsROT13
-    };
-    enum ShowAsType {
-        ShowAsASCII,
-        ShowAsASCIIandControl,
-        ShowAsCArray,
-        ShowAsEBCDIC,
-        ShowAsHexDump,
-        ShowAsHTML,
-        ShowAsImage,
-        ShowAsJson,
-        ShowAsRAW,
-        ShowAsRustArray,
-        ShowAsCodec, // Ordered to match the UTF-8 combobox index
-        ShowAsYAML,
-    };
-
     void setStartAndEnd(int start, int end);
     bool enableShowSelected();
     void updateWidgets(); // Needed for WiresharkDialog?
     void updateHintLabel();
     void sanitizeBuffer(QByteArray &ba, bool handle_CR);
     void symbolizeBuffer(QByteArray &ba);
-    QByteArray decodeQuotedPrintable(const guint8 *bytes, int length);
+    QByteArray decodeQuotedPrintable(const uint8_t *bytes, int length);
     void rot13(QByteArray &ba);
     void updateFieldBytes(bool initialization = false);
     void updatePacketBytes();
@@ -108,11 +85,10 @@ private:
     const field_info  *finfo_;
     QByteArray  field_bytes_;
     QString     hint_label_;
+    QString     decode_as_name_;
     QPushButton *print_button_;
     QPushButton *copy_button_;
     QPushButton *save_as_button_;
-    DecodeAsType decode_as_;
-    ShowAsType  show_as_;
     bool        use_regex_find_;
     int         start_;
     int         end_;

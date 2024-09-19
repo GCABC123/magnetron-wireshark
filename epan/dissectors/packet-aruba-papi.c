@@ -16,6 +16,7 @@
 #include <epan/prefs.h>
 #include <epan/expert.h>
 #include <epan/addr_resolv.h>
+#include "packet-ipv6.h"
 
 /* This is not IANA assigned nor registered */
 #define UDP_PORT_PAPI 8211
@@ -23,66 +24,73 @@
 void proto_register_papi(void);
 void proto_reg_handoff_papi(void);
 
+static dissector_handle_t papi_handle;
+
 /* Initialize the protocol and registered fields */
-static int proto_papi = -1;
-static int hf_papi_hdr_magic = -1;
-static int hf_papi_hdr_version = -1;
-static int hf_papi_hdr_dest_ip = -1;
-static int hf_papi_hdr_src_ip = -1;
-static int hf_papi_hdr_nat_port_number = -1;
-static int hf_papi_hdr_garbage = -1;
-static int hf_papi_hdr_dest_port = -1;
-static int hf_papi_hdr_src_port = -1;
-static int hf_papi_hdr_packet_type = -1;
-static int hf_papi_hdr_packet_size = -1;
-static int hf_papi_hdr_seq_number = -1;
-static int hf_papi_hdr_message_code = -1;
-static int hf_papi_hdr_checksum = -1;
+static int proto_papi;
+static int hf_papi_hdr_magic;
+static int hf_papi_hdr_version;
+static int hf_papi_hdr_dest_ip;
+static int hf_papi_hdr_src_ip;
+static int hf_papi_hdr_nat_port_number;
+static int hf_papi_hdr_garbage;
+static int hf_papi_hdr_dest_port;
+static int hf_papi_hdr_src_port;
+static int hf_papi_hdr_packet_type;
+static int hf_papi_hdr_packet_size;
+static int hf_papi_hdr_seq_number;
+static int hf_papi_hdr_message_code;
+static int hf_papi_hdr_checksum;
 
-static int hf_papi_debug = -1;
-static int hf_papi_debug_text = -1;
-static int hf_papi_debug_text_length = -1;
-static int hf_papi_debug_48bits = -1;
-static int hf_papi_debug_8bits = -1;
-static int hf_papi_debug_16bits = -1;
-static int hf_papi_debug_32bits = -1;
-static int hf_papi_debug_ipv4 = -1;
-static int hf_papi_debug_64bits = -1;
-static int hf_papi_debug_bytes = -1;
-static int hf_papi_debug_bytes_length = -1;
+static int hf_papi_hdr_srcipv6;
+static int hf_papi_hdr_destipv6;
 
-static int hf_papi_licmgr = -1;
-static int hf_papi_licmgr_unknown = -1;
-static int hf_papi_licmgr_payload_len = -1;
-static int hf_papi_licmgr_tlv = -1;
-static int hf_papi_licmgr_type = -1;
-static int hf_papi_licmgr_length = -1;
-static int hf_papi_licmgr_value = -1;
-static int hf_papi_licmgr_ip = -1;
-static int hf_papi_licmgr_serial_number = -1;
-static int hf_papi_licmgr_hostname = -1;
-static int hf_papi_licmgr_mac_address = -1;
-static int hf_papi_licmgr_license_ap_remaining = -1;
-static int hf_papi_licmgr_license_pef_remaining = -1;
-static int hf_papi_licmgr_license_rfp_remaining = -1;
-static int hf_papi_licmgr_license_xsec_remaining = -1;
-static int hf_papi_licmgr_license_acr_remaining = -1;
-static int hf_papi_licmgr_license_ap_used = -1;
-static int hf_papi_licmgr_license_pef_used = -1;
-static int hf_papi_licmgr_license_rfp_used = -1;
-static int hf_papi_licmgr_license_xsec_used = -1;
-static int hf_papi_licmgr_license_acr_used = -1;
-static int hf_papi_licmgr_padding = -1;
+static int hf_papi_debug;
+static int hf_papi_debug_text;
+static int hf_papi_debug_text_length;
+static int hf_papi_debug_48bits;
+static int hf_papi_debug_8bits;
+static int hf_papi_debug_16bits;
+static int hf_papi_debug_32bits;
+static int hf_papi_debug_ipv4;
+static int hf_papi_debug_64bits;
+static int hf_papi_debug_bytes;
+static int hf_papi_debug_bytes_length;
 
-static expert_field ei_papi_debug_unknown = EI_INIT;
+static int hf_papi_licmgr;
+static int hf_papi_licmgr_payload_len;
+static int hf_papi_licmgr_tlv;
+static int hf_papi_licmgr_type;
+static int hf_papi_licmgr_length;
+static int hf_papi_licmgr_value;
+static int hf_papi_licmgr_ip;
+static int hf_papi_licmgr_serial_number;
+static int hf_papi_licmgr_hostname;
+static int hf_papi_licmgr_mac_address;
+static int hf_papi_licmgr_license_ap_remaining;
+static int hf_papi_licmgr_license_pef_remaining;
+static int hf_papi_licmgr_license_rfp_remaining;
+static int hf_papi_licmgr_license_xsec_remaining;
+static int hf_papi_licmgr_license_acr_remaining;
+static int hf_papi_licmgr_license_ap_used;
+static int hf_papi_licmgr_license_pef_used;
+static int hf_papi_licmgr_license_rfp_used;
+static int hf_papi_licmgr_license_xsec_used;
+static int hf_papi_licmgr_license_acr_used;
+static int hf_papi_licmgr_padding;
+
+static expert_field ei_papi_debug_unknown;
+
+/* variable for dissector table for subdissectors */
+static dissector_table_t papi_dissector_table;
 
 /* Global PAPI Debug Preference */
-static gboolean g_papi_debug = FALSE;
+static bool g_papi_debug;
 
 /* Initialize the subtree pointers */
-static gint ett_papi = -1;
-static gint ett_papi_licmgr = -1;
-static gint ett_papi_licmgr_tlv = -1;
+static int ett_papi;
+static int ett_papi_licmgr;
+static int ett_papi_licmgr_tlv;
 
 #define SAMBA_WRAPPER               8442
 #define RESOLVER_PORT               8392
@@ -230,6 +238,11 @@ static gint ett_papi_licmgr_tlv = -1;
 #define AAA_MGMT_PORT               8372
 #define DBSYNC_PORT                 8380
 #define AMAPI_SNMP_CLIENT           8236
+#define PORT_UBT                    15560
+
+/* defining Packet Size & HDR version no for PAPI */
+#define PAPI_PACKET_SIZE 76
+#define V4V6_HDR_VERSION 0x03
 
 static const value_string papi_port_vals[] = {
     { FASTPATH_SERVER, "FASTPATH_SERVER" },
@@ -377,6 +390,7 @@ static const value_string papi_port_vals[] = {
     { P8MGR, "P8MGR" },
     { LAST_SERVICE, "LAST_SERVICE / MESSAGE_HANDLER" },
     //{ MESSAGE_HANDLER, "MESSAGE_HANDLER" },
+    { PORT_UBT, "PORT_UBT" },
     { PAPI_EPHEMERAL, "PAPI_EPHEMERAL" },
     { 0,     NULL     }
 };
@@ -405,17 +419,14 @@ static const value_string licmgr_type_vals[] = {
     { 0,     NULL     }
 };
 static int
-dissect_papi_license_manager(tvbuff_t *tvb, packet_info *pinfo, guint offset, proto_tree *tree)
+dissect_papi_license_manager(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, void* data _U_)
 {
     proto_item *ti;
     proto_tree *licmgr_tree, *licmgr_subtree;
-    guint offset_end, payload_len;
+    unsigned offset_end, payload_len, offset = 0;
 
     ti = proto_tree_add_item(tree, hf_papi_licmgr, tvb, offset, -1, ENC_NA);
     licmgr_tree = proto_item_add_subtree(ti, ett_papi_licmgr);
-
-    proto_tree_add_item(licmgr_tree, hf_papi_licmgr_unknown, tvb, offset, 32, ENC_NA);
-    offset += 32;
 
     proto_tree_add_item_ret_uint(licmgr_tree, hf_papi_licmgr_payload_len, tvb, offset, 2, ENC_BIG_ENDIAN, &payload_len);
     offset += 2;
@@ -424,7 +435,7 @@ dissect_papi_license_manager(tvbuff_t *tvb, packet_info *pinfo, guint offset, pr
     offset_end = offset + payload_len;
 
     while (offset< offset_end) {
-        guint optlen, type;
+        unsigned optlen, type;
         proto_item *tlv_item;
 
         type = tvb_get_ntohs(tvb, offset);
@@ -512,7 +523,7 @@ dissect_papi_license_manager(tvbuff_t *tvb, packet_info *pinfo, guint offset, pr
 
 /* PAPI Debug loop ! */
 static int
-dissect_papi_debug(tvbuff_t *tvb, packet_info *pinfo, guint offset, proto_tree *tree)
+dissect_papi_debug(tvbuff_t *tvb, packet_info *pinfo, unsigned offset, proto_tree *tree)
 {
     proto_item *ti;
     proto_tree *debug_tree, *debug_sub_tree;
@@ -522,7 +533,7 @@ dissect_papi_debug(tvbuff_t *tvb, packet_info *pinfo, guint offset, proto_tree *
     debug_tree = proto_item_add_subtree(ti, ett_papi);
 
     while(offset < tvb_reported_length(tvb)) {
-        switch(tvb_get_guint8(tvb,offset)) {
+        switch(tvb_get_uint8(tvb,offset)) {
         case 0x00:
             ti = proto_tree_add_item(debug_tree, hf_papi_debug_text, tvb, offset+3, tvb_get_ntohs(tvb,offset+1), ENC_ASCII);
             debug_sub_tree = proto_item_add_subtree(ti, ett_papi);
@@ -564,7 +575,7 @@ dissect_papi_debug(tvbuff_t *tvb, packet_info *pinfo, guint offset, proto_tree *
             offset += 9;
         break;
         default:
-            proto_tree_add_expert_format(debug_tree, pinfo, &ei_papi_debug_unknown, tvb, offset, 1, "Unknown (%d)", tvb_get_guint8(tvb, offset));
+            proto_tree_add_expert_format(debug_tree, pinfo, &ei_papi_debug_unknown, tvb, offset, 1, "Unknown (%d)", tvb_get_uint8(tvb, offset));
             offset +=1;
            }
     }
@@ -572,30 +583,30 @@ dissect_papi_debug(tvbuff_t *tvb, packet_info *pinfo, guint offset, proto_tree *
     return offset;
 }
 
-static gboolean
+static int
 dissect_papi(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, void *data _U_)
 {
     proto_item *ti;
     proto_tree *papi_tree;
-    guint     offset = 0;
-    guint32 dest_port, src_port;
+    unsigned  offset = 0;
+    uint32_t dest_port, src_port, hdr_version;
     tvbuff_t *next_tvb;
 
 
     /* All PAPI packet start with 0x4972 !  */
     if ( tvb_get_ntohs(tvb, offset) != 0x4972 )
-        return FALSE;
+        return false;
 
     col_set_str(pinfo->cinfo, COL_PROTOCOL, "PAPI");
     col_set_str(pinfo->cinfo, COL_INFO, "PAPI - Aruba AP Control Protocol");
 
-    ti = proto_tree_add_item(tree, proto_papi, tvb, 0, -1, ENC_NA);
+    ti = proto_tree_add_item(tree, proto_papi, tvb, 0, PAPI_PACKET_SIZE, ENC_NA);
     papi_tree = proto_item_add_subtree(ti, ett_papi);
 
     proto_tree_add_item(papi_tree, hf_papi_hdr_magic, tvb, offset, 2, ENC_BIG_ENDIAN);
     offset += 2;
 
-    proto_tree_add_item(papi_tree, hf_papi_hdr_version, tvb, offset, 2, ENC_BIG_ENDIAN);
+    proto_tree_add_item_ret_uint(papi_tree, hf_papi_hdr_version, tvb, offset, 2, ENC_BIG_ENDIAN, &hdr_version);
     offset += 2;
 
     proto_tree_add_item(papi_tree, hf_papi_hdr_dest_ip, tvb, offset, 4, ENC_BIG_ENDIAN);
@@ -631,8 +642,14 @@ dissect_papi(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, void *data _U_
     proto_tree_add_item(papi_tree, hf_papi_hdr_checksum, tvb, offset, 16, ENC_NA);
     offset += 16;
 
-    if(dest_port == LICENSE_MANAGER && src_port == LICENSE_MANAGER){
-        offset = dissect_papi_license_manager(tvb, pinfo, offset, papi_tree);
+    if (hdr_version == V4V6_HDR_VERSION) {
+
+        proto_tree_add_item(papi_tree, hf_papi_hdr_destipv6, tvb, offset, IPv6_ADDR_SIZE, ENC_NA);
+        offset += IPv6_ADDR_SIZE;
+
+        proto_tree_add_item(papi_tree, hf_papi_hdr_srcipv6, tvb, offset, IPv6_ADDR_SIZE, ENC_NA);
+        offset += IPv6_ADDR_SIZE;
+
     }
 
     if(g_papi_debug)
@@ -641,9 +658,13 @@ dissect_papi(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, void *data _U_
     }
 
     next_tvb = tvb_new_subset_remaining(tvb, offset);
-    call_data_dissector(next_tvb, pinfo, tree);
+    if (!dissector_try_uint_new(papi_dissector_table, dest_port, next_tvb, pinfo, tree, true, NULL)) {
+        if (!dissector_try_uint_new(papi_dissector_table, src_port, next_tvb, pinfo, tree, true, NULL)) {
+            call_data_dissector(next_tvb, pinfo, tree);
+        }
+    }
 
-    return(TRUE);
+    return tvb_captured_length(tvb);
 }
 
 void
@@ -717,7 +738,16 @@ proto_register_papi(void)
             FT_BYTES, BASE_NONE, NULL, 0x0,
             NULL, HFILL }
         },
-
+        { &hf_papi_hdr_destipv6,/* IPv6 address of Destination */
+            { "Destination IPv6", "papi.hdr.dest.ipv6",
+            FT_IPv6, BASE_NONE, NULL, 0x0,
+            NULL, HFILL }
+        },
+        { &hf_papi_hdr_srcipv6,/* IPv6 address of Source */
+            { "Source IPv6", "papi.hdr.src.ipv6",
+            FT_IPv6, BASE_NONE, NULL, 0x0,
+            NULL, HFILL }
+        },
         { &hf_papi_debug,
             { "Debug", "papi.debug",
             FT_NONE, BASE_NONE, NULL, 0x0,
@@ -777,11 +807,6 @@ proto_register_papi(void)
         { &hf_papi_licmgr,
             { "License Manager", "papi.licmgr",
             FT_NONE, BASE_NONE, NULL, 0x0,
-            NULL, HFILL }
-        },
-        { &hf_papi_licmgr_unknown,
-            { "Unknown", "papi.licmgr.unknown",
-            FT_BYTES, BASE_NONE, NULL, 0x0,
             NULL, HFILL }
         },
         { &hf_papi_licmgr_payload_len,
@@ -887,7 +912,7 @@ proto_register_papi(void)
     };
 
     /* Setup protocol subtree array */
-    static gint *ett[] = {
+    static int *ett[] = {
         &ett_papi,
         &ett_papi_licmgr,
         &ett_papi_licmgr_tlv
@@ -908,19 +933,22 @@ proto_register_papi(void)
 
     papi_module = prefs_register_protocol(proto_papi, NULL);
 
+    /* creating a dissector table for the protocol & registering the same */
+    papi_dissector_table = register_dissector_table("papi.port", "PAPI protocol", proto_papi, FT_UINT16, BASE_DEC);
+
     prefs_register_bool_preference(papi_module, "experimental_decode",
                        "Do experimental decode",
                        "Attempt to decode parts of the message that aren't fully understood yet",
                        &g_papi_debug);
+
+    papi_handle = register_dissector("papi", dissect_papi, proto_papi);
 }
 
 
 void
 proto_reg_handoff_papi(void)
 {
-    dissector_handle_t papi_handle;
-
-    papi_handle = create_dissector_handle(dissect_papi, proto_papi);
+    dissector_add_uint("papi.port", LICENSE_MANAGER, create_dissector_handle(dissect_papi_license_manager, -1));
     dissector_add_uint_with_preference("udp.port", UDP_PORT_PAPI, papi_handle);
 }
 /*

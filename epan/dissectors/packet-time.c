@@ -17,11 +17,15 @@
 #include <epan/packet.h>
 #include <epan/prefs.h>
 #include <epan/to_str.h>
+#include <epan/tfs.h>
+#include <wsutil/array.h>
 
 #include <wsutil/epochs.h>
 
 void proto_reg_handoff_time(void);
 void proto_register_time(void);
+
+static dissector_handle_t time_handle;
 
 static const enum_val_t time_display_types[] = {
     { "UTC", "UTC", ABSOLUTE_TIME_UTC },
@@ -29,11 +33,11 @@ static const enum_val_t time_display_types[] = {
     { NULL, NULL, 0 }
 };
 
-static int proto_time = -1;
-static int hf_time_time = -1;
-static int hf_time_response = -1;
+static int proto_time;
+static int hf_time_time;
+static int hf_time_response;
 
-static gint ett_time = -1;
+static int ett_time;
 
 /* Use int instead of a field_display_type_e enum to avoid incompatible
  * pointer type warnings with prefs_register_enum_preference() */
@@ -59,11 +63,11 @@ dissect_time(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, void* data _U_
     proto_tree_add_boolean(time_tree, hf_time_response, tvb, 0, 0, pinfo->srcport==pinfo->match_uint);
     if (pinfo->srcport == pinfo->match_uint) {
         /* seconds since 1900-01-01 00:00:00 GMT, *not* 1970 */
-        guint32 delta_seconds = tvb_get_ntohl(tvb, 0);
+        uint32_t delta_seconds = tvb_get_ntohl(tvb, 0);
         proto_tree_add_uint_format(time_tree, hf_time_time, tvb, 0, 4,
                 delta_seconds, "%s",
                 abs_time_secs_to_str(pinfo->pool, delta_seconds-EPOCH_DELTA_1900_01_01_00_00_00_UTC,
-                                        time_display_type, TRUE));
+                                        time_display_type, true));
     }
     return tvb_captured_length(tvb);
 }
@@ -82,7 +86,7 @@ proto_register_time(void)
                 "Response or Request", HFILL }}
     };
 
-    static gint *ett[] = {
+    static int *ett[] = {
         &ett_time,
     };
 
@@ -91,6 +95,7 @@ proto_register_time(void)
     proto_time = proto_register_protocol("Time Protocol", "TIME", "time");
     proto_register_field_array(proto_time, hf, array_length(hf));
     proto_register_subtree_array(ett, array_length(ett));
+    time_handle = register_dissector("time", dissect_time, proto_time);
 
     time_pref = prefs_register_protocol(proto_time, NULL);
     prefs_register_enum_preference(time_pref,
@@ -99,15 +104,12 @@ proto_register_time(void)
             "Time display type",
             &time_display_type,
             time_display_types,
-            FALSE);
+            false);
 }
 
 void
 proto_reg_handoff_time(void)
 {
-    dissector_handle_t time_handle;
-
-    time_handle = create_dissector_handle(dissect_time, proto_time);
     dissector_add_uint_with_preference("udp.port", TIME_PORT, time_handle);
     dissector_add_uint_with_preference("tcp.port", TIME_PORT, time_handle);
 }

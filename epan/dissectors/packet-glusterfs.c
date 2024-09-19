@@ -22,7 +22,7 @@
 
 #include <epan/packet.h>
 #include <epan/to_str.h>
-
+#include <epan/tfs.h>
 #include "packet-rpc.h"
 #include "packet-gluster.h"
 
@@ -30,199 +30,199 @@ void proto_register_glusterfs(void);
 void proto_reg_handoff_glusterfs(void);
 
 /* Initialize the protocol and registered fields */
-static gint proto_glusterfs = -1;
+static int proto_glusterfs;
 
 /* programs and procedures */
-static gint hf_glusterfs_proc = -1;
+static int hf_glusterfs_proc;
 
 /* fields used by multiple programs/procedures */
-static gint hf_gluster_op_ret = -1;
-static gint hf_gluster_op_errno = -1;
+static int hf_gluster_op_ret;
+static int hf_gluster_op_errno;
 
 /* GlusterFS specific */
-static gint hf_glusterfs_gfid = -1;
-static gint hf_glusterfs_pargfid = -1;
-static gint hf_glusterfs_oldgfid = -1;
-static gint hf_glusterfs_newgfid = -1;
-static gint hf_glusterfs_path = -1;
-static gint hf_glusterfs_bname = -1;
-static gint hf_glusterfs_dict = -1;
-static gint hf_glusterfs_fd = -1;
-static gint hf_glusterfs_offset = -1;
-static gint hf_glusterfs_size = -1;
-static gint hf_glusterfs_size64 = -1;
-static gint hf_glusterfs_volume = -1;
-static gint hf_glusterfs_cmd = -1;
-static gint hf_glusterfs_type = -1;
-static gint hf_glusterfs_entries = -1;
-static gint hf_glusterfs_xflags = -1;
-static gint hf_glusterfs_linkname = -1;
-static gint hf_glusterfs_umask = -1;
-static gint hf_glusterfs_mask = -1;
-static gint hf_glusterfs_name = -1;
-static gint hf_glusterfs_namelen = -1;
-static gint hf_glusterfs_whence = -1;
+static int hf_glusterfs_gfid;
+static int hf_glusterfs_pargfid;
+static int hf_glusterfs_oldgfid;
+static int hf_glusterfs_newgfid;
+static int hf_glusterfs_path;
+static int hf_glusterfs_bname;
+static int hf_glusterfs_dict;
+static int hf_glusterfs_fd;
+static int hf_glusterfs_offset;
+static int hf_glusterfs_size;
+static int hf_glusterfs_size64;
+static int hf_glusterfs_volume;
+static int hf_glusterfs_cmd;
+static int hf_glusterfs_type;
+static int hf_glusterfs_entries;
+static int hf_glusterfs_xflags;
+static int hf_glusterfs_linkname;
+static int hf_glusterfs_umask;
+static int hf_glusterfs_mask;
+static int hf_glusterfs_name;
+static int hf_glusterfs_namelen;
+static int hf_glusterfs_whence;
 
 /* flags passed on to OPEN, CREATE etc.*/
-static gint hf_glusterfs_flags = -1;
-static gint hf_glusterfs_flags_rdonly = -1;
-static gint hf_glusterfs_flags_wronly = -1;
-static gint hf_glusterfs_flags_rdwr = -1;
-static gint hf_glusterfs_flags_accmode = -1;
-static gint hf_glusterfs_flags_append = -1;
-static gint hf_glusterfs_flags_async = -1;
-static gint hf_glusterfs_flags_cloexec = -1;
-static gint hf_glusterfs_flags_creat = -1;
-static gint hf_glusterfs_flags_direct = -1;
-static gint hf_glusterfs_flags_directory = -1;
-static gint hf_glusterfs_flags_excl = -1;
-static gint hf_glusterfs_flags_largefile = -1;
-static gint hf_glusterfs_flags_noatime = -1;
-static gint hf_glusterfs_flags_noctty = -1;
-static gint hf_glusterfs_flags_nofollow = -1;
-static gint hf_glusterfs_flags_nonblock = -1;
-static gint hf_glusterfs_flags_ndelay = -1;
-static gint hf_glusterfs_flags_sync = -1;
-static gint hf_glusterfs_flags_trunc = -1;
-static gint hf_glusterfs_flags_reserved = -1;
+static int hf_glusterfs_flags;
+static int hf_glusterfs_flags_rdonly;
+static int hf_glusterfs_flags_wronly;
+static int hf_glusterfs_flags_rdwr;
+static int hf_glusterfs_flags_accmode;
+static int hf_glusterfs_flags_append;
+static int hf_glusterfs_flags_async;
+static int hf_glusterfs_flags_cloexec;
+static int hf_glusterfs_flags_creat;
+static int hf_glusterfs_flags_direct;
+static int hf_glusterfs_flags_directory;
+static int hf_glusterfs_flags_excl;
+static int hf_glusterfs_flags_largefile;
+static int hf_glusterfs_flags_noatime;
+static int hf_glusterfs_flags_noctty;
+static int hf_glusterfs_flags_nofollow;
+static int hf_glusterfs_flags_nonblock;
+static int hf_glusterfs_flags_ndelay;
+static int hf_glusterfs_flags_sync;
+static int hf_glusterfs_flags_trunc;
+static int hf_glusterfs_flags_reserved;
 
 /* access modes  */
-static gint hf_glusterfs_mode = -1;
-static gint hf_glusterfs_mode_suid = -1;
-static gint hf_glusterfs_mode_sgid = -1;
-static gint hf_glusterfs_mode_svtx = -1;
-static gint hf_glusterfs_mode_rusr = -1;
-static gint hf_glusterfs_mode_wusr = -1;
-static gint hf_glusterfs_mode_xusr = -1;
-static gint hf_glusterfs_mode_rgrp = -1;
-static gint hf_glusterfs_mode_wgrp = -1;
-static gint hf_glusterfs_mode_xgrp = -1;
-static gint hf_glusterfs_mode_roth = -1;
-static gint hf_glusterfs_mode_woth = -1;
-static gint hf_glusterfs_mode_xoth = -1;
-static gint hf_glusterfs_mode_reserved = -1;
+static int hf_glusterfs_mode;
+static int hf_glusterfs_mode_suid;
+static int hf_glusterfs_mode_sgid;
+static int hf_glusterfs_mode_svtx;
+static int hf_glusterfs_mode_rusr;
+static int hf_glusterfs_mode_wusr;
+static int hf_glusterfs_mode_xusr;
+static int hf_glusterfs_mode_rgrp;
+static int hf_glusterfs_mode_wgrp;
+static int hf_glusterfs_mode_xgrp;
+static int hf_glusterfs_mode_roth;
+static int hf_glusterfs_mode_woth;
+static int hf_glusterfs_mode_xoth;
+static int hf_glusterfs_mode_reserved;
 
 /* dir-entry */
-static gint hf_glusterfs_entry_ino = -1;
-static gint hf_glusterfs_entry_off = -1;
-static gint hf_glusterfs_entry_len = -1;
-static gint hf_glusterfs_entry_type = -1;
-static gint hf_glusterfs_entry_path = -1;
+static int hf_glusterfs_entry_ino;
+static int hf_glusterfs_entry_off;
+static int hf_glusterfs_entry_len;
+static int hf_glusterfs_entry_type;
+static int hf_glusterfs_entry_path;
 
 /* gf_iatt */
-static gint hf_glusterfs_iatt = -1;
-static gint hf_glusterfs_preparent_iatt = -1;
-static gint hf_glusterfs_postparent_iatt = -1;
-static gint hf_glusterfs_preop_iatt = -1;
-static gint hf_glusterfs_postop_iatt = -1;
-static gint hf_glusterfs_ia_ino = -1;
-static gint hf_glusterfs_ia_dev = -1;
-static gint hf_glusterfs_ia_mode = -1;
-static gint hf_glusterfs_ia_nlink = -1;
-static gint hf_glusterfs_ia_uid = -1;
-static gint hf_glusterfs_ia_gid = -1;
-static gint hf_glusterfs_ia_rdev = -1;
-static gint hf_glusterfs_ia_size = -1;
-static gint hf_glusterfs_ia_blksize = -1;
-static gint hf_glusterfs_ia_blocks = -1;
-static gint hf_glusterfs_ia_atime = -1;
-static gint hf_glusterfs_ia_mtime = -1;
-static gint hf_glusterfs_ia_ctime = -1;
+static int hf_glusterfs_iatt;
+static int hf_glusterfs_preparent_iatt;
+static int hf_glusterfs_postparent_iatt;
+static int hf_glusterfs_preop_iatt;
+static int hf_glusterfs_postop_iatt;
+static int hf_glusterfs_ia_ino;
+static int hf_glusterfs_ia_dev;
+static int hf_glusterfs_ia_mode;
+static int hf_glusterfs_ia_nlink;
+static int hf_glusterfs_ia_uid;
+static int hf_glusterfs_ia_gid;
+static int hf_glusterfs_ia_rdev;
+static int hf_glusterfs_ia_size;
+static int hf_glusterfs_ia_blksize;
+static int hf_glusterfs_ia_blocks;
+static int hf_glusterfs_ia_atime;
+static int hf_glusterfs_ia_mtime;
+static int hf_glusterfs_ia_ctime;
 
-static gint hf_glusterfs_iattx = -1;
-static gint hf_glusterfs_preparent_iattx = -1;
-static gint hf_glusterfs_postparent_iattx = -1;
-static gint hf_glusterfs_preop_iattx = -1;
-static gint hf_glusterfs_postop_iattx = -1;
-static gint hf_glusterfs_iax_flags = -1;
-static gint hf_glusterfs_iax_attributes = -1;
-static gint hf_glusterfs_iax_attributes_mask = -1;
-static gint hf_glusterfs_iax_atime = -1;
-static gint hf_glusterfs_iax_mtime = -1;
-static gint hf_glusterfs_iax_ctime = -1;
-static gint hf_glusterfs_iax_btime = -1;
-static gint hf_glusterfs_iax_atime_nsec = -1;
-static gint hf_glusterfs_iax_mtime_nsec = -1;
-static gint hf_glusterfs_iax_ctime_nsec = -1;
-static gint hf_glusterfs_iax_btime_nsec = -1;
+static int hf_glusterfs_iattx;
+static int hf_glusterfs_preparent_iattx;
+static int hf_glusterfs_postparent_iattx;
+static int hf_glusterfs_preop_iattx;
+static int hf_glusterfs_postop_iattx;
+static int hf_glusterfs_iax_flags;
+static int hf_glusterfs_iax_attributes;
+static int hf_glusterfs_iax_attributes_mask;
+static int hf_glusterfs_iax_atime;
+static int hf_glusterfs_iax_mtime;
+static int hf_glusterfs_iax_ctime;
+static int hf_glusterfs_iax_btime;
+static int hf_glusterfs_iax_atime_nsec;
+static int hf_glusterfs_iax_mtime_nsec;
+static int hf_glusterfs_iax_ctime_nsec;
+static int hf_glusterfs_iax_btime_nsec;
 
 
 /* gf_flock */
-static gint hf_glusterfs_flock_type = -1;
-static gint hf_glusterfs_flock_whence = -1;
-static gint hf_glusterfs_flock_start = -1;
-static gint hf_glusterfs_flock_len = -1;
-static gint hf_glusterfs_flock_pid = -1;
-static gint hf_glusterfs_flock_owner = -1;
+static int hf_glusterfs_flock_type;
+static int hf_glusterfs_flock_whence;
+static int hf_glusterfs_flock_start;
+static int hf_glusterfs_flock_len;
+static int hf_glusterfs_flock_pid;
+static int hf_glusterfs_flock_owner;
 
 /* statfs */
-static gint hf_glusterfs_bsize = -1;
-static gint hf_glusterfs_frsize = -1;
-static gint hf_glusterfs_blocks = -1;
-static gint hf_glusterfs_bfree = -1;
-static gint hf_glusterfs_bavail = -1;
-static gint hf_glusterfs_files = -1;
-static gint hf_glusterfs_ffree = -1;
-static gint hf_glusterfs_favail = -1;
-static gint hf_glusterfs_id = -1;
-static gint hf_glusterfs_mnt_flags = -1;
-static gint hf_glusterfs_mnt_flag_rdonly = -1;
-static gint hf_glusterfs_mnt_flag_nosuid = -1;
-static gint hf_glusterfs_mnt_flag_nodev = -1;
-static gint hf_glusterfs_mnt_flag_noexec = -1;
-static gint hf_glusterfs_mnt_flag_synchronous = -1;
-static gint hf_glusterfs_mnt_flag_mandlock = -1;
-static gint hf_glusterfs_mnt_flag_write = -1;
-static gint hf_glusterfs_mnt_flag_append = -1;
-static gint hf_glusterfs_mnt_flag_immutable = -1;
-static gint hf_glusterfs_mnt_flag_noatime = -1;
-static gint hf_glusterfs_mnt_flag_nodiratime = -1;
-static gint hf_glusterfs_mnt_flag_relatime = -1;
-static gint hf_glusterfs_namemax = -1;
+static int hf_glusterfs_bsize;
+static int hf_glusterfs_frsize;
+static int hf_glusterfs_blocks;
+static int hf_glusterfs_bfree;
+static int hf_glusterfs_bavail;
+static int hf_glusterfs_files;
+static int hf_glusterfs_ffree;
+static int hf_glusterfs_favail;
+static int hf_glusterfs_id;
+static int hf_glusterfs_mnt_flags;
+static int hf_glusterfs_mnt_flag_rdonly;
+static int hf_glusterfs_mnt_flag_nosuid;
+static int hf_glusterfs_mnt_flag_nodev;
+static int hf_glusterfs_mnt_flag_noexec;
+static int hf_glusterfs_mnt_flag_synchronous;
+static int hf_glusterfs_mnt_flag_mandlock;
+static int hf_glusterfs_mnt_flag_write;
+static int hf_glusterfs_mnt_flag_append;
+static int hf_glusterfs_mnt_flag_immutable;
+static int hf_glusterfs_mnt_flag_noatime;
+static int hf_glusterfs_mnt_flag_nodiratime;
+static int hf_glusterfs_mnt_flag_relatime;
+static int hf_glusterfs_namemax;
 
-static gint hf_glusterfs_setattr_valid = -1;
+static int hf_glusterfs_setattr_valid;
 /* flags for setattr.valid */
-static gint hf_glusterfs_setattr_set_mode = -1;
-static gint hf_glusterfs_setattr_set_uid = -1;
-static gint hf_glusterfs_setattr_set_gid = -1;
-static gint hf_glusterfs_setattr_set_size = -1;
-static gint hf_glusterfs_setattr_set_atime = -1;
-static gint hf_glusterfs_setattr_set_mtime = -1;
-static gint hf_glusterfs_setattr_set_reserved = -1;
+static int hf_glusterfs_setattr_set_mode;
+static int hf_glusterfs_setattr_set_uid;
+static int hf_glusterfs_setattr_set_gid;
+static int hf_glusterfs_setattr_set_size;
+static int hf_glusterfs_setattr_set_atime;
+static int hf_glusterfs_setattr_set_mtime;
+static int hf_glusterfs_setattr_set_reserved;
 
 /* Rename */
-static gint hf_glusterfs_oldbname = -1;
-static gint hf_glusterfs_newbname = -1;
+static int hf_glusterfs_oldbname;
+static int hf_glusterfs_newbname;
 
 /* for FSYNC/FSYNCDIR */
-static gint hf_glusterfs_fsync_flags = -1;
-static gint hf_glusterfs_fsync_flag_datasync = -1;
-static gint hf_glusterfs_fsync_flag_unknown = -1;
+static int hf_glusterfs_fsync_flags;
+static int hf_glusterfs_fsync_flag_datasync;
+static int hf_glusterfs_fsync_flag_unknown;
 
 /* for entrylk */
-static gint hf_glusterfs_entrylk_namelen = -1;
+static int hf_glusterfs_entrylk_namelen;
 
-static gint hf_gluster_dict_xdr_size = -1;
-static gint hf_gluster_dict_size = -1;
-static gint hf_gluster_num_dict_items = -1;
-static gint hf_gluster_rpc_roundup_bytes = -1;
-static gint hf_gluster_trusted_afr_key = -1;
-static gint hf_gluster_dict_value = -1;
+static int hf_gluster_dict_xdr_size;
+static int hf_gluster_dict_size;
+static int hf_gluster_num_dict_items;
+static int hf_gluster_rpc_roundup_bytes;
+static int hf_gluster_trusted_afr_key;
+static int hf_gluster_dict_value;
 
 
 /* Initialize the subtree pointers */
-static gint ett_glusterfs = -1;
-static gint ett_glusterfs_flags = -1;
-static gint ett_glusterfs_mnt_flags = -1;
-static gint ett_glusterfs_mode = -1;
-static gint ett_glusterfs_setattr_valid = -1;
-static gint ett_glusterfs_parent_iatt = -1;
-static gint ett_glusterfs_iatt = -1;
-static gint ett_glusterfs_entry = -1;
-static gint ett_glusterfs_flock = -1;
-static gint ett_glusterfs_fsync_flags = -1;
-static gint ett_gluster_dict = -1;
-static gint ett_gluster_dict_items = -1;
+static int ett_glusterfs;
+static int ett_glusterfs_flags;
+static int ett_glusterfs_mnt_flags;
+static int ett_glusterfs_mode;
+static int ett_glusterfs_setattr_valid;
+static int ett_glusterfs_parent_iatt;
+static int ett_glusterfs_iatt;
+static int ett_glusterfs_entry;
+static int ett_glusterfs_flock;
+static int ett_glusterfs_fsync_flags;
+static int ett_gluster_dict;
+static int ett_gluster_dict_items;
 
 static int
 glusterfs_rpc_dissect_gfid(proto_tree *tree, tvbuff_t *tvb, int hfindex, int offset)
@@ -379,8 +379,8 @@ static const value_string glusterfs_accmode_vals[] = {
 static int
 glusterfs_rpc_dissect_flags(proto_tree *tree, tvbuff_t *tvb, int offset)
 {
-	gboolean rdonly;
-	guint32 accmode;
+	bool rdonly;
+	uint32_t accmode;
 	proto_item *flag_tree;
 	header_field_info *rdonly_hf, *accmode_hf;
 
@@ -408,7 +408,7 @@ glusterfs_rpc_dissect_flags(proto_tree *tree, tvbuff_t *tvb, int offset)
 
 	flag_tree = proto_tree_add_bitmask(tree, tvb, offset, hf_glusterfs_flags, ett_glusterfs_flags, flag_bits, ENC_BIG_ENDIAN);
 
-	/* rdonly is TRUE only when no flags are set */
+	/* rdonly is true only when no flags are set */
 	rdonly = (tvb_get_ntohl(tvb, offset) == 0);
 	proto_tree_add_item(flag_tree, hf_glusterfs_flags_rdonly, tvb, offset, 4, ENC_BIG_ENDIAN);
 	if (rdonly) {
@@ -416,11 +416,11 @@ glusterfs_rpc_dissect_flags(proto_tree *tree, tvbuff_t *tvb, int offset)
 		proto_item_append_text(flag_tree, ", %s", rdonly_hf->name);
 	}
 
-	/* hf_glusterfs_flags_accmode is TRUE if bits 0 and 1 are set */
+	/* hf_glusterfs_flags_accmode is true if bits 0 and 1 are set */
 	accmode_hf = proto_registrar_get_nth(hf_glusterfs_flags_accmode);
 	accmode = tvb_get_ntohl(tvb, offset);
 	proto_tree_add_uint_format_value(flag_tree, hf_glusterfs_flags_accmode, tvb, offset, 4, accmode,
-			"%s", val_to_str_const((accmode & (guint32)(accmode_hf->bitmask)), glusterfs_accmode_vals, "Unknown"));
+			"%s", val_to_str_const((accmode & (uint32_t)(accmode_hf->bitmask)), glusterfs_accmode_vals, "Unknown"));
 	if ((accmode & accmode_hf->bitmask) == accmode_hf->bitmask)
 		proto_item_append_text(flag_tree, ", %s", proto_registrar_get_nth(hf_glusterfs_flags_accmode)->name);
 
@@ -471,10 +471,10 @@ glusterfs_rpc_dissect_statfs(proto_tree *tree, tvbuff_t *tvb, int offset)
 int
 gluster_rpc_dissect_dict(proto_tree *tree, tvbuff_t *tvb, int hfindex, int offset)
 {
-	gchar *key, *value;
-	const gchar *name;
-	gint roundup, value_len, key_len;
-	guint32 i, items, len;
+	char *key, *value;
+	const char *name;
+	int roundup, value_len, key_len;
+	uint32_t i, items, len;
 	int start_offset, start_offset2;
 
 	proto_item *subtree_item, *ti;
@@ -637,9 +637,9 @@ glusterfs_rpc_dissect_gfx_iatt(proto_tree *tree, tvbuff_t *tvb, int hfindex,
 static int
 gluster_rpc4_0_dissect_dict(proto_tree *tree, tvbuff_t *tvb, int hfindex, int offset)
 {
-	gchar *key, *value;
-	const gchar *name;
-	guint32 i, items, len, val_type, val_len, key_len;
+	char *key, *value;
+	const char *name;
+	uint32_t i, items, len, val_type, val_len, key_len;
 	int start_offset, start_offset2;
 	char *gfid_s;
 	e_guid_t gfid;
@@ -691,12 +691,12 @@ gluster_rpc4_0_dissect_dict(proto_tree *tree, tvbuff_t *tvb, int hfindex, int of
 			val_len = 8;
 			dict_item = proto_tree_add_string_format(subtree, hf_gluster_dict_value, tvb, offset, val_len,
 								NULL, "%s: %"PRId64, key,
-								tvb_get_gint64(tvb, offset, ENC_BIG_ENDIAN));
+								tvb_get_int64(tvb, offset, ENC_BIG_ENDIAN));
 		} else if (val_type == 3) {
 			val_len = 8;
 			dict_item = proto_tree_add_string_format(subtree, hf_gluster_dict_value, tvb, offset, val_len,
 								NULL, "%s: %"PRIu64, key,
-								tvb_get_guint64(tvb, offset, ENC_BIG_ENDIAN));
+								tvb_get_uint64(tvb, offset, ENC_BIG_ENDIAN));
 		} else if (val_type == 4) {
 			val_len = 8;
 			dict_item = proto_tree_add_string_format(subtree, hf_gluster_dict_value, tvb, offset, val_len,
@@ -759,20 +759,234 @@ gluster_rpc4_0_dissect_dict(proto_tree *tree, tvbuff_t *tvb, int hfindex, int of
 	return offset;
 }
 
+/*
+  GlusterFS protocol error codes, from the GlusterFS source.
+
+  The GlusterFS server maps system errno values to these codes,
+  which is a Good Thing, because not only are some errno values
+  different on different platforms, some errno values on some
+  Linux platforms differ from the equivalent values on most
+  Linux platforms, meaning that if a server sends one of its
+  errno values to a client with a different operating system -
+  or if a Linux server sends one of its errno values to a Linux
+  client with different errno values - the errno might not be
+  interpreted correctly.
+
+  Copyright notice from the GlusterFS code's compat-errno.h,
+  from which these codes, CF_ERROR_CODE_ names, and error
+  message strings are taken:
+
+  Copyright (c) 2008-2012 Red Hat, Inc. <http://www.redhat.com>
+  This file is part of GlusterFS.
+
+  This file is licensed to you under your choice of the GNU Lesser
+  General Public License, version 3 or any later version (LGPLv3 or
+  later), or the GNU General Public License, version 2 (GPLv2), in all
+  cases as published by the Free Software Foundation.
+*/
+
+static const value_string glusterfs_error_codes[] = {
+	{0, "Success"},				/* GF_ERROR_CODE_SUCCESS  */
+	{1, "Operation not permitted"},		/* GF_ERROR_CODE_PERM */
+	{2, "No such file or directory"},	/* GF_ERROR_CODE_NOENT */
+	{3, "No such process"},			/* GF_ERROR_CODE_SRCH */
+	{4, "Interrupted system call"},		/* GF_ERROR_CODE_INTR */
+	{5, "I/O error"},			/* GF_ERROR_CODE_IO */
+	{6, "No such device or address"},	/* GF_ERROR_CODE_NXIO */
+	{7, "Argument list too long"},		/* GF_ERROR_CODE_2BIG */
+	{8, "Exec format error"},		/* GF_ERROR_CODE_NOEXEC */
+	{9, "Bad file number"},			/* GF_ERROR_CODE_BADF */
+	{10, "No child processes"},		/* GF_ERROR_CODE_CHILD */
+	{11, "Try again"},			/* GF_ERROR_CODE_AGAIN */
+	{12, "Out of memory"},			/* GF_ERROR_CODE_NOMEM */
+	{13, "Permission denied"},		/* GF_ERROR_CODE_ACCES */
+	{14, "Bad address"},			/* GF_ERROR_CODE_FAULT */
+	{15, "Block device required"},		/* GF_ERROR_CODE_NOTBLK */
+	{16, "Device or resource busy"},	/* GF_ERROR_CODE_BUSY */
+	{17, "File exists"},			/* GF_ERROR_CODE_EXIST */
+	{18, "Cross-device link"},		/* GF_ERROR_CODE_XDEV */
+	{19, "No such device"},			/* GF_ERROR_CODE_NODEV */
+	{20, "Not a directory"},		/* GF_ERROR_CODE_NOTDIR */
+	{21, "Is a directory"},			/* GF_ERROR_CODE_ISDIR */
+	{22, "Invalid argument"},		/* GF_ERROR_CODE_INVAL */
+	{23, "File table overflow"},		/* GF_ERROR_CODE_NFILE */
+	{24, "Too many open files"},		/* GF_ERROR_CODE_MFILE */
+	{25, "Not a typewriter"},		/* GF_ERROR_CODE_NOTTY */
+	{26, "Text file busy"},			/* GF_ERROR_CODE_TXTBSY */
+	{27, "File too large"},			/* GF_ERROR_CODE_FBIG */
+	{28, "No space left on device"},	/* GF_ERROR_CODE_NOSPC */
+	{29, "Illegal seek"},			/* GF_ERROR_CODE_SPIPE */
+	{30, "Read-only file system"},		/* GF_ERROR_CODE_ROFS */
+	{31, "Too many links"},			/* GF_ERROR_CODE_MLINK */
+	{32, "Broken pipe"},			/* GF_ERROR_CODE_PIPE */
+	{33, "Math argument out of domain of func"},	/* GF_ERROR_CODE_DOM */
+	{34, "Math result not representable"},	/* GF_ERROR_CODE_RANGE */
+	{35, "Resource deadlock would occur"},	/* GF_ERROR_CODE_DEADLK */
+	{36, "File name too long"},		/* GF_ERROR_CODE_NAMETOOLONG */
+	{37, "No record locks available"},	/* GF_ERROR_CODE_NOLCK */
+	{38, "Function not implemented"},	/* GF_ERROR_CODE_NOSYS */
+	{39, "Directory not empty"},		/* GF_ERROR_CODE_NOTEMPTY */
+	{40, "Too many symbolic links encountered"},	/* GF_ERROR_CODE_LOOP */
+
+	{42, "No message of desired type"},	/* GF_ERROR_CODE_NOMSG */
+	{43, "Identifier removed"},		/* GF_ERROR_CODE_IDRM */
+	{44, "Channel number out of range"},	/* GF_ERROR_CODE_CHRNG */
+	{45, "Level 2 not synchronized"},	/* GF_ERROR_CODE_L2NSYNC */
+	{46, "Level 3 halted"},			/* GF_ERROR_CODE_L3HLT */
+	{47, "Level 3 reset"},			/* GF_ERROR_CODE_L3RST */
+	{48, "Link number out of range"},	/* GF_ERROR_CODE_LNRNG */
+	{49, "Protocol driver not attached"},	/* GF_ERROR_CODE_UNATCH */
+	{50, "No CSI structure available"},	/* GF_ERROR_CODE_NOCSI */
+	{51, "Level 2 halted"},			/* GF_ERROR_CODE_L2HLT */
+	{52, "Invalid exchange"},		/* GF_ERROR_CODE_BADE */
+	{53, "Invalid request descriptor"},	/* GF_ERROR_CODE_BADR */
+	{54, "Exchange full"},			/* GF_ERROR_CODE_XFULL */
+	{55, "No anode"},			/* GF_ERROR_CODE_NOANO */
+	{56, "Invalid request code"},		/* GF_ERROR_CODE_BADRQC */
+	{57, "Invalid slot"},			/* GF_ERROR_CODE_BADSLT */
+	{59, "Bad font file format"},		/* GF_ERROR_CODE_BFONT */
+	{60, "Device not a stream"},		/* GF_ERROR_CODE_NOSTR */
+	{61, "No data available"},		/* GF_ERROR_CODE_NODATA */
+	{62, "Timer expired"},			/* GF_ERROR_CODE_TIME */
+	{63, "Out of streams resources"},	/* GF_ERROR_CODE_NOSR */
+	{64, "Machine is not on the network"},	/* GF_ERROR_CODE_NONET */
+	{65, "Package not installed"},		/* GF_ERROR_CODE_NOPKG */
+	{66, "Object is remote"},		/* GF_ERROR_CODE_REMOTE */
+	{67, "Link has been severed"},		/* GF_ERROR_CODE_NOLINK */
+	{68, "Advertise error"},		/* GF_ERROR_CODE_ADV */
+	{69, "Srmount error"},			/* GF_ERROR_CODE_SRMNT */
+	{70, "Communication error on send"},	/* GF_ERROR_CODE_COMM */
+	{71, "Protocol error"},			/* GF_ERROR_CODE_PROTO */
+	{72, "Multihop attempted"},		/* GF_ERROR_CODE_MULTIHOP */
+	{73, "RFS specific error"},		/* GF_ERROR_CODE_DOTDOT */
+	{74, "Not a data message"},		/* GF_ERROR_CODE_BADMSG */
+	{75, "Value too large for defined data type"},	/* GF_ERROR_CODE_OVERFLOW */
+	{76, "Name not unique on network"},	/* GF_ERROR_CODE_NOTUNIQ */
+	{77, "File descriptor in bad state"},	/* GF_ERROR_CODE_BADFD */
+	{78, "Remote address changed"},	/* GF_ERROR_CODE_REMCHG */
+	{79, "Can not access a needed shared library"},	/* GF_ERROR_CODE_LIBACC */
+	{80, "Accessing a corrupted shared library"},	/* GF_ERROR_CODE_LIBBAD */
+	{81, ".lib section in a.out corrupted"},	/* GF_ERROR_CODE_LIBSCN */
+	{82, "Attempting to link in too many shared libraries"},	/* GF_ERROR_CODE_LIBMAX */
+	{83, "Cannot exec a shared library directly"},	/* GF_ERROR_CODE_LIBEXEC */
+	{84, "Illegal byte sequence"},		/* GF_ERROR_CODE_ILSEQ */
+	{85, "Interrupted system call should be restarted"},	/* GF_ERROR_CODE_RESTART */
+	{86, "Streams pipe error"},		/* GF_ERROR_CODE_STRPIPE */
+	{87, "Too many users"},			/* GF_ERROR_CODE_USERS */
+	{88, "Socket operation on non-socket"},	/* GF_ERROR_CODE_NOTSOCK */
+	{89, "Destination address required"},	/* GF_ERROR_CODE_DESTADDRREQ */
+	{90, "Message too long"},		/* GF_ERROR_CODE_MSGSIZE */
+	{91, "Protocol wrong type for socket"},	/* GF_ERROR_CODE_PROTOTYPE */
+	{92, "Protocol not available"},		/* GF_ERROR_CODE_NOPROTOOPT */
+	{93, "Protocol not supported"},		/* GF_ERROR_CODE_PROTONOSUPPORT */
+	{94, "Socket type not supported"},	/* GF_ERROR_CODE_SOCKTNOSUPPORT */
+	{95, "Operation not supported on transport endpoint"}, /* GF_ERROR_CODE_OPNOTSUPP */
+	{96, "Protocol family not supported"},	/* GF_ERROR_CODE_PFNOSUPPORT */
+	{97, "Address family not supported by protocol"},	/* GF_ERROR_CODE_AFNOSUPPORT */
+	{98, "Address already in use"},		/* GF_ERROR_CODE_ADDRINUSE */
+	{99, "Cannot assign requested address"},	/* GF_ERROR_CODE_ADDRNOTAVAIL */
+	{100, "Network is down"},		/* GF_ERROR_CODE_NETDOWN */
+	{101, "Network is unreachable"},	/* GF_ERROR_CODE_NETUNREACH */
+	{102, "Network dropped connection because of reset"},	/* GF_ERROR_CODE_NETRESET */
+	{103, "Software caused connection abort"},	/* GF_ERROR_CODE_CONNABORTED */
+	{104, "Connection reset by peer"},	/* GF_ERROR_CODE_CONNRESET */
+	{105, "No buffer space available"},	/* GF_ERROR_CODE_NOBUFS */
+	{106, "Transport endpoint is already connected"},	/* GF_ERROR_CODE_ISCONN */
+	{107, "Transport endpoint is not connected"},	/* GF_ERROR_CODE_NOTCONN */
+	{108, "Cannot send after transport endpoint shutdown"},	/* GF_ERROR_CODE_SHUTDOWN */
+	{109, "Too many references: cannot splice"},	/* GF_ERROR_CODE_TOOMANYREFS */
+	{110, "Connection timed out"},		/* GF_ERROR_CODE_TIMEDOUT */
+	{111, "Connection refused"},		/* GF_ERROR_CODE_CONNREFUSED */
+	{112, "Host is down"},			/* GF_ERROR_CODE_HOSTDOWN */
+	{113, "No route to host"},		/* GF_ERROR_CODE_HOSTUNREACH */
+	{114, "Operation already in progress"},	/* GF_ERROR_CODE_ALREADY */
+	{115, "Operation now in progress"},	/* GF_ERROR_CODE_INPROGRESS */
+	{116, "Stale NFS file handle"},		/* GF_ERROR_CODE_STALE */
+	{117, "Structure needs cleaning"},	/* GF_ERROR_CODE_UCLEAN */
+	{118, "Not a XENIX named type file"},	/* GF_ERROR_CODE_NOTNAM */
+	{119, "No XENIX semaphores available"},	/* GF_ERROR_CODE_NAVAIL */
+	{120, "Is a named type file"},		/* GF_ERROR_CODE_ISNAM */
+	{121, "Remote I/O error"},		/* GF_ERROR_CODE_REMOTEIO */
+	{122, "Quota exceeded"},		/* GF_ERROR_CODE_DQUOT */
+	{123, "No medium found"},		/* GF_ERROR_CODE_NOMEDIUM */
+	{124, "Wrong medium type"},		/* GF_ERROR_CODE_MEDIUMTYPE */
+	{125, "Operation Canceled"},		/* GF_ERROR_CODE_CANCELED */
+	{126, "Required key not available"},	/* GF_ERROR_CODE_NOKEY */
+	{127, "Key has expired"},		/* GF_ERROR_CODE_KEYEXPIRED */
+	{128, "Key has been revoked"},		/* GF_ERROR_CODE_KEYREVOKED */
+	{129, "Key was rejected by service"},	/* GF_ERROR_CODE_KEYREJECTED */
+
+	/* for robust mutexes */
+	{130, "Owner died"},			/* GF_ERROR_CODE_OWNERDEAD */
+	{131, "State not recoverable"},		/* GF_ERROR_CODE_NOTRECOVERABLE */
+
+	/*
+	 * "Should never be seen by user programs"
+	 * These are internal system call returns (Linux?) used to
+	 * indicate various internal conditions such as "restart
+	 * this system call" indications.
+	 */
+	{512, "Restart system call"},		/* GF_ERROR_CODE_RESTARTSYS */
+	{513, "Restart system call (no intr)"},	/* GF_ERROR_CODE_RESTARTNOINTR */
+	{514, "Restart if no signal handler"},	/* GF_ERROR_CODE_RESTARTNOHAND */
+	{515, "No ioctl command"},		/* GF_ERROR_CODE_NOIOCTLCMD */
+	{516, "Restart system call by calling sys_restart_syscall"},	/* GF_ERROR_CODE_RESTART_RESTARTBLOCK */
+
+	/* Defined for the NFSv3 protocol */
+	{521, "Illegal NFS file handle"},	/* GF_ERROR_CODE_BADHANDLE */
+	{522, "Update synchronization mismatch"},	/* GF_ERROR_CODE_NOTSYNC */
+	{523, "Cookie is stale"},		/* GF_ERROR_CODE_BADCOOKIE */
+	{524, "Operation is not supported"},	/* GF_ERROR_CODE_NOTSUPP */
+	{525, "Buffer or request is too small"},	/* GF_ERROR_CODE_TOOSMALL */
+	{526, "An untranslatable error occurred"},	/* GF_ERROR_CODE_SERVERFAULT */
+	{527, "Type not supported by server"},	/* GF_ERROR_CODE_BADTYPE */
+	{528, "Request initiated, but will not complete before timeout"},	/* GF_ERROR_CODE_JUKEBOX */
+	{529, "iocb queued, will get completion event"},	/* GF_ERROR_CODE_IOCBQUEUED */
+	{530, "iocb queued, will trigger a retry"},	/* GF_ERROR_CODE_IOCBRETRY */
+
+	/* Darwin */
+	{701, "No such policy registered"},	/* GF_ERROR_CODE_NOPOLICY */
+	{702, "Malformed Mach-O file"},		/* GF_ERROR_CODE_BADMACHO */
+	{703, "Device power is off"},		/* GF_ERROR_CODE_PWROFF */
+	{704, "Device error" /* e.g., paper out */},	/* GF_ERROR_CODE_DEVERR */
+	{705, "Bad CPU type in executable"},	/* GF_ERROR_CODE_BADARCH */
+	{706, "Bad executable"},		/* GF_ERROR_CODE_BADEXEC */
+	{707, "Shared library version mismatch"},	/* GF_ERROR_CODE_SHLIBVERS */
+
+	/* Solaris */
+	{801, "Facility is not active"},	/* GF_ERROR_CODE_NOTACTIVE */
+	{802, "Locked lock was unmapped"},	/* GF_ERROR_CODE_LOCKUNMAPPED */
+
+	/* BSD system */
+	{901, "Too many processes"},	/* GF_ERROR_CODE_PROCLIM */
+	{902, "RPC struct is bad"},	/* GF_ERROR_CODE_BADRPC */
+	{903, "RPC version wrong"},	/* GF_ERROR_CODE_RPCMISMATCH */
+	{904, "RPC prog. not avail"},	/* GF_ERROR_CODE_PROGUNAVAIL */
+	{905, "Program version wrong"},	/* GF_ERROR_CODE_PROGMISMATCH */
+	{905, "Bad procedure for program"},	/* GF_ERROR_CODE_PROCUNAVAIL */
+	{906, "Inappropriate file type or format"},	/* GF_ERROR_CODE_FTYPE */
+	{907, "Authentication error"},	/* GF_ERROR_CODE_AUTH */
+	{908, "Need authenticator"},	/* GF_ERROR_CODE_NEEDAUTH */
+	{909, "Programming error"},	/* GF_ERROR_CODE_DOOFUS */
+	{1024, "Unknown"},		/* GF_ERROR_CODE_UNKNOWN */
+
+	{0, NULL}
+};
+static value_string_ext glusterfs_error_codes_ext = VALUE_STRING_EXT_INIT(glusterfs_error_codes);
+
 int
 gluster_dissect_common_reply(tvbuff_t *tvb, int offset,
 				packet_info *pinfo _U_, proto_tree *tree, void* data _U_)
 {
 	proto_item *errno_item;
-	guint op_errno;
+	unsigned op_errno;
 
 	offset = dissect_rpc_uint32(tvb, tree, hf_gluster_op_ret, offset);
 
 	op_errno = tvb_get_ntohl(tvb, offset);
 	errno_item = proto_tree_add_int(tree, hf_gluster_op_errno, tvb,
 			offset, 4, op_errno);
-	proto_item_append_text(errno_item, " (%s)", g_strerror(op_errno));
-
+	proto_item_append_text(errno_item, " (%s)", val_to_str_ext_const(op_errno, &glusterfs_error_codes_ext, "Unknown"));
 	offset += 4;
 
 	return offset;
@@ -789,7 +1003,7 @@ static int
 _glusterfs_gfs3_common_readdir_reply(tvbuff_t *tvb, proto_tree *tree, int offset)
 {
 	proto_item *errno_item;
-	guint op_errno;
+	unsigned op_errno;
 
 	offset = dissect_rpc_uint32(tvb, tree, hf_glusterfs_entries, offset);
 
@@ -798,7 +1012,7 @@ _glusterfs_gfs3_common_readdir_reply(tvbuff_t *tvb, proto_tree *tree, int offset
 			offset, 4, op_errno);
 	if (op_errno == 0)
 		proto_item_append_text(errno_item, " (More replies follow)");
-	else if (op_errno == 2 /* ENOENT */)
+	else if (op_errno == 2 /* GF_ERROR_CODE_NOENT */)
 		proto_item_append_text(errno_item, " (Last reply)");
 	offset += 4;
 
@@ -992,11 +1206,11 @@ glusterfs_gfs3_op_inodelk_call(tvbuff_t *tvb,
 
 static int
 _glusterfs_gfs_op_readdir_entry(tvbuff_t *tvb, int offset, proto_tree *tree,
-				gboolean iatt, gboolean proto_4_0, gboolean dict)
+				bool iatt, bool proto_4_0, bool dict)
 {
 	proto_item *entry_item;
 	proto_tree *entry_tree;
-	const gchar* path = NULL;
+	const char* path = NULL;
 	int start_offset = offset;
 
 	entry_tree = proto_tree_add_subtree(tree, tvb, offset, -1, ett_glusterfs_entry, &entry_item, "Entry");
@@ -1033,35 +1247,35 @@ static int
 glusterfs_gfs3_op_readdirp_entry(tvbuff_t *tvb, int offset,
 				packet_info *pinfo _U_, proto_tree *tree, void* data _U_)
 {
-	return _glusterfs_gfs_op_readdir_entry(tvb, offset, tree, TRUE, FALSE, FALSE);
+	return _glusterfs_gfs_op_readdir_entry(tvb, offset, tree, true, false, false);
 }
 
 static int
 glusterfs_gfs3_3_op_readdir_entry(tvbuff_t *tvb, int offset,
 				packet_info *pinfo _U_, proto_tree *tree, void* data _U_)
 {
-	return _glusterfs_gfs_op_readdir_entry(tvb, offset, tree, FALSE, FALSE, FALSE);
+	return _glusterfs_gfs_op_readdir_entry(tvb, offset, tree, false, false, false);
 }
 
 static int
 glusterfs_gfs3_3_op_readdirp_entry(tvbuff_t *tvb, int offset,
 				packet_info *pinfo _U_, proto_tree *tree, void* data _U_)
 {
-	return _glusterfs_gfs_op_readdir_entry(tvb, offset, tree, TRUE, FALSE, TRUE);
+	return _glusterfs_gfs_op_readdir_entry(tvb, offset, tree, true, false, true);
 }
 
 static int
 glusterfs_gfs4_0_op_readdir_entry(tvbuff_t *tvb, int offset,
 				packet_info *pinfo _U_, proto_tree *tree, void* data _U_)
 {
-	return _glusterfs_gfs_op_readdir_entry(tvb, offset, tree, FALSE, TRUE, FALSE);
+	return _glusterfs_gfs_op_readdir_entry(tvb, offset, tree, false, true, false);
 }
 
 static int
 glusterfs_gfs4_0_op_readdirp_entry(tvbuff_t *tvb, int offset,
 				packet_info *pinfo _U_, proto_tree *tree, void* data _U_)
 {
-	return _glusterfs_gfs_op_readdir_entry(tvb, offset, tree, TRUE, TRUE, TRUE);
+	return _glusterfs_gfs_op_readdir_entry(tvb, offset, tree, true, true, true);
 }
 
 /* details in xlators/storage/posix/src/posix.c:posix_fill_readdir() */
@@ -1271,7 +1485,7 @@ static int
 glusterfs_gfs3_3_op_unlink_call(tvbuff_t *tvb,
 				packet_info *pinfo _U_, proto_tree *tree, void* data _U_)
 {
-	guint xflags;
+	unsigned xflags;
 	int offset = 0;
 
 	offset = glusterfs_rpc_dissect_gfid(tree, tvb, hf_glusterfs_pargfid, offset);
@@ -1288,7 +1502,7 @@ static int
 glusterfs_gfs3_3_op_rmdir_call(tvbuff_t *tvb,
 				packet_info *pinfo _U_, proto_tree *tree, void* data _U_)
 {
-	guint xflags;
+	unsigned xflags;
 	int offset = 0;
 
 	offset = glusterfs_rpc_dissect_gfid(tree, tvb, hf_glusterfs_pargfid, offset);
@@ -1743,7 +1957,7 @@ glusterfs_gfs3_3_op_lookup_call(tvbuff_t *tvb,
 	offset = dissect_rpc_string(tvb, tree, hf_glusterfs_bname, offset, &name);
 	offset = gluster_rpc_dissect_dict(tree, tvb, hf_glusterfs_dict, offset);
 	if(length == 0)
-		col_append_fstr(pinfo->cinfo, COL_INFO, ", Filename: (nameless, by GFID)");
+		col_append_str(pinfo->cinfo, COL_INFO, ", Filename: (nameless, by GFID)");
 	else
 		col_append_fstr(pinfo->cinfo, COL_INFO, ", Filename: %s", name);
 
@@ -2224,7 +2438,7 @@ static int
 glusterfs_gfs4_0_op_unlink_call(tvbuff_t *tvb,
 				packet_info *pinfo _U_, proto_tree *tree, void* data _U_)
 {
-	guint xflags;
+	unsigned xflags;
 	int offset = 0;
 
 	offset = glusterfs_rpc_dissect_gfid(tree, tvb, hf_glusterfs_pargfid, offset);
@@ -2241,7 +2455,7 @@ static int
 glusterfs_gfs4_0_op_rmdir_call(tvbuff_t *tvb,
 				packet_info *pinfo _U_, proto_tree *tree, void* data _U_)
 {
-	guint xflags;
+	unsigned xflags;
 	int offset = 0;
 
 	offset = glusterfs_rpc_dissect_gfid(tree, tvb, hf_glusterfs_pargfid, offset);
@@ -2671,7 +2885,7 @@ glusterfs_gfs4_0_op_lookup_call(tvbuff_t *tvb,
 	offset = dissect_rpc_string(tvb, tree, hf_glusterfs_bname, offset, &name);
 	offset = gluster_rpc4_0_dissect_dict(tree, tvb, hf_glusterfs_dict, offset);
 	if(length == 0)
-		col_append_fstr(pinfo->cinfo, COL_INFO, ", Filename: (nameless, by GFID)");
+		col_append_str(pinfo->cinfo, COL_INFO, ", Filename: (nameless, by GFID)");
 	else
 		col_append_fstr(pinfo->cinfo, COL_INFO, ", Filename: %s", name);
 
@@ -3800,6 +4014,7 @@ proto_register_glusterfs(void)
 			{ "O_NOFOLLOW", "glusterfs.flags.nofollow", FT_BOOLEAN, 32,
 				TFS(&tfs_set_notset), 00400000, NULL, HFILL }
 		},
+		/* TODO: These 2 have the same mask.  Which one is correct? */
 		{ &hf_glusterfs_flags_nonblock,
 			{ "O_NONBLOCK", "glusterfs.flags.nonblock", FT_BOOLEAN, 32,
 				TFS(&tfs_set_notset), 00004000, NULL, HFILL }
@@ -3808,6 +4023,7 @@ proto_register_glusterfs(void)
 			{ "O_NDELAY", "glusterfs.flags.ndelay", FT_BOOLEAN, 32,
 				TFS(&tfs_set_notset), 00004000, NULL, HFILL }
 		},
+		/* TODO: These 2 have the same mask.  Which one is correct? */
 		{ &hf_glusterfs_flags_sync,
 			{ "O_SYNC", "glusterfs.flags.sync", FT_BOOLEAN, 32,
 				TFS(&tfs_set_notset), 00010000, NULL, HFILL }
@@ -4289,7 +4505,7 @@ proto_register_glusterfs(void)
 	};
 
 	/* Setup protocol subtree array */
-	static gint *ett[] = {
+	static int *ett[] = {
 		&ett_glusterfs,
 		&ett_glusterfs_flags,
 		&ett_glusterfs_mnt_flags,

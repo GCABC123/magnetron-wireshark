@@ -32,6 +32,7 @@ public:
     InterfaceFrame *getInterfaceFrame();
     const QString captureFilter();
     void setCaptureFilter(const QString capture_filter);
+    void updateStyleSheets();
 
 public slots:
     void interfaceSelected();
@@ -47,8 +48,6 @@ protected slots:
     void on_helpLabel_clicked();
 
 private:
-    void updateStyleSheets();
-
     Ui::WelcomePage *welcome_ui_;
     QString flavor_;
     QString show_in_str_;
@@ -59,7 +58,7 @@ private:
     QListWidget *recent_files_;
 
 signals:
-    void startCapture(QStringList);
+    void startCapture(QStringList ifaces);
     void recentFileActivated(QString cfile);
     void captureFilterSyntaxChanged(bool valid);
     void showExtcapOptions(QString &device_name, bool startCaptureOnClose);

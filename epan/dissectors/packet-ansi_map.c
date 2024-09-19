@@ -1,7 +1,7 @@
 /* Do not modify this file. Changes will be overwritten.                      */
 /* Generated automatically by the ASN.1 to Wireshark dissector compiler       */
 /* packet-ansi_map.c                                                          */
-/* asn2wrs.py -b -L -p ansi_map -c ./ansi_map.cnf -s ./packet-ansi_map-template -D . -O ../.. ansi_map.asn */
+/* asn2wrs.py -b -q -L -p ansi_map -c ./ansi_map.cnf -s ./packet-ansi_map-template -D . -O ../.. ansi_map.asn */
 
 /* packet-ansi_map.c
  * Routines for ANSI 41 Mobile Application Part (IS41 MAP) dissection
@@ -83,6 +83,9 @@
 #include <epan/tap.h>
 #include <epan/stat_tap_ui.h>
 #include <epan/asn1.h>
+#include <epan/tfs.h>
+
+#include <wsutil/array.h>
 
 #include "packet-ber.h"
 #include "packet-ansi_map.h"
@@ -105,1026 +108,1026 @@ static range_t *global_ssn_range;
 #define ANSI_MAP_TID_ONLY            0
 #define ANSI_MAP_TID_AND_SOURCE      1
 #define ANSI_MAP_TID_SOURCE_AND_DEST 2
-static gint ansi_map_response_matching_type = ANSI_MAP_TID_AND_SOURCE;
+static int ansi_map_response_matching_type = ANSI_MAP_TID_AND_SOURCE;
 
-static dissector_handle_t ansi_map_handle=NULL;
+static dissector_handle_t ansi_map_handle;
 
 /* Initialize the protocol and registered fields */
-static int ansi_map_tap = -1;
-static int proto_ansi_map = -1;
+static int ansi_map_tap;
+static int proto_ansi_map;
 
 #if 0
-static int hf_ansi_map_op_code_fam = -1;
-static int hf_ansi_map_op_code = -1;
+static int hf_ansi_map_op_code_fam;
+static int hf_ansi_map_op_code;
 #endif
 
-static int hf_ansi_map_reservedBitH = -1;
-static int hf_ansi_map_reservedBitHG = -1;
-static int hf_ansi_map_reservedBitHGFE = -1;
-static int hf_ansi_map_reservedBitFED = -1;
-static int hf_ansi_map_reservedBitD = -1;
-static int hf_ansi_map_reservedBitED = -1;
+static int hf_ansi_map_reservedBitH;
+static int hf_ansi_map_reservedBitHG;
+static int hf_ansi_map_reservedBitHGFE;
+static int hf_ansi_map_reservedBitFED;
+static int hf_ansi_map_reservedBitD;
+static int hf_ansi_map_reservedBitED;
 
-static int hf_ansi_map_type_of_digits = -1;
-static int hf_ansi_map_na = -1;
-static int hf_ansi_map_pi = -1;
-static int hf_ansi_map_navail = -1;
-static int hf_ansi_map_si = -1;
-static int hf_ansi_map_digits_enc = -1;
-static int hf_ansi_map_np = -1;
-static int hf_ansi_map_nr_digits = -1;
-static int hf_ansi_map_bcd_digits = -1;
-static int hf_ansi_map_ia5_digits = -1;
-static int hf_ansi_map_subaddr_type = -1;
-static int hf_ansi_map_subaddr_odd_even = -1;
-static int hf_ansi_alertcode_cadence = -1;
-static int hf_ansi_alertcode_pitch = -1;
-static int hf_ansi_alertcode_alertaction = -1;
-static int hf_ansi_map_announcementcode_tone = -1;
-static int hf_ansi_map_announcementcode_class = -1;
-static int hf_ansi_map_announcementcode_std_ann = -1;
-static int hf_ansi_map_announcementcode_cust_ann = -1;
-static int hf_ansi_map_authorizationperiod_period = -1;
-static int hf_ansi_map_value = -1;
-static int hf_ansi_map_msc_type = -1;
-static int hf_ansi_map_handoffstate_pi = -1;
-static int hf_ansi_map_tgn = -1;
-static int hf_ansi_map_tmn = -1;
-static int hf_ansi_map_messagewaitingnotificationcount_tom = -1;
-static int hf_ansi_map_messagewaitingnotificationcount_no_mw = -1;
-static int hf_ansi_map_messagewaitingnotificationtype_mwi = -1;
-static int hf_ansi_map_messagewaitingnotificationtype_apt = -1;
-static int hf_ansi_map_messagewaitingnotificationtype_pt = -1;
+static int hf_ansi_map_type_of_digits;
+static int hf_ansi_map_na;
+static int hf_ansi_map_pi;
+static int hf_ansi_map_navail;
+static int hf_ansi_map_si;
+static int hf_ansi_map_digits_enc;
+static int hf_ansi_map_np;
+static int hf_ansi_map_nr_digits;
+static int hf_ansi_map_bcd_digits;
+static int hf_ansi_map_ia5_digits;
+static int hf_ansi_map_subaddr_type;
+static int hf_ansi_map_subaddr_odd_even;
+static int hf_ansi_alertcode_cadence;
+static int hf_ansi_alertcode_pitch;
+static int hf_ansi_alertcode_alertaction;
+static int hf_ansi_map_announcementcode_tone;
+static int hf_ansi_map_announcementcode_class;
+static int hf_ansi_map_announcementcode_std_ann;
+static int hf_ansi_map_announcementcode_cust_ann;
+static int hf_ansi_map_authorizationperiod_period;
+static int hf_ansi_map_value;
+static int hf_ansi_map_msc_type;
+static int hf_ansi_map_handoffstate_pi;
+static int hf_ansi_map_tgn;
+static int hf_ansi_map_tmn;
+static int hf_ansi_map_messagewaitingnotificationcount_tom;
+static int hf_ansi_map_messagewaitingnotificationcount_no_mw;
+static int hf_ansi_map_messagewaitingnotificationtype_mwi;
+static int hf_ansi_map_messagewaitingnotificationtype_apt;
+static int hf_ansi_map_messagewaitingnotificationtype_pt;
 
-static int hf_ansi_map_trans_cap_prof = -1;
-static int hf_ansi_map_trans_cap_busy = -1;
-static int hf_ansi_map_trans_cap_ann = -1;
-static int hf_ansi_map_trans_cap_rui = -1;
-static int hf_ansi_map_trans_cap_spini = -1;
-static int hf_ansi_map_trans_cap_uzci = -1;
-static int hf_ansi_map_trans_cap_ndss = -1;
-static int hf_ansi_map_trans_cap_nami = -1;
-static int hf_ansi_trans_cap_multerm = -1;
-static int hf_ansi_map_terminationtriggers_busy = -1;
-static int hf_ansi_map_terminationtriggers_rf = -1;
-static int hf_ansi_map_terminationtriggers_npr = -1;
-static int hf_ansi_map_terminationtriggers_na = -1;
-static int hf_ansi_map_terminationtriggers_nr = -1;
-static int hf_ansi_trans_cap_tl = -1;
-static int hf_ansi_map_cdmaserviceoption = -1;
-static int hf_ansi_trans_cap_waddr = -1;
-static int hf_ansi_map_MarketID = -1;
-static int hf_ansi_map_swno = -1;
-static int hf_ansi_map_idno = -1;
-static int hf_ansi_map_segcount = -1;
-static int hf_ansi_map_sms_originationrestrictions_fmc = -1;
-static int hf_ansi_map_sms_originationrestrictions_direct = -1;
-static int hf_ansi_map_sms_originationrestrictions_default = -1;
-static int hf_ansi_map_systemcapabilities_auth = -1;
-static int hf_ansi_map_systemcapabilities_se = -1;
-static int hf_ansi_map_systemcapabilities_vp = -1;
-static int hf_ansi_map_systemcapabilities_cave = -1;
-static int hf_ansi_map_systemcapabilities_ssd = -1;
-static int hf_ansi_map_systemcapabilities_dp = -1;
+static int hf_ansi_map_trans_cap_prof;
+static int hf_ansi_map_trans_cap_busy;
+static int hf_ansi_map_trans_cap_ann;
+static int hf_ansi_map_trans_cap_rui;
+static int hf_ansi_map_trans_cap_spini;
+static int hf_ansi_map_trans_cap_uzci;
+static int hf_ansi_map_trans_cap_ndss;
+static int hf_ansi_map_trans_cap_nami;
+static int hf_ansi_trans_cap_multerm;
+static int hf_ansi_map_terminationtriggers_busy;
+static int hf_ansi_map_terminationtriggers_rf;
+static int hf_ansi_map_terminationtriggers_npr;
+static int hf_ansi_map_terminationtriggers_na;
+static int hf_ansi_map_terminationtriggers_nr;
+static int hf_ansi_trans_cap_tl;
+static int hf_ansi_map_cdmaserviceoption;
+static int hf_ansi_trans_cap_waddr;
+static int hf_ansi_map_MarketID;
+static int hf_ansi_map_swno;
+static int hf_ansi_map_idno;
+static int hf_ansi_map_segcount;
+static int hf_ansi_map_sms_originationrestrictions_fmc;
+static int hf_ansi_map_sms_originationrestrictions_direct;
+static int hf_ansi_map_sms_originationrestrictions_default;
+static int hf_ansi_map_systemcapabilities_auth;
+static int hf_ansi_map_systemcapabilities_se;
+static int hf_ansi_map_systemcapabilities_vp;
+static int hf_ansi_map_systemcapabilities_cave;
+static int hf_ansi_map_systemcapabilities_ssd;
+static int hf_ansi_map_systemcapabilities_dp;
 
-static int hf_ansi_map_mslocation_lat = -1;
-static int hf_ansi_map_mslocation_long = -1;
-static int hf_ansi_map_mslocation_res = -1;
-static int hf_ansi_map_nampscallmode_namps = -1;
-static int hf_ansi_map_nampscallmode_amps = -1;
-static int hf_ansi_map_nampschanneldata_navca = -1;
-static int hf_ansi_map_nampschanneldata_CCIndicator = -1;
+static int hf_ansi_map_mslocation_lat;
+static int hf_ansi_map_mslocation_long;
+static int hf_ansi_map_mslocation_res;
+static int hf_ansi_map_nampscallmode_namps;
+static int hf_ansi_map_nampscallmode_amps;
+static int hf_ansi_map_nampschanneldata_navca;
+static int hf_ansi_map_nampschanneldata_CCIndicator;
 
-static int hf_ansi_map_callingfeaturesindicator_cfufa = -1;
-static int hf_ansi_map_callingfeaturesindicator_cfbfa = -1;
-static int hf_ansi_map_callingfeaturesindicator_cfnafa = -1;
-static int hf_ansi_map_callingfeaturesindicator_cwfa = -1;
-static int hf_ansi_map_callingfeaturesindicator_3wcfa = -1;
-static int hf_ansi_map_callingfeaturesindicator_pcwfa =-1;
-static int hf_ansi_map_callingfeaturesindicator_dpfa = -1;
-static int hf_ansi_map_callingfeaturesindicator_ahfa = -1;
-static int hf_ansi_map_callingfeaturesindicator_uscfvmfa = -1;
-static int hf_ansi_map_callingfeaturesindicator_uscfmsfa = -1;
-static int hf_ansi_map_callingfeaturesindicator_uscfnrfa = -1;
-static int hf_ansi_map_callingfeaturesindicator_cpdsfa = -1;
-static int hf_ansi_map_callingfeaturesindicator_ccsfa = -1;
-static int hf_ansi_map_callingfeaturesindicator_epefa = -1;
-static int hf_ansi_map_callingfeaturesindicator_cdfa = -1;
-static int hf_ansi_map_callingfeaturesindicator_vpfa = -1;
-static int hf_ansi_map_callingfeaturesindicator_ctfa = -1;
-static int hf_ansi_map_callingfeaturesindicator_cnip1fa = -1;
-static int hf_ansi_map_callingfeaturesindicator_cnip2fa = -1;
-static int hf_ansi_map_callingfeaturesindicator_cnirfa = -1;
-static int hf_ansi_map_callingfeaturesindicator_cniroverfa = -1;
-static int hf_ansi_map_cdmacallmode_cdma = -1;
-static int hf_ansi_map_cdmacallmode_amps = -1;
-static int hf_ansi_map_cdmacallmode_namps = -1;
-static int hf_ansi_map_cdmacallmode_cls1 = -1;
-static int hf_ansi_map_cdmacallmode_cls2 = -1;
-static int hf_ansi_map_cdmacallmode_cls3 = -1;
-static int hf_ansi_map_cdmacallmode_cls4 = -1;
-static int hf_ansi_map_cdmacallmode_cls5 = -1;
-static int hf_ansi_map_cdmacallmode_cls6 = -1;
-static int hf_ansi_map_cdmacallmode_cls7 = -1;
-static int hf_ansi_map_cdmacallmode_cls8 = -1;
-static int hf_ansi_map_cdmacallmode_cls9 = -1;
-static int hf_ansi_map_cdmacallmode_cls10 = -1;
-static int hf_ansi_map_cdmachanneldata_Frame_Offset = -1;
-static int hf_ansi_map_cdmachanneldata_CDMA_ch_no = -1;
-static int hf_ansi_map_cdmachanneldata_band_cls = -1;
-static int hf_ansi_map_cdmachanneldata_lc_mask_b6 = -1;
-static int hf_ansi_map_cdmachanneldata_lc_mask_b5 = -1;
-static int hf_ansi_map_cdmachanneldata_lc_mask_b4 = -1;
-static int hf_ansi_map_cdmachanneldata_lc_mask_b3 = -1;
-static int hf_ansi_map_cdmachanneldata_lc_mask_b2 = -1;
-static int hf_ansi_map_cdmachanneldata_lc_mask_b1 = -1;
-static int hf_ansi_map_cdmachanneldata_np_ext = -1;
-static int hf_ansi_map_cdmachanneldata_nominal_pwr = -1;
-static int hf_ansi_map_cdmachanneldata_nr_preamble = -1;
+static int hf_ansi_map_callingfeaturesindicator_cfufa;
+static int hf_ansi_map_callingfeaturesindicator_cfbfa;
+static int hf_ansi_map_callingfeaturesindicator_cfnafa;
+static int hf_ansi_map_callingfeaturesindicator_cwfa;
+static int hf_ansi_map_callingfeaturesindicator_3wcfa;
+static int hf_ansi_map_callingfeaturesindicator_pcwfa;
+static int hf_ansi_map_callingfeaturesindicator_dpfa;
+static int hf_ansi_map_callingfeaturesindicator_ahfa;
+static int hf_ansi_map_callingfeaturesindicator_uscfvmfa;
+static int hf_ansi_map_callingfeaturesindicator_uscfmsfa;
+static int hf_ansi_map_callingfeaturesindicator_uscfnrfa;
+static int hf_ansi_map_callingfeaturesindicator_cpdsfa;
+static int hf_ansi_map_callingfeaturesindicator_ccsfa;
+static int hf_ansi_map_callingfeaturesindicator_epefa;
+static int hf_ansi_map_callingfeaturesindicator_cdfa;
+static int hf_ansi_map_callingfeaturesindicator_vpfa;
+static int hf_ansi_map_callingfeaturesindicator_ctfa;
+static int hf_ansi_map_callingfeaturesindicator_cnip1fa;
+static int hf_ansi_map_callingfeaturesindicator_cnip2fa;
+static int hf_ansi_map_callingfeaturesindicator_cnirfa;
+static int hf_ansi_map_callingfeaturesindicator_cniroverfa;
+static int hf_ansi_map_cdmacallmode_cdma;
+static int hf_ansi_map_cdmacallmode_amps;
+static int hf_ansi_map_cdmacallmode_namps;
+static int hf_ansi_map_cdmacallmode_cls1;
+static int hf_ansi_map_cdmacallmode_cls2;
+static int hf_ansi_map_cdmacallmode_cls3;
+static int hf_ansi_map_cdmacallmode_cls4;
+static int hf_ansi_map_cdmacallmode_cls5;
+static int hf_ansi_map_cdmacallmode_cls6;
+static int hf_ansi_map_cdmacallmode_cls7;
+static int hf_ansi_map_cdmacallmode_cls8;
+static int hf_ansi_map_cdmacallmode_cls9;
+static int hf_ansi_map_cdmacallmode_cls10;
+static int hf_ansi_map_cdmachanneldata_Frame_Offset;
+static int hf_ansi_map_cdmachanneldata_CDMA_ch_no;
+static int hf_ansi_map_cdmachanneldata_band_cls;
+static int hf_ansi_map_cdmachanneldata_lc_mask_b6;
+static int hf_ansi_map_cdmachanneldata_lc_mask_b5;
+static int hf_ansi_map_cdmachanneldata_lc_mask_b4;
+static int hf_ansi_map_cdmachanneldata_lc_mask_b3;
+static int hf_ansi_map_cdmachanneldata_lc_mask_b2;
+static int hf_ansi_map_cdmachanneldata_lc_mask_b1;
+static int hf_ansi_map_cdmachanneldata_np_ext;
+static int hf_ansi_map_cdmachanneldata_nominal_pwr;
+static int hf_ansi_map_cdmachanneldata_nr_preamble;
 
-static int hf_ansi_map_cdmastationclassmark_pc = -1;
-static int hf_ansi_map_cdmastationclassmark_dtx = -1;
-static int hf_ansi_map_cdmastationclassmark_smi = -1;
-static int hf_ansi_map_cdmastationclassmark_dmi = -1;
-static int hf_ansi_map_channeldata_vmac = -1;
-static int hf_ansi_map_channeldata_dtx = -1;
-static int hf_ansi_map_channeldata_scc = -1;
-static int hf_ansi_map_channeldata_chno = -1;
-static int hf_ansi_map_ConfidentialityModes_vp = -1;
-static int hf_ansi_map_controlchanneldata_dcc = -1;
-static int hf_ansi_map_controlchanneldata_cmac = -1;
-static int hf_ansi_map_controlchanneldata_chno = -1;
-static int hf_ansi_map_controlchanneldata_sdcc1 = -1;
-static int hf_ansi_map_controlchanneldata_sdcc2 = -1;
-static int hf_ansi_map_ConfidentialityModes_se = -1;
-static int hf_ansi_map_deniedauthorizationperiod_period = -1;
-static int hf_ansi_map_ConfidentialityModes_dp = -1;
+static int hf_ansi_map_cdmastationclassmark_pc;
+static int hf_ansi_map_cdmastationclassmark_dtx;
+static int hf_ansi_map_cdmastationclassmark_smi;
+static int hf_ansi_map_cdmastationclassmark_dmi;
+static int hf_ansi_map_channeldata_vmac;
+static int hf_ansi_map_channeldata_dtx;
+static int hf_ansi_map_channeldata_scc;
+static int hf_ansi_map_channeldata_chno;
+static int hf_ansi_map_ConfidentialityModes_vp;
+static int hf_ansi_map_controlchanneldata_dcc;
+static int hf_ansi_map_controlchanneldata_cmac;
+static int hf_ansi_map_controlchanneldata_chno;
+static int hf_ansi_map_controlchanneldata_sdcc1;
+static int hf_ansi_map_controlchanneldata_sdcc2;
+static int hf_ansi_map_ConfidentialityModes_se;
+static int hf_ansi_map_deniedauthorizationperiod_period;
+static int hf_ansi_map_ConfidentialityModes_dp;
 
-static int hf_ansi_map_originationtriggers_all = -1;
-static int hf_ansi_map_originationtriggers_local = -1;
-static int hf_ansi_map_originationtriggers_ilata = -1;
-static int hf_ansi_map_originationtriggers_olata = -1;
-static int hf_ansi_map_originationtriggers_int = -1;
-static int hf_ansi_map_originationtriggers_wz = -1;
-static int hf_ansi_map_originationtriggers_unrec = -1;
-static int hf_ansi_map_originationtriggers_rvtc = -1;
-static int hf_ansi_map_originationtriggers_star = -1;
-static int hf_ansi_map_originationtriggers_ds = -1;
-static int hf_ansi_map_originationtriggers_pound = -1;
-static int hf_ansi_map_originationtriggers_dp = -1;
-static int hf_ansi_map_originationtriggers_pa = -1;
-static int hf_ansi_map_originationtriggers_nodig = -1;
-static int hf_ansi_map_originationtriggers_onedig = -1;
-static int hf_ansi_map_originationtriggers_twodig = -1;
-static int hf_ansi_map_originationtriggers_threedig = -1;
-static int hf_ansi_map_originationtriggers_fourdig = -1;
-static int hf_ansi_map_originationtriggers_fivedig = -1;
-static int hf_ansi_map_originationtriggers_sixdig = -1;
-static int hf_ansi_map_originationtriggers_sevendig = -1;
-static int hf_ansi_map_originationtriggers_eightdig = -1;
-static int hf_ansi_map_originationtriggers_ninedig = -1;
-static int hf_ansi_map_originationtriggers_tendig = -1;
-static int hf_ansi_map_originationtriggers_elevendig = -1;
-static int hf_ansi_map_originationtriggers_twelvedig = -1;
-static int hf_ansi_map_originationtriggers_thirteendig = -1;
-static int hf_ansi_map_originationtriggers_fourteendig = -1;
-static int hf_ansi_map_originationtriggers_fifteendig = -1;
-static int hf_ansi_map_triggercapability_init = -1;
-static int hf_ansi_map_triggercapability_kdigit = -1;
-static int hf_ansi_map_triggercapability_all = -1;
-static int hf_ansi_map_triggercapability_rvtc = -1;
-static int hf_ansi_map_triggercapability_oaa = -1;
-static int hf_ansi_map_triggercapability_oans = -1;
-static int hf_ansi_map_triggercapability_odisc = -1;
-static int hf_ansi_map_triggercapability_ona = -1;
-static int hf_ansi_map_triggercapability_ct = -1;
-static int hf_ansi_map_triggercapability_unrec =-1;
-static int hf_ansi_map_triggercapability_pa = -1;
-static int hf_ansi_map_triggercapability_at = -1;
-static int hf_ansi_map_triggercapability_cgraa = -1;
-static int hf_ansi_map_triggercapability_it = -1;
-static int hf_ansi_map_triggercapability_cdraa = -1;
-static int hf_ansi_map_triggercapability_obsy = -1;
-static int hf_ansi_map_triggercapability_tra = -1;
-static int hf_ansi_map_triggercapability_tbusy = -1;
-static int hf_ansi_map_triggercapability_tna = -1;
-static int hf_ansi_map_triggercapability_tans = -1;
-static int hf_ansi_map_triggercapability_tdisc = -1;
-static int hf_ansi_map_winoperationscapability_conn = -1;
-static int hf_ansi_map_winoperationscapability_ccdir = -1;
-static int hf_ansi_map_winoperationscapability_pos = -1;
-static int hf_ansi_map_PACA_Level = -1;
-static int hf_ansi_map_pacaindicator_pa = -1;
+static int hf_ansi_map_originationtriggers_all;
+static int hf_ansi_map_originationtriggers_local;
+static int hf_ansi_map_originationtriggers_ilata;
+static int hf_ansi_map_originationtriggers_olata;
+static int hf_ansi_map_originationtriggers_int;
+static int hf_ansi_map_originationtriggers_wz;
+static int hf_ansi_map_originationtriggers_unrec;
+static int hf_ansi_map_originationtriggers_rvtc;
+static int hf_ansi_map_originationtriggers_star;
+static int hf_ansi_map_originationtriggers_ds;
+static int hf_ansi_map_originationtriggers_pound;
+static int hf_ansi_map_originationtriggers_dp;
+static int hf_ansi_map_originationtriggers_pa;
+static int hf_ansi_map_originationtriggers_nodig;
+static int hf_ansi_map_originationtriggers_onedig;
+static int hf_ansi_map_originationtriggers_twodig;
+static int hf_ansi_map_originationtriggers_threedig;
+static int hf_ansi_map_originationtriggers_fourdig;
+static int hf_ansi_map_originationtriggers_fivedig;
+static int hf_ansi_map_originationtriggers_sixdig;
+static int hf_ansi_map_originationtriggers_sevendig;
+static int hf_ansi_map_originationtriggers_eightdig;
+static int hf_ansi_map_originationtriggers_ninedig;
+static int hf_ansi_map_originationtriggers_tendig;
+static int hf_ansi_map_originationtriggers_elevendig;
+static int hf_ansi_map_originationtriggers_twelvedig;
+static int hf_ansi_map_originationtriggers_thirteendig;
+static int hf_ansi_map_originationtriggers_fourteendig;
+static int hf_ansi_map_originationtriggers_fifteendig;
+static int hf_ansi_map_triggercapability_init;
+static int hf_ansi_map_triggercapability_kdigit;
+static int hf_ansi_map_triggercapability_all;
+static int hf_ansi_map_triggercapability_rvtc;
+static int hf_ansi_map_triggercapability_oaa;
+static int hf_ansi_map_triggercapability_oans;
+static int hf_ansi_map_triggercapability_odisc;
+static int hf_ansi_map_triggercapability_ona;
+static int hf_ansi_map_triggercapability_ct;
+static int hf_ansi_map_triggercapability_unrec;
+static int hf_ansi_map_triggercapability_pa;
+static int hf_ansi_map_triggercapability_at;
+static int hf_ansi_map_triggercapability_cgraa;
+static int hf_ansi_map_triggercapability_it;
+static int hf_ansi_map_triggercapability_cdraa;
+static int hf_ansi_map_triggercapability_obsy;
+static int hf_ansi_map_triggercapability_tra;
+static int hf_ansi_map_triggercapability_tbusy;
+static int hf_ansi_map_triggercapability_tna;
+static int hf_ansi_map_triggercapability_tans;
+static int hf_ansi_map_triggercapability_tdisc;
+static int hf_ansi_map_winoperationscapability_conn;
+static int hf_ansi_map_winoperationscapability_ccdir;
+static int hf_ansi_map_winoperationscapability_pos;
+static int hf_ansi_map_PACA_Level;
+static int hf_ansi_map_pacaindicator_pa;
 
-static int hf_ansi_map_point_code = -1;
-static int hf_ansi_map_SSN = -1;
-static int hf_ansi_map_win_trigger_list = -1;
+static int hf_ansi_map_point_code;
+static int hf_ansi_map_SSN;
+static int hf_ansi_map_win_trigger_list;
 
-static int hf_ansi_map_electronicSerialNumber = -1;  /* ElectronicSerialNumber */
-static int hf_ansi_map_msid = -1;                 /* MSID */
-static int hf_ansi_map_authenticationAlgorithmVersion = -1;  /* AuthenticationAlgorithmVersion */
-static int hf_ansi_map_authenticationResponseReauthentication = -1;  /* AuthenticationResponseReauthentication */
-static int hf_ansi_map_authenticationResponseUniqueChallenge = -1;  /* AuthenticationResponseUniqueChallenge */
-static int hf_ansi_map_callHistoryCount = -1;     /* CallHistoryCount */
-static int hf_ansi_map_cdmaPrivateLongCodeMask = -1;  /* CDMAPrivateLongCodeMask */
-static int hf_ansi_map_carrierDigits = -1;        /* CarrierDigits */
-static int hf_ansi_map_caveKey = -1;              /* CaveKey */
-static int hf_ansi_map_denyAccess = -1;           /* DenyAccess */
-static int hf_ansi_map_destinationDigits = -1;    /* DestinationDigits */
-static int hf_ansi_map_locationAreaID = -1;       /* LocationAreaID */
-static int hf_ansi_map_randomVariableReauthentication = -1;  /* RandomVariableReauthentication */
-static int hf_ansi_map_meid = -1;                 /* MEID */
-static int hf_ansi_map_mobileStationMIN = -1;     /* MobileStationMIN */
-static int hf_ansi_map_mscid = -1;                /* MSCID */
-static int hf_ansi_map_randomVariableSSD = -1;    /* RandomVariableSSD */
-static int hf_ansi_map_randomVariableUniqueChallenge = -1;  /* RandomVariableUniqueChallenge */
-static int hf_ansi_map_routingDigits = -1;        /* RoutingDigits */
-static int hf_ansi_map_senderIdentificationNumber = -1;  /* SenderIdentificationNumber */
-static int hf_ansi_map_sharedSecretData = -1;     /* SharedSecretData */
-static int hf_ansi_map_signalingMessageEncryptionKey = -1;  /* SignalingMessageEncryptionKey */
-static int hf_ansi_map_ssdnotShared = -1;         /* SSDNotShared */
-static int hf_ansi_map_updateCount = -1;          /* UpdateCount */
-static int hf_ansi_map_interMSCCircuitID = -1;    /* InterMSCCircuitID */
-static int hf_ansi_map_mobileIdentificationNumber = -1;  /* MobileIdentificationNumber */
-static int hf_ansi_map_countUpdateReport = -1;    /* CountUpdateReport */
-static int hf_ansi_map_uniqueChallengeReport = -1;  /* UniqueChallengeReport */
-static int hf_ansi_map_reportType = -1;           /* ReportType */
-static int hf_ansi_map_systemAccessType = -1;     /* SystemAccessType */
-static int hf_ansi_map_systemCapabilities = -1;   /* SystemCapabilities */
-static int hf_ansi_map_callHistoryCountExpected = -1;  /* CallHistoryCountExpected */
-static int hf_ansi_map_reportType2 = -1;          /* ReportType */
-static int hf_ansi_map_terminalType = -1;         /* TerminalType */
-static int hf_ansi_map_authenticationData = -1;   /* AuthenticationData */
-static int hf_ansi_map_authenticationResponse = -1;  /* AuthenticationResponse */
-static int hf_ansi_map_cdmaNetworkIdentification = -1;  /* CDMANetworkIdentification */
-static int hf_ansi_map_confidentialityModes = -1;  /* ConfidentialityModes */
-static int hf_ansi_map_controlChannelMode = -1;   /* ControlChannelMode */
-static int hf_ansi_map_digits = -1;               /* Digits */
-static int hf_ansi_map_pc_ssn = -1;               /* PC_SSN */
-static int hf_ansi_map_randomVariable = -1;       /* RandomVariable */
-static int hf_ansi_map_serviceRedirectionCause = -1;  /* ServiceRedirectionCause */
-static int hf_ansi_map_suspiciousAccess = -1;     /* SuspiciousAccess */
-static int hf_ansi_map_transactionCapability = -1;  /* TransactionCapability */
-static int hf_ansi_map_analogRedirectRecord = -1;  /* AnalogRedirectRecord */
-static int hf_ansi_map_cdmaRedirectRecord = -1;   /* CDMARedirectRecord */
-static int hf_ansi_map_dataKey = -1;              /* DataKey */
-static int hf_ansi_map_roamingIndication = -1;    /* RoamingIndication */
-static int hf_ansi_map_serviceRedirectionInfo = -1;  /* ServiceRedirectionInfo */
-static int hf_ansi_map_voicePrivacyMask = -1;     /* VoicePrivacyMask */
-static int hf_ansi_map_reauthenticationReport = -1;  /* ReauthenticationReport */
-static int hf_ansi_map_serviceIndicator = -1;     /* ServiceIndicator */
-static int hf_ansi_map_signalingMessageEncryptionReport = -1;  /* SignalingMessageEncryptionReport */
-static int hf_ansi_map_ssdUpdateReport = -1;      /* SSDUpdateReport */
-static int hf_ansi_map_voicePrivacyReport = -1;   /* VoicePrivacyReport */
-static int hf_ansi_map_randomVariableBaseStation = -1;  /* RandomVariableBaseStation */
-static int hf_ansi_map_authenticationResponseBaseStation = -1;  /* AuthenticationResponseBaseStation */
-static int hf_ansi_map_billingID = -1;            /* BillingID */
-static int hf_ansi_map_channelData = -1;          /* ChannelData */
-static int hf_ansi_map_interSwitchCount = -1;     /* InterSwitchCount */
-static int hf_ansi_map_servingCellID = -1;        /* ServingCellID */
-static int hf_ansi_map_stationClassMark = -1;     /* StationClassMark */
-static int hf_ansi_map_targetCellID = -1;         /* TargetCellID */
-static int hf_ansi_map_handoffReason = -1;        /* HandoffReason */
-static int hf_ansi_map_handoffState = -1;         /* HandoffState */
-static int hf_ansi_map_tdmaBurstIndicator = -1;   /* TDMABurstIndicator */
-static int hf_ansi_map_tdmaCallMode = -1;         /* TDMACallMode */
-static int hf_ansi_map_tdmaChannelData = -1;      /* TDMAChannelData */
-static int hf_ansi_map_baseStationManufacturerCode = -1;  /* BaseStationManufacturerCode */
-static int hf_ansi_map_alertCode = -1;            /* AlertCode */
-static int hf_ansi_map_cdma2000HandoffInvokeIOSData = -1;  /* CDMA2000HandoffInvokeIOSData */
-static int hf_ansi_map_cdmaBandClassList = -1;    /* CDMABandClassList */
-static int hf_ansi_map_cdmaCallMode = -1;         /* CDMACallMode */
-static int hf_ansi_map_cdmaChannelData = -1;      /* CDMAChannelData */
-static int hf_ansi_map_cdmaConnectionReferenceList = -1;  /* CDMAConnectionReferenceList */
-static int hf_ansi_map_cdmaMobileProtocolRevision = -1;  /* CDMAMobileProtocolRevision */
-static int hf_ansi_map_cdmaMSMeasuredChannelIdentity = -1;  /* CDMAMSMeasuredChannelIdentity */
-static int hf_ansi_map_cdmaServiceConfigurationRecord = -1;  /* CDMAServiceConfigurationRecord */
-static int hf_ansi_map_cdmaServiceOptionList = -1;  /* CDMAServiceOptionList */
-static int hf_ansi_map_cdmaServingOneWayDelay = -1;  /* CDMAServingOneWayDelay */
-static int hf_ansi_map_cdmaStationClassMark = -1;  /* CDMAStationClassMark */
-static int hf_ansi_map_cdmaStationClassMark2 = -1;  /* CDMAStationClassMark2 */
-static int hf_ansi_map_cdmaTargetMAHOList = -1;   /* CDMATargetMAHOList */
-static int hf_ansi_map_cdmaTargetMeasurementList = -1;  /* CDMATargetMeasurementList */
-static int hf_ansi_map_dataPrivacyParameters = -1;  /* DataPrivacyParameters */
-static int hf_ansi_map_ilspInformation = -1;      /* ISLPInformation */
-static int hf_ansi_map_msLocation = -1;           /* MSLocation */
-static int hf_ansi_map_nampsCallMode = -1;        /* NAMPSCallMode */
-static int hf_ansi_map_nampsChannelData = -1;     /* NAMPSChannelData */
-static int hf_ansi_map_nonPublicData = -1;        /* NonPublicData */
-static int hf_ansi_map_pdsnAddress = -1;          /* PDSNAddress */
-static int hf_ansi_map_pdsnProtocolType = -1;     /* PDSNProtocolType */
-static int hf_ansi_map_qosPriority = -1;          /* QoSPriority */
-static int hf_ansi_map_systemOperatorCode = -1;   /* SystemOperatorCode */
-static int hf_ansi_map_tdmaBandwidth = -1;        /* TDMABandwidth */
-static int hf_ansi_map_tdmaServiceCode = -1;      /* TDMAServiceCode */
-static int hf_ansi_map_tdmaTerminalCapability = -1;  /* TDMATerminalCapability */
-static int hf_ansi_map_tdmaVoiceCoder = -1;       /* TDMAVoiceCoder */
-static int hf_ansi_map_userZoneData = -1;         /* UserZoneData */
-static int hf_ansi_map_bsmcstatus = -1;           /* BSMCStatus */
-static int hf_ansi_map_cdma2000HandoffResponseIOSData = -1;  /* CDMA2000HandoffResponseIOSData */
-static int hf_ansi_map_cdmaCodeChannelList = -1;  /* CDMACodeChannelList */
-static int hf_ansi_map_cdmaSearchParameters = -1;  /* CDMASearchParameters */
-static int hf_ansi_map_cdmaSearchWindow = -1;     /* CDMASearchWindow */
-static int hf_ansi_map_sOCStatus = -1;            /* SOCStatus */
-static int hf_ansi_map_releaseReason = -1;        /* ReleaseReason */
-static int hf_ansi_map_acgencountered = -1;       /* ACGEncountered */
-static int hf_ansi_map_callingPartyName = -1;     /* CallingPartyName */
-static int hf_ansi_map_callingPartyNumberDigits1 = -1;  /* CallingPartyNumberDigits1 */
-static int hf_ansi_map_callingPartyNumberDigits2 = -1;  /* CallingPartyNumberDigits2 */
-static int hf_ansi_map_callingPartySubaddress = -1;  /* CallingPartySubaddress */
-static int hf_ansi_map_conferenceCallingIndicator = -1;  /* ConferenceCallingIndicator */
-static int hf_ansi_map_mobileDirectoryNumber = -1;  /* MobileDirectoryNumber */
-static int hf_ansi_map_mSCIdentificationNumber = -1;  /* MSCIdentificationNumber */
-static int hf_ansi_map_oneTimeFeatureIndicator = -1;  /* OneTimeFeatureIndicator */
-static int hf_ansi_map_systemMyTypeCode = -1;     /* SystemMyTypeCode */
-static int hf_ansi_map_featureResult = -1;        /* FeatureResult */
-static int hf_ansi_map_accessDeniedReason = -1;   /* AccessDeniedReason */
-static int hf_ansi_map_actionCode = -1;           /* ActionCode */
-static int hf_ansi_map_announcementList = -1;     /* AnnouncementList */
-static int hf_ansi_map_callingPartyNumberString1 = -1;  /* CallingPartyNumberString1 */
-static int hf_ansi_map_callingPartyNumberString2 = -1;  /* CallingPartyNumberString2 */
-static int hf_ansi_map_digits_Destination = -1;   /* Digits */
-static int hf_ansi_map_displayText = -1;          /* DisplayText */
-static int hf_ansi_map_displayText2 = -1;         /* DisplayText2 */
-static int hf_ansi_map_dmh_AccountCodeDigits = -1;  /* DMH_AccountCodeDigits */
-static int hf_ansi_map_dmh_AlternateBillingDigits = -1;  /* DMH_AlternateBillingDigits */
-static int hf_ansi_map_dmh_BillingDigits = -1;    /* DMH_BillingDigits */
-static int hf_ansi_map_dmh_RedirectionIndicator = -1;  /* DMH_RedirectionIndicator */
-static int hf_ansi_map_groupInformation = -1;     /* GroupInformation */
-static int hf_ansi_map_noAnswerTime = -1;         /* NoAnswerTime */
-static int hf_ansi_map_pACAIndicator = -1;        /* PACAIndicator */
-static int hf_ansi_map_pilotNumber = -1;          /* PilotNumber */
-static int hf_ansi_map_preferredLanguageIndicator = -1;  /* PreferredLanguageIndicator */
-static int hf_ansi_map_redirectingNumberDigits = -1;  /* RedirectingNumberDigits */
-static int hf_ansi_map_redirectingNumberString = -1;  /* RedirectingNumberString */
-static int hf_ansi_map_redirectingSubaddress = -1;  /* RedirectingSubaddress */
-static int hf_ansi_map_resumePIC = -1;            /* ResumePIC */
-static int hf_ansi_map_terminationList = -1;      /* TerminationList */
-static int hf_ansi_map_terminationTriggers = -1;  /* TerminationTriggers */
-static int hf_ansi_map_triggerAddressList = -1;   /* TriggerAddressList */
-static int hf_ansi_map_emergencyServicesRoutingDigits = -1;  /* EmergencyServicesRoutingDigits */
-static int hf_ansi_map_targetCellIDList = -1;     /* TargetCellIDList */
-static int hf_ansi_map_signalQuality = -1;        /* SignalQuality */
-static int hf_ansi_map_targetMeasurementList = -1;  /* TargetMeasurementList */
-static int hf_ansi_map_alertResult = -1;          /* AlertResult */
-static int hf_ansi_map_messageWaitingNotificationCount = -1;  /* MessageWaitingNotificationCount */
-static int hf_ansi_map_messageWaitingNotificationType = -1;  /* MessageWaitingNotificationType */
-static int hf_ansi_map_cdmaBandClass = -1;        /* CDMABandClass */
-static int hf_ansi_map_cdmaServiceOption = -1;    /* CDMAServiceOption */
-static int hf_ansi_map_cdmaSlotCycleIndex = -1;   /* CDMASlotCycleIndex */
-static int hf_ansi_map_extendedMSCID = -1;        /* ExtendedMSCID */
-static int hf_ansi_map_extendedSystemMyTypeCode = -1;  /* ExtendedSystemMyTypeCode */
-static int hf_ansi_map_imsi = -1;                 /* IMSI */
-static int hf_ansi_map_legInformation = -1;       /* LegInformation */
-static int hf_ansi_map_mSIDUsage = -1;            /* MSIDUsage */
-static int hf_ansi_map_networkTMSI = -1;          /* NetworkTMSI */
-static int hf_ansi_map_pageCount = -1;            /* PageCount */
-static int hf_ansi_map_pageIndicator = -1;        /* PageIndicator */
-static int hf_ansi_map_pageResponseTime = -1;     /* PageResponseTime */
-static int hf_ansi_map_pilotBillingID = -1;       /* PilotBillingID */
-static int hf_ansi_map_redirectingPartyName = -1;  /* RedirectingPartyName */
-static int hf_ansi_map_tdmaDataFeaturesIndicator = -1;  /* TDMADataFeaturesIndicator */
-static int hf_ansi_map_terminationTreatment = -1;  /* TerminationTreatment */
-static int hf_ansi_map_conditionallyDeniedReason = -1;  /* ConditionallyDeniedReason */
-static int hf_ansi_map_pagingFrameClass = -1;     /* PagingFrameClass */
-static int hf_ansi_map_pSID_RSIDList = -1;        /* PSID_RSIDList */
-static int hf_ansi_map_randc = -1;                /* RANDC */
-static int hf_ansi_map_tdmaDataMode = -1;         /* TDMADataMode */
-static int hf_ansi_map_changeServiceAttributes = -1;  /* ChangeServiceAttributes */
-static int hf_ansi_map_edirectingSubaddress = -1;  /* RedirectingSubaddress */
-static int hf_ansi_map_setupResult = -1;          /* SetupResult */
-static int hf_ansi_map_terminationAccessType = -1;  /* TerminationAccessType */
-static int hf_ansi_map_triggerType = -1;          /* TriggerType */
-static int hf_ansi_map_winCapability = -1;        /* WINCapability */
-static int hf_ansi_map_callingPartyCategory = -1;  /* CallingPartyCategory */
-static int hf_ansi_map_controlNetworkID = -1;     /* ControlNetworkID */
-static int hf_ansi_map_digits_carrier = -1;       /* Digits */
-static int hf_ansi_map_digits_dest = -1;          /* Digits */
-static int hf_ansi_map_dmh_ServiceID = -1;        /* DMH_ServiceID */
-static int hf_ansi_map_lectronicSerialNumber = -1;  /* ElectronicSerialNumber */
-static int hf_ansi_map_deregistrationType = -1;   /* DeregistrationType */
-static int hf_ansi_map_servicesResult = -1;       /* ServicesResult */
-static int hf_ansi_map_sms_MessageWaitingIndicator = -1;  /* SMS_MessageWaitingIndicator */
-static int hf_ansi_map_originationTriggers = -1;  /* OriginationTriggers */
-static int hf_ansi_map_featureIndicator = -1;     /* FeatureIndicator */
-static int hf_ansi_map_dmh_ChargeInformation = -1;  /* DMH_ChargeInformation */
-static int hf_ansi_map_qualificationInformationCode = -1;  /* QualificationInformationCode */
-static int hf_ansi_map_authorizationDenied = -1;  /* AuthorizationDenied */
-static int hf_ansi_map_authorizationPeriod = -1;  /* AuthorizationPeriod */
-static int hf_ansi_map_deniedAuthorizationPeriod = -1;  /* DeniedAuthorizationPeriod */
-static int hf_ansi_map_authenticationCapability = -1;  /* AuthenticationCapability */
-static int hf_ansi_map_callingFeaturesIndicator = -1;  /* CallingFeaturesIndicator */
-static int hf_ansi_map_geographicAuthorization = -1;  /* GeographicAuthorization */
-static int hf_ansi_map_meidValidated = -1;        /* MEIDValidated */
-static int hf_ansi_map_mobilePositionCapability = -1;  /* MobilePositionCapability */
-static int hf_ansi_map_originationIndicator = -1;  /* OriginationIndicator */
-static int hf_ansi_map_restrictionDigits = -1;    /* RestrictionDigits */
-static int hf_ansi_map_sms_OriginationRestrictions = -1;  /* SMS_OriginationRestrictions */
-static int hf_ansi_map_sms_TerminationRestrictions = -1;  /* SMS_TerminationRestrictions */
-static int hf_ansi_map_spinipin = -1;             /* SPINIPIN */
-static int hf_ansi_map_spiniTriggers = -1;        /* SPINITriggers */
-static int hf_ansi_map_terminationRestrictionCode = -1;  /* TerminationRestrictionCode */
-static int hf_ansi_map_userGroup = -1;            /* UserGroup */
-static int hf_ansi_map_lirMode = -1;              /* LIRMode */
-static int hf_ansi_map_randValidTime = -1;        /* RANDValidTime */
-static int hf_ansi_map_redirectionReason = -1;    /* RedirectionReason */
-static int hf_ansi_map_cancellationType = -1;     /* CancellationType */
-static int hf_ansi_map_controlChannelData = -1;   /* ControlChannelData */
-static int hf_ansi_map_receivedSignalQuality = -1;  /* ReceivedSignalQuality */
-static int hf_ansi_map_systemAccessData = -1;     /* SystemAccessData */
-static int hf_ansi_map_cancellationDenied = -1;   /* CancellationDenied */
-static int hf_ansi_map_availabilityType = -1;     /* AvailabilityType */
-static int hf_ansi_map_borderCellAccess = -1;     /* BorderCellAccess */
-static int hf_ansi_map_msc_Address = -1;          /* MSC_Address */
-static int hf_ansi_map_sms_Address = -1;          /* SMS_Address */
-static int hf_ansi_map_mpcAddress = -1;           /* MPCAddress */
-static int hf_ansi_map_mpcAddressList = -1;       /* MPCAddressList */
-static int hf_ansi_map_digits_Carrier = -1;       /* Digits */
-static int hf_ansi_map_digitCollectionControl = -1;  /* DigitCollectionControl */
-static int hf_ansi_map_trunkStatus = -1;          /* TrunkStatus */
-static int hf_ansi_map_voiceMailboxNumber = -1;   /* VoiceMailboxNumber */
-static int hf_ansi_map_voiceMailboxPIN = -1;      /* VoiceMailboxPIN */
-static int hf_ansi_map_sms_BearerData = -1;       /* SMS_BearerData */
-static int hf_ansi_map_sms_TeleserviceIdentifier = -1;  /* SMS_TeleserviceIdentifier */
-static int hf_ansi_map_sms_ChargeIndicator = -1;  /* SMS_ChargeIndicator */
-static int hf_ansi_map_sms_DestinationAddress = -1;  /* SMS_DestinationAddress */
-static int hf_ansi_map_sms_OriginalDestinationAddress = -1;  /* SMS_OriginalDestinationAddress */
-static int hf_ansi_map_sms_OriginalDestinationSubaddress = -1;  /* SMS_OriginalDestinationSubaddress */
-static int hf_ansi_map_sms_OriginalOriginatingAddress = -1;  /* SMS_OriginalOriginatingAddress */
-static int hf_ansi_map_sms_OriginalOriginatingSubaddress = -1;  /* SMS_OriginalOriginatingSubaddress */
-static int hf_ansi_map_sms_OriginatingAddress = -1;  /* SMS_OriginatingAddress */
-static int hf_ansi_map_sms_CauseCode = -1;        /* SMS_CauseCode */
-static int hf_ansi_map_cdmaServingOneWayDelay2 = -1;  /* CDMAServingOneWayDelay2 */
-static int hf_ansi_map_interMessageTime = -1;     /* InterMessageTime */
-static int hf_ansi_map_newlyAssignedIMSI = -1;    /* NewlyAssignedIMSI */
-static int hf_ansi_map_newlyAssignedMIN = -1;     /* NewlyAssignedMIN */
-static int hf_ansi_map_newMINExtension = -1;      /* NewMINExtension */
-static int hf_ansi_map_sms_MessageCount = -1;     /* SMS_MessageCount */
-static int hf_ansi_map_sms_NotificationIndicator = -1;  /* SMS_NotificationIndicator */
-static int hf_ansi_map_teleservice_Priority = -1;  /* Teleservice_Priority */
-static int hf_ansi_map_temporaryReferenceNumber = -1;  /* TemporaryReferenceNumber */
-static int hf_ansi_map_mobileStationMSID = -1;    /* MobileStationMSID */
-static int hf_ansi_map_sms_TransactionID = -1;    /* SMS_TransactionID */
-static int hf_ansi_map_sms_AccessDeniedReason = -1;  /* SMS_AccessDeniedReason */
-static int hf_ansi_map_seizureType = -1;          /* SeizureType */
-static int hf_ansi_map_requiredParametersMask = -1;  /* RequiredParametersMask */
-static int hf_ansi_map_reasonList = -1;           /* ReasonList */
-static int hf_ansi_map_networkTMSIExpirationTime = -1;  /* NetworkTMSIExpirationTime */
-static int hf_ansi_map_newNetworkTMSI = -1;       /* NewNetworkTMSI */
-static int hf_ansi_map_serviceID = -1;            /* ServiceID */
-static int hf_ansi_map_dataAccessElementList = -1;  /* DataAccessElementList */
-static int hf_ansi_map_timeDateOffset = -1;       /* TimeDateOffset */
-static int hf_ansi_map_timeOfDay = -1;            /* TimeOfDay */
-static int hf_ansi_map_dmd_BillingIndicator = -1;  /* DMH_BillingIndicator */
-static int hf_ansi_map_failureType = -1;          /* FailureType */
-static int hf_ansi_map_failureCause = -1;         /* FailureCause */
-static int hf_ansi_map_outingDigits = -1;         /* RoutingDigits */
-static int hf_ansi_map_databaseKey = -1;          /* DatabaseKey */
-static int hf_ansi_map_modificationRequestList = -1;  /* ModificationRequestList */
-static int hf_ansi_map_modificationResultList = -1;  /* ModificationResultList */
-static int hf_ansi_map_serviceDataAccessElementList = -1;  /* ServiceDataAccessElementList */
-static int hf_ansi_map_privateSpecializedResource = -1;  /* PrivateSpecializedResource */
-static int hf_ansi_map_specializedResource = -1;  /* SpecializedResource */
-static int hf_ansi_map_executeScript = -1;        /* ExecuteScript */
-static int hf_ansi_map_scriptResult = -1;         /* ScriptResult */
-static int hf_ansi_map_tdmaVoiceMode = -1;        /* TDMAVoiceMode */
-static int hf_ansi_map_callStatus = -1;           /* CallStatus */
-static int hf_ansi_map_releaseCause = -1;         /* ReleaseCause */
-static int hf_ansi_map_callRecoveryIDList = -1;   /* CallRecoveryIDList */
-static int hf_ansi_map_positionInformationCode = -1;  /* PositionInformationCode */
-static int hf_ansi_map_mSStatus = -1;             /* MSStatus */
-static int hf_ansi_map_pSID_RSIDInformation = -1;  /* PSID_RSIDInformation */
-static int hf_ansi_map_positionRequestType = -1;  /* PositionRequestType */
-static int hf_ansi_map_lcsBillingID = -1;         /* LCSBillingID */
-static int hf_ansi_map_lcs_Client_ID = -1;        /* LCS_Client_ID */
-static int hf_ansi_map_dtxIndication = -1;        /* DTXIndication */
-static int hf_ansi_map_cdmaCodeChannel = -1;      /* CDMACodeChannel */
-static int hf_ansi_map_cdmaMobileCapabilities = -1;  /* CDMAMobileCapabilities */
-static int hf_ansi_map_cdmaPSMMList = -1;         /* CDMAPSMMList */
-static int hf_ansi_map_tdma_MAHO_CELLID = -1;     /* TDMA_MAHO_CELLID */
-static int hf_ansi_map_tdma_MAHO_CHANNEL = -1;    /* TDMA_MAHO_CHANNEL */
-static int hf_ansi_map_tdma_TimeAlignment = -1;   /* TDMA_TimeAlignment */
-static int hf_ansi_map_pqos_HorizontalPosition = -1;  /* PQOS_HorizontalPosition */
-static int hf_ansi_map_pqos_HorizontalVelocity = -1;  /* PQOS_HorizontalVelocity */
-static int hf_ansi_map_pqos_MaximumPositionAge = -1;  /* PQOS_MaximumPositionAge */
-static int hf_ansi_map_pqos_PositionPriority = -1;  /* PQOS_PositionPriority */
-static int hf_ansi_map_pqos_ResponseTime = -1;    /* PQOS_ResponseTime */
-static int hf_ansi_map_pqos_VerticalPosition = -1;  /* PQOS_VerticalPosition */
-static int hf_ansi_map_pqos_VerticalVelocity = -1;  /* PQOS_VerticalVelocity */
-static int hf_ansi_map_cdmaPSMMCount = -1;        /* CDMAPSMMCount */
-static int hf_ansi_map_lirAuthorization = -1;     /* LIRAuthorization */
-static int hf_ansi_map_mpcid = -1;                /* MPCID */
-static int hf_ansi_map_tdma_MAHORequest = -1;     /* TDMA_MAHORequest */
-static int hf_ansi_map_positionResult = -1;       /* PositionResult */
-static int hf_ansi_map_positionInformation = -1;  /* PositionInformation */
-static int hf_ansi_map_controlType = -1;          /* ControlType */
-static int hf_ansi_map_destinationAddress = -1;   /* DestinationAddress */
-static int hf_ansi_map_gapDuration = -1;          /* GapDuration */
-static int hf_ansi_map_gapInterval = -1;          /* GapInterval */
-static int hf_ansi_map_invokingNEType = -1;       /* InvokingNEType */
-static int hf_ansi_map_range = -1;                /* Range */
-static int hf_ansi_map_meidStatus = -1;           /* MEIDStatus */
-static int hf_ansi_map_aKeyProtocolVersion = -1;  /* AKeyProtocolVersion */
-static int hf_ansi_map_mobileStationPartialKey = -1;  /* MobileStationPartialKey */
-static int hf_ansi_map_newlyAssignedMSID = -1;    /* NewlyAssignedMSID */
-static int hf_ansi_map_baseStationPartialKey = -1;  /* BaseStationPartialKey */
-static int hf_ansi_map_modulusValue = -1;         /* ModulusValue */
-static int hf_ansi_map_otasp_ResultCode = -1;     /* OTASP_ResultCode */
-static int hf_ansi_map_primitiveValue = -1;       /* PrimitiveValue */
-static int hf_ansi_map_record_Type = -1;          /* Record_Type */
-static int hf_ansi_map_information_Record = -1;   /* Information_Record */
-static int hf_ansi_map_cdma2000MobileSupportedCapabilities = -1;  /* CDMA2000MobileSupportedCapabilities */
-static int hf_ansi_map_announcementCode1 = -1;    /* AnnouncementCode */
-static int hf_ansi_map_announcementCode2 = -1;    /* AnnouncementCode */
-static int hf_ansi_map_cdmaPilotPN = -1;          /* CDMAPilotPN */
-static int hf_ansi_map_cdmaPowerCombinedIndicator = -1;  /* CDMAPowerCombinedIndicator */
-static int hf_ansi_map_CDMACodeChannelList_item = -1;  /* CDMACodeChannelInformation */
-static int hf_ansi_map_cdmaPilotStrength = -1;    /* CDMAPilotStrength */
-static int hf_ansi_map_cdmaTargetOneWayDelay = -1;  /* CDMATargetOneWayDelay */
-static int hf_ansi_map_CDMATargetMAHOList_item = -1;  /* CDMATargetMAHOInformation */
-static int hf_ansi_map_cdmaSignalQuality = -1;    /* CDMASignalQuality */
-static int hf_ansi_map_CDMATargetMeasurementList_item = -1;  /* CDMATargetMeasurementInformation */
-static int hf_ansi_map_TargetMeasurementList_item = -1;  /* TargetMeasurementInformation */
-static int hf_ansi_map_TerminationList_item = -1;  /* TerminationList_item */
-static int hf_ansi_map_intersystemTermination = -1;  /* IntersystemTermination */
-static int hf_ansi_map_localTermination = -1;     /* LocalTermination */
-static int hf_ansi_map_pstnTermination = -1;      /* PSTNTermination */
-static int hf_ansi_map_CDMABandClassList_item = -1;  /* CDMABandClassInformation */
-static int hf_ansi_map_CDMAServiceOptionList_item = -1;  /* CDMAServiceOption */
-static int hf_ansi_map_pSID_RSIDInformation1 = -1;  /* PSID_RSIDInformation */
-static int hf_ansi_map_targetCellID1 = -1;        /* TargetCellID */
-static int hf_ansi_map_cdmaConnectionReference = -1;  /* CDMAConnectionReference */
-static int hf_ansi_map_cdmaState = -1;            /* CDMAState */
-static int hf_ansi_map_cdmaServiceOptionConnectionIdentifier = -1;  /* CDMAServiceOptionConnectionIdentifier */
-static int hf_ansi_map_CDMAConnectionReferenceList_item = -1;  /* CDMAConnectionReferenceList_item */
-static int hf_ansi_map_cdmaConnectionReferenceInformation = -1;  /* CDMAConnectionReferenceInformation */
-static int hf_ansi_map_cdmaConnectionReferenceInformation2 = -1;  /* CDMAConnectionReferenceInformation */
-static int hf_ansi_map_analogRedirectInfo = -1;   /* AnalogRedirectInfo */
-static int hf_ansi_map_CDMAChannelNumberList_item = -1;  /* CDMAChannelNumberList_item */
-static int hf_ansi_map_cdmaChannelNumber = -1;    /* CDMAChannelNumber */
-static int hf_ansi_map_cdmaChannelNumber2 = -1;   /* CDMAChannelNumber */
-static int hf_ansi_map_cdmaChannelNumberList = -1;  /* CDMAChannelNumberList */
-static int hf_ansi_map_dataID = -1;               /* DataID */
-static int hf_ansi_map_change = -1;               /* Change */
-static int hf_ansi_map_dataValue = -1;            /* DataValue */
-static int hf_ansi_map_DataAccessElementList_item = -1;  /* DataAccessElementList_item */
-static int hf_ansi_map_dataAccessElement1 = -1;   /* DataAccessElement */
-static int hf_ansi_map_dataAccessElement2 = -1;   /* DataAccessElement */
-static int hf_ansi_map_dataResult = -1;           /* DataResult */
-static int hf_ansi_map_DataUpdateResultList_item = -1;  /* DataUpdateResult */
-static int hf_ansi_map_globalTitle = -1;          /* GlobalTitle */
-static int hf_ansi_map_pC_SSN = -1;               /* PC_SSN */
-static int hf_ansi_map_scriptName = -1;           /* ScriptName */
-static int hf_ansi_map_scriptArgument = -1;       /* ScriptArgument */
-static int hf_ansi_map_allOrNone = -1;            /* AllOrNone */
-static int hf_ansi_map_ModificationRequestList_item = -1;  /* ModificationRequest */
-static int hf_ansi_map_serviceDataResultList = -1;  /* ServiceDataResultList */
-static int hf_ansi_map_ModificationResultList_item = -1;  /* ModificationResult */
-static int hf_ansi_map_ServiceDataAccessElementList_item = -1;  /* ServiceDataAccessElement */
-static int hf_ansi_map_dataUpdateResultList = -1;  /* DataUpdateResultList */
-static int hf_ansi_map_ServiceDataResultList_item = -1;  /* ServiceDataResult */
-static int hf_ansi_map_triggerList = -1;          /* TriggerList */
-static int hf_ansi_map_triggerListOpt = -1;       /* TriggerList */
-static int hf_ansi_map_wIN_TriggerList = -1;      /* WIN_TriggerList */
-static int hf_ansi_map_triggerCapability = -1;    /* TriggerCapability */
-static int hf_ansi_map_wINOperationsCapability = -1;  /* WINOperationsCapability */
-static int hf_ansi_map_CallRecoveryIDList_item = -1;  /* CallRecoveryID */
-static int hf_ansi_map_generalizedTime = -1;      /* GeneralizedTime */
-static int hf_ansi_map_geographicPosition = -1;   /* GeographicPosition */
-static int hf_ansi_map_positionSource = -1;       /* PositionSource */
-static int hf_ansi_map_horizontal_Velocity = -1;  /* Horizontal_Velocity */
-static int hf_ansi_map_vertical_Velocity = -1;    /* Vertical_Velocity */
-static int hf_ansi_map_sCFOverloadGapInterval = -1;  /* SCFOverloadGapInterval */
-static int hf_ansi_map_serviceManagementSystemGapInterval = -1;  /* ServiceManagementSystemGapInterval */
-static int hf_ansi_map_CDMAPSMMList_item = -1;    /* CDMAPSMMList_item */
-static int hf_ansi_map_cdmaTargetMAHOList2 = -1;  /* CDMATargetMAHOList */
-static int hf_ansi_map_mpcAddress2 = -1;          /* MPCAddress */
-static int hf_ansi_map_mobileStationIMSI = -1;    /* MobileStationIMSI */
-static int hf_ansi_map_handoffMeasurementRequest = -1;  /* HandoffMeasurementRequest */
-static int hf_ansi_map_facilitiesDirective = -1;  /* FacilitiesDirective */
-static int hf_ansi_map_handoffBack = -1;          /* HandoffBack */
-static int hf_ansi_map_facilitiesRelease = -1;    /* FacilitiesRelease */
-static int hf_ansi_map_qualificationRequest = -1;  /* QualificationRequest */
-static int hf_ansi_map_qualificationDirective = -1;  /* QualificationDirective */
-static int hf_ansi_map_blocking = -1;             /* Blocking */
-static int hf_ansi_map_unblocking = -1;           /* Unblocking */
-static int hf_ansi_map_resetCircuit = -1;         /* ResetCircuit */
-static int hf_ansi_map_trunkTest = -1;            /* TrunkTest */
-static int hf_ansi_map_trunkTestDisconnect = -1;  /* TrunkTestDisconnect */
-static int hf_ansi_map_registrationNotification = -1;  /* RegistrationNotification */
-static int hf_ansi_map_registrationCancellation = -1;  /* RegistrationCancellation */
-static int hf_ansi_map_locationRequest = -1;      /* LocationRequest */
-static int hf_ansi_map_routingRequest = -1;       /* RoutingRequest */
-static int hf_ansi_map_featureRequest = -1;       /* FeatureRequest */
-static int hf_ansi_map_unreliableRoamerDataDirective = -1;  /* UnreliableRoamerDataDirective */
-static int hf_ansi_map_mSInactive = -1;           /* MSInactive */
-static int hf_ansi_map_transferToNumberRequest = -1;  /* TransferToNumberRequest */
-static int hf_ansi_map_redirectionRequest = -1;   /* RedirectionRequest */
-static int hf_ansi_map_handoffToThird = -1;       /* HandoffToThird */
-static int hf_ansi_map_flashRequest = -1;         /* FlashRequest */
-static int hf_ansi_map_authenticationDirective = -1;  /* AuthenticationDirective */
-static int hf_ansi_map_authenticationRequest = -1;  /* AuthenticationRequest */
-static int hf_ansi_map_baseStationChallenge = -1;  /* BaseStationChallenge */
-static int hf_ansi_map_authenticationFailureReport = -1;  /* AuthenticationFailureReport */
-static int hf_ansi_map_countRequest = -1;         /* CountRequest */
-static int hf_ansi_map_interSystemPage = -1;      /* InterSystemPage */
-static int hf_ansi_map_unsolicitedResponse = -1;  /* UnsolicitedResponse */
-static int hf_ansi_map_bulkDeregistration = -1;   /* BulkDeregistration */
-static int hf_ansi_map_handoffMeasurementRequest2 = -1;  /* HandoffMeasurementRequest2 */
-static int hf_ansi_map_facilitiesDirective2 = -1;  /* FacilitiesDirective2 */
-static int hf_ansi_map_handoffBack2 = -1;         /* HandoffBack2 */
-static int hf_ansi_map_handoffToThird2 = -1;      /* HandoffToThird2 */
-static int hf_ansi_map_authenticationDirectiveForward = -1;  /* AuthenticationDirectiveForward */
-static int hf_ansi_map_authenticationStatusReport = -1;  /* AuthenticationStatusReport */
-static int hf_ansi_map_informationDirective = -1;  /* InformationDirective */
-static int hf_ansi_map_informationForward = -1;   /* InformationForward */
-static int hf_ansi_map_interSystemAnswer = -1;    /* InterSystemAnswer */
-static int hf_ansi_map_interSystemPage2 = -1;     /* InterSystemPage2 */
-static int hf_ansi_map_interSystemSetup = -1;     /* InterSystemSetup */
-static int hf_ansi_map_originationRequest = -1;   /* OriginationRequest */
-static int hf_ansi_map_randomVariableRequest = -1;  /* RandomVariableRequest */
-static int hf_ansi_map_redirectionDirective = -1;  /* RedirectionDirective */
-static int hf_ansi_map_remoteUserInteractionDirective = -1;  /* RemoteUserInteractionDirective */
-static int hf_ansi_map_sMSDeliveryBackward = -1;  /* SMSDeliveryBackward */
-static int hf_ansi_map_sMSDeliveryForward = -1;   /* SMSDeliveryForward */
-static int hf_ansi_map_sMSDeliveryPointToPoint = -1;  /* SMSDeliveryPointToPoint */
-static int hf_ansi_map_sMSNotification = -1;      /* SMSNotification */
-static int hf_ansi_map_sMSRequest = -1;           /* SMSRequest */
-static int hf_ansi_map_oTASPRequest = -1;         /* OTASPRequest */
-static int hf_ansi_map_changeFacilities = -1;     /* ChangeFacilities */
-static int hf_ansi_map_changeService = -1;        /* ChangeService */
-static int hf_ansi_map_parameterRequest = -1;     /* ParameterRequest */
-static int hf_ansi_map_tMSIDirective = -1;        /* TMSIDirective */
-static int hf_ansi_map_numberPortabilityRequest = -1;  /* NumberPortabilityRequest */
-static int hf_ansi_map_serviceRequest = -1;       /* ServiceRequest */
-static int hf_ansi_map_analyzedInformation = -1;  /* AnalyzedInformation */
-static int hf_ansi_map_connectionFailureReport = -1;  /* ConnectionFailureReport */
-static int hf_ansi_map_connectResource = -1;      /* ConnectResource */
-static int hf_ansi_map_facilitySelectedAndAvailable = -1;  /* FacilitySelectedAndAvailable */
-static int hf_ansi_map_modify = -1;               /* Modify */
-static int hf_ansi_map_search = -1;               /* Search */
-static int hf_ansi_map_seizeResource = -1;        /* SeizeResource */
-static int hf_ansi_map_sRFDirective = -1;         /* SRFDirective */
-static int hf_ansi_map_tBusy = -1;                /* TBusy */
-static int hf_ansi_map_tNoAnswer = -1;            /* TNoAnswer */
-static int hf_ansi_map_smsDeliveryPointToPointAck = -1;  /* SMSDeliveryPointToPointAck */
-static int hf_ansi_map_messageDirective = -1;     /* MessageDirective */
-static int hf_ansi_map_bulkDisconnection = -1;    /* BulkDisconnection */
-static int hf_ansi_map_callControlDirective = -1;  /* CallControlDirective */
-static int hf_ansi_map_oAnswer = -1;              /* OAnswer */
-static int hf_ansi_map_oDisconnect = -1;          /* ODisconnect */
-static int hf_ansi_map_callRecoveryReport = -1;   /* CallRecoveryReport */
-static int hf_ansi_map_tAnswer = -1;              /* TAnswer */
-static int hf_ansi_map_tDisconnect = -1;          /* TDisconnect */
-static int hf_ansi_map_unreliableCallData = -1;   /* UnreliableCallData */
-static int hf_ansi_map_oCalledPartyBusy = -1;     /* OCalledPartyBusy */
-static int hf_ansi_map_oNoAnswer = -1;            /* ONoAnswer */
-static int hf_ansi_map_positionRequest = -1;      /* PositionRequest */
-static int hf_ansi_map_positionRequestForward = -1;  /* PositionRequestForward */
-static int hf_ansi_map_callTerminationReport = -1;  /* CallTerminationReport */
-static int hf_ansi_map_geoPositionRequest = -1;   /* GeoPositionRequest */
-static int hf_ansi_map_interSystemPositionRequest = -1;  /* InterSystemPositionRequest */
-static int hf_ansi_map_interSystemPositionRequestForward = -1;  /* InterSystemPositionRequestForward */
-static int hf_ansi_map_aCGDirective = -1;         /* ACGDirective */
-static int hf_ansi_map_roamerDatabaseVerificationRequest = -1;  /* RoamerDatabaseVerificationRequest */
-static int hf_ansi_map_addService = -1;           /* AddService */
-static int hf_ansi_map_dropService = -1;          /* DropService */
-static int hf_ansi_map_lcsParameterRequest = -1;  /* LCSParameterRequest */
-static int hf_ansi_map_checkMEID = -1;            /* CheckMEID */
-static int hf_ansi_map_positionEventNotification = -1;  /* PositionEventNotification */
-static int hf_ansi_map_statusRequest = -1;        /* StatusRequest */
-static int hf_ansi_map_interSystemSMSDeliveryPointToPoint = -1;  /* InterSystemSMSDeliveryPointToPoint */
-static int hf_ansi_map_qualificationRequest2 = -1;  /* QualificationRequest2 */
-static int hf_ansi_map_handoffMeasurementRequestRes = -1;  /* HandoffMeasurementRequestRes */
-static int hf_ansi_map_facilitiesDirectiveRes = -1;  /* FacilitiesDirectiveRes */
-static int hf_ansi_map_handoffBackRes = -1;       /* HandoffBackRes */
-static int hf_ansi_map_facilitiesReleaseRes = -1;  /* FacilitiesReleaseRes */
-static int hf_ansi_map_qualificationDirectiveRes = -1;  /* QualificationDirectiveRes */
-static int hf_ansi_map_qualificationRequestRes = -1;  /* QualificationRequestRes */
-static int hf_ansi_map_resetCircuitRes = -1;      /* ResetCircuitRes */
-static int hf_ansi_map_registrationNotificationRes = -1;  /* RegistrationNotificationRes */
-static int hf_ansi_map_registrationCancellationRes = -1;  /* RegistrationCancellationRes */
-static int hf_ansi_map_locationRequestRes = -1;   /* LocationRequestRes */
-static int hf_ansi_map_routingRequestRes = -1;    /* RoutingRequestRes */
-static int hf_ansi_map_featureRequestRes = -1;    /* FeatureRequestRes */
-static int hf_ansi_map_transferToNumberRequestRes = -1;  /* TransferToNumberRequestRes */
-static int hf_ansi_map_handoffToThirdRes = -1;    /* HandoffToThirdRes */
-static int hf_ansi_map_authenticationDirectiveRes = -1;  /* AuthenticationDirectiveRes */
-static int hf_ansi_map_authenticationRequestRes = -1;  /* AuthenticationRequestRes */
-static int hf_ansi_map_baseStationChallengeRes = -1;  /* BaseStationChallengeRes */
-static int hf_ansi_map_authenticationFailureReportRes = -1;  /* AuthenticationFailureReportRes */
-static int hf_ansi_map_countRequestRes = -1;      /* CountRequestRes */
-static int hf_ansi_map_interSystemPageRes = -1;   /* InterSystemPageRes */
-static int hf_ansi_map_unsolicitedResponseRes = -1;  /* UnsolicitedResponseRes */
-static int hf_ansi_map_handoffMeasurementRequest2Res = -1;  /* HandoffMeasurementRequest2Res */
-static int hf_ansi_map_facilitiesDirective2Res = -1;  /* FacilitiesDirective2Res */
-static int hf_ansi_map_handoffBack2Res = -1;      /* HandoffBack2Res */
-static int hf_ansi_map_handoffToThird2Res = -1;   /* HandoffToThird2Res */
-static int hf_ansi_map_authenticationDirectiveForwardRes = -1;  /* AuthenticationDirectiveForwardRes */
-static int hf_ansi_map_authenticationStatusReportRes = -1;  /* AuthenticationStatusReportRes */
-static int hf_ansi_map_informationDirectiveRes = -1;  /* InformationDirectiveRes */
-static int hf_ansi_map_informationForwardRes = -1;  /* InformationForwardRes */
-static int hf_ansi_map_interSystemPage2Res = -1;  /* InterSystemPage2Res */
-static int hf_ansi_map_interSystemSetupRes = -1;  /* InterSystemSetupRes */
-static int hf_ansi_map_originationRequestRes = -1;  /* OriginationRequestRes */
-static int hf_ansi_map_randomVariableRequestRes = -1;  /* RandomVariableRequestRes */
-static int hf_ansi_map_remoteUserInteractionDirectiveRes = -1;  /* RemoteUserInteractionDirectiveRes */
-static int hf_ansi_map_sMSDeliveryBackwardRes = -1;  /* SMSDeliveryBackwardRes */
-static int hf_ansi_map_sMSDeliveryForwardRes = -1;  /* SMSDeliveryForwardRes */
-static int hf_ansi_map_sMSDeliveryPointToPointRes = -1;  /* SMSDeliveryPointToPointRes */
-static int hf_ansi_map_sMSNotificationRes = -1;   /* SMSNotificationRes */
-static int hf_ansi_map_sMSRequestRes = -1;        /* SMSRequestRes */
-static int hf_ansi_map_oTASPRequestRes = -1;      /* OTASPRequestRes */
-static int hf_ansi_map_changeFacilitiesRes = -1;  /* ChangeFacilitiesRes */
-static int hf_ansi_map_changeServiceRes = -1;     /* ChangeServiceRes */
-static int hf_ansi_map_parameterRequestRes = -1;  /* ParameterRequestRes */
-static int hf_ansi_map_tMSIDirectiveRes = -1;     /* TMSIDirectiveRes */
-static int hf_ansi_map_numberPortabilityRequestRes = -1;  /* NumberPortabilityRequestRes */
-static int hf_ansi_map_serviceRequestRes = -1;    /* ServiceRequestRes */
-static int hf_ansi_map_analyzedInformationRes = -1;  /* AnalyzedInformationRes */
-static int hf_ansi_map_facilitySelectedAndAvailableRes = -1;  /* FacilitySelectedAndAvailableRes */
-static int hf_ansi_map_modifyRes = -1;            /* ModifyRes */
-static int hf_ansi_map_searchRes = -1;            /* SearchRes */
-static int hf_ansi_map_seizeResourceRes = -1;     /* SeizeResourceRes */
-static int hf_ansi_map_sRFDirectiveRes = -1;      /* SRFDirectiveRes */
-static int hf_ansi_map_tBusyRes = -1;             /* TBusyRes */
-static int hf_ansi_map_tNoAnswerRes = -1;         /* TNoAnswerRes */
-static int hf_ansi_map_callControlDirectiveRes = -1;  /* CallControlDirectiveRes */
-static int hf_ansi_map_oDisconnectRes = -1;       /* ODisconnectRes */
-static int hf_ansi_map_tDisconnectRes = -1;       /* TDisconnectRes */
-static int hf_ansi_map_oCalledPartyBusyRes = -1;  /* OCalledPartyBusyRes */
-static int hf_ansi_map_oNoAnswerRes = -1;         /* ONoAnswerRes */
-static int hf_ansi_map_positionRequestRes = -1;   /* PositionRequestRes */
-static int hf_ansi_map_positionRequestForwardRes = -1;  /* PositionRequestForwardRes */
-static int hf_ansi_map_interSystemPositionRequestRes = -1;  /* InterSystemPositionRequestRes */
-static int hf_ansi_map_interSystemPositionRequestForwardRes = -1;  /* InterSystemPositionRequestForwardRes */
-static int hf_ansi_map_roamerDatabaseVerificationRequestRes = -1;  /* RoamerDatabaseVerificationRequestRes */
-static int hf_ansi_map_addServiceRes = -1;        /* AddServiceRes */
-static int hf_ansi_map_dropServiceRes = -1;       /* DropServiceRes */
-static int hf_ansi_map_interSystemSMSPage = -1;   /* InterSystemSMSPage */
-static int hf_ansi_map_lcsParameterRequestRes = -1;  /* LCSParameterRequestRes */
-static int hf_ansi_map_checkMEIDRes = -1;         /* CheckMEIDRes */
-static int hf_ansi_map_statusRequestRes = -1;     /* StatusRequestRes */
-static int hf_ansi_map_interSystemSMSDeliveryPointToPointRes = -1;  /* InterSystemSMSDeliveryPointToPointRes */
-static int hf_ansi_map_qualificationRequest2Res = -1;  /* QualificationRequest2Res */
+static int hf_ansi_map_electronicSerialNumber;    /* ElectronicSerialNumber */
+static int hf_ansi_map_msid;                      /* MSID */
+static int hf_ansi_map_authenticationAlgorithmVersion;  /* AuthenticationAlgorithmVersion */
+static int hf_ansi_map_authenticationResponseReauthentication;  /* AuthenticationResponseReauthentication */
+static int hf_ansi_map_authenticationResponseUniqueChallenge;  /* AuthenticationResponseUniqueChallenge */
+static int hf_ansi_map_callHistoryCount;          /* CallHistoryCount */
+static int hf_ansi_map_cdmaPrivateLongCodeMask;   /* CDMAPrivateLongCodeMask */
+static int hf_ansi_map_carrierDigits;             /* CarrierDigits */
+static int hf_ansi_map_caveKey;                   /* CaveKey */
+static int hf_ansi_map_denyAccess;                /* DenyAccess */
+static int hf_ansi_map_destinationDigits;         /* DestinationDigits */
+static int hf_ansi_map_locationAreaID;            /* LocationAreaID */
+static int hf_ansi_map_randomVariableReauthentication;  /* RandomVariableReauthentication */
+static int hf_ansi_map_meid;                      /* MEID */
+static int hf_ansi_map_mobileStationMIN;          /* MobileStationMIN */
+static int hf_ansi_map_mscid;                     /* MSCID */
+static int hf_ansi_map_randomVariableSSD;         /* RandomVariableSSD */
+static int hf_ansi_map_randomVariableUniqueChallenge;  /* RandomVariableUniqueChallenge */
+static int hf_ansi_map_routingDigits;             /* RoutingDigits */
+static int hf_ansi_map_senderIdentificationNumber;  /* SenderIdentificationNumber */
+static int hf_ansi_map_sharedSecretData;          /* SharedSecretData */
+static int hf_ansi_map_signalingMessageEncryptionKey;  /* SignalingMessageEncryptionKey */
+static int hf_ansi_map_ssdnotShared;              /* SSDNotShared */
+static int hf_ansi_map_updateCount;               /* UpdateCount */
+static int hf_ansi_map_interMSCCircuitID;         /* InterMSCCircuitID */
+static int hf_ansi_map_mobileIdentificationNumber;  /* MobileIdentificationNumber */
+static int hf_ansi_map_countUpdateReport;         /* CountUpdateReport */
+static int hf_ansi_map_uniqueChallengeReport;     /* UniqueChallengeReport */
+static int hf_ansi_map_reportType;                /* ReportType */
+static int hf_ansi_map_systemAccessType;          /* SystemAccessType */
+static int hf_ansi_map_systemCapabilities;        /* SystemCapabilities */
+static int hf_ansi_map_callHistoryCountExpected;  /* CallHistoryCountExpected */
+static int hf_ansi_map_reportType2;               /* ReportType */
+static int hf_ansi_map_terminalType;              /* TerminalType */
+static int hf_ansi_map_authenticationData;        /* AuthenticationData */
+static int hf_ansi_map_authenticationResponse;    /* AuthenticationResponse */
+static int hf_ansi_map_cdmaNetworkIdentification;  /* CDMANetworkIdentification */
+static int hf_ansi_map_confidentialityModes;      /* ConfidentialityModes */
+static int hf_ansi_map_controlChannelMode;        /* ControlChannelMode */
+static int hf_ansi_map_digits;                    /* Digits */
+static int hf_ansi_map_pc_ssn;                    /* PC_SSN */
+static int hf_ansi_map_randomVariable;            /* RandomVariable */
+static int hf_ansi_map_serviceRedirectionCause;   /* ServiceRedirectionCause */
+static int hf_ansi_map_suspiciousAccess;          /* SuspiciousAccess */
+static int hf_ansi_map_transactionCapability;     /* TransactionCapability */
+static int hf_ansi_map_analogRedirectRecord;      /* AnalogRedirectRecord */
+static int hf_ansi_map_cdmaRedirectRecord;        /* CDMARedirectRecord */
+static int hf_ansi_map_dataKey;                   /* DataKey */
+static int hf_ansi_map_roamingIndication;         /* RoamingIndication */
+static int hf_ansi_map_serviceRedirectionInfo;    /* ServiceRedirectionInfo */
+static int hf_ansi_map_voicePrivacyMask;          /* VoicePrivacyMask */
+static int hf_ansi_map_reauthenticationReport;    /* ReauthenticationReport */
+static int hf_ansi_map_serviceIndicator;          /* ServiceIndicator */
+static int hf_ansi_map_signalingMessageEncryptionReport;  /* SignalingMessageEncryptionReport */
+static int hf_ansi_map_ssdUpdateReport;           /* SSDUpdateReport */
+static int hf_ansi_map_voicePrivacyReport;        /* VoicePrivacyReport */
+static int hf_ansi_map_randomVariableBaseStation;  /* RandomVariableBaseStation */
+static int hf_ansi_map_authenticationResponseBaseStation;  /* AuthenticationResponseBaseStation */
+static int hf_ansi_map_billingID;                 /* BillingID */
+static int hf_ansi_map_channelData;               /* ChannelData */
+static int hf_ansi_map_interSwitchCount;          /* InterSwitchCount */
+static int hf_ansi_map_servingCellID;             /* ServingCellID */
+static int hf_ansi_map_stationClassMark;          /* StationClassMark */
+static int hf_ansi_map_targetCellID;              /* TargetCellID */
+static int hf_ansi_map_handoffReason;             /* HandoffReason */
+static int hf_ansi_map_handoffState;              /* HandoffState */
+static int hf_ansi_map_tdmaBurstIndicator;        /* TDMABurstIndicator */
+static int hf_ansi_map_tdmaCallMode;              /* TDMACallMode */
+static int hf_ansi_map_tdmaChannelData;           /* TDMAChannelData */
+static int hf_ansi_map_baseStationManufacturerCode;  /* BaseStationManufacturerCode */
+static int hf_ansi_map_alertCode;                 /* AlertCode */
+static int hf_ansi_map_cdma2000HandoffInvokeIOSData;  /* CDMA2000HandoffInvokeIOSData */
+static int hf_ansi_map_cdmaBandClassList;         /* CDMABandClassList */
+static int hf_ansi_map_cdmaCallMode;              /* CDMACallMode */
+static int hf_ansi_map_cdmaChannelData;           /* CDMAChannelData */
+static int hf_ansi_map_cdmaConnectionReferenceList;  /* CDMAConnectionReferenceList */
+static int hf_ansi_map_cdmaMobileProtocolRevision;  /* CDMAMobileProtocolRevision */
+static int hf_ansi_map_cdmaMSMeasuredChannelIdentity;  /* CDMAMSMeasuredChannelIdentity */
+static int hf_ansi_map_cdmaServiceConfigurationRecord;  /* CDMAServiceConfigurationRecord */
+static int hf_ansi_map_cdmaServiceOptionList;     /* CDMAServiceOptionList */
+static int hf_ansi_map_cdmaServingOneWayDelay;    /* CDMAServingOneWayDelay */
+static int hf_ansi_map_cdmaStationClassMark;      /* CDMAStationClassMark */
+static int hf_ansi_map_cdmaStationClassMark2;     /* CDMAStationClassMark2 */
+static int hf_ansi_map_cdmaTargetMAHOList;        /* CDMATargetMAHOList */
+static int hf_ansi_map_cdmaTargetMeasurementList;  /* CDMATargetMeasurementList */
+static int hf_ansi_map_dataPrivacyParameters;     /* DataPrivacyParameters */
+static int hf_ansi_map_ilspInformation;           /* ISLPInformation */
+static int hf_ansi_map_msLocation;                /* MSLocation */
+static int hf_ansi_map_nampsCallMode;             /* NAMPSCallMode */
+static int hf_ansi_map_nampsChannelData;          /* NAMPSChannelData */
+static int hf_ansi_map_nonPublicData;             /* NonPublicData */
+static int hf_ansi_map_pdsnAddress;               /* PDSNAddress */
+static int hf_ansi_map_pdsnProtocolType;          /* PDSNProtocolType */
+static int hf_ansi_map_qosPriority;               /* QoSPriority */
+static int hf_ansi_map_systemOperatorCode;        /* SystemOperatorCode */
+static int hf_ansi_map_tdmaBandwidth;             /* TDMABandwidth */
+static int hf_ansi_map_tdmaServiceCode;           /* TDMAServiceCode */
+static int hf_ansi_map_tdmaTerminalCapability;    /* TDMATerminalCapability */
+static int hf_ansi_map_tdmaVoiceCoder;            /* TDMAVoiceCoder */
+static int hf_ansi_map_userZoneData;              /* UserZoneData */
+static int hf_ansi_map_bsmcstatus;                /* BSMCStatus */
+static int hf_ansi_map_cdma2000HandoffResponseIOSData;  /* CDMA2000HandoffResponseIOSData */
+static int hf_ansi_map_cdmaCodeChannelList;       /* CDMACodeChannelList */
+static int hf_ansi_map_cdmaSearchParameters;      /* CDMASearchParameters */
+static int hf_ansi_map_cdmaSearchWindow;          /* CDMASearchWindow */
+static int hf_ansi_map_sOCStatus;                 /* SOCStatus */
+static int hf_ansi_map_releaseReason;             /* ReleaseReason */
+static int hf_ansi_map_acgencountered;            /* ACGEncountered */
+static int hf_ansi_map_callingPartyName;          /* CallingPartyName */
+static int hf_ansi_map_callingPartyNumberDigits1;  /* CallingPartyNumberDigits1 */
+static int hf_ansi_map_callingPartyNumberDigits2;  /* CallingPartyNumberDigits2 */
+static int hf_ansi_map_callingPartySubaddress;    /* CallingPartySubaddress */
+static int hf_ansi_map_conferenceCallingIndicator;  /* ConferenceCallingIndicator */
+static int hf_ansi_map_mobileDirectoryNumber;     /* MobileDirectoryNumber */
+static int hf_ansi_map_mSCIdentificationNumber;   /* MSCIdentificationNumber */
+static int hf_ansi_map_oneTimeFeatureIndicator;   /* OneTimeFeatureIndicator */
+static int hf_ansi_map_systemMyTypeCode;          /* SystemMyTypeCode */
+static int hf_ansi_map_featureResult;             /* FeatureResult */
+static int hf_ansi_map_accessDeniedReason;        /* AccessDeniedReason */
+static int hf_ansi_map_actionCode;                /* ActionCode */
+static int hf_ansi_map_announcementList;          /* AnnouncementList */
+static int hf_ansi_map_callingPartyNumberString1;  /* CallingPartyNumberString1 */
+static int hf_ansi_map_callingPartyNumberString2;  /* CallingPartyNumberString2 */
+static int hf_ansi_map_digits_Destination;        /* Digits */
+static int hf_ansi_map_displayText;               /* DisplayText */
+static int hf_ansi_map_displayText2;              /* DisplayText2 */
+static int hf_ansi_map_dmh_AccountCodeDigits;     /* DMH_AccountCodeDigits */
+static int hf_ansi_map_dmh_AlternateBillingDigits;  /* DMH_AlternateBillingDigits */
+static int hf_ansi_map_dmh_BillingDigits;         /* DMH_BillingDigits */
+static int hf_ansi_map_dmh_RedirectionIndicator;  /* DMH_RedirectionIndicator */
+static int hf_ansi_map_groupInformation;          /* GroupInformation */
+static int hf_ansi_map_noAnswerTime;              /* NoAnswerTime */
+static int hf_ansi_map_pACAIndicator;             /* PACAIndicator */
+static int hf_ansi_map_pilotNumber;               /* PilotNumber */
+static int hf_ansi_map_preferredLanguageIndicator;  /* PreferredLanguageIndicator */
+static int hf_ansi_map_redirectingNumberDigits;   /* RedirectingNumberDigits */
+static int hf_ansi_map_redirectingNumberString;   /* RedirectingNumberString */
+static int hf_ansi_map_redirectingSubaddress;     /* RedirectingSubaddress */
+static int hf_ansi_map_resumePIC;                 /* ResumePIC */
+static int hf_ansi_map_terminationList;           /* TerminationList */
+static int hf_ansi_map_terminationTriggers;       /* TerminationTriggers */
+static int hf_ansi_map_triggerAddressList;        /* TriggerAddressList */
+static int hf_ansi_map_emergencyServicesRoutingDigits;  /* EmergencyServicesRoutingDigits */
+static int hf_ansi_map_targetCellIDList;          /* TargetCellIDList */
+static int hf_ansi_map_signalQuality;             /* SignalQuality */
+static int hf_ansi_map_targetMeasurementList;     /* TargetMeasurementList */
+static int hf_ansi_map_alertResult;               /* AlertResult */
+static int hf_ansi_map_messageWaitingNotificationCount;  /* MessageWaitingNotificationCount */
+static int hf_ansi_map_messageWaitingNotificationType;  /* MessageWaitingNotificationType */
+static int hf_ansi_map_cdmaBandClass;             /* CDMABandClass */
+static int hf_ansi_map_cdmaServiceOption;         /* CDMAServiceOption */
+static int hf_ansi_map_cdmaSlotCycleIndex;        /* CDMASlotCycleIndex */
+static int hf_ansi_map_extendedMSCID;             /* ExtendedMSCID */
+static int hf_ansi_map_extendedSystemMyTypeCode;  /* ExtendedSystemMyTypeCode */
+static int hf_ansi_map_imsi;                      /* IMSI */
+static int hf_ansi_map_legInformation;            /* LegInformation */
+static int hf_ansi_map_mSIDUsage;                 /* MSIDUsage */
+static int hf_ansi_map_networkTMSI;               /* NetworkTMSI */
+static int hf_ansi_map_pageCount;                 /* PageCount */
+static int hf_ansi_map_pageIndicator;             /* PageIndicator */
+static int hf_ansi_map_pageResponseTime;          /* PageResponseTime */
+static int hf_ansi_map_pilotBillingID;            /* PilotBillingID */
+static int hf_ansi_map_redirectingPartyName;      /* RedirectingPartyName */
+static int hf_ansi_map_tdmaDataFeaturesIndicator;  /* TDMADataFeaturesIndicator */
+static int hf_ansi_map_terminationTreatment;      /* TerminationTreatment */
+static int hf_ansi_map_conditionallyDeniedReason;  /* ConditionallyDeniedReason */
+static int hf_ansi_map_pagingFrameClass;          /* PagingFrameClass */
+static int hf_ansi_map_pSID_RSIDList;             /* PSID_RSIDList */
+static int hf_ansi_map_randc;                     /* RANDC */
+static int hf_ansi_map_tdmaDataMode;              /* TDMADataMode */
+static int hf_ansi_map_changeServiceAttributes;   /* ChangeServiceAttributes */
+static int hf_ansi_map_edirectingSubaddress;      /* RedirectingSubaddress */
+static int hf_ansi_map_setupResult;               /* SetupResult */
+static int hf_ansi_map_terminationAccessType;     /* TerminationAccessType */
+static int hf_ansi_map_triggerType;               /* TriggerType */
+static int hf_ansi_map_winCapability;             /* WINCapability */
+static int hf_ansi_map_callingPartyCategory;      /* CallingPartyCategory */
+static int hf_ansi_map_controlNetworkID;          /* ControlNetworkID */
+static int hf_ansi_map_digits_carrier;            /* Digits */
+static int hf_ansi_map_digits_dest;               /* Digits */
+static int hf_ansi_map_dmh_ServiceID;             /* DMH_ServiceID */
+static int hf_ansi_map_lectronicSerialNumber;     /* ElectronicSerialNumber */
+static int hf_ansi_map_deregistrationType;        /* DeregistrationType */
+static int hf_ansi_map_servicesResult;            /* ServicesResult */
+static int hf_ansi_map_sms_MessageWaitingIndicator;  /* SMS_MessageWaitingIndicator */
+static int hf_ansi_map_featureIndicator;          /* FeatureIndicator */
+static int hf_ansi_map_authenticationCapability;  /* AuthenticationCapability */
+static int hf_ansi_map_callingFeaturesIndicator;  /* CallingFeaturesIndicator */
+static int hf_ansi_map_geographicAuthorization;   /* GeographicAuthorization */
+static int hf_ansi_map_meidValidated;             /* MEIDValidated */
+static int hf_ansi_map_mobilePositionCapability;  /* MobilePositionCapability */
+static int hf_ansi_map_originationIndicator;      /* OriginationIndicator */
+static int hf_ansi_map_originationTriggers;       /* OriginationTriggers */
+static int hf_ansi_map_restrictionDigits;         /* RestrictionDigits */
+static int hf_ansi_map_sms_OriginationRestrictions;  /* SMS_OriginationRestrictions */
+static int hf_ansi_map_sms_TerminationRestrictions;  /* SMS_TerminationRestrictions */
+static int hf_ansi_map_spinipin;                  /* SPINIPIN */
+static int hf_ansi_map_spiniTriggers;             /* SPINITriggers */
+static int hf_ansi_map_terminationRestrictionCode;  /* TerminationRestrictionCode */
+static int hf_ansi_map_userGroup;                 /* UserGroup */
+static int hf_ansi_map_lirMode;                   /* LIRMode */
+static int hf_ansi_map_cdmaCodeChannel;           /* CDMACodeChannel */
+static int hf_ansi_map_cdmaMobileCapabilities;    /* CDMAMobileCapabilities */
+static int hf_ansi_map_cdmaServingOneWayDelay2;   /* CDMAServingOneWayDelay2 */
+static int hf_ansi_map_cdmaPSMMList;              /* CDMAPSMMList */
+static int hf_ansi_map_mpcAddress;                /* MPCAddress */
+static int hf_ansi_map_dmh_ChargeInformation;     /* DMH_ChargeInformation */
+static int hf_ansi_map_qualificationInformationCode;  /* QualificationInformationCode */
+static int hf_ansi_map_authorizationDenied;       /* AuthorizationDenied */
+static int hf_ansi_map_authorizationPeriod;       /* AuthorizationPeriod */
+static int hf_ansi_map_deniedAuthorizationPeriod;  /* DeniedAuthorizationPeriod */
+static int hf_ansi_map_randValidTime;             /* RANDValidTime */
+static int hf_ansi_map_redirectionReason;         /* RedirectionReason */
+static int hf_ansi_map_cancellationType;          /* CancellationType */
+static int hf_ansi_map_controlChannelData;        /* ControlChannelData */
+static int hf_ansi_map_receivedSignalQuality;     /* ReceivedSignalQuality */
+static int hf_ansi_map_systemAccessData;          /* SystemAccessData */
+static int hf_ansi_map_cancellationDenied;        /* CancellationDenied */
+static int hf_ansi_map_availabilityType;          /* AvailabilityType */
+static int hf_ansi_map_borderCellAccess;          /* BorderCellAccess */
+static int hf_ansi_map_msc_Address;               /* MSC_Address */
+static int hf_ansi_map_sms_Address;               /* SMS_Address */
+static int hf_ansi_map_mpcAddressList;            /* MPCAddressList */
+static int hf_ansi_map_digits_Carrier;            /* Digits */
+static int hf_ansi_map_digitCollectionControl;    /* DigitCollectionControl */
+static int hf_ansi_map_trunkStatus;               /* TrunkStatus */
+static int hf_ansi_map_voiceMailboxNumber;        /* VoiceMailboxNumber */
+static int hf_ansi_map_voiceMailboxPIN;           /* VoiceMailboxPIN */
+static int hf_ansi_map_sms_BearerData;            /* SMS_BearerData */
+static int hf_ansi_map_sms_TeleserviceIdentifier;  /* SMS_TeleserviceIdentifier */
+static int hf_ansi_map_sms_ChargeIndicator;       /* SMS_ChargeIndicator */
+static int hf_ansi_map_sms_DestinationAddress;    /* SMS_DestinationAddress */
+static int hf_ansi_map_sms_OriginalDestinationAddress;  /* SMS_OriginalDestinationAddress */
+static int hf_ansi_map_sms_OriginalDestinationSubaddress;  /* SMS_OriginalDestinationSubaddress */
+static int hf_ansi_map_sms_OriginalOriginatingAddress;  /* SMS_OriginalOriginatingAddress */
+static int hf_ansi_map_sms_OriginalOriginatingSubaddress;  /* SMS_OriginalOriginatingSubaddress */
+static int hf_ansi_map_sms_OriginatingAddress;    /* SMS_OriginatingAddress */
+static int hf_ansi_map_sms_CauseCode;             /* SMS_CauseCode */
+static int hf_ansi_map_interMessageTime;          /* InterMessageTime */
+static int hf_ansi_map_newlyAssignedIMSI;         /* NewlyAssignedIMSI */
+static int hf_ansi_map_newlyAssignedMIN;          /* NewlyAssignedMIN */
+static int hf_ansi_map_newMINExtension;           /* NewMINExtension */
+static int hf_ansi_map_sms_MessageCount;          /* SMS_MessageCount */
+static int hf_ansi_map_sms_NotificationIndicator;  /* SMS_NotificationIndicator */
+static int hf_ansi_map_teleservice_Priority;      /* Teleservice_Priority */
+static int hf_ansi_map_temporaryReferenceNumber;  /* TemporaryReferenceNumber */
+static int hf_ansi_map_mobileStationMSID;         /* MobileStationMSID */
+static int hf_ansi_map_sms_TransactionID;         /* SMS_TransactionID */
+static int hf_ansi_map_sms_AccessDeniedReason;    /* SMS_AccessDeniedReason */
+static int hf_ansi_map_seizureType;               /* SeizureType */
+static int hf_ansi_map_requiredParametersMask;    /* RequiredParametersMask */
+static int hf_ansi_map_reasonList;                /* ReasonList */
+static int hf_ansi_map_networkTMSIExpirationTime;  /* NetworkTMSIExpirationTime */
+static int hf_ansi_map_newNetworkTMSI;            /* NewNetworkTMSI */
+static int hf_ansi_map_serviceID;                 /* ServiceID */
+static int hf_ansi_map_dataAccessElementList;     /* DataAccessElementList */
+static int hf_ansi_map_timeDateOffset;            /* TimeDateOffset */
+static int hf_ansi_map_timeOfDay;                 /* TimeOfDay */
+static int hf_ansi_map_dmd_BillingIndicator;      /* DMH_BillingIndicator */
+static int hf_ansi_map_failureType;               /* FailureType */
+static int hf_ansi_map_failureCause;              /* FailureCause */
+static int hf_ansi_map_outingDigits;              /* RoutingDigits */
+static int hf_ansi_map_databaseKey;               /* DatabaseKey */
+static int hf_ansi_map_modificationRequestList;   /* ModificationRequestList */
+static int hf_ansi_map_modificationResultList;    /* ModificationResultList */
+static int hf_ansi_map_serviceDataAccessElementList;  /* ServiceDataAccessElementList */
+static int hf_ansi_map_privateSpecializedResource;  /* PrivateSpecializedResource */
+static int hf_ansi_map_specializedResource;       /* SpecializedResource */
+static int hf_ansi_map_executeScript;             /* ExecuteScript */
+static int hf_ansi_map_scriptResult;              /* ScriptResult */
+static int hf_ansi_map_tdmaVoiceMode;             /* TDMAVoiceMode */
+static int hf_ansi_map_callStatus;                /* CallStatus */
+static int hf_ansi_map_releaseCause;              /* ReleaseCause */
+static int hf_ansi_map_callRecoveryIDList;        /* CallRecoveryIDList */
+static int hf_ansi_map_positionInformationCode;   /* PositionInformationCode */
+static int hf_ansi_map_mSStatus;                  /* MSStatus */
+static int hf_ansi_map_pSID_RSIDInformation;      /* PSID_RSIDInformation */
+static int hf_ansi_map_positionRequestType;       /* PositionRequestType */
+static int hf_ansi_map_lcsBillingID;              /* LCSBillingID */
+static int hf_ansi_map_lcs_Client_ID;             /* LCS_Client_ID */
+static int hf_ansi_map_dtxIndication;             /* DTXIndication */
+static int hf_ansi_map_tdma_MAHO_CELLID;          /* TDMA_MAHO_CELLID */
+static int hf_ansi_map_tdma_MAHO_CHANNEL;         /* TDMA_MAHO_CHANNEL */
+static int hf_ansi_map_tdma_TimeAlignment;        /* TDMA_TimeAlignment */
+static int hf_ansi_map_pqos_HorizontalPosition;   /* PQOS_HorizontalPosition */
+static int hf_ansi_map_pqos_HorizontalVelocity;   /* PQOS_HorizontalVelocity */
+static int hf_ansi_map_pqos_MaximumPositionAge;   /* PQOS_MaximumPositionAge */
+static int hf_ansi_map_pqos_PositionPriority;     /* PQOS_PositionPriority */
+static int hf_ansi_map_pqos_ResponseTime;         /* PQOS_ResponseTime */
+static int hf_ansi_map_pqos_VerticalPosition;     /* PQOS_VerticalPosition */
+static int hf_ansi_map_pqos_VerticalVelocity;     /* PQOS_VerticalVelocity */
+static int hf_ansi_map_cdmaPSMMCount;             /* CDMAPSMMCount */
+static int hf_ansi_map_lirAuthorization;          /* LIRAuthorization */
+static int hf_ansi_map_mpcid;                     /* MPCID */
+static int hf_ansi_map_tdma_MAHORequest;          /* TDMA_MAHORequest */
+static int hf_ansi_map_positionResult;            /* PositionResult */
+static int hf_ansi_map_positionInformation;       /* PositionInformation */
+static int hf_ansi_map_controlType;               /* ControlType */
+static int hf_ansi_map_destinationAddress;        /* DestinationAddress */
+static int hf_ansi_map_gapDuration;               /* GapDuration */
+static int hf_ansi_map_gapInterval;               /* GapInterval */
+static int hf_ansi_map_invokingNEType;            /* InvokingNEType */
+static int hf_ansi_map_range;                     /* Range */
+static int hf_ansi_map_meidStatus;                /* MEIDStatus */
+static int hf_ansi_map_aKeyProtocolVersion;       /* AKeyProtocolVersion */
+static int hf_ansi_map_mobileStationPartialKey;   /* MobileStationPartialKey */
+static int hf_ansi_map_newlyAssignedMSID;         /* NewlyAssignedMSID */
+static int hf_ansi_map_baseStationPartialKey;     /* BaseStationPartialKey */
+static int hf_ansi_map_modulusValue;              /* ModulusValue */
+static int hf_ansi_map_otasp_ResultCode;          /* OTASP_ResultCode */
+static int hf_ansi_map_primitiveValue;            /* PrimitiveValue */
+static int hf_ansi_map_record_Type;               /* Record_Type */
+static int hf_ansi_map_information_Record;        /* Information_Record */
+static int hf_ansi_map_cdma2000MobileSupportedCapabilities;  /* CDMA2000MobileSupportedCapabilities */
+static int hf_ansi_map_announcementCode1;         /* AnnouncementCode */
+static int hf_ansi_map_announcementCode2;         /* AnnouncementCode */
+static int hf_ansi_map_cdmaPilotPN;               /* CDMAPilotPN */
+static int hf_ansi_map_cdmaPowerCombinedIndicator;  /* CDMAPowerCombinedIndicator */
+static int hf_ansi_map_CDMACodeChannelList_item;  /* CDMACodeChannelInformation */
+static int hf_ansi_map_cdmaPilotStrength;         /* CDMAPilotStrength */
+static int hf_ansi_map_cdmaTargetOneWayDelay;     /* CDMATargetOneWayDelay */
+static int hf_ansi_map_CDMATargetMAHOList_item;   /* CDMATargetMAHOInformation */
+static int hf_ansi_map_cdmaSignalQuality;         /* CDMASignalQuality */
+static int hf_ansi_map_CDMATargetMeasurementList_item;  /* CDMATargetMeasurementInformation */
+static int hf_ansi_map_TargetMeasurementList_item;  /* TargetMeasurementInformation */
+static int hf_ansi_map_TerminationList_item;      /* TerminationList_item */
+static int hf_ansi_map_intersystemTermination;    /* IntersystemTermination */
+static int hf_ansi_map_localTermination;          /* LocalTermination */
+static int hf_ansi_map_pstnTermination;           /* PSTNTermination */
+static int hf_ansi_map_CDMABandClassList_item;    /* CDMABandClassInformation */
+static int hf_ansi_map_CDMAServiceOptionList_item;  /* CDMAServiceOption */
+static int hf_ansi_map_pSID_RSIDInformation1;     /* PSID_RSIDInformation */
+static int hf_ansi_map_targetCellID1;             /* TargetCellID */
+static int hf_ansi_map_cdmaConnectionReference;   /* CDMAConnectionReference */
+static int hf_ansi_map_cdmaState;                 /* CDMAState */
+static int hf_ansi_map_cdmaServiceOptionConnectionIdentifier;  /* CDMAServiceOptionConnectionIdentifier */
+static int hf_ansi_map_CDMAConnectionReferenceList_item;  /* CDMAConnectionReferenceList_item */
+static int hf_ansi_map_cdmaConnectionReferenceInformation;  /* CDMAConnectionReferenceInformation */
+static int hf_ansi_map_cdmaConnectionReferenceInformation2;  /* CDMAConnectionReferenceInformation */
+static int hf_ansi_map_analogRedirectInfo;        /* AnalogRedirectInfo */
+static int hf_ansi_map_CDMAChannelNumberList_item;  /* CDMAChannelNumberList_item */
+static int hf_ansi_map_cdmaChannelNumber;         /* CDMAChannelNumber */
+static int hf_ansi_map_cdmaChannelNumber2;        /* CDMAChannelNumber */
+static int hf_ansi_map_cdmaChannelNumberList;     /* CDMAChannelNumberList */
+static int hf_ansi_map_dataID;                    /* DataID */
+static int hf_ansi_map_change;                    /* Change */
+static int hf_ansi_map_dataValue;                 /* DataValue */
+static int hf_ansi_map_DataAccessElementList_item;  /* DataAccessElementList_item */
+static int hf_ansi_map_dataAccessElement1;        /* DataAccessElement */
+static int hf_ansi_map_dataAccessElement2;        /* DataAccessElement */
+static int hf_ansi_map_dataResult;                /* DataResult */
+static int hf_ansi_map_DataUpdateResultList_item;  /* DataUpdateResult */
+static int hf_ansi_map_globalTitle;               /* GlobalTitle */
+static int hf_ansi_map_pC_SSN;                    /* PC_SSN */
+static int hf_ansi_map_scriptName;                /* ScriptName */
+static int hf_ansi_map_scriptArgument;            /* ScriptArgument */
+static int hf_ansi_map_allOrNone;                 /* AllOrNone */
+static int hf_ansi_map_ModificationRequestList_item;  /* ModificationRequest */
+static int hf_ansi_map_serviceDataResultList;     /* ServiceDataResultList */
+static int hf_ansi_map_ModificationResultList_item;  /* ModificationResult */
+static int hf_ansi_map_ServiceDataAccessElementList_item;  /* ServiceDataAccessElement */
+static int hf_ansi_map_dataUpdateResultList;      /* DataUpdateResultList */
+static int hf_ansi_map_ServiceDataResultList_item;  /* ServiceDataResult */
+static int hf_ansi_map_triggerList;               /* TriggerList */
+static int hf_ansi_map_triggerListOpt;            /* TriggerList */
+static int hf_ansi_map_wIN_TriggerList;           /* WIN_TriggerList */
+static int hf_ansi_map_triggerCapability;         /* TriggerCapability */
+static int hf_ansi_map_wINOperationsCapability;   /* WINOperationsCapability */
+static int hf_ansi_map_CallRecoveryIDList_item;   /* CallRecoveryID */
+static int hf_ansi_map_generalizedTime;           /* GeneralizedTime */
+static int hf_ansi_map_geographicPosition;        /* GeographicPosition */
+static int hf_ansi_map_positionSource;            /* PositionSource */
+static int hf_ansi_map_horizontal_Velocity;       /* Horizontal_Velocity */
+static int hf_ansi_map_vertical_Velocity;         /* Vertical_Velocity */
+static int hf_ansi_map_sCFOverloadGapInterval;    /* SCFOverloadGapInterval */
+static int hf_ansi_map_serviceManagementSystemGapInterval;  /* ServiceManagementSystemGapInterval */
+static int hf_ansi_map_CDMAPSMMList_item;         /* CDMAPSMMList_item */
+static int hf_ansi_map_cdmaTargetMAHOList2;       /* CDMATargetMAHOList */
+static int hf_ansi_map_mpcAddress2;               /* MPCAddress */
+static int hf_ansi_map_mobileStationIMSI;         /* MobileStationIMSI */
+static int hf_ansi_map_handoffMeasurementRequest;  /* HandoffMeasurementRequest */
+static int hf_ansi_map_facilitiesDirective;       /* FacilitiesDirective */
+static int hf_ansi_map_handoffBack;               /* HandoffBack */
+static int hf_ansi_map_facilitiesRelease;         /* FacilitiesRelease */
+static int hf_ansi_map_qualificationRequest;      /* QualificationRequest */
+static int hf_ansi_map_qualificationDirective;    /* QualificationDirective */
+static int hf_ansi_map_blocking;                  /* Blocking */
+static int hf_ansi_map_unblocking;                /* Unblocking */
+static int hf_ansi_map_resetCircuit;              /* ResetCircuit */
+static int hf_ansi_map_trunkTest;                 /* TrunkTest */
+static int hf_ansi_map_trunkTestDisconnect;       /* TrunkTestDisconnect */
+static int hf_ansi_map_registrationNotification;  /* RegistrationNotification */
+static int hf_ansi_map_registrationCancellation;  /* RegistrationCancellation */
+static int hf_ansi_map_locationRequest;           /* LocationRequest */
+static int hf_ansi_map_routingRequest;            /* RoutingRequest */
+static int hf_ansi_map_featureRequest;            /* FeatureRequest */
+static int hf_ansi_map_unreliableRoamerDataDirective;  /* UnreliableRoamerDataDirective */
+static int hf_ansi_map_mSInactive;                /* MSInactive */
+static int hf_ansi_map_transferToNumberRequest;   /* TransferToNumberRequest */
+static int hf_ansi_map_redirectionRequest;        /* RedirectionRequest */
+static int hf_ansi_map_handoffToThird;            /* HandoffToThird */
+static int hf_ansi_map_flashRequest;              /* FlashRequest */
+static int hf_ansi_map_authenticationDirective;   /* AuthenticationDirective */
+static int hf_ansi_map_authenticationRequest;     /* AuthenticationRequest */
+static int hf_ansi_map_baseStationChallenge;      /* BaseStationChallenge */
+static int hf_ansi_map_authenticationFailureReport;  /* AuthenticationFailureReport */
+static int hf_ansi_map_countRequest;              /* CountRequest */
+static int hf_ansi_map_interSystemPage;           /* InterSystemPage */
+static int hf_ansi_map_unsolicitedResponse;       /* UnsolicitedResponse */
+static int hf_ansi_map_bulkDeregistration;        /* BulkDeregistration */
+static int hf_ansi_map_handoffMeasurementRequest2;  /* HandoffMeasurementRequest2 */
+static int hf_ansi_map_facilitiesDirective2;      /* FacilitiesDirective2 */
+static int hf_ansi_map_handoffBack2;              /* HandoffBack2 */
+static int hf_ansi_map_handoffToThird2;           /* HandoffToThird2 */
+static int hf_ansi_map_authenticationDirectiveForward;  /* AuthenticationDirectiveForward */
+static int hf_ansi_map_authenticationStatusReport;  /* AuthenticationStatusReport */
+static int hf_ansi_map_informationDirective;      /* InformationDirective */
+static int hf_ansi_map_informationForward;        /* InformationForward */
+static int hf_ansi_map_interSystemAnswer;         /* InterSystemAnswer */
+static int hf_ansi_map_interSystemPage2;          /* InterSystemPage2 */
+static int hf_ansi_map_interSystemSetup;          /* InterSystemSetup */
+static int hf_ansi_map_originationRequest;        /* OriginationRequest */
+static int hf_ansi_map_randomVariableRequest;     /* RandomVariableRequest */
+static int hf_ansi_map_redirectionDirective;      /* RedirectionDirective */
+static int hf_ansi_map_remoteUserInteractionDirective;  /* RemoteUserInteractionDirective */
+static int hf_ansi_map_sMSDeliveryBackward;       /* SMSDeliveryBackward */
+static int hf_ansi_map_sMSDeliveryForward;        /* SMSDeliveryForward */
+static int hf_ansi_map_sMSDeliveryPointToPoint;   /* SMSDeliveryPointToPoint */
+static int hf_ansi_map_sMSNotification;           /* SMSNotification */
+static int hf_ansi_map_sMSRequest;                /* SMSRequest */
+static int hf_ansi_map_oTASPRequest;              /* OTASPRequest */
+static int hf_ansi_map_changeFacilities;          /* ChangeFacilities */
+static int hf_ansi_map_changeService;             /* ChangeService */
+static int hf_ansi_map_parameterRequest;          /* ParameterRequest */
+static int hf_ansi_map_tMSIDirective;             /* TMSIDirective */
+static int hf_ansi_map_numberPortabilityRequest;  /* NumberPortabilityRequest */
+static int hf_ansi_map_serviceRequest;            /* ServiceRequest */
+static int hf_ansi_map_analyzedInformation;       /* AnalyzedInformation */
+static int hf_ansi_map_connectionFailureReport;   /* ConnectionFailureReport */
+static int hf_ansi_map_connectResource;           /* ConnectResource */
+static int hf_ansi_map_facilitySelectedAndAvailable;  /* FacilitySelectedAndAvailable */
+static int hf_ansi_map_modify;                    /* Modify */
+static int hf_ansi_map_search;                    /* Search */
+static int hf_ansi_map_seizeResource;             /* SeizeResource */
+static int hf_ansi_map_sRFDirective;              /* SRFDirective */
+static int hf_ansi_map_tBusy;                     /* TBusy */
+static int hf_ansi_map_tNoAnswer;                 /* TNoAnswer */
+static int hf_ansi_map_smsDeliveryPointToPointAck;  /* SMSDeliveryPointToPointAck */
+static int hf_ansi_map_messageDirective;          /* MessageDirective */
+static int hf_ansi_map_bulkDisconnection;         /* BulkDisconnection */
+static int hf_ansi_map_callControlDirective;      /* CallControlDirective */
+static int hf_ansi_map_oAnswer;                   /* OAnswer */
+static int hf_ansi_map_oDisconnect;               /* ODisconnect */
+static int hf_ansi_map_callRecoveryReport;        /* CallRecoveryReport */
+static int hf_ansi_map_tAnswer;                   /* TAnswer */
+static int hf_ansi_map_tDisconnect;               /* TDisconnect */
+static int hf_ansi_map_unreliableCallData;        /* UnreliableCallData */
+static int hf_ansi_map_oCalledPartyBusy;          /* OCalledPartyBusy */
+static int hf_ansi_map_oNoAnswer;                 /* ONoAnswer */
+static int hf_ansi_map_positionRequest;           /* PositionRequest */
+static int hf_ansi_map_positionRequestForward;    /* PositionRequestForward */
+static int hf_ansi_map_callTerminationReport;     /* CallTerminationReport */
+static int hf_ansi_map_geoPositionRequest;        /* GeoPositionRequest */
+static int hf_ansi_map_interSystemPositionRequest;  /* InterSystemPositionRequest */
+static int hf_ansi_map_interSystemPositionRequestForward;  /* InterSystemPositionRequestForward */
+static int hf_ansi_map_aCGDirective;              /* ACGDirective */
+static int hf_ansi_map_roamerDatabaseVerificationRequest;  /* RoamerDatabaseVerificationRequest */
+static int hf_ansi_map_addService;                /* AddService */
+static int hf_ansi_map_dropService;               /* DropService */
+static int hf_ansi_map_lcsParameterRequest;       /* LCSParameterRequest */
+static int hf_ansi_map_checkMEID;                 /* CheckMEID */
+static int hf_ansi_map_positionEventNotification;  /* PositionEventNotification */
+static int hf_ansi_map_statusRequest;             /* StatusRequest */
+static int hf_ansi_map_interSystemSMSDeliveryPointToPoint;  /* InterSystemSMSDeliveryPointToPoint */
+static int hf_ansi_map_qualificationRequest2;     /* QualificationRequest2 */
+static int hf_ansi_map_handoffMeasurementRequestRes;  /* HandoffMeasurementRequestRes */
+static int hf_ansi_map_facilitiesDirectiveRes;    /* FacilitiesDirectiveRes */
+static int hf_ansi_map_handoffBackRes;            /* HandoffBackRes */
+static int hf_ansi_map_facilitiesReleaseRes;      /* FacilitiesReleaseRes */
+static int hf_ansi_map_qualificationDirectiveRes;  /* QualificationDirectiveRes */
+static int hf_ansi_map_qualificationRequestRes;   /* QualificationRequestRes */
+static int hf_ansi_map_resetCircuitRes;           /* ResetCircuitRes */
+static int hf_ansi_map_registrationNotificationRes;  /* RegistrationNotificationRes */
+static int hf_ansi_map_registrationCancellationRes;  /* RegistrationCancellationRes */
+static int hf_ansi_map_locationRequestRes;        /* LocationRequestRes */
+static int hf_ansi_map_routingRequestRes;         /* RoutingRequestRes */
+static int hf_ansi_map_featureRequestRes;         /* FeatureRequestRes */
+static int hf_ansi_map_transferToNumberRequestRes;  /* TransferToNumberRequestRes */
+static int hf_ansi_map_handoffToThirdRes;         /* HandoffToThirdRes */
+static int hf_ansi_map_authenticationDirectiveRes;  /* AuthenticationDirectiveRes */
+static int hf_ansi_map_authenticationRequestRes;  /* AuthenticationRequestRes */
+static int hf_ansi_map_baseStationChallengeRes;   /* BaseStationChallengeRes */
+static int hf_ansi_map_authenticationFailureReportRes;  /* AuthenticationFailureReportRes */
+static int hf_ansi_map_countRequestRes;           /* CountRequestRes */
+static int hf_ansi_map_interSystemPageRes;        /* InterSystemPageRes */
+static int hf_ansi_map_unsolicitedResponseRes;    /* UnsolicitedResponseRes */
+static int hf_ansi_map_handoffMeasurementRequest2Res;  /* HandoffMeasurementRequest2Res */
+static int hf_ansi_map_facilitiesDirective2Res;   /* FacilitiesDirective2Res */
+static int hf_ansi_map_handoffBack2Res;           /* HandoffBack2Res */
+static int hf_ansi_map_handoffToThird2Res;        /* HandoffToThird2Res */
+static int hf_ansi_map_authenticationDirectiveForwardRes;  /* AuthenticationDirectiveForwardRes */
+static int hf_ansi_map_authenticationStatusReportRes;  /* AuthenticationStatusReportRes */
+static int hf_ansi_map_informationDirectiveRes;   /* InformationDirectiveRes */
+static int hf_ansi_map_informationForwardRes;     /* InformationForwardRes */
+static int hf_ansi_map_interSystemPage2Res;       /* InterSystemPage2Res */
+static int hf_ansi_map_interSystemSetupRes;       /* InterSystemSetupRes */
+static int hf_ansi_map_originationRequestRes;     /* OriginationRequestRes */
+static int hf_ansi_map_randomVariableRequestRes;  /* RandomVariableRequestRes */
+static int hf_ansi_map_remoteUserInteractionDirectiveRes;  /* RemoteUserInteractionDirectiveRes */
+static int hf_ansi_map_sMSDeliveryBackwardRes;    /* SMSDeliveryBackwardRes */
+static int hf_ansi_map_sMSDeliveryForwardRes;     /* SMSDeliveryForwardRes */
+static int hf_ansi_map_sMSDeliveryPointToPointRes;  /* SMSDeliveryPointToPointRes */
+static int hf_ansi_map_sMSNotificationRes;        /* SMSNotificationRes */
+static int hf_ansi_map_sMSRequestRes;             /* SMSRequestRes */
+static int hf_ansi_map_oTASPRequestRes;           /* OTASPRequestRes */
+static int hf_ansi_map_changeFacilitiesRes;       /* ChangeFacilitiesRes */
+static int hf_ansi_map_changeServiceRes;          /* ChangeServiceRes */
+static int hf_ansi_map_parameterRequestRes;       /* ParameterRequestRes */
+static int hf_ansi_map_tMSIDirectiveRes;          /* TMSIDirectiveRes */
+static int hf_ansi_map_numberPortabilityRequestRes;  /* NumberPortabilityRequestRes */
+static int hf_ansi_map_serviceRequestRes;         /* ServiceRequestRes */
+static int hf_ansi_map_analyzedInformationRes;    /* AnalyzedInformationRes */
+static int hf_ansi_map_facilitySelectedAndAvailableRes;  /* FacilitySelectedAndAvailableRes */
+static int hf_ansi_map_modifyRes;                 /* ModifyRes */
+static int hf_ansi_map_searchRes;                 /* SearchRes */
+static int hf_ansi_map_seizeResourceRes;          /* SeizeResourceRes */
+static int hf_ansi_map_sRFDirectiveRes;           /* SRFDirectiveRes */
+static int hf_ansi_map_tBusyRes;                  /* TBusyRes */
+static int hf_ansi_map_tNoAnswerRes;              /* TNoAnswerRes */
+static int hf_ansi_map_callControlDirectiveRes;   /* CallControlDirectiveRes */
+static int hf_ansi_map_oDisconnectRes;            /* ODisconnectRes */
+static int hf_ansi_map_tDisconnectRes;            /* TDisconnectRes */
+static int hf_ansi_map_oCalledPartyBusyRes;       /* OCalledPartyBusyRes */
+static int hf_ansi_map_oNoAnswerRes;              /* ONoAnswerRes */
+static int hf_ansi_map_positionRequestRes;        /* PositionRequestRes */
+static int hf_ansi_map_positionRequestForwardRes;  /* PositionRequestForwardRes */
+static int hf_ansi_map_interSystemPositionRequestRes;  /* InterSystemPositionRequestRes */
+static int hf_ansi_map_interSystemPositionRequestForwardRes;  /* InterSystemPositionRequestForwardRes */
+static int hf_ansi_map_roamerDatabaseVerificationRequestRes;  /* RoamerDatabaseVerificationRequestRes */
+static int hf_ansi_map_addServiceRes;             /* AddServiceRes */
+static int hf_ansi_map_dropServiceRes;            /* DropServiceRes */
+static int hf_ansi_map_interSystemSMSPage;        /* InterSystemSMSPage */
+static int hf_ansi_map_lcsParameterRequestRes;    /* LCSParameterRequestRes */
+static int hf_ansi_map_checkMEIDRes;              /* CheckMEIDRes */
+static int hf_ansi_map_statusRequestRes;          /* StatusRequestRes */
+static int hf_ansi_map_interSystemSMSDeliveryPointToPointRes;  /* InterSystemSMSDeliveryPointToPointRes */
+static int hf_ansi_map_qualificationRequest2Res;  /* QualificationRequest2Res */
 
 /* Initialize the subtree pointers */
-static gint ett_ansi_map = -1;
-static gint ett_mintype = -1;
-static gint ett_digitstype = -1;
-static gint ett_billingid = -1;
-static gint ett_sms_bearer_data = -1;
-static gint ett_sms_teleserviceIdentifier = -1;
-static gint ett_extendedmscid = -1;
-static gint ett_extendedsystemmytypecode = -1;
-static gint ett_handoffstate = -1;
-static gint ett_mscid = -1;
-static gint ett_cdmachanneldata = -1;
-static gint ett_cdmastationclassmark = -1;
-static gint ett_channeldata = -1;
-static gint ett_confidentialitymodes = -1;
-static gint ett_controlchanneldata = -1;
-static gint ett_CDMA2000HandoffInvokeIOSData = -1;
-static gint ett_CDMA2000HandoffResponseIOSData = -1;
-static gint ett_originationtriggers = -1;
-static gint ett_pacaindicator = -1;
-static gint ett_callingpartyname = -1;
-static gint ett_triggercapability = -1;
-static gint ett_winoperationscapability = -1;
-static gint ett_win_trigger_list = -1;
-static gint ett_controlnetworkid = -1;
-static gint ett_transactioncapability = -1;
-static gint ett_cdmaserviceoption = -1;
-static gint ett_systemcapabilities = -1;
-static gint ett_sms_originationrestrictions = -1;
+static int ett_ansi_map;
+static int ett_mintype;
+static int ett_digitstype;
+static int ett_billingid;
+static int ett_sms_bearer_data;
+static int ett_sms_teleserviceIdentifier;
+static int ett_extendedmscid;
+static int ett_extendedsystemmytypecode;
+static int ett_handoffstate;
+static int ett_mscid;
+static int ett_cdmachanneldata;
+static int ett_cdmastationclassmark;
+static int ett_channeldata;
+static int ett_confidentialitymodes;
+static int ett_controlchanneldata;
+static int ett_CDMA2000HandoffInvokeIOSData;
+static int ett_CDMA2000HandoffResponseIOSData;
+static int ett_originationtriggers;
+static int ett_pacaindicator;
+static int ett_callingpartyname;
+static int ett_triggercapability;
+static int ett_winoperationscapability;
+static int ett_win_trigger_list;
+static int ett_controlnetworkid;
+static int ett_transactioncapability;
+static int ett_cdmaserviceoption;
+static int ett_systemcapabilities;
+static int ett_sms_originationrestrictions;
 
-static gint ett_ansi_map_AuthenticationDirective_U = -1;
-static gint ett_ansi_map_AuthenticationDirectiveRes_U = -1;
-static gint ett_ansi_map_AuthenticationDirectiveForward_U = -1;
-static gint ett_ansi_map_AuthenticationDirectiveForwardRes_U = -1;
-static gint ett_ansi_map_AuthenticationFailureReport_U = -1;
-static gint ett_ansi_map_AuthenticationFailureReportRes_U = -1;
-static gint ett_ansi_map_AuthenticationRequest_U = -1;
-static gint ett_ansi_map_AuthenticationRequestRes_U = -1;
-static gint ett_ansi_map_AuthenticationStatusReport_U = -1;
-static gint ett_ansi_map_AuthenticationStatusReportRes_U = -1;
-static gint ett_ansi_map_BaseStationChallenge_U = -1;
-static gint ett_ansi_map_BaseStationChallengeRes_U = -1;
-static gint ett_ansi_map_Blocking_U = -1;
-static gint ett_ansi_map_BulkDeregistration_U = -1;
-static gint ett_ansi_map_CountRequest_U = -1;
-static gint ett_ansi_map_CountRequestRes_U = -1;
-static gint ett_ansi_map_FacilitiesDirective_U = -1;
-static gint ett_ansi_map_FacilitiesDirectiveRes_U = -1;
-static gint ett_ansi_map_FacilitiesDirective2_U = -1;
-static gint ett_ansi_map_FacilitiesDirective2Res_U = -1;
-static gint ett_ansi_map_FacilitiesRelease_U = -1;
-static gint ett_ansi_map_FacilitiesReleaseRes_U = -1;
-static gint ett_ansi_map_FeatureRequest_U = -1;
-static gint ett_ansi_map_FeatureRequestRes_U = -1;
-static gint ett_ansi_map_FlashRequest_U = -1;
-static gint ett_ansi_map_HandoffBack_U = -1;
-static gint ett_ansi_map_HandoffBackRes_U = -1;
-static gint ett_ansi_map_HandoffBack2_U = -1;
-static gint ett_ansi_map_HandoffBack2Res_U = -1;
-static gint ett_ansi_map_HandoffMeasurementRequest_U = -1;
-static gint ett_ansi_map_HandoffMeasurementRequestRes_U = -1;
-static gint ett_ansi_map_HandoffMeasurementRequest2_U = -1;
-static gint ett_ansi_map_HandoffMeasurementRequest2Res_U = -1;
-static gint ett_ansi_map_HandoffToThird_U = -1;
-static gint ett_ansi_map_HandoffToThirdRes_U = -1;
-static gint ett_ansi_map_HandoffToThird2_U = -1;
-static gint ett_ansi_map_HandoffToThird2Res_U = -1;
-static gint ett_ansi_map_InformationDirective_U = -1;
-static gint ett_ansi_map_InformationDirectiveRes_U = -1;
-static gint ett_ansi_map_InformationForward_U = -1;
-static gint ett_ansi_map_InformationForwardRes_U = -1;
-static gint ett_ansi_map_InterSystemAnswer_U = -1;
-static gint ett_ansi_map_InterSystemPage_U = -1;
-static gint ett_ansi_map_InterSystemPageRes_U = -1;
-static gint ett_ansi_map_InterSystemPage2_U = -1;
-static gint ett_ansi_map_InterSystemPage2Res_U = -1;
-static gint ett_ansi_map_InterSystemSetup_U = -1;
-static gint ett_ansi_map_InterSystemSetupRes_U = -1;
-static gint ett_ansi_map_LocationRequest_U = -1;
-static gint ett_ansi_map_LocationRequestRes_U = -1;
-static gint ett_ansi_map_MSInactive_U = -1;
-static gint ett_ansi_map_OriginationRequest_U = -1;
-static gint ett_ansi_map_OriginationRequestRes_U = -1;
-static gint ett_ansi_map_QualificationDirective_U = -1;
-static gint ett_ansi_map_QualificationDirectiveRes_U = -1;
-static gint ett_ansi_map_QualificationRequest_U = -1;
-static gint ett_ansi_map_QualificationRequestRes_U = -1;
-static gint ett_ansi_map_RandomVariableRequest_U = -1;
-static gint ett_ansi_map_RandomVariableRequestRes_U = -1;
-static gint ett_ansi_map_RedirectionDirective_U = -1;
-static gint ett_ansi_map_RedirectionRequest_U = -1;
-static gint ett_ansi_map_RegistrationCancellation_U = -1;
-static gint ett_ansi_map_RegistrationCancellationRes_U = -1;
-static gint ett_ansi_map_RegistrationNotification_U = -1;
-static gint ett_ansi_map_RegistrationNotificationRes_U = -1;
-static gint ett_ansi_map_RemoteUserInteractionDirective_U = -1;
-static gint ett_ansi_map_RemoteUserInteractionDirectiveRes_U = -1;
-static gint ett_ansi_map_ResetCircuit_U = -1;
-static gint ett_ansi_map_ResetCircuitRes_U = -1;
-static gint ett_ansi_map_RoutingRequest_U = -1;
-static gint ett_ansi_map_RoutingRequestRes_U = -1;
-static gint ett_ansi_map_SMSDeliveryBackward_U = -1;
-static gint ett_ansi_map_SMSDeliveryBackwardRes_U = -1;
-static gint ett_ansi_map_SMSDeliveryForward_U = -1;
-static gint ett_ansi_map_SMSDeliveryForwardRes_U = -1;
-static gint ett_ansi_map_SMSDeliveryPointToPoint_U = -1;
-static gint ett_ansi_map_SMSDeliveryPointToPointRes_U = -1;
-static gint ett_ansi_map_SMSDeliveryPointToPointAck_U = -1;
-static gint ett_ansi_map_SMSNotification_U = -1;
-static gint ett_ansi_map_SMSNotificationRes_U = -1;
-static gint ett_ansi_map_SMSRequest_U = -1;
-static gint ett_ansi_map_SMSRequestRes_U = -1;
-static gint ett_ansi_map_TransferToNumberRequest_U = -1;
-static gint ett_ansi_map_TransferToNumberRequestRes_U = -1;
-static gint ett_ansi_map_TrunkTest_U = -1;
-static gint ett_ansi_map_TrunkTestDisconnect_U = -1;
-static gint ett_ansi_map_Unblocking_U = -1;
-static gint ett_ansi_map_UnreliableRoamerDataDirective_U = -1;
-static gint ett_ansi_map_UnsolicitedResponse_U = -1;
-static gint ett_ansi_map_UnsolicitedResponseRes_U = -1;
-static gint ett_ansi_map_ParameterRequest_U = -1;
-static gint ett_ansi_map_ParameterRequestRes_U = -1;
-static gint ett_ansi_map_TMSIDirective_U = -1;
-static gint ett_ansi_map_TMSIDirectiveRes_U = -1;
-static gint ett_ansi_map_NumberPortabilityRequest_U = -1;
-static gint ett_ansi_map_NumberPortabilityRequestRes_U = -1;
-static gint ett_ansi_map_ServiceRequest_U = -1;
-static gint ett_ansi_map_ServiceRequestRes_U = -1;
-static gint ett_ansi_map_AnalyzedInformation_U = -1;
-static gint ett_ansi_map_AnalyzedInformationRes_U = -1;
-static gint ett_ansi_map_ConnectionFailureReport_U = -1;
-static gint ett_ansi_map_ConnectResource_U = -1;
-static gint ett_ansi_map_FacilitySelectedAndAvailable_U = -1;
-static gint ett_ansi_map_FacilitySelectedAndAvailableRes_U = -1;
-static gint ett_ansi_map_Modify_U = -1;
-static gint ett_ansi_map_ModifyRes_U = -1;
-static gint ett_ansi_map_Search_U = -1;
-static gint ett_ansi_map_SearchRes_U = -1;
-static gint ett_ansi_map_SeizeResource_U = -1;
-static gint ett_ansi_map_SeizeResourceRes_U = -1;
-static gint ett_ansi_map_SRFDirective_U = -1;
-static gint ett_ansi_map_SRFDirectiveRes_U = -1;
-static gint ett_ansi_map_TBusy_U = -1;
-static gint ett_ansi_map_TBusyRes_U = -1;
-static gint ett_ansi_map_TNoAnswer_U = -1;
-static gint ett_ansi_map_TNoAnswerRes_U = -1;
-static gint ett_ansi_map_ChangeFacilities_U = -1;
-static gint ett_ansi_map_ChangeFacilitiesRes_U = -1;
-static gint ett_ansi_map_ChangeService_U = -1;
-static gint ett_ansi_map_ChangeServiceRes_U = -1;
-static gint ett_ansi_map_MessageDirective_U = -1;
-static gint ett_ansi_map_BulkDisconnection_U = -1;
-static gint ett_ansi_map_CallControlDirective_U = -1;
-static gint ett_ansi_map_CallControlDirectiveRes_U = -1;
-static gint ett_ansi_map_OAnswer_U = -1;
-static gint ett_ansi_map_ODisconnect_U = -1;
-static gint ett_ansi_map_ODisconnectRes_U = -1;
-static gint ett_ansi_map_CallRecoveryReport_U = -1;
-static gint ett_ansi_map_TAnswer_U = -1;
-static gint ett_ansi_map_TDisconnect_U = -1;
-static gint ett_ansi_map_TDisconnectRes_U = -1;
-static gint ett_ansi_map_UnreliableCallData_U = -1;
-static gint ett_ansi_map_OCalledPartyBusy_U = -1;
-static gint ett_ansi_map_OCalledPartyBusyRes_U = -1;
-static gint ett_ansi_map_ONoAnswer_U = -1;
-static gint ett_ansi_map_ONoAnswerRes_U = -1;
-static gint ett_ansi_map_PositionRequest_U = -1;
-static gint ett_ansi_map_PositionRequestRes_U = -1;
-static gint ett_ansi_map_PositionRequestForward_U = -1;
-static gint ett_ansi_map_PositionRequestForwardRes_U = -1;
-static gint ett_ansi_map_CallTerminationReport_U = -1;
-static gint ett_ansi_map_GeoPositionRequest_U = -1;
-static gint ett_ansi_map_InterSystemPositionRequest_U = -1;
-static gint ett_ansi_map_InterSystemPositionRequestRes_U = -1;
-static gint ett_ansi_map_InterSystemPositionRequestForward_U = -1;
-static gint ett_ansi_map_InterSystemPositionRequestForwardRes_U = -1;
-static gint ett_ansi_map_ACGDirective_U = -1;
-static gint ett_ansi_map_RoamerDatabaseVerificationRequest_U = -1;
-static gint ett_ansi_map_RoamerDatabaseVerificationRequestRes_U = -1;
-static gint ett_ansi_map_LCSParameterRequest_U = -1;
-static gint ett_ansi_map_LCSParameterRequestRes_U = -1;
-static gint ett_ansi_map_CheckMEID_U = -1;
-static gint ett_ansi_map_CheckMEIDRes_U = -1;
-static gint ett_ansi_map_AddService_U = -1;
-static gint ett_ansi_map_AddServiceRes_U = -1;
-static gint ett_ansi_map_DropService_U = -1;
-static gint ett_ansi_map_DropServiceRes_U = -1;
-static gint ett_ansi_map_PositionEventNotification_U = -1;
-static gint ett_ansi_map_OTASPRequest_U = -1;
-static gint ett_ansi_map_OTASPRequestRes_U = -1;
-static gint ett_ansi_map_StatusRequest_U = -1;
-static gint ett_ansi_map_StatusRequestRes_U = -1;
-static gint ett_ansi_map_InterSystemSMSDeliveryPointToPoint_U = -1;
-static gint ett_ansi_map_InterSystemSMSDeliveryPointToPointRes_U = -1;
-static gint ett_ansi_map_InterSystemSMSPage_U = -1;
-static gint ett_ansi_map_QualificationRequest2_U = -1;
-static gint ett_ansi_map_QualificationRequest2Res_U = -1;
-static gint ett_ansi_map_AnnouncementList = -1;
-static gint ett_ansi_map_CDMACodeChannelInformation = -1;
-static gint ett_ansi_map_CDMACodeChannelList = -1;
-static gint ett_ansi_map_CDMATargetMAHOInformation = -1;
-static gint ett_ansi_map_CDMATargetMAHOList = -1;
-static gint ett_ansi_map_CDMATargetMeasurementInformation = -1;
-static gint ett_ansi_map_CDMATargetMeasurementList = -1;
-static gint ett_ansi_map_IntersystemTermination = -1;
-static gint ett_ansi_map_LocalTermination = -1;
-static gint ett_ansi_map_PSTNTermination = -1;
-static gint ett_ansi_map_TargetMeasurementInformation = -1;
-static gint ett_ansi_map_TargetMeasurementList = -1;
-static gint ett_ansi_map_TerminationList = -1;
-static gint ett_ansi_map_TerminationList_item = -1;
-static gint ett_ansi_map_CDMABandClassInformation = -1;
-static gint ett_ansi_map_CDMABandClassList = -1;
-static gint ett_ansi_map_CDMAServiceOptionList = -1;
-static gint ett_ansi_map_PSID_RSIDList = -1;
-static gint ett_ansi_map_TargetCellIDList = -1;
-static gint ett_ansi_map_CDMAConnectionReferenceInformation = -1;
-static gint ett_ansi_map_CDMAConnectionReferenceList = -1;
-static gint ett_ansi_map_CDMAConnectionReferenceList_item = -1;
-static gint ett_ansi_map_AnalogRedirectRecord = -1;
-static gint ett_ansi_map_CDMAChannelNumberList = -1;
-static gint ett_ansi_map_CDMAChannelNumberList_item = -1;
-static gint ett_ansi_map_CDMARedirectRecord = -1;
-static gint ett_ansi_map_MSID = -1;
-static gint ett_ansi_map_DataAccessElement = -1;
-static gint ett_ansi_map_DataAccessElementList = -1;
-static gint ett_ansi_map_DataAccessElementList_item = -1;
-static gint ett_ansi_map_DataUpdateResult = -1;
-static gint ett_ansi_map_DataUpdateResultList = -1;
-static gint ett_ansi_map_DestinationAddress = -1;
-static gint ett_ansi_map_ExecuteScript = -1;
-static gint ett_ansi_map_ModificationRequest = -1;
-static gint ett_ansi_map_ModificationRequestList = -1;
-static gint ett_ansi_map_ModificationResult = -1;
-static gint ett_ansi_map_ModificationResultList = -1;
-static gint ett_ansi_map_ServiceDataAccessElement = -1;
-static gint ett_ansi_map_ServiceDataAccessElementList = -1;
-static gint ett_ansi_map_ServiceDataResult = -1;
-static gint ett_ansi_map_ServiceDataResultList = -1;
-static gint ett_ansi_map_TriggerAddressList = -1;
-static gint ett_ansi_map_TriggerList = -1;
-static gint ett_ansi_map_WINCapability = -1;
-static gint ett_ansi_map_CallRecoveryID = -1;
-static gint ett_ansi_map_CallRecoveryIDList = -1;
-static gint ett_ansi_map_PositionInformation = -1;
-static gint ett_ansi_map_GapInterval = -1;
-static gint ett_ansi_map_CDMAPSMMList = -1;
-static gint ett_ansi_map_CDMAPSMMList_item = -1;
-static gint ett_ansi_map_MPCAddressList = -1;
-static gint ett_ansi_map_MobileStationMSID = -1;
-static gint ett_ansi_map_NewlyAssignedMSID = -1;
-static gint ett_ansi_map_InvokeData = -1;
-static gint ett_ansi_map_ReturnData = -1;
+static int ett_ansi_map_AuthenticationDirective_U;
+static int ett_ansi_map_AuthenticationDirectiveRes_U;
+static int ett_ansi_map_AuthenticationDirectiveForward_U;
+static int ett_ansi_map_AuthenticationDirectiveForwardRes_U;
+static int ett_ansi_map_AuthenticationFailureReport_U;
+static int ett_ansi_map_AuthenticationFailureReportRes_U;
+static int ett_ansi_map_AuthenticationRequest_U;
+static int ett_ansi_map_AuthenticationRequestRes_U;
+static int ett_ansi_map_AuthenticationStatusReport_U;
+static int ett_ansi_map_AuthenticationStatusReportRes_U;
+static int ett_ansi_map_BaseStationChallenge_U;
+static int ett_ansi_map_BaseStationChallengeRes_U;
+static int ett_ansi_map_Blocking_U;
+static int ett_ansi_map_BulkDeregistration_U;
+static int ett_ansi_map_CountRequest_U;
+static int ett_ansi_map_CountRequestRes_U;
+static int ett_ansi_map_FacilitiesDirective_U;
+static int ett_ansi_map_FacilitiesDirectiveRes_U;
+static int ett_ansi_map_FacilitiesDirective2_U;
+static int ett_ansi_map_FacilitiesDirective2Res_U;
+static int ett_ansi_map_FacilitiesRelease_U;
+static int ett_ansi_map_FacilitiesReleaseRes_U;
+static int ett_ansi_map_FeatureRequest_U;
+static int ett_ansi_map_FeatureRequestRes_U;
+static int ett_ansi_map_FlashRequest_U;
+static int ett_ansi_map_HandoffBack_U;
+static int ett_ansi_map_HandoffBackRes_U;
+static int ett_ansi_map_HandoffBack2_U;
+static int ett_ansi_map_HandoffBack2Res_U;
+static int ett_ansi_map_HandoffMeasurementRequest_U;
+static int ett_ansi_map_HandoffMeasurementRequestRes_U;
+static int ett_ansi_map_HandoffMeasurementRequest2_U;
+static int ett_ansi_map_HandoffMeasurementRequest2Res_U;
+static int ett_ansi_map_HandoffToThird_U;
+static int ett_ansi_map_HandoffToThirdRes_U;
+static int ett_ansi_map_HandoffToThird2_U;
+static int ett_ansi_map_HandoffToThird2Res_U;
+static int ett_ansi_map_InformationDirective_U;
+static int ett_ansi_map_InformationDirectiveRes_U;
+static int ett_ansi_map_InformationForward_U;
+static int ett_ansi_map_InformationForwardRes_U;
+static int ett_ansi_map_InterSystemAnswer_U;
+static int ett_ansi_map_InterSystemPage_U;
+static int ett_ansi_map_InterSystemPageRes_U;
+static int ett_ansi_map_InterSystemPage2_U;
+static int ett_ansi_map_InterSystemPage2Res_U;
+static int ett_ansi_map_InterSystemSetup_U;
+static int ett_ansi_map_InterSystemSetupRes_U;
+static int ett_ansi_map_LocationRequest_U;
+static int ett_ansi_map_LocationRequestRes_U;
+static int ett_ansi_map_MSInactive_U;
+static int ett_ansi_map_OriginationRequest_U;
+static int ett_ansi_map_OriginationRequestRes_U;
+static int ett_ansi_map_QualificationDirective_U;
+static int ett_ansi_map_QualificationDirectiveRes_U;
+static int ett_ansi_map_QualificationRequest_U;
+static int ett_ansi_map_QualificationRequestRes_U;
+static int ett_ansi_map_RandomVariableRequest_U;
+static int ett_ansi_map_RandomVariableRequestRes_U;
+static int ett_ansi_map_RedirectionDirective_U;
+static int ett_ansi_map_RedirectionRequest_U;
+static int ett_ansi_map_RegistrationCancellation_U;
+static int ett_ansi_map_RegistrationCancellationRes_U;
+static int ett_ansi_map_RegistrationNotification_U;
+static int ett_ansi_map_RegistrationNotificationRes_U;
+static int ett_ansi_map_RemoteUserInteractionDirective_U;
+static int ett_ansi_map_RemoteUserInteractionDirectiveRes_U;
+static int ett_ansi_map_ResetCircuit_U;
+static int ett_ansi_map_ResetCircuitRes_U;
+static int ett_ansi_map_RoutingRequest_U;
+static int ett_ansi_map_RoutingRequestRes_U;
+static int ett_ansi_map_SMSDeliveryBackward_U;
+static int ett_ansi_map_SMSDeliveryBackwardRes_U;
+static int ett_ansi_map_SMSDeliveryForward_U;
+static int ett_ansi_map_SMSDeliveryForwardRes_U;
+static int ett_ansi_map_SMSDeliveryPointToPoint_U;
+static int ett_ansi_map_SMSDeliveryPointToPointRes_U;
+static int ett_ansi_map_SMSDeliveryPointToPointAck_U;
+static int ett_ansi_map_SMSNotification_U;
+static int ett_ansi_map_SMSNotificationRes_U;
+static int ett_ansi_map_SMSRequest_U;
+static int ett_ansi_map_SMSRequestRes_U;
+static int ett_ansi_map_TransferToNumberRequest_U;
+static int ett_ansi_map_TransferToNumberRequestRes_U;
+static int ett_ansi_map_TrunkTest_U;
+static int ett_ansi_map_TrunkTestDisconnect_U;
+static int ett_ansi_map_Unblocking_U;
+static int ett_ansi_map_UnreliableRoamerDataDirective_U;
+static int ett_ansi_map_UnsolicitedResponse_U;
+static int ett_ansi_map_UnsolicitedResponseRes_U;
+static int ett_ansi_map_ParameterRequest_U;
+static int ett_ansi_map_ParameterRequestRes_U;
+static int ett_ansi_map_TMSIDirective_U;
+static int ett_ansi_map_TMSIDirectiveRes_U;
+static int ett_ansi_map_NumberPortabilityRequest_U;
+static int ett_ansi_map_NumberPortabilityRequestRes_U;
+static int ett_ansi_map_ServiceRequest_U;
+static int ett_ansi_map_ServiceRequestRes_U;
+static int ett_ansi_map_AnalyzedInformation_U;
+static int ett_ansi_map_AnalyzedInformationRes_U;
+static int ett_ansi_map_ConnectionFailureReport_U;
+static int ett_ansi_map_ConnectResource_U;
+static int ett_ansi_map_FacilitySelectedAndAvailable_U;
+static int ett_ansi_map_FacilitySelectedAndAvailableRes_U;
+static int ett_ansi_map_Modify_U;
+static int ett_ansi_map_ModifyRes_U;
+static int ett_ansi_map_Search_U;
+static int ett_ansi_map_SearchRes_U;
+static int ett_ansi_map_SeizeResource_U;
+static int ett_ansi_map_SeizeResourceRes_U;
+static int ett_ansi_map_SRFDirective_U;
+static int ett_ansi_map_SRFDirectiveRes_U;
+static int ett_ansi_map_TBusy_U;
+static int ett_ansi_map_TBusyRes_U;
+static int ett_ansi_map_TNoAnswer_U;
+static int ett_ansi_map_TNoAnswerRes_U;
+static int ett_ansi_map_ChangeFacilities_U;
+static int ett_ansi_map_ChangeFacilitiesRes_U;
+static int ett_ansi_map_ChangeService_U;
+static int ett_ansi_map_ChangeServiceRes_U;
+static int ett_ansi_map_MessageDirective_U;
+static int ett_ansi_map_BulkDisconnection_U;
+static int ett_ansi_map_CallControlDirective_U;
+static int ett_ansi_map_CallControlDirectiveRes_U;
+static int ett_ansi_map_OAnswer_U;
+static int ett_ansi_map_ODisconnect_U;
+static int ett_ansi_map_ODisconnectRes_U;
+static int ett_ansi_map_CallRecoveryReport_U;
+static int ett_ansi_map_TAnswer_U;
+static int ett_ansi_map_TDisconnect_U;
+static int ett_ansi_map_TDisconnectRes_U;
+static int ett_ansi_map_UnreliableCallData_U;
+static int ett_ansi_map_OCalledPartyBusy_U;
+static int ett_ansi_map_OCalledPartyBusyRes_U;
+static int ett_ansi_map_ONoAnswer_U;
+static int ett_ansi_map_ONoAnswerRes_U;
+static int ett_ansi_map_PositionRequest_U;
+static int ett_ansi_map_PositionRequestRes_U;
+static int ett_ansi_map_PositionRequestForward_U;
+static int ett_ansi_map_PositionRequestForwardRes_U;
+static int ett_ansi_map_CallTerminationReport_U;
+static int ett_ansi_map_GeoPositionRequest_U;
+static int ett_ansi_map_InterSystemPositionRequest_U;
+static int ett_ansi_map_InterSystemPositionRequestRes_U;
+static int ett_ansi_map_InterSystemPositionRequestForward_U;
+static int ett_ansi_map_InterSystemPositionRequestForwardRes_U;
+static int ett_ansi_map_ACGDirective_U;
+static int ett_ansi_map_RoamerDatabaseVerificationRequest_U;
+static int ett_ansi_map_RoamerDatabaseVerificationRequestRes_U;
+static int ett_ansi_map_LCSParameterRequest_U;
+static int ett_ansi_map_LCSParameterRequestRes_U;
+static int ett_ansi_map_CheckMEID_U;
+static int ett_ansi_map_CheckMEIDRes_U;
+static int ett_ansi_map_AddService_U;
+static int ett_ansi_map_AddServiceRes_U;
+static int ett_ansi_map_DropService_U;
+static int ett_ansi_map_DropServiceRes_U;
+static int ett_ansi_map_PositionEventNotification_U;
+static int ett_ansi_map_OTASPRequest_U;
+static int ett_ansi_map_OTASPRequestRes_U;
+static int ett_ansi_map_StatusRequest_U;
+static int ett_ansi_map_StatusRequestRes_U;
+static int ett_ansi_map_InterSystemSMSDeliveryPointToPoint_U;
+static int ett_ansi_map_InterSystemSMSDeliveryPointToPointRes_U;
+static int ett_ansi_map_InterSystemSMSPage_U;
+static int ett_ansi_map_QualificationRequest2_U;
+static int ett_ansi_map_QualificationRequest2Res_U;
+static int ett_ansi_map_AnnouncementList;
+static int ett_ansi_map_CDMACodeChannelInformation;
+static int ett_ansi_map_CDMACodeChannelList;
+static int ett_ansi_map_CDMATargetMAHOInformation;
+static int ett_ansi_map_CDMATargetMAHOList;
+static int ett_ansi_map_CDMATargetMeasurementInformation;
+static int ett_ansi_map_CDMATargetMeasurementList;
+static int ett_ansi_map_IntersystemTermination;
+static int ett_ansi_map_LocalTermination;
+static int ett_ansi_map_PSTNTermination;
+static int ett_ansi_map_TargetMeasurementInformation;
+static int ett_ansi_map_TargetMeasurementList;
+static int ett_ansi_map_TerminationList;
+static int ett_ansi_map_TerminationList_item;
+static int ett_ansi_map_CDMABandClassInformation;
+static int ett_ansi_map_CDMABandClassList;
+static int ett_ansi_map_CDMAServiceOptionList;
+static int ett_ansi_map_PSID_RSIDList;
+static int ett_ansi_map_TargetCellIDList;
+static int ett_ansi_map_CDMAConnectionReferenceInformation;
+static int ett_ansi_map_CDMAConnectionReferenceList;
+static int ett_ansi_map_CDMAConnectionReferenceList_item;
+static int ett_ansi_map_AnalogRedirectRecord;
+static int ett_ansi_map_CDMAChannelNumberList;
+static int ett_ansi_map_CDMAChannelNumberList_item;
+static int ett_ansi_map_CDMARedirectRecord;
+static int ett_ansi_map_MSID;
+static int ett_ansi_map_DataAccessElement;
+static int ett_ansi_map_DataAccessElementList;
+static int ett_ansi_map_DataAccessElementList_item;
+static int ett_ansi_map_DataUpdateResult;
+static int ett_ansi_map_DataUpdateResultList;
+static int ett_ansi_map_DestinationAddress;
+static int ett_ansi_map_ExecuteScript;
+static int ett_ansi_map_ModificationRequest;
+static int ett_ansi_map_ModificationRequestList;
+static int ett_ansi_map_ModificationResult;
+static int ett_ansi_map_ModificationResultList;
+static int ett_ansi_map_ServiceDataAccessElement;
+static int ett_ansi_map_ServiceDataAccessElementList;
+static int ett_ansi_map_ServiceDataResult;
+static int ett_ansi_map_ServiceDataResultList;
+static int ett_ansi_map_TriggerAddressList;
+static int ett_ansi_map_TriggerList;
+static int ett_ansi_map_WINCapability;
+static int ett_ansi_map_CallRecoveryID;
+static int ett_ansi_map_CallRecoveryIDList;
+static int ett_ansi_map_PositionInformation;
+static int ett_ansi_map_GapInterval;
+static int ett_ansi_map_CDMAPSMMList;
+static int ett_ansi_map_CDMAPSMMList_item;
+static int ett_ansi_map_MPCAddressList;
+static int ett_ansi_map_MobileStationMSID;
+static int ett_ansi_map_NewlyAssignedMSID;
+static int ett_ansi_map_InvokeData;
+static int ett_ansi_map_ReturnData;
 
-static expert_field ei_ansi_map_nr_not_used = EI_INIT;
-static expert_field ei_ansi_map_unknown_invokeData_blob = EI_INIT;
-static expert_field ei_ansi_map_no_data = EI_INIT;
+static expert_field ei_ansi_map_nr_not_used;
+static expert_field ei_ansi_map_unknown_invokeData_blob;
+static expert_field ei_ansi_map_no_data;
 
 /* Global variables */
 static dissector_table_t is637_tele_id_dissector_table; /* IS-637 Teleservice ID */
@@ -1132,25 +1135,25 @@ static dissector_table_t is683_dissector_table; /* IS-683-A (OTA) */
 static dissector_table_t is801_dissector_table; /* IS-801 (PLD) */
 static packet_info *g_pinfo;
 static proto_tree *g_tree;
-tvbuff_t *SMS_BearerData_tvb = NULL;
-gint32    ansi_map_sms_tele_id = -1;
-static gboolean is683_ota;
-static gboolean is801_pld;
-static gboolean ansi_map_is_invoke;
-static guint32 OperationCode;
-static guint8 ServiceIndicator;
+static tvbuff_t *SMS_BearerData_tvb;
+static int32_t   ansi_map_sms_tele_id = -1;
+static bool is683_ota;
+static bool is801_pld;
+static bool ansi_map_is_invoke;
+static uint32_t OperationCode;
+static uint8_t ServiceIndicator;
 
 
 struct ansi_map_invokedata_t {
-    guint32 opcode;
-    guint8 ServiceIndicator;
+    uint32_t opcode;
+    uint8_t ServiceIndicator;
 };
 
 static void dissect_ansi_map_win_trigger_list(tvbuff_t *tvb, packet_info *pinfo _U_, proto_tree *tree _U_, asn1_ctx_t *actx _U_);
 
 
 /* Transaction table */
-static wmem_multimap_t *TransactionId_table=NULL;
+static wmem_multimap_t *TransactionId_table;
 
 /* Store Invoke information needed for the corresponding reply */
 static void
@@ -1158,8 +1161,8 @@ update_saved_invokedata(packet_info *pinfo, struct ansi_tcap_private_t *p_privat
     struct ansi_map_invokedata_t *ansi_map_saved_invokedata;
     address* src = &(pinfo->src);
     address* dst = &(pinfo->dst);
-    guint8 *src_str;
-    guint8 *dst_str;
+    uint8_t *src_str;
+    uint8_t *dst_str;
     const char *buf = NULL;
 
     src_str = address_to_str(pinfo->pool, src);
@@ -1168,7 +1171,7 @@ update_saved_invokedata(packet_info *pinfo, struct ansi_tcap_private_t *p_privat
     /* Data from the TCAP dissector */
     if ((!pinfo->fd->visited)&&(p_private_tcap->TransactionID_str)){
         /* Only do this once XXX I hope it's the right thing to do */
-        /* The hash string needs to contain src and dest to distiguish differnt flows */
+        /* The hash string needs to contain src and dest to distinguish different flows */
         switch(ansi_map_response_matching_type){
             case ANSI_MAP_TID_ONLY:
                 buf = wmem_strdup(pinfo->pool, p_private_tcap->TransactionID_str);
@@ -1314,7 +1317,7 @@ static value_string_ext ansi_map_opr_code_strings_ext = VALUE_STRING_EXT_INIT(an
 
 static int dissect_invokeData(proto_tree *tree, tvbuff_t *tvb, int offset, asn1_ctx_t *actx);
 static int dissect_returnData(proto_tree *tree, tvbuff_t *tvb, int offset,  asn1_ctx_t *actx);
-static int dissect_ansi_map_SystemMyTypeCode(gboolean implicit_tag _U_, tvbuff_t *tvb, int offset, asn1_ctx_t *actx, proto_tree *tree, int hf_index _U_);
+static int dissect_ansi_map_SystemMyTypeCode(bool implicit_tag _U_, tvbuff_t *tvb, int offset, asn1_ctx_t *actx, proto_tree *tree, int hf_index _U_);
 
 /* Type of Digits (octet 1, bits A-H) */
 static const value_string ansi_map_type_of_digits_vals[] = {
@@ -1389,15 +1392,15 @@ dissect_ansi_map_min_type(tvbuff_t *tvb, packet_info *pinfo _U_, proto_tree *tre
 
     subtree = proto_item_add_subtree(actx->created_item, ett_mintype);
 
-    proto_tree_add_item_ret_display_string(subtree, hf_ansi_map_bcd_digits, tvb, offset, tvb_reported_length_remaining(tvb, offset), ENC_BCD_DIGITS_0_9, pinfo->pool, &digit_str);
+    proto_tree_add_item_ret_display_string(subtree, hf_ansi_map_bcd_digits, tvb, offset, tvb_reported_length_remaining(tvb, offset), ENC_BCD_DIGITS_0_9|ENC_LITTLE_ENDIAN, pinfo->pool, &digit_str);
     proto_item_append_text(actx->created_item, " - %s", digit_str);
 }
 
 static void
 dissect_ansi_map_digits_type(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree _U_, asn1_ctx_t *actx _U_){
 
-    guint8 octet , octet_len;
-    guint8 b1,b2,b3,b4;
+    uint8_t octet , octet_len;
+    uint8_t b1,b2,b3,b4;
     int    offset = 0;
     char  *digit_str;
 
@@ -1418,7 +1421,7 @@ dissect_ansi_map_digits_type(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree
     proto_tree_add_item(subtree, hf_ansi_map_na, tvb, offset, 1, ENC_BIG_ENDIAN);
     offset++;
     /* Octet 3 */
-    octet = tvb_get_guint8(tvb,offset);
+    octet = tvb_get_uint8(tvb,offset);
     proto_tree_add_item(subtree, hf_ansi_map_np, tvb, offset, 1, ENC_BIG_ENDIAN);
     proto_tree_add_item(subtree, hf_ansi_map_digits_enc, tvb, offset, 1, ENC_BIG_ENDIAN);
     offset++;
@@ -1428,19 +1431,19 @@ dissect_ansi_map_digits_type(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree
         switch ((octet&0xf)){
         case 1:
             /* BCD Coding */
-            octet_len = tvb_get_guint8(tvb,offset);
+            octet_len = tvb_get_uint8(tvb,offset);
             proto_tree_add_item(subtree, hf_ansi_map_nr_digits, tvb, offset, 1, ENC_BIG_ENDIAN);
             if(octet_len == 0)
                 return;
             offset++;
-            proto_tree_add_item_ret_display_string(subtree, hf_ansi_map_bcd_digits, tvb, offset, -1, ENC_KEYPAD_BC_TBCD, pinfo->pool, &digit_str);
+            proto_tree_add_item_ret_display_string(subtree, hf_ansi_map_bcd_digits, tvb, offset, -1, ENC_KEYPAD_BC_TBCD|ENC_LITTLE_ENDIAN, pinfo->pool, &digit_str);
             proto_item_append_text(actx->created_item, " - %s", digit_str);
             break;
         case 2:
             {
-            const guint8* digits;
+            const uint8_t* digits;
             /* IA5 Coding */
-            octet_len = tvb_get_guint8(tvb,offset);
+            octet_len = tvb_get_uint8(tvb,offset);
             proto_tree_add_item(subtree, hf_ansi_map_nr_digits, tvb, offset, 1, ENC_BIG_ENDIAN);
             if(octet_len == 0)
                 return;
@@ -1466,7 +1469,7 @@ dissect_ansi_map_digits_type(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree
     case 2:/* Telephony Numbering (ITU-T Rec. E.164,E.163). */
     case 6:/* Land Mobile Numbering (ITU-T Rec. E.212) */
     case 7:/* Private Numbering Plan */
-        octet_len = tvb_get_guint8(tvb,offset);
+        octet_len = tvb_get_uint8(tvb,offset);
         proto_tree_add_item(subtree, hf_ansi_map_nr_digits, tvb, offset, 1, ENC_BIG_ENDIAN);
         if(octet_len == 0)
             return;
@@ -1474,12 +1477,12 @@ dissect_ansi_map_digits_type(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree
         switch ((octet&0xf)){
         case 1:
             /* BCD Coding */
-            proto_tree_add_item_ret_display_string(subtree, hf_ansi_map_bcd_digits, tvb, offset, -1, ENC_KEYPAD_BC_TBCD, pinfo->pool, &digit_str);
+            proto_tree_add_item_ret_display_string(subtree, hf_ansi_map_bcd_digits, tvb, offset, -1, ENC_KEYPAD_BC_TBCD|ENC_LITTLE_ENDIAN, pinfo->pool, &digit_str);
             proto_item_append_text(actx->created_item, " - %s", digit_str);
             break;
         case 2:
             {
-            const guint8* digits;
+            const uint8_t* digits;
             /* IA5 Coding */
             proto_tree_add_item_ret_string(subtree, hf_ansi_map_ia5_digits, tvb, offset, tvb_reported_length_remaining(tvb,offset),
                                             ENC_ASCII|ENC_NA, pinfo->pool, &digits);
@@ -1498,17 +1501,17 @@ dissect_ansi_map_digits_type(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree
         case 3:
             /* Octet string */
             /* Point Code Member Number octet 2 */
-            b1 = tvb_get_guint8(tvb,offset);
+            b1 = tvb_get_uint8(tvb,offset);
             offset++;
             /* Point Code Cluster Number octet 3 */
-            b2 = tvb_get_guint8(tvb,offset);
+            b2 = tvb_get_uint8(tvb,offset);
             offset++;
             /* Point Code Network Number octet 4 */
-            b3 = tvb_get_guint8(tvb,offset);
+            b3 = tvb_get_uint8(tvb,offset);
             offset++;
             proto_tree_add_bytes_format_value(subtree, hf_ansi_map_point_code, tvb, offset-3, 3, NULL, "%u-%u-%u", b3, b2, b1);
             /* Subsystem Number (SSN) octet 5 */
-            b4 = tvb_get_guint8(tvb,offset);
+            b4 = tvb_get_uint8(tvb,offset);
             proto_tree_add_item(subtree, hf_ansi_map_SSN, tvb, offset, 1, ENC_NA);
             proto_item_append_text(actx->created_item, " - Point Code %u-%u-%u  SSN %u", b3, b2, b1, b4);
             break;
@@ -1526,12 +1529,6 @@ dissect_ansi_map_digits_type(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree
 }
 /* 6.5.3.13. Subaddress */
 
-#if 0
-static const true_false_string ansi_map_Odd_Even_Ind_bool_val  = {
-  "Odd",
-  "Even"
-};
-#endif
 /* Type of Subaddress (octet 1, bits E-G) */
 static const value_string ansi_map_sub_addr_type_vals[]  = {
     {   0, "NSAP (CCITT Rec. X.213 or ISO 8348 AD2)"},
@@ -1674,7 +1671,7 @@ static const value_string ansi_map_AlertResult_result_vals[]  = {
     {   0, NULL }
 };
 
-/* 6.5.2.5 AnnouncementCode Updatef from NS0018Re*/
+/* 6.5.2.5 AnnouncementCode Updated from NS0018Re*/
 /* Tone (octet 1) */
 static const value_string ansi_map_AnnouncementCode_tone_vals[]  = {
     {   0, "DialTone"},
@@ -2248,10 +2245,6 @@ dissect_ansi_map_channeldata(tvbuff_t *tvb, packet_info *pinfo _U_, proto_tree *
 /* Updated with N.S0008-0 v 1.0*/
 /* Voice Privacy (VP) Confidentiality Status (octet 1, bit A) */
 
-static const true_false_string ansi_map_ConfidentialityModes_bool_val  = {
-    "On",
-    "Off"
-};
 static void
 dissect_ansi_map_confidentialitymodes(tvbuff_t *tvb, packet_info *pinfo _U_, proto_tree *tree _U_, asn1_ctx_t *actx _U_){
     int offset = 0;
@@ -2400,7 +2393,7 @@ dissect_ansi_map_extendedsystemmytypecode(tvbuff_t *tvb, packet_info *pinfo _U_,
     /* Type (octet 1) */
     proto_tree_add_item(subtree, hf_ansi_map_msc_type, tvb, offset, 1, ENC_BIG_ENDIAN);
     offset++;
-    dissect_ansi_map_SystemMyTypeCode(TRUE, tvb, offset, actx, subtree, hf_ansi_map_systemMyTypeCode);
+    dissect_ansi_map_SystemMyTypeCode(true, tvb, offset, actx, subtree, hf_ansi_map_systemMyTypeCode);
 }
 
 
@@ -2447,16 +2440,16 @@ dissect_ansi_map_intermsccircuitid(tvbuff_t *tvb, packet_info *pinfo _U_, proto_
     int offset = 0;
 
     proto_tree *subtree;
-    guint8 octet, octet2;
+    uint8_t octet, octet2;
 
 
     subtree = proto_item_add_subtree(actx->created_item, ett_billingid);
     /* Trunk Group Number (G) Octet 1 */
-    octet = tvb_get_guint8(tvb,offset);
+    octet = tvb_get_uint8(tvb,offset);
     proto_tree_add_item(subtree, hf_ansi_map_tgn, tvb, offset, 1, ENC_BIG_ENDIAN);
     offset++;
     /* Trunk Member Number (M) Octet2 */
-    octet2 = tvb_get_guint8(tvb,offset);
+    octet2 = tvb_get_uint8(tvb,offset);
     proto_tree_add_item(subtree, hf_ansi_map_tmn, tvb, offset, 1, ENC_BIG_ENDIAN);
     proto_item_append_text(actx->created_item, " (G %u/M %u)", octet, octet2);
 }
@@ -2994,7 +2987,7 @@ dissect_ansi_map_pc_ssn(tvbuff_t *tvb, packet_info *pinfo _U_, proto_tree *tree 
 
     int offset = 0;
     proto_tree *subtree;
-    guint8 b1,b2,b3;
+    uint8_t b1,b2,b3;
 
 
     subtree = proto_item_add_subtree(actx->created_item, ett_billingid);
@@ -3002,13 +2995,13 @@ dissect_ansi_map_pc_ssn(tvbuff_t *tvb, packet_info *pinfo _U_, proto_tree *tree 
     proto_tree_add_item(subtree, hf_ansi_map_msc_type, tvb, offset, 1, ENC_BIG_ENDIAN);
     offset++;
     /* Point Code Member Number octet 2 */
-    b1 = tvb_get_guint8(tvb,offset);
+    b1 = tvb_get_uint8(tvb,offset);
     offset++;
     /* Point Code Cluster Number octet 3 */
-    b2 = tvb_get_guint8(tvb,offset);
+    b2 = tvb_get_uint8(tvb,offset);
     offset++;
     /* Point Code Network Number octet 4 */
-    b3 = tvb_get_guint8(tvb,offset);
+    b3 = tvb_get_uint8(tvb,offset);
     offset++;
     proto_tree_add_bytes_format_value(subtree, hf_ansi_map_point_code, tvb, offset-3, 3, NULL, "%u-%u-%u", b3, b2, b1);
     proto_tree_add_item(subtree, hf_ansi_map_SSN, tvb, offset, 1, ENC_NA);
@@ -3223,7 +3216,6 @@ static const value_string ansi_map_SSDUpdateReport_vals[]  = {
     {   32579, "TDMA Segmented Over-the-Air Activation Teleservice (OATS)"},
     {   32580, "TDMA Segmented Over-the-Air Programming Teleservice (OPTS)."},
     {   32581, "TDMA Segmented General UDP Transport Service (GUTS)"},
-    {   32576, "Reserved"},
     {       0, NULL }
 };
 
@@ -4377,7 +4369,7 @@ static const value_string ansi_map_VoicePrivacyReport_vals[]  = {
 
 
 static int
-dissect_ansi_map_ElectronicSerialNumber(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_ElectronicSerialNumber(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_octet_string(implicit_tag, actx, tree, tvb, offset, hf_index,
                                        NULL);
 
@@ -4387,7 +4379,7 @@ dissect_ansi_map_ElectronicSerialNumber(gboolean implicit_tag _U_, tvbuff_t *tvb
 
 
 static int
-dissect_ansi_map_MINType(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_MINType(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
 	tvbuff_t *parameter_tvb = NULL;
   offset = dissect_ber_octet_string(implicit_tag, actx, tree, tvb, offset, hf_index,
                                        &parameter_tvb);
@@ -4403,7 +4395,7 @@ dissect_ansi_map_MINType(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offse
 
 
 static int
-dissect_ansi_map_MobileIdentificationNumber(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_MobileIdentificationNumber(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ansi_map_MINType(implicit_tag, tvb, offset, actx, tree, hf_index);
 
   return offset;
@@ -4423,7 +4415,7 @@ static const ber_choice_t MSID_choice[] = {
 };
 
 static int
-dissect_ansi_map_MSID(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_MSID(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_choice(actx, tree, tvb, offset,
                                  MSID_choice, hf_index, ett_ansi_map_MSID,
                                  NULL);
@@ -4434,7 +4426,7 @@ dissect_ansi_map_MSID(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _
 
 
 static int
-dissect_ansi_map_AuthenticationAlgorithmVersion(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_AuthenticationAlgorithmVersion(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_octet_string(implicit_tag, actx, tree, tvb, offset, hf_index,
                                        NULL);
 
@@ -4444,7 +4436,7 @@ dissect_ansi_map_AuthenticationAlgorithmVersion(gboolean implicit_tag _U_, tvbuf
 
 
 static int
-dissect_ansi_map_AuthenticationResponseReauthentication(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_AuthenticationResponseReauthentication(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_octet_string(implicit_tag, actx, tree, tvb, offset, hf_index,
                                        NULL);
 
@@ -4454,7 +4446,7 @@ dissect_ansi_map_AuthenticationResponseReauthentication(gboolean implicit_tag _U
 
 
 static int
-dissect_ansi_map_AuthenticationResponseUniqueChallenge(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_AuthenticationResponseUniqueChallenge(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_octet_string(implicit_tag, actx, tree, tvb, offset, hf_index,
                                        NULL);
 
@@ -4464,7 +4456,7 @@ dissect_ansi_map_AuthenticationResponseUniqueChallenge(gboolean implicit_tag _U_
 
 
 static int
-dissect_ansi_map_CallHistoryCount(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_CallHistoryCount(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_integer(implicit_tag, actx, tree, tvb, offset, hf_index,
                                                 NULL);
 
@@ -4474,7 +4466,7 @@ dissect_ansi_map_CallHistoryCount(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, 
 
 
 static int
-dissect_ansi_map_CDMAPrivateLongCodeMask(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_CDMAPrivateLongCodeMask(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_octet_string(implicit_tag, actx, tree, tvb, offset, hf_index,
                                        NULL);
 
@@ -4484,7 +4476,7 @@ dissect_ansi_map_CDMAPrivateLongCodeMask(gboolean implicit_tag _U_, tvbuff_t *tv
 
 
 static int
-dissect_ansi_map_DigitsType(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_DigitsType(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
 	tvbuff_t *parameter_tvb = NULL;
   offset = dissect_ber_octet_string(implicit_tag, actx, tree, tvb, offset, hf_index,
                                        &parameter_tvb);
@@ -4500,7 +4492,7 @@ dissect_ansi_map_DigitsType(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int of
 
 
 static int
-dissect_ansi_map_CarrierDigits(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_CarrierDigits(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ansi_map_DigitsType(implicit_tag, tvb, offset, actx, tree, hf_index);
 
   return offset;
@@ -4509,7 +4501,7 @@ dissect_ansi_map_CarrierDigits(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int
 
 
 static int
-dissect_ansi_map_CaveKey(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_CaveKey(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_octet_string(implicit_tag, actx, tree, tvb, offset, hf_index,
                                        NULL);
 
@@ -4534,7 +4526,7 @@ static const value_string ansi_map_DenyAccess_vals[] = {
 
 
 static int
-dissect_ansi_map_DenyAccess(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_DenyAccess(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_integer(implicit_tag, actx, tree, tvb, offset, hf_index,
                                   NULL);
 
@@ -4544,7 +4536,7 @@ dissect_ansi_map_DenyAccess(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int of
 
 
 static int
-dissect_ansi_map_DestinationDigits(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_DestinationDigits(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ansi_map_DigitsType(implicit_tag, tvb, offset, actx, tree, hf_index);
 
   return offset;
@@ -4553,7 +4545,7 @@ dissect_ansi_map_DestinationDigits(gboolean implicit_tag _U_, tvbuff_t *tvb _U_,
 
 
 static int
-dissect_ansi_map_LocationAreaID(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_LocationAreaID(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_octet_string(implicit_tag, actx, tree, tvb, offset, hf_index,
                                        NULL);
 
@@ -4563,7 +4555,7 @@ dissect_ansi_map_LocationAreaID(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, in
 
 
 static int
-dissect_ansi_map_RandomVariableReauthentication(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_RandomVariableReauthentication(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_octet_string(implicit_tag, actx, tree, tvb, offset, hf_index,
                                        NULL);
 
@@ -4573,7 +4565,7 @@ dissect_ansi_map_RandomVariableReauthentication(gboolean implicit_tag _U_, tvbuf
 
 
 static int
-dissect_ansi_map_MEID(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_MEID(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_octet_string(implicit_tag, actx, tree, tvb, offset, hf_index,
                                        NULL);
 
@@ -4583,7 +4575,7 @@ dissect_ansi_map_MEID(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _
 
 
 static int
-dissect_ansi_map_MobileStationMIN(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_MobileStationMIN(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ansi_map_MINType(implicit_tag, tvb, offset, actx, tree, hf_index);
 
   return offset;
@@ -4592,7 +4584,7 @@ dissect_ansi_map_MobileStationMIN(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, 
 
 
 static int
-dissect_ansi_map_MSCID(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_MSCID(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
 	tvbuff_t *parameter_tvb = NULL;
   offset = dissect_ber_octet_string(implicit_tag, actx, tree, tvb, offset, hf_index,
                                        &parameter_tvb);
@@ -4608,7 +4600,7 @@ dissect_ansi_map_MSCID(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset 
 
 
 static int
-dissect_ansi_map_RandomVariableSSD(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_RandomVariableSSD(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_octet_string(implicit_tag, actx, tree, tvb, offset, hf_index,
                                        NULL);
 
@@ -4618,7 +4610,7 @@ dissect_ansi_map_RandomVariableSSD(gboolean implicit_tag _U_, tvbuff_t *tvb _U_,
 
 
 static int
-dissect_ansi_map_RandomVariableUniqueChallenge(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_RandomVariableUniqueChallenge(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_octet_string(implicit_tag, actx, tree, tvb, offset, hf_index,
                                        NULL);
 
@@ -4628,7 +4620,7 @@ dissect_ansi_map_RandomVariableUniqueChallenge(gboolean implicit_tag _U_, tvbuff
 
 
 static int
-dissect_ansi_map_RoutingDigits(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_RoutingDigits(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ansi_map_DigitsType(implicit_tag, tvb, offset, actx, tree, hf_index);
 
   return offset;
@@ -4637,7 +4629,7 @@ dissect_ansi_map_RoutingDigits(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int
 
 
 static int
-dissect_ansi_map_SenderIdentificationNumber(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_SenderIdentificationNumber(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ansi_map_DigitsType(implicit_tag, tvb, offset, actx, tree, hf_index);
 
   return offset;
@@ -4646,7 +4638,7 @@ dissect_ansi_map_SenderIdentificationNumber(gboolean implicit_tag _U_, tvbuff_t 
 
 
 static int
-dissect_ansi_map_SharedSecretData(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_SharedSecretData(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_octet_string(implicit_tag, actx, tree, tvb, offset, hf_index,
                                        NULL);
 
@@ -4656,7 +4648,7 @@ dissect_ansi_map_SharedSecretData(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, 
 
 
 static int
-dissect_ansi_map_SignalingMessageEncryptionKey(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_SignalingMessageEncryptionKey(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_octet_string(implicit_tag, actx, tree, tvb, offset, hf_index,
                                        NULL);
 
@@ -4672,7 +4664,7 @@ static const value_string ansi_map_SSDNotShared_vals[] = {
 
 
 static int
-dissect_ansi_map_SSDNotShared(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_SSDNotShared(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_integer(implicit_tag, actx, tree, tvb, offset, hf_index,
                                   NULL);
 
@@ -4688,7 +4680,7 @@ static const value_string ansi_map_UpdateCount_vals[] = {
 
 
 static int
-dissect_ansi_map_UpdateCount(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_UpdateCount(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_integer(implicit_tag, actx, tree, tvb, offset, hf_index,
                                   NULL);
 
@@ -4725,7 +4717,7 @@ static const ber_sequence_t AuthenticationDirective_U_set[] = {
 };
 
 static int
-dissect_ansi_map_AuthenticationDirective_U(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_AuthenticationDirective_U(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_set(implicit_tag, actx, tree, tvb, offset,
                               AuthenticationDirective_U_set, hf_index, ett_ansi_map_AuthenticationDirective_U);
 
@@ -4735,9 +4727,9 @@ dissect_ansi_map_AuthenticationDirective_U(gboolean implicit_tag _U_, tvbuff_t *
 
 
 static int
-dissect_ansi_map_AuthenticationDirective(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_AuthenticationDirective(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_tagged_type(implicit_tag, actx, tree, tvb, offset,
-                                      hf_index, BER_CLASS_PRI, 18, FALSE, dissect_ansi_map_AuthenticationDirective_U);
+                                      hf_index, BER_CLASS_PRI, 18, false, dissect_ansi_map_AuthenticationDirective_U);
 
   return offset;
 }
@@ -4749,7 +4741,7 @@ static const ber_sequence_t AuthenticationDirectiveRes_U_set[] = {
 };
 
 static int
-dissect_ansi_map_AuthenticationDirectiveRes_U(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_AuthenticationDirectiveRes_U(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_set(implicit_tag, actx, tree, tvb, offset,
                               AuthenticationDirectiveRes_U_set, hf_index, ett_ansi_map_AuthenticationDirectiveRes_U);
 
@@ -4759,9 +4751,9 @@ dissect_ansi_map_AuthenticationDirectiveRes_U(gboolean implicit_tag _U_, tvbuff_
 
 
 static int
-dissect_ansi_map_AuthenticationDirectiveRes(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_AuthenticationDirectiveRes(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_tagged_type(implicit_tag, actx, tree, tvb, offset,
-                                      hf_index, BER_CLASS_PRI, 18, FALSE, dissect_ansi_map_AuthenticationDirectiveRes_U);
+                                      hf_index, BER_CLASS_PRI, 18, false, dissect_ansi_map_AuthenticationDirectiveRes_U);
 
   return offset;
 }
@@ -4769,7 +4761,7 @@ dissect_ansi_map_AuthenticationDirectiveRes(gboolean implicit_tag _U_, tvbuff_t 
 
 
 static int
-dissect_ansi_map_InterMSCCircuitID(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_InterMSCCircuitID(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
 	tvbuff_t *parameter_tvb = NULL;
   offset = dissect_ber_octet_string(implicit_tag, actx, tree, tvb, offset, hf_index,
                                        &parameter_tvb);
@@ -4793,7 +4785,7 @@ static const ber_sequence_t AuthenticationDirectiveForward_U_set[] = {
 };
 
 static int
-dissect_ansi_map_AuthenticationDirectiveForward_U(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_AuthenticationDirectiveForward_U(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_set(implicit_tag, actx, tree, tvb, offset,
                               AuthenticationDirectiveForward_U_set, hf_index, ett_ansi_map_AuthenticationDirectiveForward_U);
 
@@ -4803,9 +4795,9 @@ dissect_ansi_map_AuthenticationDirectiveForward_U(gboolean implicit_tag _U_, tvb
 
 
 static int
-dissect_ansi_map_AuthenticationDirectiveForward(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_AuthenticationDirectiveForward(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_tagged_type(implicit_tag, actx, tree, tvb, offset,
-                                      hf_index, BER_CLASS_PRI, 18, FALSE, dissect_ansi_map_AuthenticationDirectiveForward_U);
+                                      hf_index, BER_CLASS_PRI, 18, false, dissect_ansi_map_AuthenticationDirectiveForward_U);
 
   return offset;
 }
@@ -4813,7 +4805,7 @@ dissect_ansi_map_AuthenticationDirectiveForward(gboolean implicit_tag _U_, tvbuf
 
 
 static int
-dissect_ansi_map_CountUpdateReport(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_CountUpdateReport(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_octet_string(implicit_tag, actx, tree, tvb, offset, hf_index,
                                        NULL);
 
@@ -4823,7 +4815,7 @@ dissect_ansi_map_CountUpdateReport(gboolean implicit_tag _U_, tvbuff_t *tvb _U_,
 
 
 static int
-dissect_ansi_map_UniqueChallengeReport(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_UniqueChallengeReport(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_octet_string(implicit_tag, actx, tree, tvb, offset, hf_index,
                                        NULL);
 
@@ -4838,7 +4830,7 @@ static const ber_sequence_t AuthenticationDirectiveForwardRes_U_set[] = {
 };
 
 static int
-dissect_ansi_map_AuthenticationDirectiveForwardRes_U(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_AuthenticationDirectiveForwardRes_U(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_set(implicit_tag, actx, tree, tvb, offset,
                               AuthenticationDirectiveForwardRes_U_set, hf_index, ett_ansi_map_AuthenticationDirectiveForwardRes_U);
 
@@ -4848,9 +4840,9 @@ dissect_ansi_map_AuthenticationDirectiveForwardRes_U(gboolean implicit_tag _U_, 
 
 
 static int
-dissect_ansi_map_AuthenticationDirectiveForwardRes(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_AuthenticationDirectiveForwardRes(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_tagged_type(implicit_tag, actx, tree, tvb, offset,
-                                      hf_index, BER_CLASS_PRI, 18, FALSE, dissect_ansi_map_AuthenticationDirectiveForwardRes_U);
+                                      hf_index, BER_CLASS_PRI, 18, false, dissect_ansi_map_AuthenticationDirectiveForwardRes_U);
 
   return offset;
 }
@@ -4879,7 +4871,7 @@ static const value_string ansi_map_ReportType_vals[] = {
 
 
 static int
-dissect_ansi_map_ReportType(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_ReportType(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_integer(implicit_tag, actx, tree, tvb, offset, hf_index,
                                   NULL);
 
@@ -4903,7 +4895,7 @@ static const value_string ansi_map_SystemAccessType_vals[] = {
 
 
 static int
-dissect_ansi_map_SystemAccessType(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_SystemAccessType(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_integer(implicit_tag, actx, tree, tvb, offset, hf_index,
                                   NULL);
 
@@ -4913,7 +4905,7 @@ dissect_ansi_map_SystemAccessType(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, 
 
 
 static int
-dissect_ansi_map_SystemCapabilities(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_SystemCapabilities(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
 	tvbuff_t *parameter_tvb = NULL;
   offset = dissect_ber_octet_string(implicit_tag, actx, tree, tvb, offset, hf_index,
                                        &parameter_tvb);
@@ -4930,7 +4922,7 @@ dissect_ansi_map_SystemCapabilities(gboolean implicit_tag _U_, tvbuff_t *tvb _U_
 
 
 static int
-dissect_ansi_map_CallHistoryCountExpected(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_CallHistoryCountExpected(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_integer(implicit_tag, actx, tree, tvb, offset, hf_index,
                                                 NULL);
 
@@ -4965,7 +4957,7 @@ static value_string_ext ansi_map_TerminalType_vals_ext = VALUE_STRING_EXT_INIT(a
 
 
 static int
-dissect_ansi_map_TerminalType(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_TerminalType(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_integer(implicit_tag, actx, tree, tvb, offset, hf_index,
                                   NULL);
 
@@ -4990,7 +4982,7 @@ static const ber_sequence_t AuthenticationFailureReport_U_set[] = {
 };
 
 static int
-dissect_ansi_map_AuthenticationFailureReport_U(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_AuthenticationFailureReport_U(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_set(implicit_tag, actx, tree, tvb, offset,
                               AuthenticationFailureReport_U_set, hf_index, ett_ansi_map_AuthenticationFailureReport_U);
 
@@ -5000,9 +4992,9 @@ dissect_ansi_map_AuthenticationFailureReport_U(gboolean implicit_tag _U_, tvbuff
 
 
 static int
-dissect_ansi_map_AuthenticationFailureReport(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_AuthenticationFailureReport(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_tagged_type(implicit_tag, actx, tree, tvb, offset,
-                                      hf_index, BER_CLASS_PRI, 18, FALSE, dissect_ansi_map_AuthenticationFailureReport_U);
+                                      hf_index, BER_CLASS_PRI, 18, false, dissect_ansi_map_AuthenticationFailureReport_U);
 
   return offset;
 }
@@ -5026,7 +5018,7 @@ static const ber_sequence_t AuthenticationFailureReportRes_U_set[] = {
 };
 
 static int
-dissect_ansi_map_AuthenticationFailureReportRes_U(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_AuthenticationFailureReportRes_U(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_set(implicit_tag, actx, tree, tvb, offset,
                               AuthenticationFailureReportRes_U_set, hf_index, ett_ansi_map_AuthenticationFailureReportRes_U);
 
@@ -5036,9 +5028,9 @@ dissect_ansi_map_AuthenticationFailureReportRes_U(gboolean implicit_tag _U_, tvb
 
 
 static int
-dissect_ansi_map_AuthenticationFailureReportRes(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_AuthenticationFailureReportRes(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_tagged_type(implicit_tag, actx, tree, tvb, offset,
-                                      hf_index, BER_CLASS_PRI, 18, FALSE, dissect_ansi_map_AuthenticationFailureReportRes_U);
+                                      hf_index, BER_CLASS_PRI, 18, false, dissect_ansi_map_AuthenticationFailureReportRes_U);
 
   return offset;
 }
@@ -5046,7 +5038,7 @@ dissect_ansi_map_AuthenticationFailureReportRes(gboolean implicit_tag _U_, tvbuf
 
 
 static int
-dissect_ansi_map_AuthenticationData(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_AuthenticationData(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_octet_string(implicit_tag, actx, tree, tvb, offset, hf_index,
                                        NULL);
 
@@ -5056,7 +5048,7 @@ dissect_ansi_map_AuthenticationData(gboolean implicit_tag _U_, tvbuff_t *tvb _U_
 
 
 static int
-dissect_ansi_map_AuthenticationResponse(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_AuthenticationResponse(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_octet_string(implicit_tag, actx, tree, tvb, offset, hf_index,
                                        NULL);
 
@@ -5066,7 +5058,7 @@ dissect_ansi_map_AuthenticationResponse(gboolean implicit_tag _U_, tvbuff_t *tvb
 
 
 static int
-dissect_ansi_map_CDMANetworkIdentification(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_CDMANetworkIdentification(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_octet_string(implicit_tag, actx, tree, tvb, offset, hf_index,
                                        NULL);
 
@@ -5076,7 +5068,7 @@ dissect_ansi_map_CDMANetworkIdentification(gboolean implicit_tag _U_, tvbuff_t *
 
 
 static int
-dissect_ansi_map_ConfidentialityModes(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_ConfidentialityModes(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
 	tvbuff_t *parameter_tvb = NULL;
   offset = dissect_ber_octet_string(implicit_tag, actx, tree, tvb, offset, hf_index,
                                        &parameter_tvb);
@@ -5091,7 +5083,7 @@ dissect_ansi_map_ConfidentialityModes(gboolean implicit_tag _U_, tvbuff_t *tvb _
 
 
 static int
-dissect_ansi_map_ControlChannelMode(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_ControlChannelMode(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_octet_string(implicit_tag, actx, tree, tvb, offset, hf_index,
                                        NULL);
 
@@ -5101,7 +5093,7 @@ dissect_ansi_map_ControlChannelMode(gboolean implicit_tag _U_, tvbuff_t *tvb _U_
 
 
 static int
-dissect_ansi_map_Digits(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_Digits(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ansi_map_DigitsType(implicit_tag, tvb, offset, actx, tree, hf_index);
 
   return offset;
@@ -5110,7 +5102,7 @@ dissect_ansi_map_Digits(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset
 
 
 static int
-dissect_ansi_map_PC_SSN(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_PC_SSN(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
 	tvbuff_t *parameter_tvb = NULL;
   offset = dissect_ber_octet_string(implicit_tag, actx, tree, tvb, offset, hf_index,
                                        &parameter_tvb);
@@ -5126,7 +5118,7 @@ dissect_ansi_map_PC_SSN(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset
 
 
 static int
-dissect_ansi_map_RandomVariable(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_RandomVariable(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_octet_string(implicit_tag, actx, tree, tvb, offset, hf_index,
                                        NULL);
 
@@ -5136,7 +5128,7 @@ dissect_ansi_map_RandomVariable(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, in
 
 
 static int
-dissect_ansi_map_ServiceRedirectionCause(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_ServiceRedirectionCause(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_octet_string(implicit_tag, actx, tree, tvb, offset, hf_index,
                                        NULL);
 
@@ -5153,7 +5145,7 @@ static const value_string ansi_map_SuspiciousAccess_vals[] = {
 
 
 static int
-dissect_ansi_map_SuspiciousAccess(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_SuspiciousAccess(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_integer(implicit_tag, actx, tree, tvb, offset, hf_index,
                                   NULL);
 
@@ -5163,7 +5155,7 @@ dissect_ansi_map_SuspiciousAccess(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, 
 
 
 static int
-dissect_ansi_map_TransactionCapability(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_TransactionCapability(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
 	tvbuff_t *parameter_tvb = NULL;
   offset = dissect_ber_octet_string(implicit_tag, actx, tree, tvb, offset, hf_index,
                                        &parameter_tvb);
@@ -5202,7 +5194,7 @@ static const ber_sequence_t AuthenticationRequest_U_set[] = {
 };
 
 static int
-dissect_ansi_map_AuthenticationRequest_U(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_AuthenticationRequest_U(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_set(implicit_tag, actx, tree, tvb, offset,
                               AuthenticationRequest_U_set, hf_index, ett_ansi_map_AuthenticationRequest_U);
 
@@ -5212,9 +5204,9 @@ dissect_ansi_map_AuthenticationRequest_U(gboolean implicit_tag _U_, tvbuff_t *tv
 
 
 static int
-dissect_ansi_map_AuthenticationRequest(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_AuthenticationRequest(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_tagged_type(implicit_tag, actx, tree, tvb, offset,
-                                      hf_index, BER_CLASS_PRI, 18, FALSE, dissect_ansi_map_AuthenticationRequest_U);
+                                      hf_index, BER_CLASS_PRI, 18, false, dissect_ansi_map_AuthenticationRequest_U);
 
   return offset;
 }
@@ -5222,7 +5214,7 @@ dissect_ansi_map_AuthenticationRequest(gboolean implicit_tag _U_, tvbuff_t *tvb 
 
 
 static int
-dissect_ansi_map_AnalogRedirectInfo(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_AnalogRedirectInfo(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_octet_string(implicit_tag, actx, tree, tvb, offset, hf_index,
                                        NULL);
 
@@ -5237,7 +5229,7 @@ static const ber_sequence_t AnalogRedirectRecord_sequence[] = {
 };
 
 static int
-dissect_ansi_map_AnalogRedirectRecord(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_AnalogRedirectRecord(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence(implicit_tag, actx, tree, tvb, offset,
                                    AnalogRedirectRecord_sequence, hf_index, ett_ansi_map_AnalogRedirectRecord);
 
@@ -5247,7 +5239,7 @@ dissect_ansi_map_AnalogRedirectRecord(gboolean implicit_tag _U_, tvbuff_t *tvb _
 
 
 static int
-dissect_ansi_map_CDMABandClass(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_CDMABandClass(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_octet_string(implicit_tag, actx, tree, tvb, offset, hf_index,
                                        NULL);
 
@@ -5257,7 +5249,7 @@ dissect_ansi_map_CDMABandClass(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int
 
 
 static int
-dissect_ansi_map_CDMAChannelNumber(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_CDMAChannelNumber(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_octet_string(implicit_tag, actx, tree, tvb, offset, hf_index,
                                        NULL);
 
@@ -5272,7 +5264,7 @@ static const ber_sequence_t CDMAChannelNumberList_item_sequence[] = {
 };
 
 static int
-dissect_ansi_map_CDMAChannelNumberList_item(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_CDMAChannelNumberList_item(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence(implicit_tag, actx, tree, tvb, offset,
                                    CDMAChannelNumberList_item_sequence, hf_index, ett_ansi_map_CDMAChannelNumberList_item);
 
@@ -5285,7 +5277,7 @@ static const ber_sequence_t CDMAChannelNumberList_sequence_of[1] = {
 };
 
 static int
-dissect_ansi_map_CDMAChannelNumberList(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_CDMAChannelNumberList(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence_of(implicit_tag, actx, tree, tvb, offset,
                                       CDMAChannelNumberList_sequence_of, hf_index, ett_ansi_map_CDMAChannelNumberList);
 
@@ -5302,7 +5294,7 @@ static const ber_sequence_t CDMARedirectRecord_sequence[] = {
 };
 
 static int
-dissect_ansi_map_CDMARedirectRecord(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_CDMARedirectRecord(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence(implicit_tag, actx, tree, tvb, offset,
                                    CDMARedirectRecord_sequence, hf_index, ett_ansi_map_CDMARedirectRecord);
 
@@ -5312,7 +5304,7 @@ dissect_ansi_map_CDMARedirectRecord(gboolean implicit_tag _U_, tvbuff_t *tvb _U_
 
 
 static int
-dissect_ansi_map_DataKey(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_DataKey(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_octet_string(implicit_tag, actx, tree, tvb, offset, hf_index,
                                        NULL);
 
@@ -5322,7 +5314,7 @@ dissect_ansi_map_DataKey(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offse
 
 
 static int
-dissect_ansi_map_RoamingIndication(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_RoamingIndication(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_octet_string(implicit_tag, actx, tree, tvb, offset, hf_index,
                                        NULL);
 
@@ -5332,7 +5324,7 @@ dissect_ansi_map_RoamingIndication(gboolean implicit_tag _U_, tvbuff_t *tvb _U_,
 
 
 static int
-dissect_ansi_map_ServiceRedirectionInfo(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_ServiceRedirectionInfo(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_octet_string(implicit_tag, actx, tree, tvb, offset, hf_index,
                                        NULL);
 
@@ -5342,7 +5334,7 @@ dissect_ansi_map_ServiceRedirectionInfo(gboolean implicit_tag _U_, tvbuff_t *tvb
 
 
 static int
-dissect_ansi_map_VoicePrivacyMask(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_VoicePrivacyMask(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_octet_string(implicit_tag, actx, tree, tvb, offset, hf_index,
                                        NULL);
 
@@ -5376,7 +5368,7 @@ static const ber_sequence_t AuthenticationRequestRes_U_set[] = {
 };
 
 static int
-dissect_ansi_map_AuthenticationRequestRes_U(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_AuthenticationRequestRes_U(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_set(implicit_tag, actx, tree, tvb, offset,
                               AuthenticationRequestRes_U_set, hf_index, ett_ansi_map_AuthenticationRequestRes_U);
 
@@ -5386,9 +5378,9 @@ dissect_ansi_map_AuthenticationRequestRes_U(gboolean implicit_tag _U_, tvbuff_t 
 
 
 static int
-dissect_ansi_map_AuthenticationRequestRes(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_AuthenticationRequestRes(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_tagged_type(implicit_tag, actx, tree, tvb, offset,
-                                      hf_index, BER_CLASS_PRI, 18, FALSE, dissect_ansi_map_AuthenticationRequestRes_U);
+                                      hf_index, BER_CLASS_PRI, 18, false, dissect_ansi_map_AuthenticationRequestRes_U);
 
   return offset;
 }
@@ -5396,7 +5388,7 @@ dissect_ansi_map_AuthenticationRequestRes(gboolean implicit_tag _U_, tvbuff_t *t
 
 
 static int
-dissect_ansi_map_ReauthenticationReport(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_ReauthenticationReport(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_octet_string(implicit_tag, actx, tree, tvb, offset, hf_index,
                                        NULL);
 
@@ -5406,13 +5398,13 @@ dissect_ansi_map_ReauthenticationReport(gboolean implicit_tag _U_, tvbuff_t *tvb
 
 
 static int
-dissect_ansi_map_ServiceIndicator(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_ServiceIndicator(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
 	tvbuff_t *parameter_tvb = NULL;
   offset = dissect_ber_octet_string(implicit_tag, actx, tree, tvb, offset, hf_index,
                                        &parameter_tvb);
 
 	if (parameter_tvb){
-		ServiceIndicator = tvb_get_guint8(parameter_tvb,0);
+		ServiceIndicator = tvb_get_uint8(parameter_tvb,0);
 		if (SMS_BearerData_tvb !=NULL)
 		{
 			switch(ServiceIndicator){
@@ -5436,7 +5428,7 @@ dissect_ansi_map_ServiceIndicator(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, 
 
 
 static int
-dissect_ansi_map_SignalingMessageEncryptionReport(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_SignalingMessageEncryptionReport(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_octet_string(implicit_tag, actx, tree, tvb, offset, hf_index,
                                        NULL);
 
@@ -5446,7 +5438,7 @@ dissect_ansi_map_SignalingMessageEncryptionReport(gboolean implicit_tag _U_, tvb
 
 
 static int
-dissect_ansi_map_SSDUpdateReport(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_SSDUpdateReport(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_octet_string(implicit_tag, actx, tree, tvb, offset, hf_index,
                                        NULL);
 
@@ -5456,7 +5448,7 @@ dissect_ansi_map_SSDUpdateReport(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, i
 
 
 static int
-dissect_ansi_map_VoicePrivacyReport(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_VoicePrivacyReport(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_octet_string(implicit_tag, actx, tree, tvb, offset, hf_index,
                                        NULL);
 
@@ -5482,7 +5474,7 @@ static const ber_sequence_t AuthenticationStatusReport_U_set[] = {
 };
 
 static int
-dissect_ansi_map_AuthenticationStatusReport_U(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_AuthenticationStatusReport_U(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_set(implicit_tag, actx, tree, tvb, offset,
                               AuthenticationStatusReport_U_set, hf_index, ett_ansi_map_AuthenticationStatusReport_U);
 
@@ -5492,9 +5484,9 @@ dissect_ansi_map_AuthenticationStatusReport_U(gboolean implicit_tag _U_, tvbuff_
 
 
 static int
-dissect_ansi_map_AuthenticationStatusReport(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_AuthenticationStatusReport(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_tagged_type(implicit_tag, actx, tree, tvb, offset,
-                                      hf_index, BER_CLASS_PRI, 18, FALSE, dissect_ansi_map_AuthenticationStatusReport_U);
+                                      hf_index, BER_CLASS_PRI, 18, false, dissect_ansi_map_AuthenticationStatusReport_U);
 
   return offset;
 }
@@ -5517,7 +5509,7 @@ static const ber_sequence_t AuthenticationStatusReportRes_U_set[] = {
 };
 
 static int
-dissect_ansi_map_AuthenticationStatusReportRes_U(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_AuthenticationStatusReportRes_U(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_set(implicit_tag, actx, tree, tvb, offset,
                               AuthenticationStatusReportRes_U_set, hf_index, ett_ansi_map_AuthenticationStatusReportRes_U);
 
@@ -5527,9 +5519,9 @@ dissect_ansi_map_AuthenticationStatusReportRes_U(gboolean implicit_tag _U_, tvbu
 
 
 static int
-dissect_ansi_map_AuthenticationStatusReportRes(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_AuthenticationStatusReportRes(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_tagged_type(implicit_tag, actx, tree, tvb, offset,
-                                      hf_index, BER_CLASS_PRI, 18, FALSE, dissect_ansi_map_AuthenticationStatusReportRes_U);
+                                      hf_index, BER_CLASS_PRI, 18, false, dissect_ansi_map_AuthenticationStatusReportRes_U);
 
   return offset;
 }
@@ -5537,7 +5529,7 @@ dissect_ansi_map_AuthenticationStatusReportRes(gboolean implicit_tag _U_, tvbuff
 
 
 static int
-dissect_ansi_map_RandomVariableBaseStation(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_RandomVariableBaseStation(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_octet_string(implicit_tag, actx, tree, tvb, offset, hf_index,
                                        NULL);
 
@@ -5556,7 +5548,7 @@ static const ber_sequence_t BaseStationChallenge_U_set[] = {
 };
 
 static int
-dissect_ansi_map_BaseStationChallenge_U(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_BaseStationChallenge_U(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_set(implicit_tag, actx, tree, tvb, offset,
                               BaseStationChallenge_U_set, hf_index, ett_ansi_map_BaseStationChallenge_U);
 
@@ -5566,9 +5558,9 @@ dissect_ansi_map_BaseStationChallenge_U(gboolean implicit_tag _U_, tvbuff_t *tvb
 
 
 static int
-dissect_ansi_map_BaseStationChallenge(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_BaseStationChallenge(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_tagged_type(implicit_tag, actx, tree, tvb, offset,
-                                      hf_index, BER_CLASS_PRI, 18, FALSE, dissect_ansi_map_BaseStationChallenge_U);
+                                      hf_index, BER_CLASS_PRI, 18, false, dissect_ansi_map_BaseStationChallenge_U);
 
   return offset;
 }
@@ -5576,7 +5568,7 @@ dissect_ansi_map_BaseStationChallenge(gboolean implicit_tag _U_, tvbuff_t *tvb _
 
 
 static int
-dissect_ansi_map_AuthenticationResponseBaseStation(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_AuthenticationResponseBaseStation(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_octet_string(implicit_tag, actx, tree, tvb, offset, hf_index,
                                        NULL);
 
@@ -5590,7 +5582,7 @@ static const ber_sequence_t BaseStationChallengeRes_U_set[] = {
 };
 
 static int
-dissect_ansi_map_BaseStationChallengeRes_U(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_BaseStationChallengeRes_U(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_set(implicit_tag, actx, tree, tvb, offset,
                               BaseStationChallengeRes_U_set, hf_index, ett_ansi_map_BaseStationChallengeRes_U);
 
@@ -5600,9 +5592,9 @@ dissect_ansi_map_BaseStationChallengeRes_U(gboolean implicit_tag _U_, tvbuff_t *
 
 
 static int
-dissect_ansi_map_BaseStationChallengeRes(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_BaseStationChallengeRes(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_tagged_type(implicit_tag, actx, tree, tvb, offset,
-                                      hf_index, BER_CLASS_PRI, 18, FALSE, dissect_ansi_map_BaseStationChallengeRes_U);
+                                      hf_index, BER_CLASS_PRI, 18, false, dissect_ansi_map_BaseStationChallengeRes_U);
 
   return offset;
 }
@@ -5614,7 +5606,7 @@ static const ber_sequence_t Blocking_U_set[] = {
 };
 
 static int
-dissect_ansi_map_Blocking_U(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_Blocking_U(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_set(implicit_tag, actx, tree, tvb, offset,
                               Blocking_U_set, hf_index, ett_ansi_map_Blocking_U);
 
@@ -5624,9 +5616,9 @@ dissect_ansi_map_Blocking_U(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int of
 
 
 static int
-dissect_ansi_map_Blocking(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_Blocking(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_tagged_type(implicit_tag, actx, tree, tvb, offset,
-                                      hf_index, BER_CLASS_PRI, 18, FALSE, dissect_ansi_map_Blocking_U);
+                                      hf_index, BER_CLASS_PRI, 18, false, dissect_ansi_map_Blocking_U);
 
   return offset;
 }
@@ -5638,7 +5630,7 @@ static const ber_sequence_t BulkDeregistration_U_set[] = {
 };
 
 static int
-dissect_ansi_map_BulkDeregistration_U(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_BulkDeregistration_U(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_set(implicit_tag, actx, tree, tvb, offset,
                               BulkDeregistration_U_set, hf_index, ett_ansi_map_BulkDeregistration_U);
 
@@ -5648,9 +5640,9 @@ dissect_ansi_map_BulkDeregistration_U(gboolean implicit_tag _U_, tvbuff_t *tvb _
 
 
 static int
-dissect_ansi_map_BulkDeregistration(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_BulkDeregistration(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_tagged_type(implicit_tag, actx, tree, tvb, offset,
-                                      hf_index, BER_CLASS_PRI, 18, FALSE, dissect_ansi_map_BulkDeregistration_U);
+                                      hf_index, BER_CLASS_PRI, 18, false, dissect_ansi_map_BulkDeregistration_U);
 
   return offset;
 }
@@ -5665,7 +5657,7 @@ static const ber_sequence_t CountRequest_U_set[] = {
 };
 
 static int
-dissect_ansi_map_CountRequest_U(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_CountRequest_U(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_set(implicit_tag, actx, tree, tvb, offset,
                               CountRequest_U_set, hf_index, ett_ansi_map_CountRequest_U);
 
@@ -5675,9 +5667,9 @@ dissect_ansi_map_CountRequest_U(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, in
 
 
 static int
-dissect_ansi_map_CountRequest(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_CountRequest(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_tagged_type(implicit_tag, actx, tree, tvb, offset,
-                                      hf_index, BER_CLASS_PRI, 18, FALSE, dissect_ansi_map_CountRequest_U);
+                                      hf_index, BER_CLASS_PRI, 18, false, dissect_ansi_map_CountRequest_U);
 
   return offset;
 }
@@ -5689,7 +5681,7 @@ static const ber_sequence_t CountRequestRes_U_set[] = {
 };
 
 static int
-dissect_ansi_map_CountRequestRes_U(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_CountRequestRes_U(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_set(implicit_tag, actx, tree, tvb, offset,
                               CountRequestRes_U_set, hf_index, ett_ansi_map_CountRequestRes_U);
 
@@ -5699,9 +5691,9 @@ dissect_ansi_map_CountRequestRes_U(gboolean implicit_tag _U_, tvbuff_t *tvb _U_,
 
 
 static int
-dissect_ansi_map_CountRequestRes(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_CountRequestRes(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_tagged_type(implicit_tag, actx, tree, tvb, offset,
-                                      hf_index, BER_CLASS_PRI, 18, FALSE, dissect_ansi_map_CountRequestRes_U);
+                                      hf_index, BER_CLASS_PRI, 18, false, dissect_ansi_map_CountRequestRes_U);
 
   return offset;
 }
@@ -5709,7 +5701,7 @@ dissect_ansi_map_CountRequestRes(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, i
 
 
 static int
-dissect_ansi_map_BillingID(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_BillingID(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
 	tvbuff_t *parameter_tvb = NULL;
   offset = dissect_ber_octet_string(implicit_tag, actx, tree, tvb, offset, hf_index,
                                        &parameter_tvb);
@@ -5725,7 +5717,7 @@ dissect_ansi_map_BillingID(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int off
 
 
 static int
-dissect_ansi_map_ChannelData(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_ChannelData(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
 	tvbuff_t *parameter_tvb = NULL;
   offset = dissect_ber_octet_string(implicit_tag, actx, tree, tvb, offset, hf_index,
                                        &parameter_tvb);
@@ -5741,7 +5733,7 @@ dissect_ansi_map_ChannelData(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int o
 
 
 static int
-dissect_ansi_map_InterSwitchCount(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_InterSwitchCount(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_integer(implicit_tag, actx, tree, tvb, offset, hf_index,
                                                 NULL);
 
@@ -5751,7 +5743,7 @@ dissect_ansi_map_InterSwitchCount(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, 
 
 
 static int
-dissect_ansi_map_ServingCellID(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_ServingCellID(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_octet_string(implicit_tag, actx, tree, tvb, offset, hf_index,
                                        NULL);
 
@@ -5761,7 +5753,7 @@ dissect_ansi_map_ServingCellID(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int
 
 
 static int
-dissect_ansi_map_StationClassMark(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_StationClassMark(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_octet_string(implicit_tag, actx, tree, tvb, offset, hf_index,
                                        NULL);
 
@@ -5771,7 +5763,7 @@ dissect_ansi_map_StationClassMark(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, 
 
 
 static int
-dissect_ansi_map_TargetCellID(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_TargetCellID(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_octet_string(implicit_tag, actx, tree, tvb, offset, hf_index,
                                        NULL);
 
@@ -5790,7 +5782,7 @@ static const value_string ansi_map_HandoffReason_vals[] = {
 
 
 static int
-dissect_ansi_map_HandoffReason(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_HandoffReason(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_integer(implicit_tag, actx, tree, tvb, offset, hf_index,
                                   NULL);
 
@@ -5800,7 +5792,7 @@ dissect_ansi_map_HandoffReason(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int
 
 
 static int
-dissect_ansi_map_HandoffState(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_HandoffState(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
 	tvbuff_t *parameter_tvb = NULL;
   offset = dissect_ber_octet_string(implicit_tag, actx, tree, tvb, offset, hf_index,
                                        &parameter_tvb);
@@ -5816,7 +5808,7 @@ dissect_ansi_map_HandoffState(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int 
 
 
 static int
-dissect_ansi_map_TDMABurstIndicator(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_TDMABurstIndicator(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_octet_string(implicit_tag, actx, tree, tvb, offset, hf_index,
                                        NULL);
 
@@ -5826,7 +5818,7 @@ dissect_ansi_map_TDMABurstIndicator(gboolean implicit_tag _U_, tvbuff_t *tvb _U_
 
 
 static int
-dissect_ansi_map_TDMACallMode(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_TDMACallMode(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_octet_string(implicit_tag, actx, tree, tvb, offset, hf_index,
                                        NULL);
 
@@ -5836,7 +5828,7 @@ dissect_ansi_map_TDMACallMode(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int 
 
 
 static int
-dissect_ansi_map_TDMAChannelData(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_TDMAChannelData(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_octet_string(implicit_tag, actx, tree, tvb, offset, hf_index,
                                        NULL);
 
@@ -5866,7 +5858,7 @@ static const ber_sequence_t FacilitiesDirective_U_set[] = {
 };
 
 static int
-dissect_ansi_map_FacilitiesDirective_U(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_FacilitiesDirective_U(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_set(implicit_tag, actx, tree, tvb, offset,
                               FacilitiesDirective_U_set, hf_index, ett_ansi_map_FacilitiesDirective_U);
 
@@ -5876,9 +5868,9 @@ dissect_ansi_map_FacilitiesDirective_U(gboolean implicit_tag _U_, tvbuff_t *tvb 
 
 
 static int
-dissect_ansi_map_FacilitiesDirective(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_FacilitiesDirective(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_tagged_type(implicit_tag, actx, tree, tvb, offset,
-                                      hf_index, BER_CLASS_PRI, 18, FALSE, dissect_ansi_map_FacilitiesDirective_U);
+                                      hf_index, BER_CLASS_PRI, 18, false, dissect_ansi_map_FacilitiesDirective_U);
 
   return offset;
 }
@@ -5893,7 +5885,7 @@ static const ber_sequence_t FacilitiesDirectiveRes_U_set[] = {
 };
 
 static int
-dissect_ansi_map_FacilitiesDirectiveRes_U(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_FacilitiesDirectiveRes_U(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_set(implicit_tag, actx, tree, tvb, offset,
                               FacilitiesDirectiveRes_U_set, hf_index, ett_ansi_map_FacilitiesDirectiveRes_U);
 
@@ -5903,9 +5895,9 @@ dissect_ansi_map_FacilitiesDirectiveRes_U(gboolean implicit_tag _U_, tvbuff_t *t
 
 
 static int
-dissect_ansi_map_FacilitiesDirectiveRes(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_FacilitiesDirectiveRes(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_tagged_type(implicit_tag, actx, tree, tvb, offset,
-                                      hf_index, BER_CLASS_PRI, 18, FALSE, dissect_ansi_map_FacilitiesDirectiveRes_U);
+                                      hf_index, BER_CLASS_PRI, 18, false, dissect_ansi_map_FacilitiesDirectiveRes_U);
 
   return offset;
 }
@@ -5913,7 +5905,7 @@ dissect_ansi_map_FacilitiesDirectiveRes(gboolean implicit_tag _U_, tvbuff_t *tvb
 
 
 static int
-dissect_ansi_map_BaseStationManufacturerCode(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_BaseStationManufacturerCode(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_octet_string(implicit_tag, actx, tree, tvb, offset, hf_index,
                                        NULL);
 
@@ -5923,7 +5915,7 @@ dissect_ansi_map_BaseStationManufacturerCode(gboolean implicit_tag _U_, tvbuff_t
 
 
 static int
-dissect_ansi_map_AlertCode(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_AlertCode(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
 	tvbuff_t *parameter_tvb = NULL;
   offset = dissect_ber_octet_string(implicit_tag, actx, tree, tvb, offset, hf_index,
                                        &parameter_tvb);
@@ -5939,7 +5931,7 @@ dissect_ansi_map_AlertCode(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int off
 
 
 static int
-dissect_ansi_map_CDMA2000HandoffInvokeIOSData(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_CDMA2000HandoffInvokeIOSData(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
 	tvbuff_t *parameter_tvb = NULL;
     proto_tree *subtree;
 
@@ -5958,7 +5950,7 @@ dissect_ansi_map_CDMA2000HandoffInvokeIOSData(gboolean implicit_tag _U_, tvbuff_
 
 
 static int
-dissect_ansi_map_CDMAMobileProtocolRevision(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_CDMAMobileProtocolRevision(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_octet_string(implicit_tag, actx, tree, tvb, offset, hf_index,
                                        NULL);
 
@@ -5968,7 +5960,7 @@ dissect_ansi_map_CDMAMobileProtocolRevision(gboolean implicit_tag _U_, tvbuff_t 
 
 
 static int
-dissect_ansi_map_CDMAStationClassMark2(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_CDMAStationClassMark2(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_octet_string(implicit_tag, actx, tree, tvb, offset, hf_index,
                                        NULL);
 
@@ -5984,7 +5976,7 @@ static const ber_sequence_t CDMABandClassInformation_sequence[] = {
 };
 
 static int
-dissect_ansi_map_CDMABandClassInformation(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_CDMABandClassInformation(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence(implicit_tag, actx, tree, tvb, offset,
                                    CDMABandClassInformation_sequence, hf_index, ett_ansi_map_CDMABandClassInformation);
 
@@ -5997,7 +5989,7 @@ static const ber_sequence_t CDMABandClassList_sequence_of[1] = {
 };
 
 static int
-dissect_ansi_map_CDMABandClassList(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_CDMABandClassList(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence_of(implicit_tag, actx, tree, tvb, offset,
                                       CDMABandClassList_sequence_of, hf_index, ett_ansi_map_CDMABandClassList);
 
@@ -6007,7 +5999,7 @@ dissect_ansi_map_CDMABandClassList(gboolean implicit_tag _U_, tvbuff_t *tvb _U_,
 
 
 static int
-dissect_ansi_map_CDMACallMode(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_CDMACallMode(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
 	tvbuff_t *parameter_tvb = NULL;
   offset = dissect_ber_octet_string(implicit_tag, actx, tree, tvb, offset, hf_index,
                                        &parameter_tvb);
@@ -6022,7 +6014,7 @@ dissect_ansi_map_CDMACallMode(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int 
 
 
 static int
-dissect_ansi_map_CDMAChannelData(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_CDMAChannelData(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
 	tvbuff_t *parameter_tvb = NULL;
   offset = dissect_ber_octet_string(implicit_tag, actx, tree, tvb, offset, hf_index,
                                        &parameter_tvb);
@@ -6038,7 +6030,7 @@ dissect_ansi_map_CDMAChannelData(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, i
 
 
 static int
-dissect_ansi_map_CDMAConnectionReference(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_CDMAConnectionReference(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_octet_string(implicit_tag, actx, tree, tvb, offset, hf_index,
                                        NULL);
 
@@ -6048,7 +6040,7 @@ dissect_ansi_map_CDMAConnectionReference(gboolean implicit_tag _U_, tvbuff_t *tv
 
 
 static int
-dissect_ansi_map_CDMAServiceOption(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_CDMAServiceOption(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
 	tvbuff_t *parameter_tvb = NULL;
   offset = dissect_ber_octet_string(implicit_tag, actx, tree, tvb, offset, hf_index,
                                        &parameter_tvb);
@@ -6065,7 +6057,7 @@ dissect_ansi_map_CDMAServiceOption(gboolean implicit_tag _U_, tvbuff_t *tvb _U_,
 
 
 static int
-dissect_ansi_map_CDMAState(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_CDMAState(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_octet_string(implicit_tag, actx, tree, tvb, offset, hf_index,
                                        NULL);
 
@@ -6075,7 +6067,7 @@ dissect_ansi_map_CDMAState(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int off
 
 
 static int
-dissect_ansi_map_DataPrivacyParameters(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_DataPrivacyParameters(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_octet_string(implicit_tag, actx, tree, tvb, offset, hf_index,
                                        NULL);
 
@@ -6085,7 +6077,7 @@ dissect_ansi_map_DataPrivacyParameters(gboolean implicit_tag _U_, tvbuff_t *tvb 
 
 
 static int
-dissect_ansi_map_CDMAServiceOptionConnectionIdentifier(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_CDMAServiceOptionConnectionIdentifier(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_octet_string(implicit_tag, actx, tree, tvb, offset, hf_index,
                                        NULL);
 
@@ -6103,7 +6095,7 @@ static const ber_sequence_t CDMAConnectionReferenceInformation_sequence[] = {
 };
 
 static int
-dissect_ansi_map_CDMAConnectionReferenceInformation(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_CDMAConnectionReferenceInformation(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence(implicit_tag, actx, tree, tvb, offset,
                                    CDMAConnectionReferenceInformation_sequence, hf_index, ett_ansi_map_CDMAConnectionReferenceInformation);
 
@@ -6118,7 +6110,7 @@ static const ber_sequence_t CDMAConnectionReferenceList_item_sequence[] = {
 };
 
 static int
-dissect_ansi_map_CDMAConnectionReferenceList_item(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_CDMAConnectionReferenceList_item(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence(implicit_tag, actx, tree, tvb, offset,
                                    CDMAConnectionReferenceList_item_sequence, hf_index, ett_ansi_map_CDMAConnectionReferenceList_item);
 
@@ -6131,7 +6123,7 @@ static const ber_sequence_t CDMAConnectionReferenceList_sequence_of[1] = {
 };
 
 static int
-dissect_ansi_map_CDMAConnectionReferenceList(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_CDMAConnectionReferenceList(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence_of(implicit_tag, actx, tree, tvb, offset,
                                       CDMAConnectionReferenceList_sequence_of, hf_index, ett_ansi_map_CDMAConnectionReferenceList);
 
@@ -6141,7 +6133,7 @@ dissect_ansi_map_CDMAConnectionReferenceList(gboolean implicit_tag _U_, tvbuff_t
 
 
 static int
-dissect_ansi_map_CDMAMSMeasuredChannelIdentity(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_CDMAMSMeasuredChannelIdentity(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_octet_string(implicit_tag, actx, tree, tvb, offset, hf_index,
                                        NULL);
 
@@ -6151,7 +6143,7 @@ dissect_ansi_map_CDMAMSMeasuredChannelIdentity(gboolean implicit_tag _U_, tvbuff
 
 
 static int
-dissect_ansi_map_CDMAServiceConfigurationRecord(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_CDMAServiceConfigurationRecord(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_octet_string(implicit_tag, actx, tree, tvb, offset, hf_index,
                                        NULL);
 
@@ -6164,7 +6156,7 @@ static const ber_sequence_t CDMAServiceOptionList_sequence_of[1] = {
 };
 
 static int
-dissect_ansi_map_CDMAServiceOptionList(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_CDMAServiceOptionList(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence_of(implicit_tag, actx, tree, tvb, offset,
                                       CDMAServiceOptionList_sequence_of, hf_index, ett_ansi_map_CDMAServiceOptionList);
 
@@ -6174,7 +6166,7 @@ dissect_ansi_map_CDMAServiceOptionList(gboolean implicit_tag _U_, tvbuff_t *tvb 
 
 
 static int
-dissect_ansi_map_CDMAServingOneWayDelay(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_CDMAServingOneWayDelay(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_octet_string(implicit_tag, actx, tree, tvb, offset, hf_index,
                                        NULL);
 
@@ -6184,7 +6176,7 @@ dissect_ansi_map_CDMAServingOneWayDelay(gboolean implicit_tag _U_, tvbuff_t *tvb
 
 
 static int
-dissect_ansi_map_CDMAStationClassMark(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_CDMAStationClassMark(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
 	tvbuff_t *parameter_tvb = NULL;
   offset = dissect_ber_octet_string(implicit_tag, actx, tree, tvb, offset, hf_index,
                                        &parameter_tvb);
@@ -6200,7 +6192,7 @@ dissect_ansi_map_CDMAStationClassMark(gboolean implicit_tag _U_, tvbuff_t *tvb _
 
 
 static int
-dissect_ansi_map_CDMAPilotStrength(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_CDMAPilotStrength(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_octet_string(implicit_tag, actx, tree, tvb, offset, hf_index,
                                        NULL);
 
@@ -6210,7 +6202,7 @@ dissect_ansi_map_CDMAPilotStrength(gboolean implicit_tag _U_, tvbuff_t *tvb _U_,
 
 
 static int
-dissect_ansi_map_CDMATargetOneWayDelay(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_CDMATargetOneWayDelay(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_octet_string(implicit_tag, actx, tree, tvb, offset, hf_index,
                                        NULL);
 
@@ -6226,7 +6218,7 @@ static const ber_sequence_t CDMATargetMAHOInformation_sequence[] = {
 };
 
 static int
-dissect_ansi_map_CDMATargetMAHOInformation(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_CDMATargetMAHOInformation(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence(implicit_tag, actx, tree, tvb, offset,
                                    CDMATargetMAHOInformation_sequence, hf_index, ett_ansi_map_CDMATargetMAHOInformation);
 
@@ -6239,7 +6231,7 @@ static const ber_sequence_t CDMATargetMAHOList_sequence_of[1] = {
 };
 
 static int
-dissect_ansi_map_CDMATargetMAHOList(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_CDMATargetMAHOList(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence_of(implicit_tag, actx, tree, tvb, offset,
                                       CDMATargetMAHOList_sequence_of, hf_index, ett_ansi_map_CDMATargetMAHOList);
 
@@ -6249,7 +6241,7 @@ dissect_ansi_map_CDMATargetMAHOList(gboolean implicit_tag _U_, tvbuff_t *tvb _U_
 
 
 static int
-dissect_ansi_map_CDMASignalQuality(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_CDMASignalQuality(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_octet_string(implicit_tag, actx, tree, tvb, offset, hf_index,
                                        NULL);
 
@@ -6265,7 +6257,7 @@ static const ber_sequence_t CDMATargetMeasurementInformation_sequence[] = {
 };
 
 static int
-dissect_ansi_map_CDMATargetMeasurementInformation(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_CDMATargetMeasurementInformation(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence(implicit_tag, actx, tree, tvb, offset,
                                    CDMATargetMeasurementInformation_sequence, hf_index, ett_ansi_map_CDMATargetMeasurementInformation);
 
@@ -6278,7 +6270,7 @@ static const ber_sequence_t CDMATargetMeasurementList_sequence_of[1] = {
 };
 
 static int
-dissect_ansi_map_CDMATargetMeasurementList(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_CDMATargetMeasurementList(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence_of(implicit_tag, actx, tree, tvb, offset,
                                       CDMATargetMeasurementList_sequence_of, hf_index, ett_ansi_map_CDMATargetMeasurementList);
 
@@ -6288,7 +6280,7 @@ dissect_ansi_map_CDMATargetMeasurementList(gboolean implicit_tag _U_, tvbuff_t *
 
 
 static int
-dissect_ansi_map_ISLPInformation(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_ISLPInformation(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_octet_string(implicit_tag, actx, tree, tvb, offset, hf_index,
                                        NULL);
 
@@ -6298,7 +6290,7 @@ dissect_ansi_map_ISLPInformation(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, i
 
 
 static int
-dissect_ansi_map_MSLocation(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_MSLocation(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
 	tvbuff_t *parameter_tvb = NULL;
   offset = dissect_ber_octet_string(implicit_tag, actx, tree, tvb, offset, hf_index,
                                        &parameter_tvb);
@@ -6314,7 +6306,7 @@ dissect_ansi_map_MSLocation(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int of
 
 
 static int
-dissect_ansi_map_NAMPSCallMode(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_NAMPSCallMode(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
 	tvbuff_t *parameter_tvb = NULL;
   offset = dissect_ber_octet_string(implicit_tag, actx, tree, tvb, offset, hf_index,
                                        &parameter_tvb);
@@ -6330,7 +6322,7 @@ dissect_ansi_map_NAMPSCallMode(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int
 
 
 static int
-dissect_ansi_map_NAMPSChannelData(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_NAMPSChannelData(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
 	tvbuff_t *parameter_tvb = NULL;
   offset = dissect_ber_octet_string(implicit_tag, actx, tree, tvb, offset, hf_index,
                                        &parameter_tvb);
@@ -6346,7 +6338,7 @@ dissect_ansi_map_NAMPSChannelData(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, 
 
 
 static int
-dissect_ansi_map_NonPublicData(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_NonPublicData(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_octet_string(implicit_tag, actx, tree, tvb, offset, hf_index,
                                        NULL);
 
@@ -6356,7 +6348,7 @@ dissect_ansi_map_NonPublicData(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int
 
 
 static int
-dissect_ansi_map_PDSNAddress(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_PDSNAddress(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_octet_string(implicit_tag, actx, tree, tvb, offset, hf_index,
                                        NULL);
 
@@ -6366,7 +6358,7 @@ dissect_ansi_map_PDSNAddress(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int o
 
 
 static int
-dissect_ansi_map_PDSNProtocolType(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_PDSNProtocolType(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_octet_string(implicit_tag, actx, tree, tvb, offset, hf_index,
                                        NULL);
 
@@ -6376,7 +6368,7 @@ dissect_ansi_map_PDSNProtocolType(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, 
 
 
 static int
-dissect_ansi_map_QoSPriority(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_QoSPriority(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_octet_string(implicit_tag, actx, tree, tvb, offset, hf_index,
                                        NULL);
 
@@ -6386,7 +6378,7 @@ dissect_ansi_map_QoSPriority(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int o
 
 
 static int
-dissect_ansi_map_SystemOperatorCode(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_SystemOperatorCode(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_octet_string(implicit_tag, actx, tree, tvb, offset, hf_index,
                                        NULL);
 
@@ -6396,7 +6388,7 @@ dissect_ansi_map_SystemOperatorCode(gboolean implicit_tag _U_, tvbuff_t *tvb _U_
 
 
 static int
-dissect_ansi_map_TDMABandwidth(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_TDMABandwidth(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_octet_string(implicit_tag, actx, tree, tvb, offset, hf_index,
                                        NULL);
 
@@ -6406,7 +6398,7 @@ dissect_ansi_map_TDMABandwidth(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int
 
 
 static int
-dissect_ansi_map_TDMAServiceCode(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_TDMAServiceCode(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_octet_string(implicit_tag, actx, tree, tvb, offset, hf_index,
                                        NULL);
 
@@ -6416,7 +6408,7 @@ dissect_ansi_map_TDMAServiceCode(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, i
 
 
 static int
-dissect_ansi_map_TDMATerminalCapability(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_TDMATerminalCapability(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_octet_string(implicit_tag, actx, tree, tvb, offset, hf_index,
                                        NULL);
 
@@ -6426,7 +6418,7 @@ dissect_ansi_map_TDMATerminalCapability(gboolean implicit_tag _U_, tvbuff_t *tvb
 
 
 static int
-dissect_ansi_map_TDMAVoiceCoder(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_TDMAVoiceCoder(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_octet_string(implicit_tag, actx, tree, tvb, offset, hf_index,
                                        NULL);
 
@@ -6436,7 +6428,7 @@ dissect_ansi_map_TDMAVoiceCoder(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, in
 
 
 static int
-dissect_ansi_map_UserZoneData(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_UserZoneData(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_octet_string(implicit_tag, actx, tree, tvb, offset, hf_index,
                                        NULL);
 
@@ -6502,7 +6494,7 @@ static const ber_sequence_t FacilitiesDirective2_U_set[] = {
 };
 
 static int
-dissect_ansi_map_FacilitiesDirective2_U(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_FacilitiesDirective2_U(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_set(implicit_tag, actx, tree, tvb, offset,
                               FacilitiesDirective2_U_set, hf_index, ett_ansi_map_FacilitiesDirective2_U);
 
@@ -6512,9 +6504,9 @@ dissect_ansi_map_FacilitiesDirective2_U(gboolean implicit_tag _U_, tvbuff_t *tvb
 
 
 static int
-dissect_ansi_map_FacilitiesDirective2(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_FacilitiesDirective2(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_tagged_type(implicit_tag, actx, tree, tvb, offset,
-                                      hf_index, BER_CLASS_PRI, 18, FALSE, dissect_ansi_map_FacilitiesDirective2_U);
+                                      hf_index, BER_CLASS_PRI, 18, false, dissect_ansi_map_FacilitiesDirective2_U);
 
   return offset;
 }
@@ -6522,7 +6514,7 @@ dissect_ansi_map_FacilitiesDirective2(gboolean implicit_tag _U_, tvbuff_t *tvb _
 
 
 static int
-dissect_ansi_map_BSMCStatus(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_BSMCStatus(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_octet_string(implicit_tag, actx, tree, tvb, offset, hf_index,
                                        NULL);
 
@@ -6532,7 +6524,7 @@ dissect_ansi_map_BSMCStatus(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int of
 
 
 static int
-dissect_ansi_map_CDMA2000HandoffResponseIOSData(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_CDMA2000HandoffResponseIOSData(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
 	tvbuff_t *parameter_tvb = NULL;
     proto_tree *subtree;
 
@@ -6551,7 +6543,7 @@ dissect_ansi_map_CDMA2000HandoffResponseIOSData(gboolean implicit_tag _U_, tvbuf
 
 
 static int
-dissect_ansi_map_CDMACodeChannel(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_CDMACodeChannel(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_octet_string(implicit_tag, actx, tree, tvb, offset, hf_index,
                                        NULL);
 
@@ -6561,7 +6553,7 @@ dissect_ansi_map_CDMACodeChannel(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, i
 
 
 static int
-dissect_ansi_map_CDMAPilotPN(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_CDMAPilotPN(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_octet_string(implicit_tag, actx, tree, tvb, offset, hf_index,
                                        NULL);
 
@@ -6571,7 +6563,7 @@ dissect_ansi_map_CDMAPilotPN(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int o
 
 
 static int
-dissect_ansi_map_CDMAPowerCombinedIndicator(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_CDMAPowerCombinedIndicator(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_octet_string(implicit_tag, actx, tree, tvb, offset, hf_index,
                                        NULL);
 
@@ -6588,7 +6580,7 @@ static const ber_sequence_t CDMACodeChannelInformation_sequence[] = {
 };
 
 static int
-dissect_ansi_map_CDMACodeChannelInformation(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_CDMACodeChannelInformation(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence(implicit_tag, actx, tree, tvb, offset,
                                    CDMACodeChannelInformation_sequence, hf_index, ett_ansi_map_CDMACodeChannelInformation);
 
@@ -6601,7 +6593,7 @@ static const ber_sequence_t CDMACodeChannelList_sequence_of[1] = {
 };
 
 static int
-dissect_ansi_map_CDMACodeChannelList(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_CDMACodeChannelList(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence_of(implicit_tag, actx, tree, tvb, offset,
                                       CDMACodeChannelList_sequence_of, hf_index, ett_ansi_map_CDMACodeChannelList);
 
@@ -6611,7 +6603,7 @@ dissect_ansi_map_CDMACodeChannelList(gboolean implicit_tag _U_, tvbuff_t *tvb _U
 
 
 static int
-dissect_ansi_map_CDMASearchParameters(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_CDMASearchParameters(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_octet_string(implicit_tag, actx, tree, tvb, offset, hf_index,
                                        NULL);
 
@@ -6621,7 +6613,7 @@ dissect_ansi_map_CDMASearchParameters(gboolean implicit_tag _U_, tvbuff_t *tvb _
 
 
 static int
-dissect_ansi_map_CDMASearchWindow(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_CDMASearchWindow(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_octet_string(implicit_tag, actx, tree, tvb, offset, hf_index,
                                        NULL);
 
@@ -6631,7 +6623,7 @@ dissect_ansi_map_CDMASearchWindow(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, 
 
 
 static int
-dissect_ansi_map_SOCStatus(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_SOCStatus(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_octet_string(implicit_tag, actx, tree, tvb, offset, hf_index,
                                        NULL);
 
@@ -6661,7 +6653,7 @@ static const ber_sequence_t FacilitiesDirective2Res_U_set[] = {
 };
 
 static int
-dissect_ansi_map_FacilitiesDirective2Res_U(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_FacilitiesDirective2Res_U(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_set(implicit_tag, actx, tree, tvb, offset,
                               FacilitiesDirective2Res_U_set, hf_index, ett_ansi_map_FacilitiesDirective2Res_U);
 
@@ -6671,9 +6663,9 @@ dissect_ansi_map_FacilitiesDirective2Res_U(gboolean implicit_tag _U_, tvbuff_t *
 
 
 static int
-dissect_ansi_map_FacilitiesDirective2Res(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_FacilitiesDirective2Res(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_tagged_type(implicit_tag, actx, tree, tvb, offset,
-                                      hf_index, BER_CLASS_PRI, 18, FALSE, dissect_ansi_map_FacilitiesDirective2Res_U);
+                                      hf_index, BER_CLASS_PRI, 18, false, dissect_ansi_map_FacilitiesDirective2Res_U);
 
   return offset;
 }
@@ -6700,7 +6692,7 @@ static const value_string ansi_map_ReleaseReason_vals[] = {
 
 
 static int
-dissect_ansi_map_ReleaseReason(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_ReleaseReason(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_integer(implicit_tag, actx, tree, tvb, offset, hf_index,
                                   NULL);
 
@@ -6717,7 +6709,7 @@ static const ber_sequence_t FacilitiesRelease_U_set[] = {
 };
 
 static int
-dissect_ansi_map_FacilitiesRelease_U(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_FacilitiesRelease_U(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_set(implicit_tag, actx, tree, tvb, offset,
                               FacilitiesRelease_U_set, hf_index, ett_ansi_map_FacilitiesRelease_U);
 
@@ -6727,9 +6719,9 @@ dissect_ansi_map_FacilitiesRelease_U(gboolean implicit_tag _U_, tvbuff_t *tvb _U
 
 
 static int
-dissect_ansi_map_FacilitiesRelease(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_FacilitiesRelease(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_tagged_type(implicit_tag, actx, tree, tvb, offset,
-                                      hf_index, BER_CLASS_PRI, 18, FALSE, dissect_ansi_map_FacilitiesRelease_U);
+                                      hf_index, BER_CLASS_PRI, 18, false, dissect_ansi_map_FacilitiesRelease_U);
 
   return offset;
 }
@@ -6741,7 +6733,7 @@ static const ber_sequence_t FacilitiesReleaseRes_U_set[] = {
 };
 
 static int
-dissect_ansi_map_FacilitiesReleaseRes_U(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_FacilitiesReleaseRes_U(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_set(implicit_tag, actx, tree, tvb, offset,
                               FacilitiesReleaseRes_U_set, hf_index, ett_ansi_map_FacilitiesReleaseRes_U);
 
@@ -6751,9 +6743,9 @@ dissect_ansi_map_FacilitiesReleaseRes_U(gboolean implicit_tag _U_, tvbuff_t *tvb
 
 
 static int
-dissect_ansi_map_FacilitiesReleaseRes(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_FacilitiesReleaseRes(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_tagged_type(implicit_tag, actx, tree, tvb, offset,
-                                      hf_index, BER_CLASS_PRI, 18, FALSE, dissect_ansi_map_FacilitiesReleaseRes_U);
+                                      hf_index, BER_CLASS_PRI, 18, false, dissect_ansi_map_FacilitiesReleaseRes_U);
 
   return offset;
 }
@@ -6761,7 +6753,7 @@ dissect_ansi_map_FacilitiesReleaseRes(gboolean implicit_tag _U_, tvbuff_t *tvb _
 
 
 static int
-dissect_ansi_map_ACGEncountered(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_ACGEncountered(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_octet_string(implicit_tag, actx, tree, tvb, offset, hf_index,
                                        NULL);
 
@@ -6771,7 +6763,7 @@ dissect_ansi_map_ACGEncountered(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, in
 
 
 static int
-dissect_ansi_map_CallingPartyName(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_CallingPartyName(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
 	tvbuff_t *parameter_tvb = NULL;
   offset = dissect_ber_octet_string(implicit_tag, actx, tree, tvb, offset, hf_index,
                                        &parameter_tvb);
@@ -6787,7 +6779,7 @@ dissect_ansi_map_CallingPartyName(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, 
 
 
 static int
-dissect_ansi_map_CallingPartyNumberDigits1(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_CallingPartyNumberDigits1(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ansi_map_DigitsType(implicit_tag, tvb, offset, actx, tree, hf_index);
 
   return offset;
@@ -6796,7 +6788,7 @@ dissect_ansi_map_CallingPartyNumberDigits1(gboolean implicit_tag _U_, tvbuff_t *
 
 
 static int
-dissect_ansi_map_CallingPartyNumberDigits2(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_CallingPartyNumberDigits2(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ansi_map_DigitsType(implicit_tag, tvb, offset, actx, tree, hf_index);
 
   return offset;
@@ -6805,7 +6797,7 @@ dissect_ansi_map_CallingPartyNumberDigits2(gboolean implicit_tag _U_, tvbuff_t *
 
 
 static int
-dissect_ansi_map_Subaddress(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_Subaddress(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
 	tvbuff_t *parameter_tvb = NULL;
   offset = dissect_ber_octet_string(implicit_tag, actx, tree, tvb, offset, hf_index,
                                        &parameter_tvb);
@@ -6821,7 +6813,7 @@ dissect_ansi_map_Subaddress(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int of
 
 
 static int
-dissect_ansi_map_CallingPartySubaddress(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_CallingPartySubaddress(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ansi_map_Subaddress(implicit_tag, tvb, offset, actx, tree, hf_index);
 
   return offset;
@@ -6830,7 +6822,7 @@ dissect_ansi_map_CallingPartySubaddress(gboolean implicit_tag _U_, tvbuff_t *tvb
 
 
 static int
-dissect_ansi_map_ConferenceCallingIndicator(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_ConferenceCallingIndicator(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_octet_string(implicit_tag, actx, tree, tvb, offset, hf_index,
                                        NULL);
 
@@ -6840,7 +6832,7 @@ dissect_ansi_map_ConferenceCallingIndicator(gboolean implicit_tag _U_, tvbuff_t 
 
 
 static int
-dissect_ansi_map_MobileDirectoryNumber(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_MobileDirectoryNumber(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ansi_map_DigitsType(implicit_tag, tvb, offset, actx, tree, hf_index);
 
   return offset;
@@ -6849,7 +6841,7 @@ dissect_ansi_map_MobileDirectoryNumber(gboolean implicit_tag _U_, tvbuff_t *tvb 
 
 
 static int
-dissect_ansi_map_MSCIdentificationNumber(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_MSCIdentificationNumber(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ansi_map_DigitsType(implicit_tag, tvb, offset, actx, tree, hf_index);
 
   return offset;
@@ -6858,7 +6850,7 @@ dissect_ansi_map_MSCIdentificationNumber(gboolean implicit_tag _U_, tvbuff_t *tv
 
 
 static int
-dissect_ansi_map_OneTimeFeatureIndicator(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_OneTimeFeatureIndicator(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
 	tvbuff_t *parameter_tvb = NULL;
   offset = dissect_ber_octet_string(implicit_tag, actx, tree, tvb, offset, hf_index,
                                        &parameter_tvb);
@@ -6915,7 +6907,7 @@ static value_string_ext ansi_map_SystemMyTypeCode_vals_ext = VALUE_STRING_EXT_IN
 
 
 static int
-dissect_ansi_map_SystemMyTypeCode(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_SystemMyTypeCode(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_integer(implicit_tag, actx, tree, tvb, offset, hf_index,
                                   NULL);
 
@@ -6948,7 +6940,7 @@ static const ber_sequence_t FeatureRequest_U_set[] = {
 };
 
 static int
-dissect_ansi_map_FeatureRequest_U(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_FeatureRequest_U(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_set(implicit_tag, actx, tree, tvb, offset,
                               FeatureRequest_U_set, hf_index, ett_ansi_map_FeatureRequest_U);
 
@@ -6958,9 +6950,9 @@ dissect_ansi_map_FeatureRequest_U(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, 
 
 
 static int
-dissect_ansi_map_FeatureRequest(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_FeatureRequest(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_tagged_type(implicit_tag, actx, tree, tvb, offset,
-                                      hf_index, BER_CLASS_PRI, 18, FALSE, dissect_ansi_map_FeatureRequest_U);
+                                      hf_index, BER_CLASS_PRI, 18, false, dissect_ansi_map_FeatureRequest_U);
 
   return offset;
 }
@@ -6975,7 +6967,7 @@ static const value_string ansi_map_FeatureResult_vals[] = {
 
 
 static int
-dissect_ansi_map_FeatureResult(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_FeatureResult(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_integer(implicit_tag, actx, tree, tvb, offset, hf_index,
                                   NULL);
 
@@ -7001,7 +6993,7 @@ static const value_string ansi_map_AccessDeniedReason_vals[] = {
 
 
 static int
-dissect_ansi_map_AccessDeniedReason(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_AccessDeniedReason(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_integer(implicit_tag, actx, tree, tvb, offset, hf_index,
                                   NULL);
 
@@ -7011,7 +7003,7 @@ dissect_ansi_map_AccessDeniedReason(gboolean implicit_tag _U_, tvbuff_t *tvb _U_
 
 
 static int
-dissect_ansi_map_ActionCode(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_ActionCode(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_octet_string(implicit_tag, actx, tree, tvb, offset, hf_index,
                                        NULL);
 
@@ -7021,7 +7013,7 @@ dissect_ansi_map_ActionCode(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int of
 
 
 static int
-dissect_ansi_map_AnnouncementCode(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_AnnouncementCode(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
 	tvbuff_t *parameter_tvb = NULL;
   offset = dissect_ber_octet_string(implicit_tag, actx, tree, tvb, offset, hf_index,
                                        &parameter_tvb);
@@ -7042,7 +7034,7 @@ static const ber_sequence_t AnnouncementList_sequence[] = {
 };
 
 static int
-dissect_ansi_map_AnnouncementList(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_AnnouncementList(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence(implicit_tag, actx, tree, tvb, offset,
                                    AnnouncementList_sequence, hf_index, ett_ansi_map_AnnouncementList);
 
@@ -7052,7 +7044,7 @@ dissect_ansi_map_AnnouncementList(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, 
 
 
 static int
-dissect_ansi_map_CallingPartyNumberString1(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_CallingPartyNumberString1(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ansi_map_DigitsType(implicit_tag, tvb, offset, actx, tree, hf_index);
 
   return offset;
@@ -7061,7 +7053,7 @@ dissect_ansi_map_CallingPartyNumberString1(gboolean implicit_tag _U_, tvbuff_t *
 
 
 static int
-dissect_ansi_map_CallingPartyNumberString2(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_CallingPartyNumberString2(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ansi_map_DigitsType(implicit_tag, tvb, offset, actx, tree, hf_index);
 
   return offset;
@@ -7070,7 +7062,7 @@ dissect_ansi_map_CallingPartyNumberString2(gboolean implicit_tag _U_, tvbuff_t *
 
 
 static int
-dissect_ansi_map_DisplayText(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_DisplayText(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_octet_string(implicit_tag, actx, tree, tvb, offset, hf_index,
                                        NULL);
 
@@ -7080,7 +7072,7 @@ dissect_ansi_map_DisplayText(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int o
 
 
 static int
-dissect_ansi_map_DisplayText2(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_DisplayText2(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_octet_string(implicit_tag, actx, tree, tvb, offset, hf_index,
                                        NULL);
 
@@ -7090,7 +7082,7 @@ dissect_ansi_map_DisplayText2(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int 
 
 
 static int
-dissect_ansi_map_DMH_AccountCodeDigits(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_DMH_AccountCodeDigits(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ansi_map_DigitsType(implicit_tag, tvb, offset, actx, tree, hf_index);
 
   return offset;
@@ -7099,7 +7091,7 @@ dissect_ansi_map_DMH_AccountCodeDigits(gboolean implicit_tag _U_, tvbuff_t *tvb 
 
 
 static int
-dissect_ansi_map_DMH_AlternateBillingDigits(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_DMH_AlternateBillingDigits(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ansi_map_DigitsType(implicit_tag, tvb, offset, actx, tree, hf_index);
 
   return offset;
@@ -7108,7 +7100,7 @@ dissect_ansi_map_DMH_AlternateBillingDigits(gboolean implicit_tag _U_, tvbuff_t 
 
 
 static int
-dissect_ansi_map_DMH_BillingDigits(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_DMH_BillingDigits(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ansi_map_DigitsType(implicit_tag, tvb, offset, actx, tree, hf_index);
 
   return offset;
@@ -7148,7 +7140,7 @@ static value_string_ext ansi_map_DMH_RedirectionIndicator_vals_ext = VALUE_STRIN
 
 
 static int
-dissect_ansi_map_DMH_RedirectionIndicator(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_DMH_RedirectionIndicator(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_integer(implicit_tag, actx, tree, tvb, offset, hf_index,
                                   NULL);
 
@@ -7158,7 +7150,7 @@ dissect_ansi_map_DMH_RedirectionIndicator(gboolean implicit_tag _U_, tvbuff_t *t
 
 
 static int
-dissect_ansi_map_GroupInformation(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_GroupInformation(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_octet_string(implicit_tag, actx, tree, tvb, offset, hf_index,
                                        NULL);
 
@@ -7168,7 +7160,7 @@ dissect_ansi_map_GroupInformation(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, 
 
 
 static int
-dissect_ansi_map_NoAnswerTime(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_NoAnswerTime(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_octet_string(implicit_tag, actx, tree, tvb, offset, hf_index,
                                        NULL);
 
@@ -7178,7 +7170,7 @@ dissect_ansi_map_NoAnswerTime(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int 
 
 
 static int
-dissect_ansi_map_PACAIndicator(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_PACAIndicator(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
 	tvbuff_t *parameter_tvb = NULL;
   offset = dissect_ber_octet_string(implicit_tag, actx, tree, tvb, offset, hf_index,
                                        &parameter_tvb);
@@ -7194,7 +7186,7 @@ dissect_ansi_map_PACAIndicator(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int
 
 
 static int
-dissect_ansi_map_PilotNumber(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_PilotNumber(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ansi_map_DigitsType(implicit_tag, tvb, offset, actx, tree, hf_index);
 
   return offset;
@@ -7203,7 +7195,7 @@ dissect_ansi_map_PilotNumber(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int o
 
 
 static int
-dissect_ansi_map_PreferredLanguageIndicator(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_PreferredLanguageIndicator(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_octet_string(implicit_tag, actx, tree, tvb, offset, hf_index,
                                        NULL);
 
@@ -7213,7 +7205,7 @@ dissect_ansi_map_PreferredLanguageIndicator(gboolean implicit_tag _U_, tvbuff_t 
 
 
 static int
-dissect_ansi_map_RedirectingNumberDigits(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_RedirectingNumberDigits(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ansi_map_DigitsType(implicit_tag, tvb, offset, actx, tree, hf_index);
 
   return offset;
@@ -7222,7 +7214,7 @@ dissect_ansi_map_RedirectingNumberDigits(gboolean implicit_tag _U_, tvbuff_t *tv
 
 
 static int
-dissect_ansi_map_RedirectingNumberString(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_RedirectingNumberString(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ansi_map_DigitsType(implicit_tag, tvb, offset, actx, tree, hf_index);
 
   return offset;
@@ -7231,7 +7223,7 @@ dissect_ansi_map_RedirectingNumberString(gboolean implicit_tag _U_, tvbuff_t *tv
 
 
 static int
-dissect_ansi_map_RedirectingSubaddress(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_RedirectingSubaddress(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ansi_map_Subaddress(implicit_tag, tvb, offset, actx, tree, hf_index);
 
   return offset;
@@ -7262,7 +7254,7 @@ static const value_string ansi_map_ResumePIC_vals[] = {
 
 
 static int
-dissect_ansi_map_ResumePIC(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_ResumePIC(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_integer(implicit_tag, actx, tree, tvb, offset, hf_index,
                                   NULL);
 
@@ -7272,7 +7264,7 @@ dissect_ansi_map_ResumePIC(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int off
 
 
 static int
-dissect_ansi_map_LegInformation(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_LegInformation(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_octet_string(implicit_tag, actx, tree, tvb, offset, hf_index,
                                        NULL);
 
@@ -7282,7 +7274,7 @@ dissect_ansi_map_LegInformation(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, in
 
 
 static int
-dissect_ansi_map_TerminationTriggers(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_TerminationTriggers(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
 	tvbuff_t *parameter_tvb = NULL;
   offset = dissect_ber_octet_string(implicit_tag, actx, tree, tvb, offset, hf_index,
                                        &parameter_tvb);
@@ -7314,7 +7306,7 @@ static const ber_sequence_t IntersystemTermination_sequence[] = {
 };
 
 static int
-dissect_ansi_map_IntersystemTermination(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_IntersystemTermination(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence(implicit_tag, actx, tree, tvb, offset,
                                    IntersystemTermination_sequence, hf_index, ett_ansi_map_IntersystemTermination);
 
@@ -7324,7 +7316,7 @@ dissect_ansi_map_IntersystemTermination(gboolean implicit_tag _U_, tvbuff_t *tvb
 
 
 static int
-dissect_ansi_map_TerminationTreatment(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_TerminationTreatment(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_octet_string(implicit_tag, actx, tree, tvb, offset, hf_index,
                                        NULL);
 
@@ -7334,7 +7326,7 @@ dissect_ansi_map_TerminationTreatment(gboolean implicit_tag _U_, tvbuff_t *tvb _
 
 
 static int
-dissect_ansi_map_VoiceMailboxPIN(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_VoiceMailboxPIN(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ansi_map_DigitsType(implicit_tag, tvb, offset, actx, tree, hf_index);
 
   return offset;
@@ -7343,7 +7335,7 @@ dissect_ansi_map_VoiceMailboxPIN(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, i
 
 
 static int
-dissect_ansi_map_VoiceMailboxNumber(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_VoiceMailboxNumber(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ansi_map_DigitsType(implicit_tag, tvb, offset, actx, tree, hf_index);
 
   return offset;
@@ -7369,7 +7361,7 @@ static const ber_sequence_t LocalTermination_sequence[] = {
 };
 
 static int
-dissect_ansi_map_LocalTermination(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_LocalTermination(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence(implicit_tag, actx, tree, tvb, offset,
                                    LocalTermination_sequence, hf_index, ett_ansi_map_LocalTermination);
 
@@ -7390,7 +7382,7 @@ static const ber_sequence_t PSTNTermination_sequence[] = {
 };
 
 static int
-dissect_ansi_map_PSTNTermination(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_PSTNTermination(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence(implicit_tag, actx, tree, tvb, offset,
                                    PSTNTermination_sequence, hf_index, ett_ansi_map_PSTNTermination);
 
@@ -7413,7 +7405,7 @@ static const ber_choice_t TerminationList_item_choice[] = {
 };
 
 static int
-dissect_ansi_map_TerminationList_item(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_TerminationList_item(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_choice(actx, tree, tvb, offset,
                                  TerminationList_item_choice, hf_index, ett_ansi_map_TerminationList_item,
                                  NULL);
@@ -7427,7 +7419,7 @@ static const ber_sequence_t TerminationList_set_of[1] = {
 };
 
 static int
-dissect_ansi_map_TerminationList(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_TerminationList(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_set_of(implicit_tag, actx, tree, tvb, offset,
                                  TerminationList_set_of, hf_index, ett_ansi_map_TerminationList);
 
@@ -7437,7 +7429,7 @@ dissect_ansi_map_TerminationList(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, i
 
 
 static int
-dissect_ansi_map_GlobalTitle(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_GlobalTitle(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_octet_string(implicit_tag, actx, tree, tvb, offset, hf_index,
                                        NULL);
 
@@ -7458,7 +7450,7 @@ static const ber_choice_t DestinationAddress_choice[] = {
 };
 
 static int
-dissect_ansi_map_DestinationAddress(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_DestinationAddress(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_choice(actx, tree, tvb, offset,
                                  DestinationAddress_choice, hf_index, ett_ansi_map_DestinationAddress,
                                  NULL);
@@ -7469,7 +7461,7 @@ dissect_ansi_map_DestinationAddress(gboolean implicit_tag _U_, tvbuff_t *tvb _U_
 
 
 static int
-dissect_ansi_map_WIN_TriggerList(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_WIN_TriggerList(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
 	tvbuff_t *parameter_tvb = NULL;
   offset = dissect_ber_octet_string(implicit_tag, actx, tree, tvb, offset, hf_index,
                                        &parameter_tvb);
@@ -7490,7 +7482,7 @@ static const ber_sequence_t TriggerList_set[] = {
 };
 
 static int
-dissect_ansi_map_TriggerList(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_TriggerList(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_set(implicit_tag, actx, tree, tvb, offset,
                               TriggerList_set, hf_index, ett_ansi_map_TriggerList);
 
@@ -7505,7 +7497,7 @@ static const ber_sequence_t TriggerAddressList_set[] = {
 };
 
 static int
-dissect_ansi_map_TriggerAddressList(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_TriggerAddressList(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_set(implicit_tag, actx, tree, tvb, offset,
                               TriggerAddressList_set, hf_index, ett_ansi_map_TriggerAddressList);
 
@@ -7550,7 +7542,7 @@ static const ber_sequence_t FeatureRequestRes_U_set[] = {
 };
 
 static int
-dissect_ansi_map_FeatureRequestRes_U(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_FeatureRequestRes_U(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_set(implicit_tag, actx, tree, tvb, offset,
                               FeatureRequestRes_U_set, hf_index, ett_ansi_map_FeatureRequestRes_U);
 
@@ -7560,9 +7552,9 @@ dissect_ansi_map_FeatureRequestRes_U(gboolean implicit_tag _U_, tvbuff_t *tvb _U
 
 
 static int
-dissect_ansi_map_FeatureRequestRes(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_FeatureRequestRes(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_tagged_type(implicit_tag, actx, tree, tvb, offset,
-                                      hf_index, BER_CLASS_PRI, 18, FALSE, dissect_ansi_map_FeatureRequestRes_U);
+                                      hf_index, BER_CLASS_PRI, 18, false, dissect_ansi_map_FeatureRequestRes_U);
 
   return offset;
 }
@@ -7570,7 +7562,7 @@ dissect_ansi_map_FeatureRequestRes(gboolean implicit_tag _U_, tvbuff_t *tvb _U_,
 
 
 static int
-dissect_ansi_map_EmergencyServicesRoutingDigits(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_EmergencyServicesRoutingDigits(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ansi_map_DigitsType(implicit_tag, tvb, offset, actx, tree, hf_index);
 
   return offset;
@@ -7588,7 +7580,7 @@ static const ber_sequence_t FlashRequest_U_set[] = {
 };
 
 static int
-dissect_ansi_map_FlashRequest_U(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_FlashRequest_U(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_set(implicit_tag, actx, tree, tvb, offset,
                               FlashRequest_U_set, hf_index, ett_ansi_map_FlashRequest_U);
 
@@ -7598,9 +7590,9 @@ dissect_ansi_map_FlashRequest_U(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, in
 
 
 static int
-dissect_ansi_map_FlashRequest(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_FlashRequest(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_tagged_type(implicit_tag, actx, tree, tvb, offset,
-                                      hf_index, BER_CLASS_PRI, 18, FALSE, dissect_ansi_map_FlashRequest_U);
+                                      hf_index, BER_CLASS_PRI, 18, false, dissect_ansi_map_FlashRequest_U);
 
   return offset;
 }
@@ -7625,7 +7617,7 @@ static const ber_sequence_t HandoffBack_U_set[] = {
 };
 
 static int
-dissect_ansi_map_HandoffBack_U(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_HandoffBack_U(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_set(implicit_tag, actx, tree, tvb, offset,
                               HandoffBack_U_set, hf_index, ett_ansi_map_HandoffBack_U);
 
@@ -7635,9 +7627,9 @@ dissect_ansi_map_HandoffBack_U(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int
 
 
 static int
-dissect_ansi_map_HandoffBack(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_HandoffBack(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_tagged_type(implicit_tag, actx, tree, tvb, offset,
-                                      hf_index, BER_CLASS_PRI, 18, FALSE, dissect_ansi_map_HandoffBack_U);
+                                      hf_index, BER_CLASS_PRI, 18, false, dissect_ansi_map_HandoffBack_U);
 
   return offset;
 }
@@ -7652,7 +7644,7 @@ static const ber_sequence_t HandoffBackRes_U_set[] = {
 };
 
 static int
-dissect_ansi_map_HandoffBackRes_U(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_HandoffBackRes_U(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_set(implicit_tag, actx, tree, tvb, offset,
                               HandoffBackRes_U_set, hf_index, ett_ansi_map_HandoffBackRes_U);
 
@@ -7662,9 +7654,9 @@ dissect_ansi_map_HandoffBackRes_U(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, 
 
 
 static int
-dissect_ansi_map_HandoffBackRes(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_HandoffBackRes(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_tagged_type(implicit_tag, actx, tree, tvb, offset,
-                                      hf_index, BER_CLASS_PRI, 18, FALSE, dissect_ansi_map_HandoffBackRes_U);
+                                      hf_index, BER_CLASS_PRI, 18, false, dissect_ansi_map_HandoffBackRes_U);
 
   return offset;
 }
@@ -7723,7 +7715,7 @@ static const ber_sequence_t HandoffBack2_U_set[] = {
 };
 
 static int
-dissect_ansi_map_HandoffBack2_U(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_HandoffBack2_U(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_set(implicit_tag, actx, tree, tvb, offset,
                               HandoffBack2_U_set, hf_index, ett_ansi_map_HandoffBack2_U);
 
@@ -7733,9 +7725,9 @@ dissect_ansi_map_HandoffBack2_U(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, in
 
 
 static int
-dissect_ansi_map_HandoffBack2(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_HandoffBack2(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_tagged_type(implicit_tag, actx, tree, tvb, offset,
-                                      hf_index, BER_CLASS_PRI, 18, FALSE, dissect_ansi_map_HandoffBack2_U);
+                                      hf_index, BER_CLASS_PRI, 18, false, dissect_ansi_map_HandoffBack2_U);
 
   return offset;
 }
@@ -7762,7 +7754,7 @@ static const ber_sequence_t HandoffBack2Res_U_set[] = {
 };
 
 static int
-dissect_ansi_map_HandoffBack2Res_U(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_HandoffBack2Res_U(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_set(implicit_tag, actx, tree, tvb, offset,
                               HandoffBack2Res_U_set, hf_index, ett_ansi_map_HandoffBack2Res_U);
 
@@ -7772,9 +7764,9 @@ dissect_ansi_map_HandoffBack2Res_U(gboolean implicit_tag _U_, tvbuff_t *tvb _U_,
 
 
 static int
-dissect_ansi_map_HandoffBack2Res(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_HandoffBack2Res(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_tagged_type(implicit_tag, actx, tree, tvb, offset,
-                                      hf_index, BER_CLASS_PRI, 18, FALSE, dissect_ansi_map_HandoffBack2Res_U);
+                                      hf_index, BER_CLASS_PRI, 18, false, dissect_ansi_map_HandoffBack2Res_U);
 
   return offset;
 }
@@ -7787,7 +7779,7 @@ static const ber_sequence_t TargetCellIDList_sequence[] = {
 };
 
 static int
-dissect_ansi_map_TargetCellIDList(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_TargetCellIDList(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence(implicit_tag, actx, tree, tvb, offset,
                                    TargetCellIDList_sequence, hf_index, ett_ansi_map_TargetCellIDList);
 
@@ -7807,7 +7799,7 @@ static const ber_sequence_t HandoffMeasurementRequest_U_set[] = {
 };
 
 static int
-dissect_ansi_map_HandoffMeasurementRequest_U(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_HandoffMeasurementRequest_U(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_set(implicit_tag, actx, tree, tvb, offset,
                               HandoffMeasurementRequest_U_set, hf_index, ett_ansi_map_HandoffMeasurementRequest_U);
 
@@ -7817,9 +7809,9 @@ dissect_ansi_map_HandoffMeasurementRequest_U(gboolean implicit_tag _U_, tvbuff_t
 
 
 static int
-dissect_ansi_map_HandoffMeasurementRequest(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_HandoffMeasurementRequest(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_tagged_type(implicit_tag, actx, tree, tvb, offset,
-                                      hf_index, BER_CLASS_PRI, 18, FALSE, dissect_ansi_map_HandoffMeasurementRequest_U);
+                                      hf_index, BER_CLASS_PRI, 18, false, dissect_ansi_map_HandoffMeasurementRequest_U);
 
   return offset;
 }
@@ -7854,7 +7846,7 @@ static value_string_ext ansi_map_SignalQuality_vals_ext = VALUE_STRING_EXT_INIT(
 
 
 static int
-dissect_ansi_map_SignalQuality(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_SignalQuality(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_integer(implicit_tag, actx, tree, tvb, offset, hf_index,
                                                 NULL);
 
@@ -7869,7 +7861,7 @@ static const ber_sequence_t HandoffMeasurementRequestRes_U_set[] = {
 };
 
 static int
-dissect_ansi_map_HandoffMeasurementRequestRes_U(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_HandoffMeasurementRequestRes_U(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_set(implicit_tag, actx, tree, tvb, offset,
                               HandoffMeasurementRequestRes_U_set, hf_index, ett_ansi_map_HandoffMeasurementRequestRes_U);
 
@@ -7879,9 +7871,9 @@ dissect_ansi_map_HandoffMeasurementRequestRes_U(gboolean implicit_tag _U_, tvbuf
 
 
 static int
-dissect_ansi_map_HandoffMeasurementRequestRes(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_HandoffMeasurementRequestRes(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_tagged_type(implicit_tag, actx, tree, tvb, offset,
-                                      hf_index, BER_CLASS_PRI, 18, FALSE, dissect_ansi_map_HandoffMeasurementRequestRes_U);
+                                      hf_index, BER_CLASS_PRI, 18, false, dissect_ansi_map_HandoffMeasurementRequestRes_U);
 
   return offset;
 }
@@ -7910,7 +7902,7 @@ static const ber_sequence_t HandoffMeasurementRequest2_U_set[] = {
 };
 
 static int
-dissect_ansi_map_HandoffMeasurementRequest2_U(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_HandoffMeasurementRequest2_U(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_set(implicit_tag, actx, tree, tvb, offset,
                               HandoffMeasurementRequest2_U_set, hf_index, ett_ansi_map_HandoffMeasurementRequest2_U);
 
@@ -7920,9 +7912,9 @@ dissect_ansi_map_HandoffMeasurementRequest2_U(gboolean implicit_tag _U_, tvbuff_
 
 
 static int
-dissect_ansi_map_HandoffMeasurementRequest2(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_HandoffMeasurementRequest2(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_tagged_type(implicit_tag, actx, tree, tvb, offset,
-                                      hf_index, BER_CLASS_PRI, 18, FALSE, dissect_ansi_map_HandoffMeasurementRequest2_U);
+                                      hf_index, BER_CLASS_PRI, 18, false, dissect_ansi_map_HandoffMeasurementRequest2_U);
 
   return offset;
 }
@@ -7935,7 +7927,7 @@ static const ber_sequence_t TargetMeasurementInformation_sequence[] = {
 };
 
 static int
-dissect_ansi_map_TargetMeasurementInformation(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_TargetMeasurementInformation(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence(implicit_tag, actx, tree, tvb, offset,
                                    TargetMeasurementInformation_sequence, hf_index, ett_ansi_map_TargetMeasurementInformation);
 
@@ -7948,7 +7940,7 @@ static const ber_sequence_t TargetMeasurementList_sequence_of[1] = {
 };
 
 static int
-dissect_ansi_map_TargetMeasurementList(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_TargetMeasurementList(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence_of(implicit_tag, actx, tree, tvb, offset,
                                       TargetMeasurementList_sequence_of, hf_index, ett_ansi_map_TargetMeasurementList);
 
@@ -7963,7 +7955,7 @@ static const ber_sequence_t HandoffMeasurementRequest2Res_U_set[] = {
 };
 
 static int
-dissect_ansi_map_HandoffMeasurementRequest2Res_U(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_HandoffMeasurementRequest2Res_U(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_set(implicit_tag, actx, tree, tvb, offset,
                               HandoffMeasurementRequest2Res_U_set, hf_index, ett_ansi_map_HandoffMeasurementRequest2Res_U);
 
@@ -7973,9 +7965,9 @@ dissect_ansi_map_HandoffMeasurementRequest2Res_U(gboolean implicit_tag _U_, tvbu
 
 
 static int
-dissect_ansi_map_HandoffMeasurementRequest2Res(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_HandoffMeasurementRequest2Res(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_tagged_type(implicit_tag, actx, tree, tvb, offset,
-                                      hf_index, BER_CLASS_PRI, 18, FALSE, dissect_ansi_map_HandoffMeasurementRequest2Res_U);
+                                      hf_index, BER_CLASS_PRI, 18, false, dissect_ansi_map_HandoffMeasurementRequest2Res_U);
 
   return offset;
 }
@@ -8024,7 +8016,7 @@ static const ber_sequence_t HandoffToThird_U_set[] = {
 };
 
 static int
-dissect_ansi_map_HandoffToThird_U(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_HandoffToThird_U(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_set(implicit_tag, actx, tree, tvb, offset,
                               HandoffToThird_U_set, hf_index, ett_ansi_map_HandoffToThird_U);
 
@@ -8034,9 +8026,9 @@ dissect_ansi_map_HandoffToThird_U(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, 
 
 
 static int
-dissect_ansi_map_HandoffToThird(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_HandoffToThird(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_tagged_type(implicit_tag, actx, tree, tvb, offset,
-                                      hf_index, BER_CLASS_PRI, 18, FALSE, dissect_ansi_map_HandoffToThird_U);
+                                      hf_index, BER_CLASS_PRI, 18, false, dissect_ansi_map_HandoffToThird_U);
 
   return offset;
 }
@@ -8058,7 +8050,7 @@ static const ber_sequence_t HandoffToThirdRes_U_set[] = {
 };
 
 static int
-dissect_ansi_map_HandoffToThirdRes_U(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_HandoffToThirdRes_U(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_set(implicit_tag, actx, tree, tvb, offset,
                               HandoffToThirdRes_U_set, hf_index, ett_ansi_map_HandoffToThirdRes_U);
 
@@ -8068,9 +8060,9 @@ dissect_ansi_map_HandoffToThirdRes_U(gboolean implicit_tag _U_, tvbuff_t *tvb _U
 
 
 static int
-dissect_ansi_map_HandoffToThirdRes(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_HandoffToThirdRes(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_tagged_type(implicit_tag, actx, tree, tvb, offset,
-                                      hf_index, BER_CLASS_PRI, 18, FALSE, dissect_ansi_map_HandoffToThirdRes_U);
+                                      hf_index, BER_CLASS_PRI, 18, false, dissect_ansi_map_HandoffToThirdRes_U);
 
   return offset;
 }
@@ -8130,7 +8122,7 @@ static const ber_sequence_t HandoffToThird2_U_set[] = {
 };
 
 static int
-dissect_ansi_map_HandoffToThird2_U(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_HandoffToThird2_U(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_set(implicit_tag, actx, tree, tvb, offset,
                               HandoffToThird2_U_set, hf_index, ett_ansi_map_HandoffToThird2_U);
 
@@ -8140,9 +8132,9 @@ dissect_ansi_map_HandoffToThird2_U(gboolean implicit_tag _U_, tvbuff_t *tvb _U_,
 
 
 static int
-dissect_ansi_map_HandoffToThird2(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_HandoffToThird2(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_tagged_type(implicit_tag, actx, tree, tvb, offset,
-                                      hf_index, BER_CLASS_PRI, 18, FALSE, dissect_ansi_map_HandoffToThird2_U);
+                                      hf_index, BER_CLASS_PRI, 18, false, dissect_ansi_map_HandoffToThird2_U);
 
   return offset;
 }
@@ -8167,7 +8159,7 @@ static const ber_sequence_t HandoffToThird2Res_U_set[] = {
 };
 
 static int
-dissect_ansi_map_HandoffToThird2Res_U(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_HandoffToThird2Res_U(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_set(implicit_tag, actx, tree, tvb, offset,
                               HandoffToThird2Res_U_set, hf_index, ett_ansi_map_HandoffToThird2Res_U);
 
@@ -8177,9 +8169,9 @@ dissect_ansi_map_HandoffToThird2Res_U(gboolean implicit_tag _U_, tvbuff_t *tvb _
 
 
 static int
-dissect_ansi_map_HandoffToThird2Res(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_HandoffToThird2Res(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_tagged_type(implicit_tag, actx, tree, tvb, offset,
-                                      hf_index, BER_CLASS_PRI, 18, FALSE, dissect_ansi_map_HandoffToThird2Res_U);
+                                      hf_index, BER_CLASS_PRI, 18, false, dissect_ansi_map_HandoffToThird2Res_U);
 
   return offset;
 }
@@ -8202,7 +8194,7 @@ static const ber_sequence_t InformationDirective_U_set[] = {
 };
 
 static int
-dissect_ansi_map_InformationDirective_U(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_InformationDirective_U(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_set(implicit_tag, actx, tree, tvb, offset,
                               InformationDirective_U_set, hf_index, ett_ansi_map_InformationDirective_U);
 
@@ -8212,9 +8204,9 @@ dissect_ansi_map_InformationDirective_U(gboolean implicit_tag _U_, tvbuff_t *tvb
 
 
 static int
-dissect_ansi_map_InformationDirective(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_InformationDirective(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_tagged_type(implicit_tag, actx, tree, tvb, offset,
-                                      hf_index, BER_CLASS_PRI, 18, FALSE, dissect_ansi_map_InformationDirective_U);
+                                      hf_index, BER_CLASS_PRI, 18, false, dissect_ansi_map_InformationDirective_U);
 
   return offset;
 }
@@ -8222,7 +8214,7 @@ dissect_ansi_map_InformationDirective(gboolean implicit_tag _U_, tvbuff_t *tvb _
 
 
 static int
-dissect_ansi_map_AlertResult(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_AlertResult(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_octet_string(implicit_tag, actx, tree, tvb, offset, hf_index,
                                        NULL);
 
@@ -8236,7 +8228,7 @@ static const ber_sequence_t InformationDirectiveRes_U_set[] = {
 };
 
 static int
-dissect_ansi_map_InformationDirectiveRes_U(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_InformationDirectiveRes_U(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_set(implicit_tag, actx, tree, tvb, offset,
                               InformationDirectiveRes_U_set, hf_index, ett_ansi_map_InformationDirectiveRes_U);
 
@@ -8246,9 +8238,9 @@ dissect_ansi_map_InformationDirectiveRes_U(gboolean implicit_tag _U_, tvbuff_t *
 
 
 static int
-dissect_ansi_map_InformationDirectiveRes(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_InformationDirectiveRes(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_tagged_type(implicit_tag, actx, tree, tvb, offset,
-                                      hf_index, BER_CLASS_PRI, 18, FALSE, dissect_ansi_map_InformationDirectiveRes_U);
+                                      hf_index, BER_CLASS_PRI, 18, false, dissect_ansi_map_InformationDirectiveRes_U);
 
   return offset;
 }
@@ -8256,7 +8248,7 @@ dissect_ansi_map_InformationDirectiveRes(gboolean implicit_tag _U_, tvbuff_t *tv
 
 
 static int
-dissect_ansi_map_MessageWaitingNotificationCount(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_MessageWaitingNotificationCount(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
 	tvbuff_t *parameter_tvb = NULL;
   offset = dissect_ber_octet_string(implicit_tag, actx, tree, tvb, offset, hf_index,
                                        &parameter_tvb);
@@ -8272,7 +8264,7 @@ dissect_ansi_map_MessageWaitingNotificationCount(gboolean implicit_tag _U_, tvbu
 
 
 static int
-dissect_ansi_map_MessageWaitingNotificationType(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_MessageWaitingNotificationType(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
 	tvbuff_t *parameter_tvb = NULL;
   offset = dissect_ber_octet_string(implicit_tag, actx, tree, tvb, offset, hf_index,
                                        &parameter_tvb);
@@ -8307,7 +8299,7 @@ static const ber_sequence_t InformationForward_U_set[] = {
 };
 
 static int
-dissect_ansi_map_InformationForward_U(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_InformationForward_U(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_set(implicit_tag, actx, tree, tvb, offset,
                               InformationForward_U_set, hf_index, ett_ansi_map_InformationForward_U);
 
@@ -8317,9 +8309,9 @@ dissect_ansi_map_InformationForward_U(gboolean implicit_tag _U_, tvbuff_t *tvb _
 
 
 static int
-dissect_ansi_map_InformationForward(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_InformationForward(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_tagged_type(implicit_tag, actx, tree, tvb, offset,
-                                      hf_index, BER_CLASS_PRI, 18, FALSE, dissect_ansi_map_InformationForward_U);
+                                      hf_index, BER_CLASS_PRI, 18, false, dissect_ansi_map_InformationForward_U);
 
   return offset;
 }
@@ -8331,7 +8323,7 @@ static const ber_sequence_t InformationForwardRes_U_set[] = {
 };
 
 static int
-dissect_ansi_map_InformationForwardRes_U(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_InformationForwardRes_U(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_set(implicit_tag, actx, tree, tvb, offset,
                               InformationForwardRes_U_set, hf_index, ett_ansi_map_InformationForwardRes_U);
 
@@ -8341,9 +8333,9 @@ dissect_ansi_map_InformationForwardRes_U(gboolean implicit_tag _U_, tvbuff_t *tv
 
 
 static int
-dissect_ansi_map_InformationForwardRes(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_InformationForwardRes(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_tagged_type(implicit_tag, actx, tree, tvb, offset,
-                                      hf_index, BER_CLASS_PRI, 18, FALSE, dissect_ansi_map_InformationForwardRes_U);
+                                      hf_index, BER_CLASS_PRI, 18, false, dissect_ansi_map_InformationForwardRes_U);
 
   return offset;
 }
@@ -8357,7 +8349,7 @@ static const ber_sequence_t InterSystemAnswer_U_set[] = {
 };
 
 static int
-dissect_ansi_map_InterSystemAnswer_U(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_InterSystemAnswer_U(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_set(implicit_tag, actx, tree, tvb, offset,
                               InterSystemAnswer_U_set, hf_index, ett_ansi_map_InterSystemAnswer_U);
 
@@ -8367,9 +8359,9 @@ dissect_ansi_map_InterSystemAnswer_U(gboolean implicit_tag _U_, tvbuff_t *tvb _U
 
 
 static int
-dissect_ansi_map_InterSystemAnswer(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_InterSystemAnswer(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_tagged_type(implicit_tag, actx, tree, tvb, offset,
-                                      hf_index, BER_CLASS_PRI, 18, FALSE, dissect_ansi_map_InterSystemAnswer_U);
+                                      hf_index, BER_CLASS_PRI, 18, false, dissect_ansi_map_InterSystemAnswer_U);
 
   return offset;
 }
@@ -8377,7 +8369,7 @@ dissect_ansi_map_InterSystemAnswer(gboolean implicit_tag _U_, tvbuff_t *tvb _U_,
 
 
 static int
-dissect_ansi_map_CDMASlotCycleIndex(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_CDMASlotCycleIndex(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_octet_string(implicit_tag, actx, tree, tvb, offset, hf_index,
                                        NULL);
 
@@ -8387,7 +8379,7 @@ dissect_ansi_map_CDMASlotCycleIndex(gboolean implicit_tag _U_, tvbuff_t *tvb _U_
 
 
 static int
-dissect_ansi_map_ExtendedMSCID(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_ExtendedMSCID(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
 	tvbuff_t *parameter_tvb = NULL;
   offset = dissect_ber_octet_string(implicit_tag, actx, tree, tvb, offset, hf_index,
                                        &parameter_tvb);
@@ -8403,7 +8395,7 @@ dissect_ansi_map_ExtendedMSCID(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int
 
 
 static int
-dissect_ansi_map_ExtendedSystemMyTypeCode(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_ExtendedSystemMyTypeCode(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
 	tvbuff_t *parameter_tvb = NULL;
   offset = dissect_ber_octet_string(implicit_tag, actx, tree, tvb, offset, hf_index,
                                        &parameter_tvb);
@@ -8418,7 +8410,7 @@ dissect_ansi_map_ExtendedSystemMyTypeCode(gboolean implicit_tag _U_, tvbuff_t *t
 
 
 static int
-dissect_ansi_map_MSIDUsage(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_MSIDUsage(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_octet_string(implicit_tag, actx, tree, tvb, offset, hf_index,
                                        NULL);
 
@@ -8428,7 +8420,7 @@ dissect_ansi_map_MSIDUsage(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int off
 
 
 static int
-dissect_ansi_map_NetworkTMSI(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_NetworkTMSI(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_octet_string(implicit_tag, actx, tree, tvb, offset, hf_index,
                                        NULL);
 
@@ -8438,7 +8430,7 @@ dissect_ansi_map_NetworkTMSI(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int o
 
 
 static int
-dissect_ansi_map_PageCount(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_PageCount(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_octet_string(implicit_tag, actx, tree, tvb, offset, hf_index,
                                        NULL);
 
@@ -8448,7 +8440,7 @@ dissect_ansi_map_PageCount(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int off
 
 
 static int
-dissect_ansi_map_PageIndicator(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_PageIndicator(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_octet_string(implicit_tag, actx, tree, tvb, offset, hf_index,
                                        NULL);
 
@@ -8458,7 +8450,7 @@ dissect_ansi_map_PageIndicator(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int
 
 
 static int
-dissect_ansi_map_PageResponseTime(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_PageResponseTime(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_octet_string(implicit_tag, actx, tree, tvb, offset, hf_index,
                                        NULL);
 
@@ -8468,7 +8460,7 @@ dissect_ansi_map_PageResponseTime(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, 
 
 
 static int
-dissect_ansi_map_PilotBillingID(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_PilotBillingID(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
 
 	tvbuff_t *parameter_tvb = NULL;
   offset = dissect_ber_octet_string(implicit_tag, actx, tree, tvb, offset, hf_index,
@@ -8485,7 +8477,7 @@ dissect_ansi_map_PilotBillingID(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, in
 
 
 static int
-dissect_ansi_map_RedirectingPartyName(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_RedirectingPartyName(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_octet_string(implicit_tag, actx, tree, tvb, offset, hf_index,
                                        NULL);
 
@@ -8495,7 +8487,7 @@ dissect_ansi_map_RedirectingPartyName(gboolean implicit_tag _U_, tvbuff_t *tvb _
 
 
 static int
-dissect_ansi_map_TDMADataFeaturesIndicator(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_TDMADataFeaturesIndicator(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_octet_string(implicit_tag, actx, tree, tvb, offset, hf_index,
                                        NULL);
 
@@ -8561,7 +8553,7 @@ static const ber_sequence_t InterSystemPage_U_set[] = {
 };
 
 static int
-dissect_ansi_map_InterSystemPage_U(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_InterSystemPage_U(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_set(implicit_tag, actx, tree, tvb, offset,
                               InterSystemPage_U_set, hf_index, ett_ansi_map_InterSystemPage_U);
 
@@ -8571,9 +8563,9 @@ dissect_ansi_map_InterSystemPage_U(gboolean implicit_tag _U_, tvbuff_t *tvb _U_,
 
 
 static int
-dissect_ansi_map_InterSystemPage(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_InterSystemPage(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_tagged_type(implicit_tag, actx, tree, tvb, offset,
-                                      hf_index, BER_CLASS_PRI, 18, FALSE, dissect_ansi_map_InterSystemPage_U);
+                                      hf_index, BER_CLASS_PRI, 18, false, dissect_ansi_map_InterSystemPage_U);
 
   return offset;
 }
@@ -8587,7 +8579,7 @@ static const value_string ansi_map_ConditionallyDeniedReason_vals[] = {
 
 
 static int
-dissect_ansi_map_ConditionallyDeniedReason(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_ConditionallyDeniedReason(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_integer(implicit_tag, actx, tree, tvb, offset, hf_index,
                                   NULL);
 
@@ -8610,7 +8602,7 @@ static const ber_sequence_t InterSystemPageRes_U_set[] = {
 };
 
 static int
-dissect_ansi_map_InterSystemPageRes_U(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_InterSystemPageRes_U(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_set(implicit_tag, actx, tree, tvb, offset,
                               InterSystemPageRes_U_set, hf_index, ett_ansi_map_InterSystemPageRes_U);
 
@@ -8620,9 +8612,9 @@ dissect_ansi_map_InterSystemPageRes_U(gboolean implicit_tag _U_, tvbuff_t *tvb _
 
 
 static int
-dissect_ansi_map_InterSystemPageRes(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_InterSystemPageRes(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_tagged_type(implicit_tag, actx, tree, tvb, offset,
-                                      hf_index, BER_CLASS_PRI, 18, FALSE, dissect_ansi_map_InterSystemPageRes_U);
+                                      hf_index, BER_CLASS_PRI, 18, false, dissect_ansi_map_InterSystemPageRes_U);
 
   return offset;
 }
@@ -8630,7 +8622,7 @@ dissect_ansi_map_InterSystemPageRes(gboolean implicit_tag _U_, tvbuff_t *tvb _U_
 
 
 static int
-dissect_ansi_map_PagingFrameClass(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_PagingFrameClass(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_octet_string(implicit_tag, actx, tree, tvb, offset, hf_index,
                                        NULL);
 
@@ -8640,7 +8632,7 @@ dissect_ansi_map_PagingFrameClass(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, 
 
 
 static int
-dissect_ansi_map_PSID_RSIDInformation(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_PSID_RSIDInformation(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_octet_string(implicit_tag, actx, tree, tvb, offset, hf_index,
                                        NULL);
 
@@ -8655,7 +8647,7 @@ static const ber_sequence_t PSID_RSIDList_sequence[] = {
 };
 
 static int
-dissect_ansi_map_PSID_RSIDList(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_PSID_RSIDList(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence(implicit_tag, actx, tree, tvb, offset,
                                    PSID_RSIDList_sequence, hf_index, ett_ansi_map_PSID_RSIDList);
 
@@ -8702,7 +8694,7 @@ static const ber_sequence_t InterSystemPage2_U_set[] = {
 };
 
 static int
-dissect_ansi_map_InterSystemPage2_U(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_InterSystemPage2_U(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_set(implicit_tag, actx, tree, tvb, offset,
                               InterSystemPage2_U_set, hf_index, ett_ansi_map_InterSystemPage2_U);
 
@@ -8712,9 +8704,9 @@ dissect_ansi_map_InterSystemPage2_U(gboolean implicit_tag _U_, tvbuff_t *tvb _U_
 
 
 static int
-dissect_ansi_map_InterSystemPage2(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_InterSystemPage2(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_tagged_type(implicit_tag, actx, tree, tvb, offset,
-                                      hf_index, BER_CLASS_PRI, 18, FALSE, dissect_ansi_map_InterSystemPage2_U);
+                                      hf_index, BER_CLASS_PRI, 18, false, dissect_ansi_map_InterSystemPage2_U);
 
   return offset;
 }
@@ -8722,7 +8714,7 @@ dissect_ansi_map_InterSystemPage2(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, 
 
 
 static int
-dissect_ansi_map_RANDC(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_RANDC(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_octet_string(implicit_tag, actx, tree, tvb, offset, hf_index,
                                        NULL);
 
@@ -8732,7 +8724,7 @@ dissect_ansi_map_RANDC(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset 
 
 
 static int
-dissect_ansi_map_TDMADataMode(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_TDMADataMode(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_octet_string(implicit_tag, actx, tree, tvb, offset, hf_index,
                                        NULL);
 
@@ -8756,7 +8748,7 @@ static const ber_sequence_t InterSystemPage2Res_U_set[] = {
 };
 
 static int
-dissect_ansi_map_InterSystemPage2Res_U(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_InterSystemPage2Res_U(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_set(implicit_tag, actx, tree, tvb, offset,
                               InterSystemPage2Res_U_set, hf_index, ett_ansi_map_InterSystemPage2Res_U);
 
@@ -8766,9 +8758,9 @@ dissect_ansi_map_InterSystemPage2Res_U(gboolean implicit_tag _U_, tvbuff_t *tvb 
 
 
 static int
-dissect_ansi_map_InterSystemPage2Res(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_InterSystemPage2Res(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_tagged_type(implicit_tag, actx, tree, tvb, offset,
-                                      hf_index, BER_CLASS_PRI, 18, FALSE, dissect_ansi_map_InterSystemPage2Res_U);
+                                      hf_index, BER_CLASS_PRI, 18, false, dissect_ansi_map_InterSystemPage2Res_U);
 
   return offset;
 }
@@ -8776,7 +8768,7 @@ dissect_ansi_map_InterSystemPage2Res(gboolean implicit_tag _U_, tvbuff_t *tvb _U
 
 
 static int
-dissect_ansi_map_ChangeServiceAttributes(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_ChangeServiceAttributes(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_octet_string(implicit_tag, actx, tree, tvb, offset, hf_index,
                                        NULL);
 
@@ -8811,7 +8803,7 @@ static const ber_sequence_t InterSystemSetup_U_set[] = {
 };
 
 static int
-dissect_ansi_map_InterSystemSetup_U(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_InterSystemSetup_U(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_set(implicit_tag, actx, tree, tvb, offset,
                               InterSystemSetup_U_set, hf_index, ett_ansi_map_InterSystemSetup_U);
 
@@ -8821,9 +8813,9 @@ dissect_ansi_map_InterSystemSetup_U(gboolean implicit_tag _U_, tvbuff_t *tvb _U_
 
 
 static int
-dissect_ansi_map_InterSystemSetup(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_InterSystemSetup(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_tagged_type(implicit_tag, actx, tree, tvb, offset,
-                                      hf_index, BER_CLASS_PRI, 18, FALSE, dissect_ansi_map_InterSystemSetup_U);
+                                      hf_index, BER_CLASS_PRI, 18, false, dissect_ansi_map_InterSystemSetup_U);
 
   return offset;
 }
@@ -8831,7 +8823,7 @@ dissect_ansi_map_InterSystemSetup(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, 
 
 
 static int
-dissect_ansi_map_SetupResult(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_SetupResult(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_octet_string(implicit_tag, actx, tree, tvb, offset, hf_index,
                                        NULL);
 
@@ -8848,7 +8840,7 @@ static const ber_sequence_t InterSystemSetupRes_U_set[] = {
 };
 
 static int
-dissect_ansi_map_InterSystemSetupRes_U(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_InterSystemSetupRes_U(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_set(implicit_tag, actx, tree, tvb, offset,
                               InterSystemSetupRes_U_set, hf_index, ett_ansi_map_InterSystemSetupRes_U);
 
@@ -8858,9 +8850,9 @@ dissect_ansi_map_InterSystemSetupRes_U(gboolean implicit_tag _U_, tvbuff_t *tvb 
 
 
 static int
-dissect_ansi_map_InterSystemSetupRes(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_InterSystemSetupRes(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_tagged_type(implicit_tag, actx, tree, tvb, offset,
-                                      hf_index, BER_CLASS_PRI, 18, FALSE, dissect_ansi_map_InterSystemSetupRes_U);
+                                      hf_index, BER_CLASS_PRI, 18, false, dissect_ansi_map_InterSystemSetupRes_U);
 
   return offset;
 }
@@ -8868,7 +8860,7 @@ dissect_ansi_map_InterSystemSetupRes(gboolean implicit_tag _U_, tvbuff_t *tvb _U
 
 
 static int
-dissect_ansi_map_TerminationAccessType(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_TerminationAccessType(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_octet_string(implicit_tag, actx, tree, tvb, offset, hf_index,
                                        NULL);
 
@@ -8938,7 +8930,7 @@ static value_string_ext ansi_map_TriggerType_vals_ext = VALUE_STRING_EXT_INIT(an
 
 
 static int
-dissect_ansi_map_TriggerType(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_TriggerType(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_integer(implicit_tag, actx, tree, tvb, offset, hf_index,
                                   NULL);
 
@@ -8948,7 +8940,7 @@ dissect_ansi_map_TriggerType(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int o
 
 
 static int
-dissect_ansi_map_TriggerCapability(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_TriggerCapability(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
 	tvbuff_t *parameter_tvb = NULL;
   offset = dissect_ber_octet_string(implicit_tag, actx, tree, tvb, offset, hf_index,
                                        &parameter_tvb);
@@ -8964,7 +8956,7 @@ dissect_ansi_map_TriggerCapability(gboolean implicit_tag _U_, tvbuff_t *tvb _U_,
 
 
 static int
-dissect_ansi_map_WINOperationsCapability(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_WINOperationsCapability(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
 	tvbuff_t *parameter_tvb = NULL;
   offset = dissect_ber_octet_string(implicit_tag, actx, tree, tvb, offset, hf_index,
                                        &parameter_tvb);
@@ -8984,7 +8976,7 @@ static const ber_sequence_t WINCapability_set[] = {
 };
 
 static int
-dissect_ansi_map_WINCapability(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_WINCapability(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_set(implicit_tag, actx, tree, tvb, offset,
                               WINCapability_set, hf_index, ett_ansi_map_WINCapability);
 
@@ -8994,7 +8986,7 @@ dissect_ansi_map_WINCapability(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int
 
 
 static int
-dissect_ansi_map_CallingPartyCategory(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_CallingPartyCategory(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_octet_string(implicit_tag, actx, tree, tvb, offset, hf_index,
                                        NULL);
 
@@ -9028,7 +9020,7 @@ static const ber_sequence_t LocationRequest_U_set[] = {
 };
 
 static int
-dissect_ansi_map_LocationRequest_U(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_LocationRequest_U(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_set(implicit_tag, actx, tree, tvb, offset,
                               LocationRequest_U_set, hf_index, ett_ansi_map_LocationRequest_U);
 
@@ -9038,9 +9030,9 @@ dissect_ansi_map_LocationRequest_U(gboolean implicit_tag _U_, tvbuff_t *tvb _U_,
 
 
 static int
-dissect_ansi_map_LocationRequest(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_LocationRequest(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_tagged_type(implicit_tag, actx, tree, tvb, offset,
-                                      hf_index, BER_CLASS_PRI, 18, FALSE, dissect_ansi_map_LocationRequest_U);
+                                      hf_index, BER_CLASS_PRI, 18, false, dissect_ansi_map_LocationRequest_U);
 
   return offset;
 }
@@ -9048,7 +9040,7 @@ dissect_ansi_map_LocationRequest(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, i
 
 
 static int
-dissect_ansi_map_ControlNetworkID(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_ControlNetworkID(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
 	tvbuff_t *parameter_tvb = NULL;
   offset = dissect_ber_octet_string(implicit_tag, actx, tree, tvb, offset, hf_index,
                                        &parameter_tvb);
@@ -9064,7 +9056,7 @@ dissect_ansi_map_ControlNetworkID(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, 
 
 
 static int
-dissect_ansi_map_DMH_ServiceID(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_DMH_ServiceID(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_octet_string(implicit_tag, actx, tree, tvb, offset, hf_index,
                                        NULL);
 
@@ -9110,7 +9102,7 @@ static const ber_sequence_t LocationRequestRes_U_set[] = {
 };
 
 static int
-dissect_ansi_map_LocationRequestRes_U(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_LocationRequestRes_U(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_set(implicit_tag, actx, tree, tvb, offset,
                               LocationRequestRes_U_set, hf_index, ett_ansi_map_LocationRequestRes_U);
 
@@ -9120,9 +9112,9 @@ dissect_ansi_map_LocationRequestRes_U(gboolean implicit_tag _U_, tvbuff_t *tvb _
 
 
 static int
-dissect_ansi_map_LocationRequestRes(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_LocationRequestRes(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_tagged_type(implicit_tag, actx, tree, tvb, offset,
-                                      hf_index, BER_CLASS_PRI, 18, FALSE, dissect_ansi_map_LocationRequestRes_U);
+                                      hf_index, BER_CLASS_PRI, 18, false, dissect_ansi_map_LocationRequestRes_U);
 
   return offset;
 }
@@ -9138,7 +9130,7 @@ static const value_string ansi_map_DeregistrationType_vals[] = {
 
 
 static int
-dissect_ansi_map_DeregistrationType(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_DeregistrationType(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_integer(implicit_tag, actx, tree, tvb, offset, hf_index,
                                   NULL);
 
@@ -9148,7 +9140,7 @@ dissect_ansi_map_DeregistrationType(gboolean implicit_tag _U_, tvbuff_t *tvb _U_
 
 
 static int
-dissect_ansi_map_ServicesResult(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_ServicesResult(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_octet_string(implicit_tag, actx, tree, tvb, offset, hf_index,
                                        NULL);
 
@@ -9158,7 +9150,7 @@ dissect_ansi_map_ServicesResult(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, in
 
 
 static int
-dissect_ansi_map_SMS_MessageWaitingIndicator(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_SMS_MessageWaitingIndicator(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_null(implicit_tag, actx, tree, tvb, offset, hf_index);
 
   return offset;
@@ -9180,7 +9172,7 @@ static const ber_sequence_t MSInactive_U_set[] = {
 };
 
 static int
-dissect_ansi_map_MSInactive_U(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_MSInactive_U(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_set(implicit_tag, actx, tree, tvb, offset,
                               MSInactive_U_set, hf_index, ett_ansi_map_MSInactive_U);
 
@@ -9190,25 +9182,9 @@ dissect_ansi_map_MSInactive_U(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int 
 
 
 static int
-dissect_ansi_map_MSInactive(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_MSInactive(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_tagged_type(implicit_tag, actx, tree, tvb, offset,
-                                      hf_index, BER_CLASS_PRI, 18, FALSE, dissect_ansi_map_MSInactive_U);
-
-  return offset;
-}
-
-
-
-static int
-dissect_ansi_map_OriginationTriggers(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
-	tvbuff_t *parameter_tvb = NULL;
-  offset = dissect_ber_octet_string(implicit_tag, actx, tree, tvb, offset, hf_index,
-                                       &parameter_tvb);
-
-	if (parameter_tvb){
-		dissect_ansi_map_originationtriggers(parameter_tvb,actx->pinfo,tree, actx);
-	}
-
+                                      hf_index, BER_CLASS_PRI, 18, false, dissect_ansi_map_MSInactive_U);
 
   return offset;
 }
@@ -9222,9 +9198,261 @@ static const value_string ansi_map_FeatureIndicator_vals[] = {
 
 
 static int
-dissect_ansi_map_FeatureIndicator(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_FeatureIndicator(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_integer(implicit_tag, actx, tree, tvb, offset, hf_index,
                                   NULL);
+
+  return offset;
+}
+
+
+
+static int
+dissect_ansi_map_AuthenticationCapability(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+  offset = dissect_ber_octet_string(implicit_tag, actx, tree, tvb, offset, hf_index,
+                                       NULL);
+
+  return offset;
+}
+
+
+
+static int
+dissect_ansi_map_CallingFeaturesIndicator(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+	tvbuff_t *parameter_tvb = NULL;
+  offset = dissect_ber_octet_string(implicit_tag, actx, tree, tvb, offset, hf_index,
+                                       &parameter_tvb);
+
+	if (parameter_tvb){
+		dissect_ansi_map_callingfeaturesindicator(parameter_tvb,actx->pinfo,tree, actx);
+	}
+
+  return offset;
+}
+
+
+
+static int
+dissect_ansi_map_GeographicAuthorization(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+  offset = dissect_ber_octet_string(implicit_tag, actx, tree, tvb, offset, hf_index,
+                                       NULL);
+
+  return offset;
+}
+
+
+
+static int
+dissect_ansi_map_MEIDValidated(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+  offset = dissect_ber_null(implicit_tag, actx, tree, tvb, offset, hf_index);
+
+  return offset;
+}
+
+
+
+static int
+dissect_ansi_map_MobilePositionCapability(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+  offset = dissect_ber_octet_string(implicit_tag, actx, tree, tvb, offset, hf_index,
+                                       NULL);
+
+  return offset;
+}
+
+
+static const value_string ansi_map_OriginationIndicator_vals[] = {
+  {   0, "not-used" },
+  {   1, "prior-agreement" },
+  {   2, "origination-denied" },
+  {   3, "local-calls-only" },
+  {   4, "selected-leading-digits-of-directorynumber-or-of-international-E164-number" },
+  {   5, "selected-leading-digits-of-directorynumber-or-of-international-E164-number-and-local-calls-only" },
+  {   6, "national-long-distance" },
+  {   7, "international-calls" },
+  {   8, "single-directory-number-or-international-E164-number" },
+  { 0, NULL }
+};
+
+
+static int
+dissect_ansi_map_OriginationIndicator(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+  offset = dissect_ber_integer(implicit_tag, actx, tree, tvb, offset, hf_index,
+                                  NULL);
+
+  return offset;
+}
+
+
+
+static int
+dissect_ansi_map_OriginationTriggers(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+	tvbuff_t *parameter_tvb = NULL;
+  offset = dissect_ber_octet_string(implicit_tag, actx, tree, tvb, offset, hf_index,
+                                       &parameter_tvb);
+
+	if (parameter_tvb){
+		dissect_ansi_map_originationtriggers(parameter_tvb,actx->pinfo,tree, actx);
+	}
+
+
+  return offset;
+}
+
+
+
+static int
+dissect_ansi_map_RestrictionDigits(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+  offset = dissect_ansi_map_DigitsType(implicit_tag, tvb, offset, actx, tree, hf_index);
+
+  return offset;
+}
+
+
+
+static int
+dissect_ansi_map_SMS_OriginationRestrictions(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+	tvbuff_t *parameter_tvb = NULL;
+  offset = dissect_ber_octet_string(implicit_tag, actx, tree, tvb, offset, hf_index,
+                                       &parameter_tvb);
+
+	if (parameter_tvb){
+		dissect_ansi_map_sms_originationrestrictions(parameter_tvb,actx->pinfo,tree, actx);
+	}
+
+
+  return offset;
+}
+
+
+
+static int
+dissect_ansi_map_SMS_TerminationRestrictions(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+  offset = dissect_ber_octet_string(implicit_tag, actx, tree, tvb, offset, hf_index,
+                                       NULL);
+
+  return offset;
+}
+
+
+
+static int
+dissect_ansi_map_SPINIPIN(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+  offset = dissect_ansi_map_DigitsType(implicit_tag, tvb, offset, actx, tree, hf_index);
+
+  return offset;
+}
+
+
+
+static int
+dissect_ansi_map_SPINITriggers(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+  offset = dissect_ber_octet_string(implicit_tag, actx, tree, tvb, offset, hf_index,
+                                       NULL);
+
+  return offset;
+}
+
+
+static const value_string ansi_map_TerminationRestrictionCode_vals[] = {
+  {   0, "not-used" },
+  {   1, "termination-denied" },
+  {   2, "unrestricted" },
+  {   3, "the-treatment-for-this-value-is-not-specified" },
+  { 0, NULL }
+};
+
+
+static int
+dissect_ansi_map_TerminationRestrictionCode(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+  offset = dissect_ber_integer(implicit_tag, actx, tree, tvb, offset, hf_index,
+                                  NULL);
+
+  return offset;
+}
+
+
+
+static int
+dissect_ansi_map_UserGroup(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+  offset = dissect_ber_octet_string(implicit_tag, actx, tree, tvb, offset, hf_index,
+                                       NULL);
+
+  return offset;
+}
+
+
+static const value_string ansi_map_LIRMode_vals[] = {
+  {   0, "not-used" },
+  {   1, "unconditionally-Restricted" },
+  {   2, "pre-Authorized-LCS-Clients-Only" },
+  {   3, "pre-Authorized-LCS-Clients-and-User-Authorized-LCS-Clients" },
+  {   4, "unrestricted" },
+  { 0, NULL }
+};
+
+
+static int
+dissect_ansi_map_LIRMode(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+  offset = dissect_ber_integer(implicit_tag, actx, tree, tvb, offset, hf_index,
+                                  NULL);
+
+  return offset;
+}
+
+
+
+static int
+dissect_ansi_map_CDMAMobileCapabilities(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+  offset = dissect_ber_octet_string(implicit_tag, actx, tree, tvb, offset, hf_index,
+                                       NULL);
+
+  return offset;
+}
+
+
+
+static int
+dissect_ansi_map_CDMAServingOneWayDelay2(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+  offset = dissect_ber_octet_string(implicit_tag, actx, tree, tvb, offset, hf_index,
+                                       NULL);
+
+  return offset;
+}
+
+
+static const ber_sequence_t CDMAPSMMList_item_set[] = {
+  { &hf_ansi_map_cdmaServingOneWayDelay2, BER_CLASS_CON, 347, BER_FLAGS_IMPLTAG, dissect_ansi_map_CDMAServingOneWayDelay2 },
+  { &hf_ansi_map_cdmaTargetMAHOList, BER_CLASS_CON, 136, BER_FLAGS_IMPLTAG, dissect_ansi_map_CDMATargetMAHOList },
+  { &hf_ansi_map_cdmaTargetMAHOList2, BER_CLASS_CON, 136, BER_FLAGS_OPTIONAL|BER_FLAGS_IMPLTAG, dissect_ansi_map_CDMATargetMAHOList },
+  { NULL, 0, 0, 0, NULL }
+};
+
+static int
+dissect_ansi_map_CDMAPSMMList_item(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+  offset = dissect_ber_set(implicit_tag, actx, tree, tvb, offset,
+                              CDMAPSMMList_item_set, hf_index, ett_ansi_map_CDMAPSMMList_item);
+
+  return offset;
+}
+
+
+static const ber_sequence_t CDMAPSMMList_set_of[1] = {
+  { &hf_ansi_map_CDMAPSMMList_item, BER_CLASS_UNI, BER_UNI_TAG_SET, BER_FLAGS_NOOWNTAG, dissect_ansi_map_CDMAPSMMList_item },
+};
+
+static int
+dissect_ansi_map_CDMAPSMMList(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+  offset = dissect_ber_set_of(implicit_tag, actx, tree, tvb, offset,
+                                 CDMAPSMMList_set_of, hf_index, ett_ansi_map_CDMAPSMMList);
+
+  return offset;
+}
+
+
+
+static int
+dissect_ansi_map_MPCAddress(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+  offset = dissect_ansi_map_DigitsType(implicit_tag, tvb, offset, actx, tree, hf_index);
 
   return offset;
 }
@@ -9237,33 +9465,72 @@ static const ber_sequence_t OriginationRequest_U_set[] = {
   { &hf_ansi_map_mobileIdentificationNumber, BER_CLASS_CON, 8, BER_FLAGS_IMPLTAG, dissect_ansi_map_MobileIdentificationNumber },
   { &hf_ansi_map_mscid      , BER_CLASS_CON, 21, BER_FLAGS_IMPLTAG, dissect_ansi_map_MSCID },
   { &hf_ansi_map_msid       , BER_CLASS_ANY/*choice*/, -1/*choice*/, BER_FLAGS_OPTIONAL|BER_FLAGS_NOOWNTAG|BER_FLAGS_NOTCHKTAG, dissect_ansi_map_MSID },
-  { &hf_ansi_map_originationTriggers, BER_CLASS_CON, 98, BER_FLAGS_IMPLTAG, dissect_ansi_map_OriginationTriggers },
   { &hf_ansi_map_transactionCapability, BER_CLASS_CON, 123, BER_FLAGS_IMPLTAG, dissect_ansi_map_TransactionCapability },
   { &hf_ansi_map_acgencountered, BER_CLASS_CON, 340, BER_FLAGS_OPTIONAL|BER_FLAGS_IMPLTAG, dissect_ansi_map_ACGEncountered },
   { &hf_ansi_map_callingPartyName, BER_CLASS_CON, 243, BER_FLAGS_OPTIONAL|BER_FLAGS_IMPLTAG, dissect_ansi_map_CallingPartyName },
   { &hf_ansi_map_callingPartyNumberDigits1, BER_CLASS_CON, 80, BER_FLAGS_OPTIONAL|BER_FLAGS_IMPLTAG, dissect_ansi_map_CallingPartyNumberDigits1 },
   { &hf_ansi_map_callingPartyNumberDigits2, BER_CLASS_CON, 81, BER_FLAGS_OPTIONAL|BER_FLAGS_IMPLTAG, dissect_ansi_map_CallingPartyNumberDigits2 },
   { &hf_ansi_map_callingPartySubaddress, BER_CLASS_CON, 84, BER_FLAGS_OPTIONAL|BER_FLAGS_IMPLTAG, dissect_ansi_map_CallingPartySubaddress },
-  { &hf_ansi_map_cdmaServiceOption, BER_CLASS_CON, 175, BER_FLAGS_OPTIONAL|BER_FLAGS_IMPLTAG, dissect_ansi_map_CDMAServiceOption },
   { &hf_ansi_map_locationAreaID, BER_CLASS_CON, 33, BER_FLAGS_OPTIONAL|BER_FLAGS_IMPLTAG, dissect_ansi_map_LocationAreaID },
-  { &hf_ansi_map_mobileDirectoryNumber, BER_CLASS_CON, 93, BER_FLAGS_OPTIONAL|BER_FLAGS_IMPLTAG, dissect_ansi_map_MobileDirectoryNumber },
   { &hf_ansi_map_featureIndicator, BER_CLASS_CON, 306, BER_FLAGS_OPTIONAL|BER_FLAGS_IMPLTAG, dissect_ansi_map_FeatureIndicator },
   { &hf_ansi_map_mSCIdentificationNumber, BER_CLASS_CON, 94, BER_FLAGS_OPTIONAL|BER_FLAGS_IMPLTAG, dissect_ansi_map_MSCIdentificationNumber },
   { &hf_ansi_map_oneTimeFeatureIndicator, BER_CLASS_CON, 97, BER_FLAGS_OPTIONAL|BER_FLAGS_IMPLTAG, dissect_ansi_map_OneTimeFeatureIndicator },
   { &hf_ansi_map_pc_ssn     , BER_CLASS_CON, 32, BER_FLAGS_OPTIONAL|BER_FLAGS_IMPLTAG, dissect_ansi_map_PC_SSN },
-  { &hf_ansi_map_preferredLanguageIndicator, BER_CLASS_CON, 147, BER_FLAGS_OPTIONAL|BER_FLAGS_IMPLTAG, dissect_ansi_map_PreferredLanguageIndicator },
   { &hf_ansi_map_senderIdentificationNumber, BER_CLASS_CON, 103, BER_FLAGS_OPTIONAL|BER_FLAGS_IMPLTAG, dissect_ansi_map_SenderIdentificationNumber },
   { &hf_ansi_map_servingCellID, BER_CLASS_CON, 2, BER_FLAGS_OPTIONAL|BER_FLAGS_IMPLTAG, dissect_ansi_map_ServingCellID },
   { &hf_ansi_map_tdmaServiceCode, BER_CLASS_CON, 178, BER_FLAGS_OPTIONAL|BER_FLAGS_IMPLTAG, dissect_ansi_map_TDMAServiceCode },
   { &hf_ansi_map_triggerType, BER_CLASS_CON, 279, BER_FLAGS_OPTIONAL|BER_FLAGS_IMPLTAG, dissect_ansi_map_TriggerType },
   { &hf_ansi_map_winCapability, BER_CLASS_CON, 280, BER_FLAGS_OPTIONAL|BER_FLAGS_IMPLTAG, dissect_ansi_map_WINCapability },
-  { &hf_ansi_map_callingPartyCategory, BER_CLASS_CON, 355, BER_FLAGS_OPTIONAL|BER_FLAGS_IMPLTAG, dissect_ansi_map_CallingPartyCategory },
   { &hf_ansi_map_meid       , BER_CLASS_CON, 390, BER_FLAGS_OPTIONAL|BER_FLAGS_IMPLTAG, dissect_ansi_map_MEID },
+  { &hf_ansi_map_authenticationCapability, BER_CLASS_CON, 78, BER_FLAGS_OPTIONAL|BER_FLAGS_IMPLTAG, dissect_ansi_map_AuthenticationCapability },
+  { &hf_ansi_map_callingFeaturesIndicator, BER_CLASS_CON, 25, BER_FLAGS_OPTIONAL|BER_FLAGS_IMPLTAG, dissect_ansi_map_CallingFeaturesIndicator },
+  { &hf_ansi_map_carrierDigits, BER_CLASS_CON, 86, BER_FLAGS_OPTIONAL|BER_FLAGS_IMPLTAG, dissect_ansi_map_CarrierDigits },
+  { &hf_ansi_map_cdmaServiceOptionList, BER_CLASS_CON, 176, BER_FLAGS_OPTIONAL|BER_FLAGS_IMPLTAG, dissect_ansi_map_CDMAServiceOptionList },
+  { &hf_ansi_map_controlNetworkID, BER_CLASS_CON, 307, BER_FLAGS_OPTIONAL|BER_FLAGS_IMPLTAG, dissect_ansi_map_ControlNetworkID },
+  { &hf_ansi_map_dmh_AccountCodeDigits, BER_CLASS_CON, 140, BER_FLAGS_OPTIONAL|BER_FLAGS_IMPLTAG, dissect_ansi_map_DMH_AccountCodeDigits },
+  { &hf_ansi_map_dmh_AlternateBillingDigits, BER_CLASS_CON, 141, BER_FLAGS_OPTIONAL|BER_FLAGS_IMPLTAG, dissect_ansi_map_DMH_AlternateBillingDigits },
+  { &hf_ansi_map_dmh_BillingDigits, BER_CLASS_CON, 142, BER_FLAGS_OPTIONAL|BER_FLAGS_IMPLTAG, dissect_ansi_map_DMH_BillingDigits },
+  { &hf_ansi_map_geographicAuthorization, BER_CLASS_CON, 143, BER_FLAGS_OPTIONAL|BER_FLAGS_IMPLTAG, dissect_ansi_map_GeographicAuthorization },
+  { &hf_ansi_map_meidValidated, BER_CLASS_CON, 401, BER_FLAGS_OPTIONAL|BER_FLAGS_IMPLTAG, dissect_ansi_map_MEIDValidated },
+  { &hf_ansi_map_messageWaitingNotificationCount, BER_CLASS_CON, 92, BER_FLAGS_OPTIONAL|BER_FLAGS_IMPLTAG, dissect_ansi_map_MessageWaitingNotificationCount },
+  { &hf_ansi_map_messageWaitingNotificationType, BER_CLASS_CON, 145, BER_FLAGS_OPTIONAL|BER_FLAGS_IMPLTAG, dissect_ansi_map_MessageWaitingNotificationType },
+  { &hf_ansi_map_mobileDirectoryNumber, BER_CLASS_CON, 93, BER_FLAGS_OPTIONAL|BER_FLAGS_IMPLTAG, dissect_ansi_map_MobileDirectoryNumber },
+  { &hf_ansi_map_mobilePositionCapability, BER_CLASS_CON, 335, BER_FLAGS_OPTIONAL|BER_FLAGS_IMPLTAG, dissect_ansi_map_MobilePositionCapability },
+  { &hf_ansi_map_originationIndicator, BER_CLASS_CON, 23, BER_FLAGS_OPTIONAL|BER_FLAGS_IMPLTAG, dissect_ansi_map_OriginationIndicator },
+  { &hf_ansi_map_originationTriggers, BER_CLASS_CON, 98, BER_FLAGS_OPTIONAL|BER_FLAGS_IMPLTAG, dissect_ansi_map_OriginationTriggers },
+  { &hf_ansi_map_pACAIndicator, BER_CLASS_CON, 146, BER_FLAGS_OPTIONAL|BER_FLAGS_IMPLTAG, dissect_ansi_map_PACAIndicator },
+  { &hf_ansi_map_preferredLanguageIndicator, BER_CLASS_CON, 147, BER_FLAGS_OPTIONAL|BER_FLAGS_IMPLTAG, dissect_ansi_map_PreferredLanguageIndicator },
+  { &hf_ansi_map_qosPriority, BER_CLASS_CON, 348, BER_FLAGS_OPTIONAL|BER_FLAGS_IMPLTAG, dissect_ansi_map_QoSPriority },
+  { &hf_ansi_map_restrictionDigits, BER_CLASS_CON, 227, BER_FLAGS_OPTIONAL|BER_FLAGS_IMPLTAG, dissect_ansi_map_RestrictionDigits },
+  { &hf_ansi_map_routingDigits, BER_CLASS_CON, 150, BER_FLAGS_OPTIONAL|BER_FLAGS_IMPLTAG, dissect_ansi_map_RoutingDigits },
+  { &hf_ansi_map_pSID_RSIDList, BER_CLASS_CON, 203, BER_FLAGS_OPTIONAL|BER_FLAGS_IMPLTAG, dissect_ansi_map_PSID_RSIDList },
+  { &hf_ansi_map_sms_OriginationRestrictions, BER_CLASS_CON, 115, BER_FLAGS_OPTIONAL|BER_FLAGS_IMPLTAG, dissect_ansi_map_SMS_OriginationRestrictions },
+  { &hf_ansi_map_sms_TerminationRestrictions, BER_CLASS_CON, 117, BER_FLAGS_OPTIONAL|BER_FLAGS_IMPLTAG, dissect_ansi_map_SMS_TerminationRestrictions },
+  { &hf_ansi_map_spinipin   , BER_CLASS_CON, 154, BER_FLAGS_OPTIONAL|BER_FLAGS_IMPLTAG, dissect_ansi_map_SPINIPIN },
+  { &hf_ansi_map_spiniTriggers, BER_CLASS_CON, 155, BER_FLAGS_OPTIONAL|BER_FLAGS_IMPLTAG, dissect_ansi_map_SPINITriggers },
+  { &hf_ansi_map_tdmaDataFeaturesIndicator, BER_CLASS_CON, 221, BER_FLAGS_OPTIONAL|BER_FLAGS_IMPLTAG, dissect_ansi_map_TDMADataFeaturesIndicator },
+  { &hf_ansi_map_terminationRestrictionCode, BER_CLASS_CON, 24, BER_FLAGS_OPTIONAL|BER_FLAGS_IMPLTAG, dissect_ansi_map_TerminationRestrictionCode },
+  { &hf_ansi_map_terminationTriggers, BER_CLASS_CON, 122, BER_FLAGS_OPTIONAL|BER_FLAGS_IMPLTAG, dissect_ansi_map_TerminationTriggers },
+  { &hf_ansi_map_triggerAddressList, BER_CLASS_CON, 276, BER_FLAGS_OPTIONAL|BER_FLAGS_IMPLTAG, dissect_ansi_map_TriggerAddressList },
+  { &hf_ansi_map_userGroup  , BER_CLASS_CON, 208, BER_FLAGS_OPTIONAL|BER_FLAGS_IMPLTAG, dissect_ansi_map_UserGroup },
+  { &hf_ansi_map_nonPublicData, BER_CLASS_CON, 200, BER_FLAGS_OPTIONAL|BER_FLAGS_IMPLTAG, dissect_ansi_map_NonPublicData },
+  { &hf_ansi_map_userZoneData, BER_CLASS_CON, 209, BER_FLAGS_OPTIONAL|BER_FLAGS_IMPLTAG, dissect_ansi_map_UserZoneData },
+  { &hf_ansi_map_callingPartyCategory, BER_CLASS_CON, 355, BER_FLAGS_OPTIONAL|BER_FLAGS_IMPLTAG, dissect_ansi_map_CallingPartyCategory },
+  { &hf_ansi_map_lirMode    , BER_CLASS_CON, 369, BER_FLAGS_OPTIONAL|BER_FLAGS_IMPLTAG, dissect_ansi_map_LIRMode },
+  { &hf_ansi_map_cdmaChannelData, BER_CLASS_CON, 63, BER_FLAGS_OPTIONAL|BER_FLAGS_IMPLTAG, dissect_ansi_map_CDMAChannelData },
+  { &hf_ansi_map_cdmaCodeChannel, BER_CLASS_CON, 68, BER_FLAGS_OPTIONAL|BER_FLAGS_IMPLTAG, dissect_ansi_map_CDMACodeChannel },
+  { &hf_ansi_map_cdmaMobileCapabilities, BER_CLASS_CON, 330, BER_FLAGS_OPTIONAL|BER_FLAGS_IMPLTAG, dissect_ansi_map_CDMAMobileCapabilities },
+  { &hf_ansi_map_cdmaPrivateLongCodeMask, BER_CLASS_CON, 67, BER_FLAGS_OPTIONAL|BER_FLAGS_IMPLTAG, dissect_ansi_map_CDMAPrivateLongCodeMask },
+  { &hf_ansi_map_cdmaServingOneWayDelay2, BER_CLASS_CON, 347, BER_FLAGS_OPTIONAL|BER_FLAGS_IMPLTAG, dissect_ansi_map_CDMAServingOneWayDelay2 },
+  { &hf_ansi_map_cdmaServiceOption, BER_CLASS_CON, 175, BER_FLAGS_OPTIONAL|BER_FLAGS_IMPLTAG, dissect_ansi_map_CDMAServiceOption },
+  { &hf_ansi_map_cdmaTargetMAHOList, BER_CLASS_CON, 136, BER_FLAGS_OPTIONAL|BER_FLAGS_IMPLTAG, dissect_ansi_map_CDMATargetMAHOList },
+  { &hf_ansi_map_cdmaPSMMList, BER_CLASS_CON, 346, BER_FLAGS_OPTIONAL|BER_FLAGS_IMPLTAG, dissect_ansi_map_CDMAPSMMList },
+  { &hf_ansi_map_mpcAddress , BER_CLASS_CON, 370, BER_FLAGS_OPTIONAL|BER_FLAGS_IMPLTAG, dissect_ansi_map_MPCAddress },
   { NULL, 0, 0, 0, NULL }
 };
 
 static int
-dissect_ansi_map_OriginationRequest_U(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_OriginationRequest_U(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_set(implicit_tag, actx, tree, tvb, offset,
                               OriginationRequest_U_set, hf_index, ett_ansi_map_OriginationRequest_U);
 
@@ -9273,9 +9540,9 @@ dissect_ansi_map_OriginationRequest_U(gboolean implicit_tag _U_, tvbuff_t *tvb _
 
 
 static int
-dissect_ansi_map_OriginationRequest(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_OriginationRequest(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_tagged_type(implicit_tag, actx, tree, tvb, offset,
-                                      hf_index, BER_CLASS_PRI, 18, FALSE, dissect_ansi_map_OriginationRequest_U);
+                                      hf_index, BER_CLASS_PRI, 18, false, dissect_ansi_map_OriginationRequest_U);
 
   return offset;
 }
@@ -9283,7 +9550,7 @@ dissect_ansi_map_OriginationRequest(gboolean implicit_tag _U_, tvbuff_t *tvb _U_
 
 
 static int
-dissect_ansi_map_DMH_ChargeInformation(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_DMH_ChargeInformation(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_octet_string(implicit_tag, actx, tree, tvb, offset, hf_index,
                                        NULL);
 
@@ -9326,7 +9593,7 @@ static const ber_sequence_t OriginationRequestRes_U_set[] = {
 };
 
 static int
-dissect_ansi_map_OriginationRequestRes_U(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_OriginationRequestRes_U(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_set(implicit_tag, actx, tree, tvb, offset,
                               OriginationRequestRes_U_set, hf_index, ett_ansi_map_OriginationRequestRes_U);
 
@@ -9336,9 +9603,9 @@ dissect_ansi_map_OriginationRequestRes_U(gboolean implicit_tag _U_, tvbuff_t *tv
 
 
 static int
-dissect_ansi_map_OriginationRequestRes(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_OriginationRequestRes(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_tagged_type(implicit_tag, actx, tree, tvb, offset,
-                                      hf_index, BER_CLASS_PRI, 18, FALSE, dissect_ansi_map_OriginationRequestRes_U);
+                                      hf_index, BER_CLASS_PRI, 18, false, dissect_ansi_map_OriginationRequestRes_U);
 
   return offset;
 }
@@ -9355,7 +9622,7 @@ static const value_string ansi_map_QualificationInformationCode_vals[] = {
 
 
 static int
-dissect_ansi_map_QualificationInformationCode(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_QualificationInformationCode(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_integer(implicit_tag, actx, tree, tvb, offset, hf_index,
                                   NULL);
 
@@ -9381,7 +9648,7 @@ static const value_string ansi_map_AuthorizationDenied_vals[] = {
 
 
 static int
-dissect_ansi_map_AuthorizationDenied(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_AuthorizationDenied(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_integer(implicit_tag, actx, tree, tvb, offset, hf_index,
                                   NULL);
 
@@ -9391,7 +9658,7 @@ dissect_ansi_map_AuthorizationDenied(gboolean implicit_tag _U_, tvbuff_t *tvb _U
 
 
 static int
-dissect_ansi_map_AuthorizationPeriod(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_AuthorizationPeriod(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
 	tvbuff_t *parameter_tvb = NULL;
   offset = dissect_ber_octet_string(implicit_tag, actx, tree, tvb, offset, hf_index,
                                        &parameter_tvb);
@@ -9408,7 +9675,7 @@ dissect_ansi_map_AuthorizationPeriod(gboolean implicit_tag _U_, tvbuff_t *tvb _U
 
 
 static int
-dissect_ansi_map_DeniedAuthorizationPeriod(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_DeniedAuthorizationPeriod(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
 	tvbuff_t *parameter_tvb = NULL;
   offset = dissect_ber_octet_string(implicit_tag, actx, tree, tvb, offset, hf_index,
                                        &parameter_tvb);
@@ -9417,184 +9684,6 @@ dissect_ansi_map_DeniedAuthorizationPeriod(gboolean implicit_tag _U_, tvbuff_t *
 		dissect_ansi_map_deniedauthorizationperiod(parameter_tvb,actx->pinfo,tree, actx);
 	}
 
-
-  return offset;
-}
-
-
-
-static int
-dissect_ansi_map_AuthenticationCapability(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
-  offset = dissect_ber_octet_string(implicit_tag, actx, tree, tvb, offset, hf_index,
-                                       NULL);
-
-  return offset;
-}
-
-
-
-static int
-dissect_ansi_map_CallingFeaturesIndicator(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
-	tvbuff_t *parameter_tvb = NULL;
-  offset = dissect_ber_octet_string(implicit_tag, actx, tree, tvb, offset, hf_index,
-                                       &parameter_tvb);
-
-	if (parameter_tvb){
-		dissect_ansi_map_callingfeaturesindicator(parameter_tvb,actx->pinfo,tree, actx);
-	}
-
-  return offset;
-}
-
-
-
-static int
-dissect_ansi_map_GeographicAuthorization(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
-  offset = dissect_ber_octet_string(implicit_tag, actx, tree, tvb, offset, hf_index,
-                                       NULL);
-
-  return offset;
-}
-
-
-
-static int
-dissect_ansi_map_MEIDValidated(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
-  offset = dissect_ber_null(implicit_tag, actx, tree, tvb, offset, hf_index);
-
-  return offset;
-}
-
-
-
-static int
-dissect_ansi_map_MobilePositionCapability(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
-  offset = dissect_ber_octet_string(implicit_tag, actx, tree, tvb, offset, hf_index,
-                                       NULL);
-
-  return offset;
-}
-
-
-static const value_string ansi_map_OriginationIndicator_vals[] = {
-  {   0, "not-used" },
-  {   1, "prior-agreement" },
-  {   2, "origination-denied" },
-  {   3, "local-calls-only" },
-  {   4, "selected-leading-digits-of-directorynumber-or-of-international-E164-number" },
-  {   5, "selected-leading-digits-of-directorynumber-or-of-international-E164-number-and-local-calls-only" },
-  {   6, "national-long-distance" },
-  {   7, "international-calls" },
-  {   8, "single-directory-number-or-international-E164-number" },
-  { 0, NULL }
-};
-
-
-static int
-dissect_ansi_map_OriginationIndicator(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
-  offset = dissect_ber_integer(implicit_tag, actx, tree, tvb, offset, hf_index,
-                                  NULL);
-
-  return offset;
-}
-
-
-
-static int
-dissect_ansi_map_RestrictionDigits(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
-  offset = dissect_ansi_map_DigitsType(implicit_tag, tvb, offset, actx, tree, hf_index);
-
-  return offset;
-}
-
-
-
-static int
-dissect_ansi_map_SMS_OriginationRestrictions(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
-	tvbuff_t *parameter_tvb = NULL;
-  offset = dissect_ber_octet_string(implicit_tag, actx, tree, tvb, offset, hf_index,
-                                       &parameter_tvb);
-
-	if (parameter_tvb){
-		dissect_ansi_map_sms_originationrestrictions(parameter_tvb,actx->pinfo,tree, actx);
-	}
-
-
-  return offset;
-}
-
-
-
-static int
-dissect_ansi_map_SMS_TerminationRestrictions(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
-  offset = dissect_ber_octet_string(implicit_tag, actx, tree, tvb, offset, hf_index,
-                                       NULL);
-
-  return offset;
-}
-
-
-
-static int
-dissect_ansi_map_SPINIPIN(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
-  offset = dissect_ansi_map_DigitsType(implicit_tag, tvb, offset, actx, tree, hf_index);
-
-  return offset;
-}
-
-
-
-static int
-dissect_ansi_map_SPINITriggers(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
-  offset = dissect_ber_octet_string(implicit_tag, actx, tree, tvb, offset, hf_index,
-                                       NULL);
-
-  return offset;
-}
-
-
-static const value_string ansi_map_TerminationRestrictionCode_vals[] = {
-  {   0, "not-used" },
-  {   1, "termination-denied" },
-  {   2, "unrestricted" },
-  {   3, "the-treatment-for-this-value-is-not-specified" },
-  { 0, NULL }
-};
-
-
-static int
-dissect_ansi_map_TerminationRestrictionCode(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
-  offset = dissect_ber_integer(implicit_tag, actx, tree, tvb, offset, hf_index,
-                                  NULL);
-
-  return offset;
-}
-
-
-
-static int
-dissect_ansi_map_UserGroup(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
-  offset = dissect_ber_octet_string(implicit_tag, actx, tree, tvb, offset, hf_index,
-                                       NULL);
-
-  return offset;
-}
-
-
-static const value_string ansi_map_LIRMode_vals[] = {
-  {   0, "not-used" },
-  {   1, "unconditionally-Restricted" },
-  {   2, "pre-Authorized-LCS-Clients-Only" },
-  {   3, "pre-Authorized-LCS-Clients-and-User-Authorized-LCS-Clients" },
-  {   4, "unrestricted" },
-  { 0, NULL }
-};
-
-
-static int
-dissect_ansi_map_LIRMode(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
-  offset = dissect_ber_integer(implicit_tag, actx, tree, tvb, offset, hf_index,
-                                  NULL);
 
   return offset;
 }
@@ -9656,7 +9745,7 @@ static const ber_sequence_t QualificationDirective_U_set[] = {
 };
 
 static int
-dissect_ansi_map_QualificationDirective_U(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_QualificationDirective_U(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_set(implicit_tag, actx, tree, tvb, offset,
                               QualificationDirective_U_set, hf_index, ett_ansi_map_QualificationDirective_U);
 
@@ -9666,9 +9755,9 @@ dissect_ansi_map_QualificationDirective_U(gboolean implicit_tag _U_, tvbuff_t *t
 
 
 static int
-dissect_ansi_map_QualificationDirective(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_QualificationDirective(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_tagged_type(implicit_tag, actx, tree, tvb, offset,
-                                      hf_index, BER_CLASS_PRI, 18, FALSE, dissect_ansi_map_QualificationDirective_U);
+                                      hf_index, BER_CLASS_PRI, 18, false, dissect_ansi_map_QualificationDirective_U);
 
   return offset;
 }
@@ -9679,7 +9768,7 @@ static const ber_sequence_t QualificationDirectiveRes_U_set[] = {
 };
 
 static int
-dissect_ansi_map_QualificationDirectiveRes_U(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_QualificationDirectiveRes_U(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_set(implicit_tag, actx, tree, tvb, offset,
                               QualificationDirectiveRes_U_set, hf_index, ett_ansi_map_QualificationDirectiveRes_U);
 
@@ -9689,9 +9778,9 @@ dissect_ansi_map_QualificationDirectiveRes_U(gboolean implicit_tag _U_, tvbuff_t
 
 
 static int
-dissect_ansi_map_QualificationDirectiveRes(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_QualificationDirectiveRes(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_tagged_type(implicit_tag, actx, tree, tvb, offset,
-                                      hf_index, BER_CLASS_PRI, 18, FALSE, dissect_ansi_map_QualificationDirectiveRes_U);
+                                      hf_index, BER_CLASS_PRI, 18, false, dissect_ansi_map_QualificationDirectiveRes_U);
 
   return offset;
 }
@@ -9718,7 +9807,7 @@ static const ber_sequence_t QualificationRequest_U_set[] = {
 };
 
 static int
-dissect_ansi_map_QualificationRequest_U(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_QualificationRequest_U(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_set(implicit_tag, actx, tree, tvb, offset,
                               QualificationRequest_U_set, hf_index, ett_ansi_map_QualificationRequest_U);
 
@@ -9728,9 +9817,9 @@ dissect_ansi_map_QualificationRequest_U(gboolean implicit_tag _U_, tvbuff_t *tvb
 
 
 static int
-dissect_ansi_map_QualificationRequest(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_QualificationRequest(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_tagged_type(implicit_tag, actx, tree, tvb, offset,
-                                      hf_index, BER_CLASS_PRI, 18, FALSE, dissect_ansi_map_QualificationRequest_U);
+                                      hf_index, BER_CLASS_PRI, 18, false, dissect_ansi_map_QualificationRequest_U);
 
   return offset;
 }
@@ -9782,7 +9871,7 @@ static const ber_sequence_t QualificationRequestRes_U_set[] = {
 };
 
 static int
-dissect_ansi_map_QualificationRequestRes_U(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_QualificationRequestRes_U(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_set(implicit_tag, actx, tree, tvb, offset,
                               QualificationRequestRes_U_set, hf_index, ett_ansi_map_QualificationRequestRes_U);
 
@@ -9792,9 +9881,9 @@ dissect_ansi_map_QualificationRequestRes_U(gboolean implicit_tag _U_, tvbuff_t *
 
 
 static int
-dissect_ansi_map_QualificationRequestRes(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_QualificationRequestRes(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_tagged_type(implicit_tag, actx, tree, tvb, offset,
-                                      hf_index, BER_CLASS_PRI, 18, FALSE, dissect_ansi_map_QualificationRequestRes_U);
+                                      hf_index, BER_CLASS_PRI, 18, false, dissect_ansi_map_QualificationRequestRes_U);
 
   return offset;
 }
@@ -9808,7 +9897,7 @@ static const ber_sequence_t RandomVariableRequest_U_set[] = {
 };
 
 static int
-dissect_ansi_map_RandomVariableRequest_U(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_RandomVariableRequest_U(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_set(implicit_tag, actx, tree, tvb, offset,
                               RandomVariableRequest_U_set, hf_index, ett_ansi_map_RandomVariableRequest_U);
 
@@ -9818,9 +9907,9 @@ dissect_ansi_map_RandomVariableRequest_U(gboolean implicit_tag _U_, tvbuff_t *tv
 
 
 static int
-dissect_ansi_map_RandomVariableRequest(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_RandomVariableRequest(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_tagged_type(implicit_tag, actx, tree, tvb, offset,
-                                      hf_index, BER_CLASS_PRI, 18, FALSE, dissect_ansi_map_RandomVariableRequest_U);
+                                      hf_index, BER_CLASS_PRI, 18, false, dissect_ansi_map_RandomVariableRequest_U);
 
   return offset;
 }
@@ -9828,7 +9917,7 @@ dissect_ansi_map_RandomVariableRequest(gboolean implicit_tag _U_, tvbuff_t *tvb 
 
 
 static int
-dissect_ansi_map_RANDValidTime(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_RANDValidTime(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_octet_string(implicit_tag, actx, tree, tvb, offset, hf_index,
                                        NULL);
 
@@ -9843,7 +9932,7 @@ static const ber_sequence_t RandomVariableRequestRes_U_set[] = {
 };
 
 static int
-dissect_ansi_map_RandomVariableRequestRes_U(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_RandomVariableRequestRes_U(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_set(implicit_tag, actx, tree, tvb, offset,
                               RandomVariableRequestRes_U_set, hf_index, ett_ansi_map_RandomVariableRequestRes_U);
 
@@ -9853,9 +9942,9 @@ dissect_ansi_map_RandomVariableRequestRes_U(gboolean implicit_tag _U_, tvbuff_t 
 
 
 static int
-dissect_ansi_map_RandomVariableRequestRes(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_RandomVariableRequestRes(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_tagged_type(implicit_tag, actx, tree, tvb, offset,
-                                      hf_index, BER_CLASS_PRI, 18, FALSE, dissect_ansi_map_RandomVariableRequestRes_U);
+                                      hf_index, BER_CLASS_PRI, 18, false, dissect_ansi_map_RandomVariableRequestRes_U);
 
   return offset;
 }
@@ -9879,7 +9968,7 @@ static const ber_sequence_t RedirectionDirective_U_set[] = {
 };
 
 static int
-dissect_ansi_map_RedirectionDirective_U(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_RedirectionDirective_U(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_set(implicit_tag, actx, tree, tvb, offset,
                               RedirectionDirective_U_set, hf_index, ett_ansi_map_RedirectionDirective_U);
 
@@ -9889,9 +9978,9 @@ dissect_ansi_map_RedirectionDirective_U(gboolean implicit_tag _U_, tvbuff_t *tvb
 
 
 static int
-dissect_ansi_map_RedirectionDirective(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_RedirectionDirective(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_tagged_type(implicit_tag, actx, tree, tvb, offset,
-                                      hf_index, BER_CLASS_PRI, 18, FALSE, dissect_ansi_map_RedirectionDirective_U);
+                                      hf_index, BER_CLASS_PRI, 18, false, dissect_ansi_map_RedirectionDirective_U);
 
   return offset;
 }
@@ -9915,7 +10004,7 @@ static const value_string ansi_map_RedirectionReason_vals[] = {
 
 
 static int
-dissect_ansi_map_RedirectionReason(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_RedirectionReason(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_integer(implicit_tag, actx, tree, tvb, offset, hf_index,
                                   NULL);
 
@@ -9936,7 +10025,7 @@ static const ber_sequence_t RedirectionRequest_U_set[] = {
 };
 
 static int
-dissect_ansi_map_RedirectionRequest_U(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_RedirectionRequest_U(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_set(implicit_tag, actx, tree, tvb, offset,
                               RedirectionRequest_U_set, hf_index, ett_ansi_map_RedirectionRequest_U);
 
@@ -9946,9 +10035,9 @@ dissect_ansi_map_RedirectionRequest_U(gboolean implicit_tag _U_, tvbuff_t *tvb _
 
 
 static int
-dissect_ansi_map_RedirectionRequest(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_RedirectionRequest(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_tagged_type(implicit_tag, actx, tree, tvb, offset,
-                                      hf_index, BER_CLASS_PRI, 18, FALSE, dissect_ansi_map_RedirectionRequest_U);
+                                      hf_index, BER_CLASS_PRI, 18, false, dissect_ansi_map_RedirectionRequest_U);
 
   return offset;
 }
@@ -9956,7 +10045,7 @@ dissect_ansi_map_RedirectionRequest(gboolean implicit_tag _U_, tvbuff_t *tvb _U_
 
 
 static int
-dissect_ansi_map_CancellationType(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_CancellationType(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_octet_string(implicit_tag, actx, tree, tvb, offset, hf_index,
                                        NULL);
 
@@ -9966,7 +10055,7 @@ dissect_ansi_map_CancellationType(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, 
 
 
 static int
-dissect_ansi_map_ControlChannelData(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_ControlChannelData(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
 	tvbuff_t *parameter_tvb = NULL;
   offset = dissect_ber_octet_string(implicit_tag, actx, tree, tvb, offset, hf_index,
                                        &parameter_tvb);
@@ -9982,7 +10071,7 @@ dissect_ansi_map_ControlChannelData(gboolean implicit_tag _U_, tvbuff_t *tvb _U_
 
 
 static int
-dissect_ansi_map_ReceivedSignalQuality(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_ReceivedSignalQuality(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_integer(implicit_tag, actx, tree, tvb, offset, hf_index,
                                                 NULL);
 
@@ -9992,7 +10081,7 @@ dissect_ansi_map_ReceivedSignalQuality(gboolean implicit_tag _U_, tvbuff_t *tvb 
 
 
 static int
-dissect_ansi_map_SystemAccessData(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_SystemAccessData(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_octet_string(implicit_tag, actx, tree, tvb, offset, hf_index,
                                        NULL);
 
@@ -10012,7 +10101,7 @@ static const ber_sequence_t RegistrationCancellation_U_set[] = {
 };
 
 static int
-dissect_ansi_map_RegistrationCancellation_U(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_RegistrationCancellation_U(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_set(implicit_tag, actx, tree, tvb, offset,
                               RegistrationCancellation_U_set, hf_index, ett_ansi_map_RegistrationCancellation_U);
 
@@ -10022,9 +10111,9 @@ dissect_ansi_map_RegistrationCancellation_U(gboolean implicit_tag _U_, tvbuff_t 
 
 
 static int
-dissect_ansi_map_RegistrationCancellation(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_RegistrationCancellation(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_tagged_type(implicit_tag, actx, tree, tvb, offset,
-                                      hf_index, BER_CLASS_PRI, 18, FALSE, dissect_ansi_map_RegistrationCancellation_U);
+                                      hf_index, BER_CLASS_PRI, 18, false, dissect_ansi_map_RegistrationCancellation_U);
 
   return offset;
 }
@@ -10039,7 +10128,7 @@ static const value_string ansi_map_CancellationDenied_vals[] = {
 
 
 static int
-dissect_ansi_map_CancellationDenied(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_CancellationDenied(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_integer(implicit_tag, actx, tree, tvb, offset, hf_index,
                                   NULL);
 
@@ -10058,7 +10147,7 @@ static const ber_sequence_t RegistrationCancellationRes_U_set[] = {
 };
 
 static int
-dissect_ansi_map_RegistrationCancellationRes_U(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_RegistrationCancellationRes_U(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_set(implicit_tag, actx, tree, tvb, offset,
                               RegistrationCancellationRes_U_set, hf_index, ett_ansi_map_RegistrationCancellationRes_U);
 
@@ -10068,9 +10157,9 @@ dissect_ansi_map_RegistrationCancellationRes_U(gboolean implicit_tag _U_, tvbuff
 
 
 static int
-dissect_ansi_map_RegistrationCancellationRes(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_RegistrationCancellationRes(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_tagged_type(implicit_tag, actx, tree, tvb, offset,
-                                      hf_index, BER_CLASS_PRI, 18, FALSE, dissect_ansi_map_RegistrationCancellationRes_U);
+                                      hf_index, BER_CLASS_PRI, 18, false, dissect_ansi_map_RegistrationCancellationRes_U);
 
   return offset;
 }
@@ -10078,7 +10167,7 @@ dissect_ansi_map_RegistrationCancellationRes(gboolean implicit_tag _U_, tvbuff_t
 
 
 static int
-dissect_ansi_map_AvailabilityType(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_AvailabilityType(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_octet_string(implicit_tag, actx, tree, tvb, offset, hf_index,
                                        NULL);
 
@@ -10094,7 +10183,7 @@ static const value_string ansi_map_BorderCellAccess_vals[] = {
 
 
 static int
-dissect_ansi_map_BorderCellAccess(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_BorderCellAccess(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_integer(implicit_tag, actx, tree, tvb, offset, hf_index,
                                   NULL);
 
@@ -10104,7 +10193,7 @@ dissect_ansi_map_BorderCellAccess(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, 
 
 
 static int
-dissect_ansi_map_MSC_Address(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_MSC_Address(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ansi_map_DigitsType(implicit_tag, tvb, offset, actx, tree, hf_index);
 
   return offset;
@@ -10113,16 +10202,7 @@ dissect_ansi_map_MSC_Address(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int o
 
 
 static int
-dissect_ansi_map_SMS_Address(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
-  offset = dissect_ansi_map_DigitsType(implicit_tag, tvb, offset, actx, tree, hf_index);
-
-  return offset;
-}
-
-
-
-static int
-dissect_ansi_map_MPCAddress(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_SMS_Address(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ansi_map_DigitsType(implicit_tag, tvb, offset, actx, tree, hf_index);
 
   return offset;
@@ -10136,7 +10216,7 @@ static const ber_sequence_t MPCAddressList_set[] = {
 };
 
 static int
-dissect_ansi_map_MPCAddressList(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_MPCAddressList(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_set(implicit_tag, actx, tree, tvb, offset,
                               MPCAddressList_set, hf_index, ett_ansi_map_MPCAddressList);
 
@@ -10179,7 +10259,7 @@ static const ber_sequence_t RegistrationNotification_U_set[] = {
 };
 
 static int
-dissect_ansi_map_RegistrationNotification_U(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_RegistrationNotification_U(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_set(implicit_tag, actx, tree, tvb, offset,
                               RegistrationNotification_U_set, hf_index, ett_ansi_map_RegistrationNotification_U);
 
@@ -10189,9 +10269,9 @@ dissect_ansi_map_RegistrationNotification_U(gboolean implicit_tag _U_, tvbuff_t 
 
 
 static int
-dissect_ansi_map_RegistrationNotification(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_RegistrationNotification(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_tagged_type(implicit_tag, actx, tree, tvb, offset,
-                                      hf_index, BER_CLASS_PRI, 18, FALSE, dissect_ansi_map_RegistrationNotification_U);
+                                      hf_index, BER_CLASS_PRI, 18, false, dissect_ansi_map_RegistrationNotification_U);
 
   return offset;
 }
@@ -10254,7 +10334,7 @@ static const ber_sequence_t RegistrationNotificationRes_U_set[] = {
 };
 
 static int
-dissect_ansi_map_RegistrationNotificationRes_U(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_RegistrationNotificationRes_U(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_set(implicit_tag, actx, tree, tvb, offset,
                               RegistrationNotificationRes_U_set, hf_index, ett_ansi_map_RegistrationNotificationRes_U);
 
@@ -10264,9 +10344,9 @@ dissect_ansi_map_RegistrationNotificationRes_U(gboolean implicit_tag _U_, tvbuff
 
 
 static int
-dissect_ansi_map_RegistrationNotificationRes(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_RegistrationNotificationRes(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_tagged_type(implicit_tag, actx, tree, tvb, offset,
-                                      hf_index, BER_CLASS_PRI, 18, FALSE, dissect_ansi_map_RegistrationNotificationRes_U);
+                                      hf_index, BER_CLASS_PRI, 18, false, dissect_ansi_map_RegistrationNotificationRes_U);
 
   return offset;
 }
@@ -10274,7 +10354,7 @@ dissect_ansi_map_RegistrationNotificationRes(gboolean implicit_tag _U_, tvbuff_t
 
 
 static int
-dissect_ansi_map_DigitCollectionControl(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_DigitCollectionControl(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_octet_string(implicit_tag, actx, tree, tvb, offset, hf_index,
                                        NULL);
 
@@ -10289,7 +10369,7 @@ static const ber_sequence_t RemoteUserInteractionDirective_U_set[] = {
 };
 
 static int
-dissect_ansi_map_RemoteUserInteractionDirective_U(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_RemoteUserInteractionDirective_U(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_set(implicit_tag, actx, tree, tvb, offset,
                               RemoteUserInteractionDirective_U_set, hf_index, ett_ansi_map_RemoteUserInteractionDirective_U);
 
@@ -10299,9 +10379,9 @@ dissect_ansi_map_RemoteUserInteractionDirective_U(gboolean implicit_tag _U_, tvb
 
 
 static int
-dissect_ansi_map_RemoteUserInteractionDirective(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_RemoteUserInteractionDirective(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_tagged_type(implicit_tag, actx, tree, tvb, offset,
-                                      hf_index, BER_CLASS_PRI, 18, FALSE, dissect_ansi_map_RemoteUserInteractionDirective_U);
+                                      hf_index, BER_CLASS_PRI, 18, false, dissect_ansi_map_RemoteUserInteractionDirective_U);
 
   return offset;
 }
@@ -10313,7 +10393,7 @@ static const ber_sequence_t RemoteUserInteractionDirectiveRes_U_set[] = {
 };
 
 static int
-dissect_ansi_map_RemoteUserInteractionDirectiveRes_U(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_RemoteUserInteractionDirectiveRes_U(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_set(implicit_tag, actx, tree, tvb, offset,
                               RemoteUserInteractionDirectiveRes_U_set, hf_index, ett_ansi_map_RemoteUserInteractionDirectiveRes_U);
 
@@ -10323,9 +10403,9 @@ dissect_ansi_map_RemoteUserInteractionDirectiveRes_U(gboolean implicit_tag _U_, 
 
 
 static int
-dissect_ansi_map_RemoteUserInteractionDirectiveRes(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_RemoteUserInteractionDirectiveRes(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_tagged_type(implicit_tag, actx, tree, tvb, offset,
-                                      hf_index, BER_CLASS_PRI, 18, FALSE, dissect_ansi_map_RemoteUserInteractionDirectiveRes_U);
+                                      hf_index, BER_CLASS_PRI, 18, false, dissect_ansi_map_RemoteUserInteractionDirectiveRes_U);
 
   return offset;
 }
@@ -10337,7 +10417,7 @@ static const ber_sequence_t ResetCircuit_U_set[] = {
 };
 
 static int
-dissect_ansi_map_ResetCircuit_U(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_ResetCircuit_U(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_set(implicit_tag, actx, tree, tvb, offset,
                               ResetCircuit_U_set, hf_index, ett_ansi_map_ResetCircuit_U);
 
@@ -10347,9 +10427,9 @@ dissect_ansi_map_ResetCircuit_U(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, in
 
 
 static int
-dissect_ansi_map_ResetCircuit(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_ResetCircuit(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_tagged_type(implicit_tag, actx, tree, tvb, offset,
-                                      hf_index, BER_CLASS_PRI, 18, FALSE, dissect_ansi_map_ResetCircuit_U);
+                                      hf_index, BER_CLASS_PRI, 18, false, dissect_ansi_map_ResetCircuit_U);
 
   return offset;
 }
@@ -10363,7 +10443,7 @@ static const value_string ansi_map_TrunkStatus_vals[] = {
 
 
 static int
-dissect_ansi_map_TrunkStatus(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_TrunkStatus(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_integer(implicit_tag, actx, tree, tvb, offset, hf_index,
                                   NULL);
 
@@ -10377,7 +10457,7 @@ static const ber_sequence_t ResetCircuitRes_U_set[] = {
 };
 
 static int
-dissect_ansi_map_ResetCircuitRes_U(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_ResetCircuitRes_U(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_set(implicit_tag, actx, tree, tvb, offset,
                               ResetCircuitRes_U_set, hf_index, ett_ansi_map_ResetCircuitRes_U);
 
@@ -10387,9 +10467,9 @@ dissect_ansi_map_ResetCircuitRes_U(gboolean implicit_tag _U_, tvbuff_t *tvb _U_,
 
 
 static int
-dissect_ansi_map_ResetCircuitRes(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_ResetCircuitRes(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_tagged_type(implicit_tag, actx, tree, tvb, offset,
-                                      hf_index, BER_CLASS_PRI, 18, FALSE, dissect_ansi_map_ResetCircuitRes_U);
+                                      hf_index, BER_CLASS_PRI, 18, false, dissect_ansi_map_ResetCircuitRes_U);
 
   return offset;
 }
@@ -10442,7 +10522,7 @@ static const ber_sequence_t RoutingRequest_U_set[] = {
 };
 
 static int
-dissect_ansi_map_RoutingRequest_U(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_RoutingRequest_U(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_set(implicit_tag, actx, tree, tvb, offset,
                               RoutingRequest_U_set, hf_index, ett_ansi_map_RoutingRequest_U);
 
@@ -10452,9 +10532,9 @@ dissect_ansi_map_RoutingRequest_U(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, 
 
 
 static int
-dissect_ansi_map_RoutingRequest(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_RoutingRequest(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_tagged_type(implicit_tag, actx, tree, tvb, offset,
-                                      hf_index, BER_CLASS_PRI, 18, FALSE, dissect_ansi_map_RoutingRequest_U);
+                                      hf_index, BER_CLASS_PRI, 18, false, dissect_ansi_map_RoutingRequest_U);
 
   return offset;
 }
@@ -10474,7 +10554,7 @@ static const ber_sequence_t RoutingRequestRes_U_set[] = {
 };
 
 static int
-dissect_ansi_map_RoutingRequestRes_U(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_RoutingRequestRes_U(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_set(implicit_tag, actx, tree, tvb, offset,
                               RoutingRequestRes_U_set, hf_index, ett_ansi_map_RoutingRequestRes_U);
 
@@ -10484,9 +10564,9 @@ dissect_ansi_map_RoutingRequestRes_U(gboolean implicit_tag _U_, tvbuff_t *tvb _U
 
 
 static int
-dissect_ansi_map_RoutingRequestRes(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_RoutingRequestRes(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_tagged_type(implicit_tag, actx, tree, tvb, offset,
-                                      hf_index, BER_CLASS_PRI, 18, FALSE, dissect_ansi_map_RoutingRequestRes_U);
+                                      hf_index, BER_CLASS_PRI, 18, false, dissect_ansi_map_RoutingRequestRes_U);
 
   return offset;
 }
@@ -10494,7 +10574,7 @@ dissect_ansi_map_RoutingRequestRes(gboolean implicit_tag _U_, tvbuff_t *tvb _U_,
 
 
 static int
-dissect_ansi_map_SMS_BearerData(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_SMS_BearerData(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
 	int length;
 	SMS_BearerData_tvb = NULL;
 
@@ -10536,7 +10616,7 @@ dissect_ansi_map_SMS_BearerData(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, in
 
 
 static int
-dissect_ansi_map_SMS_TeleserviceIdentifier(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_SMS_TeleserviceIdentifier(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
 
 	int length;
 	tvbuff_t *parameter_tvb = NULL;
@@ -10566,7 +10646,7 @@ dissect_ansi_map_SMS_TeleserviceIdentifier(gboolean implicit_tag _U_, tvbuff_t *
 
 
 static int
-dissect_ansi_map_SMS_ChargeIndicator(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_SMS_ChargeIndicator(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_octet_string(implicit_tag, actx, tree, tvb, offset, hf_index,
                                        NULL);
 
@@ -10576,7 +10656,7 @@ dissect_ansi_map_SMS_ChargeIndicator(gboolean implicit_tag _U_, tvbuff_t *tvb _U
 
 
 static int
-dissect_ansi_map_SMS_DestinationAddress(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_SMS_DestinationAddress(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ansi_map_DigitsType(implicit_tag, tvb, offset, actx, tree, hf_index);
 
   return offset;
@@ -10585,7 +10665,7 @@ dissect_ansi_map_SMS_DestinationAddress(gboolean implicit_tag _U_, tvbuff_t *tvb
 
 
 static int
-dissect_ansi_map_SMS_OriginalDestinationAddress(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_SMS_OriginalDestinationAddress(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ansi_map_DigitsType(implicit_tag, tvb, offset, actx, tree, hf_index);
 
   return offset;
@@ -10594,7 +10674,7 @@ dissect_ansi_map_SMS_OriginalDestinationAddress(gboolean implicit_tag _U_, tvbuf
 
 
 static int
-dissect_ansi_map_SMS_OriginalDestinationSubaddress(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_SMS_OriginalDestinationSubaddress(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ansi_map_Subaddress(implicit_tag, tvb, offset, actx, tree, hf_index);
 
   return offset;
@@ -10603,7 +10683,7 @@ dissect_ansi_map_SMS_OriginalDestinationSubaddress(gboolean implicit_tag _U_, tv
 
 
 static int
-dissect_ansi_map_SMS_OriginalOriginatingAddress(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_SMS_OriginalOriginatingAddress(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ansi_map_DigitsType(implicit_tag, tvb, offset, actx, tree, hf_index);
 
   return offset;
@@ -10612,7 +10692,7 @@ dissect_ansi_map_SMS_OriginalOriginatingAddress(gboolean implicit_tag _U_, tvbuf
 
 
 static int
-dissect_ansi_map_SMS_OriginalOriginatingSubaddress(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_SMS_OriginalOriginatingSubaddress(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ansi_map_Subaddress(implicit_tag, tvb, offset, actx, tree, hf_index);
 
   return offset;
@@ -10621,7 +10701,7 @@ dissect_ansi_map_SMS_OriginalOriginatingSubaddress(gboolean implicit_tag _U_, tv
 
 
 static int
-dissect_ansi_map_SMS_OriginatingAddress(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_SMS_OriginatingAddress(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ansi_map_DigitsType(implicit_tag, tvb, offset, actx, tree, hf_index);
 
   return offset;
@@ -10645,7 +10725,7 @@ static const ber_sequence_t SMSDeliveryBackward_U_set[] = {
 };
 
 static int
-dissect_ansi_map_SMSDeliveryBackward_U(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_SMSDeliveryBackward_U(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_set(implicit_tag, actx, tree, tvb, offset,
                               SMSDeliveryBackward_U_set, hf_index, ett_ansi_map_SMSDeliveryBackward_U);
 
@@ -10655,9 +10735,9 @@ dissect_ansi_map_SMSDeliveryBackward_U(gboolean implicit_tag _U_, tvbuff_t *tvb 
 
 
 static int
-dissect_ansi_map_SMSDeliveryBackward(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_SMSDeliveryBackward(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_tagged_type(implicit_tag, actx, tree, tvb, offset,
-                                      hf_index, BER_CLASS_PRI, 18, FALSE, dissect_ansi_map_SMSDeliveryBackward_U);
+                                      hf_index, BER_CLASS_PRI, 18, false, dissect_ansi_map_SMSDeliveryBackward_U);
 
   return offset;
 }
@@ -10665,7 +10745,7 @@ dissect_ansi_map_SMSDeliveryBackward(gboolean implicit_tag _U_, tvbuff_t *tvb _U
 
 
 static int
-dissect_ansi_map_SMS_CauseCode(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_SMS_CauseCode(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_octet_string(implicit_tag, actx, tree, tvb, offset, hf_index,
                                        NULL);
 
@@ -10680,7 +10760,7 @@ static const ber_sequence_t SMSDeliveryBackwardRes_U_set[] = {
 };
 
 static int
-dissect_ansi_map_SMSDeliveryBackwardRes_U(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_SMSDeliveryBackwardRes_U(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_set(implicit_tag, actx, tree, tvb, offset,
                               SMSDeliveryBackwardRes_U_set, hf_index, ett_ansi_map_SMSDeliveryBackwardRes_U);
 
@@ -10690,9 +10770,9 @@ dissect_ansi_map_SMSDeliveryBackwardRes_U(gboolean implicit_tag _U_, tvbuff_t *t
 
 
 static int
-dissect_ansi_map_SMSDeliveryBackwardRes(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_SMSDeliveryBackwardRes(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_tagged_type(implicit_tag, actx, tree, tvb, offset,
-                                      hf_index, BER_CLASS_PRI, 18, FALSE, dissect_ansi_map_SMSDeliveryBackwardRes_U);
+                                      hf_index, BER_CLASS_PRI, 18, false, dissect_ansi_map_SMSDeliveryBackwardRes_U);
 
   return offset;
 }
@@ -10715,7 +10795,7 @@ static const ber_sequence_t SMSDeliveryForward_U_set[] = {
 };
 
 static int
-dissect_ansi_map_SMSDeliveryForward_U(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_SMSDeliveryForward_U(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_set(implicit_tag, actx, tree, tvb, offset,
                               SMSDeliveryForward_U_set, hf_index, ett_ansi_map_SMSDeliveryForward_U);
 
@@ -10725,9 +10805,9 @@ dissect_ansi_map_SMSDeliveryForward_U(gboolean implicit_tag _U_, tvbuff_t *tvb _
 
 
 static int
-dissect_ansi_map_SMSDeliveryForward(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_SMSDeliveryForward(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_tagged_type(implicit_tag, actx, tree, tvb, offset,
-                                      hf_index, BER_CLASS_PRI, 18, FALSE, dissect_ansi_map_SMSDeliveryForward_U);
+                                      hf_index, BER_CLASS_PRI, 18, false, dissect_ansi_map_SMSDeliveryForward_U);
 
   return offset;
 }
@@ -10740,7 +10820,7 @@ static const ber_sequence_t SMSDeliveryForwardRes_U_set[] = {
 };
 
 static int
-dissect_ansi_map_SMSDeliveryForwardRes_U(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_SMSDeliveryForwardRes_U(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_set(implicit_tag, actx, tree, tvb, offset,
                               SMSDeliveryForwardRes_U_set, hf_index, ett_ansi_map_SMSDeliveryForwardRes_U);
 
@@ -10750,9 +10830,9 @@ dissect_ansi_map_SMSDeliveryForwardRes_U(gboolean implicit_tag _U_, tvbuff_t *tv
 
 
 static int
-dissect_ansi_map_SMSDeliveryForwardRes(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_SMSDeliveryForwardRes(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_tagged_type(implicit_tag, actx, tree, tvb, offset,
-                                      hf_index, BER_CLASS_PRI, 18, FALSE, dissect_ansi_map_SMSDeliveryForwardRes_U);
+                                      hf_index, BER_CLASS_PRI, 18, false, dissect_ansi_map_SMSDeliveryForwardRes_U);
 
   return offset;
 }
@@ -10760,7 +10840,7 @@ dissect_ansi_map_SMSDeliveryForwardRes(gboolean implicit_tag _U_, tvbuff_t *tvb 
 
 
 static int
-dissect_ansi_map_CDMAServingOneWayDelay2(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_InterMessageTime(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_octet_string(implicit_tag, actx, tree, tvb, offset, hf_index,
                                        NULL);
 
@@ -10770,7 +10850,7 @@ dissect_ansi_map_CDMAServingOneWayDelay2(gboolean implicit_tag _U_, tvbuff_t *tv
 
 
 static int
-dissect_ansi_map_InterMessageTime(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_IMSIType(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_octet_string(implicit_tag, actx, tree, tvb, offset, hf_index,
                                        NULL);
 
@@ -10780,17 +10860,7 @@ dissect_ansi_map_InterMessageTime(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, 
 
 
 static int
-dissect_ansi_map_IMSIType(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
-  offset = dissect_ber_octet_string(implicit_tag, actx, tree, tvb, offset, hf_index,
-                                       NULL);
-
-  return offset;
-}
-
-
-
-static int
-dissect_ansi_map_NewlyAssignedIMSI(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_NewlyAssignedIMSI(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ansi_map_IMSIType(implicit_tag, tvb, offset, actx, tree, hf_index);
 
   return offset;
@@ -10799,7 +10869,7 @@ dissect_ansi_map_NewlyAssignedIMSI(gboolean implicit_tag _U_, tvbuff_t *tvb _U_,
 
 
 static int
-dissect_ansi_map_NewlyAssignedMIN(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_NewlyAssignedMIN(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ansi_map_MINType(implicit_tag, tvb, offset, actx, tree, hf_index);
 
   return offset;
@@ -10808,7 +10878,7 @@ dissect_ansi_map_NewlyAssignedMIN(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, 
 
 
 static int
-dissect_ansi_map_NewMINExtension(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_NewMINExtension(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ansi_map_MINType(implicit_tag, tvb, offset, actx, tree, hf_index);
 
   return offset;
@@ -10817,7 +10887,7 @@ dissect_ansi_map_NewMINExtension(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, i
 
 
 static int
-dissect_ansi_map_SMS_MessageCount(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_SMS_MessageCount(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_octet_string(implicit_tag, actx, tree, tvb, offset, hf_index,
                                        NULL);
 
@@ -10827,7 +10897,7 @@ dissect_ansi_map_SMS_MessageCount(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, 
 
 
 static int
-dissect_ansi_map_SMS_NotificationIndicator(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_SMS_NotificationIndicator(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_octet_string(implicit_tag, actx, tree, tvb, offset, hf_index,
                                        NULL);
 
@@ -10837,7 +10907,7 @@ dissect_ansi_map_SMS_NotificationIndicator(gboolean implicit_tag _U_, tvbuff_t *
 
 
 static int
-dissect_ansi_map_Teleservice_Priority(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_Teleservice_Priority(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_octet_string(implicit_tag, actx, tree, tvb, offset, hf_index,
                                        NULL);
 
@@ -10847,7 +10917,7 @@ dissect_ansi_map_Teleservice_Priority(gboolean implicit_tag _U_, tvbuff_t *tvb _
 
 
 static int
-dissect_ansi_map_TemporaryReferenceNumber(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_TemporaryReferenceNumber(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ansi_map_MINType(implicit_tag, tvb, offset, actx, tree, hf_index);
 
   return offset;
@@ -10884,7 +10954,7 @@ static const ber_sequence_t SMSDeliveryPointToPoint_U_set[] = {
 };
 
 static int
-dissect_ansi_map_SMSDeliveryPointToPoint_U(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_SMSDeliveryPointToPoint_U(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_set(implicit_tag, actx, tree, tvb, offset,
                               SMSDeliveryPointToPoint_U_set, hf_index, ett_ansi_map_SMSDeliveryPointToPoint_U);
 
@@ -10894,9 +10964,9 @@ dissect_ansi_map_SMSDeliveryPointToPoint_U(gboolean implicit_tag _U_, tvbuff_t *
 
 
 static int
-dissect_ansi_map_SMSDeliveryPointToPoint(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_SMSDeliveryPointToPoint(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_tagged_type(implicit_tag, actx, tree, tvb, offset,
-                                      hf_index, BER_CLASS_PRI, 18, FALSE, dissect_ansi_map_SMSDeliveryPointToPoint_U);
+                                      hf_index, BER_CLASS_PRI, 18, false, dissect_ansi_map_SMSDeliveryPointToPoint_U);
 
   return offset;
 }
@@ -10904,7 +10974,7 @@ dissect_ansi_map_SMSDeliveryPointToPoint(gboolean implicit_tag _U_, tvbuff_t *tv
 
 
 static int
-dissect_ansi_map_MobileStationIMSI(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_MobileStationIMSI(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ansi_map_IMSIType(implicit_tag, tvb, offset, actx, tree, hf_index);
 
   return offset;
@@ -10924,7 +10994,7 @@ static const ber_choice_t MobileStationMSID_choice[] = {
 };
 
 static int
-dissect_ansi_map_MobileStationMSID(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_MobileStationMSID(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_choice(actx, tree, tvb, offset,
                                  MobileStationMSID_choice, hf_index, ett_ansi_map_MobileStationMSID,
                                  NULL);
@@ -10949,7 +11019,7 @@ static const ber_sequence_t SMSDeliveryPointToPointRes_U_set[] = {
 };
 
 static int
-dissect_ansi_map_SMSDeliveryPointToPointRes_U(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_SMSDeliveryPointToPointRes_U(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_set(implicit_tag, actx, tree, tvb, offset,
                               SMSDeliveryPointToPointRes_U_set, hf_index, ett_ansi_map_SMSDeliveryPointToPointRes_U);
 
@@ -10959,9 +11029,9 @@ dissect_ansi_map_SMSDeliveryPointToPointRes_U(gboolean implicit_tag _U_, tvbuff_
 
 
 static int
-dissect_ansi_map_SMSDeliveryPointToPointRes(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_SMSDeliveryPointToPointRes(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_tagged_type(implicit_tag, actx, tree, tvb, offset,
-                                      hf_index, BER_CLASS_PRI, 18, FALSE, dissect_ansi_map_SMSDeliveryPointToPointRes_U);
+                                      hf_index, BER_CLASS_PRI, 18, false, dissect_ansi_map_SMSDeliveryPointToPointRes_U);
 
   return offset;
 }
@@ -10969,7 +11039,7 @@ dissect_ansi_map_SMSDeliveryPointToPointRes(gboolean implicit_tag _U_, tvbuff_t 
 
 
 static int
-dissect_ansi_map_SMS_TransactionID(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_SMS_TransactionID(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_octet_string(implicit_tag, actx, tree, tvb, offset, hf_index,
                                        NULL);
 
@@ -10988,7 +11058,7 @@ static const ber_sequence_t SMSDeliveryPointToPointAck_U_set[] = {
 };
 
 static int
-dissect_ansi_map_SMSDeliveryPointToPointAck_U(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_SMSDeliveryPointToPointAck_U(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_set(implicit_tag, actx, tree, tvb, offset,
                               SMSDeliveryPointToPointAck_U_set, hf_index, ett_ansi_map_SMSDeliveryPointToPointAck_U);
 
@@ -10998,9 +11068,9 @@ dissect_ansi_map_SMSDeliveryPointToPointAck_U(gboolean implicit_tag _U_, tvbuff_
 
 
 static int
-dissect_ansi_map_SMSDeliveryPointToPointAck(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_SMSDeliveryPointToPointAck(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_tagged_type(implicit_tag, actx, tree, tvb, offset,
-                                      hf_index, BER_CLASS_PRI, 18, FALSE, dissect_ansi_map_SMSDeliveryPointToPointAck_U);
+                                      hf_index, BER_CLASS_PRI, 18, false, dissect_ansi_map_SMSDeliveryPointToPointAck_U);
 
   return offset;
 }
@@ -11008,7 +11078,7 @@ dissect_ansi_map_SMSDeliveryPointToPointAck(gboolean implicit_tag _U_, tvbuff_t 
 
 
 static int
-dissect_ansi_map_SMS_AccessDeniedReason(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_SMS_AccessDeniedReason(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_octet_string(implicit_tag, actx, tree, tvb, offset, hf_index,
                                        NULL);
 
@@ -11028,7 +11098,7 @@ static const ber_sequence_t SMSNotification_U_set[] = {
 };
 
 static int
-dissect_ansi_map_SMSNotification_U(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_SMSNotification_U(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_set(implicit_tag, actx, tree, tvb, offset,
                               SMSNotification_U_set, hf_index, ett_ansi_map_SMSNotification_U);
 
@@ -11038,9 +11108,9 @@ dissect_ansi_map_SMSNotification_U(gboolean implicit_tag _U_, tvbuff_t *tvb _U_,
 
 
 static int
-dissect_ansi_map_SMSNotification(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_SMSNotification(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_tagged_type(implicit_tag, actx, tree, tvb, offset,
-                                      hf_index, BER_CLASS_PRI, 18, FALSE, dissect_ansi_map_SMSNotification_U);
+                                      hf_index, BER_CLASS_PRI, 18, false, dissect_ansi_map_SMSNotification_U);
 
   return offset;
 }
@@ -11052,7 +11122,7 @@ static const ber_sequence_t SMSNotificationRes_U_set[] = {
 };
 
 static int
-dissect_ansi_map_SMSNotificationRes_U(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_SMSNotificationRes_U(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_set(implicit_tag, actx, tree, tvb, offset,
                               SMSNotificationRes_U_set, hf_index, ett_ansi_map_SMSNotificationRes_U);
 
@@ -11062,9 +11132,9 @@ dissect_ansi_map_SMSNotificationRes_U(gboolean implicit_tag _U_, tvbuff_t *tvb _
 
 
 static int
-dissect_ansi_map_SMSNotificationRes(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_SMSNotificationRes(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_tagged_type(implicit_tag, actx, tree, tvb, offset,
-                                      hf_index, BER_CLASS_PRI, 18, FALSE, dissect_ansi_map_SMSNotificationRes_U);
+                                      hf_index, BER_CLASS_PRI, 18, false, dissect_ansi_map_SMSNotificationRes_U);
 
   return offset;
 }
@@ -11081,7 +11151,7 @@ static const ber_sequence_t SMSRequest_U_set[] = {
 };
 
 static int
-dissect_ansi_map_SMSRequest_U(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_SMSRequest_U(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_set(implicit_tag, actx, tree, tvb, offset,
                               SMSRequest_U_set, hf_index, ett_ansi_map_SMSRequest_U);
 
@@ -11091,9 +11161,9 @@ dissect_ansi_map_SMSRequest_U(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int 
 
 
 static int
-dissect_ansi_map_SMSRequest(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_SMSRequest(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_tagged_type(implicit_tag, actx, tree, tvb, offset,
-                                      hf_index, BER_CLASS_PRI, 18, FALSE, dissect_ansi_map_SMSRequest_U);
+                                      hf_index, BER_CLASS_PRI, 18, false, dissect_ansi_map_SMSRequest_U);
 
   return offset;
 }
@@ -11110,7 +11180,7 @@ static const ber_sequence_t SMSRequestRes_U_set[] = {
 };
 
 static int
-dissect_ansi_map_SMSRequestRes_U(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_SMSRequestRes_U(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_set(implicit_tag, actx, tree, tvb, offset,
                               SMSRequestRes_U_set, hf_index, ett_ansi_map_SMSRequestRes_U);
 
@@ -11120,9 +11190,9 @@ dissect_ansi_map_SMSRequestRes_U(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, i
 
 
 static int
-dissect_ansi_map_SMSRequestRes(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_SMSRequestRes(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_tagged_type(implicit_tag, actx, tree, tvb, offset,
-                                      hf_index, BER_CLASS_PRI, 18, FALSE, dissect_ansi_map_SMSRequestRes_U);
+                                      hf_index, BER_CLASS_PRI, 18, false, dissect_ansi_map_SMSRequestRes_U);
 
   return offset;
 }
@@ -11156,7 +11226,7 @@ static const ber_sequence_t TransferToNumberRequest_U_set[] = {
 };
 
 static int
-dissect_ansi_map_TransferToNumberRequest_U(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_TransferToNumberRequest_U(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_set(implicit_tag, actx, tree, tvb, offset,
                               TransferToNumberRequest_U_set, hf_index, ett_ansi_map_TransferToNumberRequest_U);
 
@@ -11166,9 +11236,9 @@ dissect_ansi_map_TransferToNumberRequest_U(gboolean implicit_tag _U_, tvbuff_t *
 
 
 static int
-dissect_ansi_map_TransferToNumberRequest(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_TransferToNumberRequest(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_tagged_type(implicit_tag, actx, tree, tvb, offset,
-                                      hf_index, BER_CLASS_PRI, 18, FALSE, dissect_ansi_map_TransferToNumberRequest_U);
+                                      hf_index, BER_CLASS_PRI, 18, false, dissect_ansi_map_TransferToNumberRequest_U);
 
   return offset;
 }
@@ -11204,7 +11274,7 @@ static const ber_sequence_t TransferToNumberRequestRes_U_set[] = {
 };
 
 static int
-dissect_ansi_map_TransferToNumberRequestRes_U(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_TransferToNumberRequestRes_U(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_set(implicit_tag, actx, tree, tvb, offset,
                               TransferToNumberRequestRes_U_set, hf_index, ett_ansi_map_TransferToNumberRequestRes_U);
 
@@ -11214,9 +11284,9 @@ dissect_ansi_map_TransferToNumberRequestRes_U(gboolean implicit_tag _U_, tvbuff_
 
 
 static int
-dissect_ansi_map_TransferToNumberRequestRes(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_TransferToNumberRequestRes(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_tagged_type(implicit_tag, actx, tree, tvb, offset,
-                                      hf_index, BER_CLASS_PRI, 18, FALSE, dissect_ansi_map_TransferToNumberRequestRes_U);
+                                      hf_index, BER_CLASS_PRI, 18, false, dissect_ansi_map_TransferToNumberRequestRes_U);
 
   return offset;
 }
@@ -11230,7 +11300,7 @@ static const value_string ansi_map_SeizureType_vals[] = {
 
 
 static int
-dissect_ansi_map_SeizureType(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_SeizureType(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_integer(implicit_tag, actx, tree, tvb, offset, hf_index,
                                   NULL);
 
@@ -11245,7 +11315,7 @@ static const ber_sequence_t TrunkTest_U_set[] = {
 };
 
 static int
-dissect_ansi_map_TrunkTest_U(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_TrunkTest_U(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_set(implicit_tag, actx, tree, tvb, offset,
                               TrunkTest_U_set, hf_index, ett_ansi_map_TrunkTest_U);
 
@@ -11255,9 +11325,9 @@ dissect_ansi_map_TrunkTest_U(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int o
 
 
 static int
-dissect_ansi_map_TrunkTest(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_TrunkTest(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_tagged_type(implicit_tag, actx, tree, tvb, offset,
-                                      hf_index, BER_CLASS_PRI, 18, FALSE, dissect_ansi_map_TrunkTest_U);
+                                      hf_index, BER_CLASS_PRI, 18, false, dissect_ansi_map_TrunkTest_U);
 
   return offset;
 }
@@ -11269,7 +11339,7 @@ static const ber_sequence_t TrunkTestDisconnect_U_set[] = {
 };
 
 static int
-dissect_ansi_map_TrunkTestDisconnect_U(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_TrunkTestDisconnect_U(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_set(implicit_tag, actx, tree, tvb, offset,
                               TrunkTestDisconnect_U_set, hf_index, ett_ansi_map_TrunkTestDisconnect_U);
 
@@ -11279,9 +11349,9 @@ dissect_ansi_map_TrunkTestDisconnect_U(gboolean implicit_tag _U_, tvbuff_t *tvb 
 
 
 static int
-dissect_ansi_map_TrunkTestDisconnect(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_TrunkTestDisconnect(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_tagged_type(implicit_tag, actx, tree, tvb, offset,
-                                      hf_index, BER_CLASS_PRI, 18, FALSE, dissect_ansi_map_TrunkTestDisconnect_U);
+                                      hf_index, BER_CLASS_PRI, 18, false, dissect_ansi_map_TrunkTestDisconnect_U);
 
   return offset;
 }
@@ -11293,7 +11363,7 @@ static const ber_sequence_t Unblocking_U_set[] = {
 };
 
 static int
-dissect_ansi_map_Unblocking_U(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_Unblocking_U(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_set(implicit_tag, actx, tree, tvb, offset,
                               Unblocking_U_set, hf_index, ett_ansi_map_Unblocking_U);
 
@@ -11303,9 +11373,9 @@ dissect_ansi_map_Unblocking_U(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int 
 
 
 static int
-dissect_ansi_map_Unblocking(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_Unblocking(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_tagged_type(implicit_tag, actx, tree, tvb, offset,
-                                      hf_index, BER_CLASS_PRI, 18, FALSE, dissect_ansi_map_Unblocking_U);
+                                      hf_index, BER_CLASS_PRI, 18, false, dissect_ansi_map_Unblocking_U);
 
   return offset;
 }
@@ -11318,7 +11388,7 @@ static const ber_sequence_t UnreliableRoamerDataDirective_U_set[] = {
 };
 
 static int
-dissect_ansi_map_UnreliableRoamerDataDirective_U(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_UnreliableRoamerDataDirective_U(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_set(implicit_tag, actx, tree, tvb, offset,
                               UnreliableRoamerDataDirective_U_set, hf_index, ett_ansi_map_UnreliableRoamerDataDirective_U);
 
@@ -11328,9 +11398,9 @@ dissect_ansi_map_UnreliableRoamerDataDirective_U(gboolean implicit_tag _U_, tvbu
 
 
 static int
-dissect_ansi_map_UnreliableRoamerDataDirective(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_UnreliableRoamerDataDirective(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_tagged_type(implicit_tag, actx, tree, tvb, offset,
-                                      hf_index, BER_CLASS_PRI, 18, FALSE, dissect_ansi_map_UnreliableRoamerDataDirective_U);
+                                      hf_index, BER_CLASS_PRI, 18, false, dissect_ansi_map_UnreliableRoamerDataDirective_U);
 
   return offset;
 }
@@ -11352,7 +11422,7 @@ static const ber_sequence_t UnsolicitedResponse_U_set[] = {
 };
 
 static int
-dissect_ansi_map_UnsolicitedResponse_U(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_UnsolicitedResponse_U(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_set(implicit_tag, actx, tree, tvb, offset,
                               UnsolicitedResponse_U_set, hf_index, ett_ansi_map_UnsolicitedResponse_U);
 
@@ -11362,9 +11432,9 @@ dissect_ansi_map_UnsolicitedResponse_U(gboolean implicit_tag _U_, tvbuff_t *tvb 
 
 
 static int
-dissect_ansi_map_UnsolicitedResponse(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_UnsolicitedResponse(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_tagged_type(implicit_tag, actx, tree, tvb, offset,
-                                      hf_index, BER_CLASS_PRI, 18, FALSE, dissect_ansi_map_UnsolicitedResponse_U);
+                                      hf_index, BER_CLASS_PRI, 18, false, dissect_ansi_map_UnsolicitedResponse_U);
 
   return offset;
 }
@@ -11406,7 +11476,7 @@ static const ber_sequence_t UnsolicitedResponseRes_U_set[] = {
 };
 
 static int
-dissect_ansi_map_UnsolicitedResponseRes_U(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_UnsolicitedResponseRes_U(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_set(implicit_tag, actx, tree, tvb, offset,
                               UnsolicitedResponseRes_U_set, hf_index, ett_ansi_map_UnsolicitedResponseRes_U);
 
@@ -11416,9 +11486,9 @@ dissect_ansi_map_UnsolicitedResponseRes_U(gboolean implicit_tag _U_, tvbuff_t *t
 
 
 static int
-dissect_ansi_map_UnsolicitedResponseRes(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_UnsolicitedResponseRes(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_tagged_type(implicit_tag, actx, tree, tvb, offset,
-                                      hf_index, BER_CLASS_PRI, 18, FALSE, dissect_ansi_map_UnsolicitedResponseRes_U);
+                                      hf_index, BER_CLASS_PRI, 18, false, dissect_ansi_map_UnsolicitedResponseRes_U);
 
   return offset;
 }
@@ -11426,7 +11496,7 @@ dissect_ansi_map_UnsolicitedResponseRes(gboolean implicit_tag _U_, tvbuff_t *tvb
 
 
 static int
-dissect_ansi_map_RequiredParametersMask(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_RequiredParametersMask(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_octet_string(implicit_tag, actx, tree, tvb, offset, hf_index,
                                        NULL);
 
@@ -11447,7 +11517,7 @@ static const ber_sequence_t ParameterRequest_U_set[] = {
 };
 
 static int
-dissect_ansi_map_ParameterRequest_U(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_ParameterRequest_U(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_set(implicit_tag, actx, tree, tvb, offset,
                               ParameterRequest_U_set, hf_index, ett_ansi_map_ParameterRequest_U);
 
@@ -11457,9 +11527,9 @@ dissect_ansi_map_ParameterRequest_U(gboolean implicit_tag _U_, tvbuff_t *tvb _U_
 
 
 static int
-dissect_ansi_map_ParameterRequest(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_ParameterRequest(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_tagged_type(implicit_tag, actx, tree, tvb, offset,
-                                      hf_index, BER_CLASS_PRI, 18, FALSE, dissect_ansi_map_ParameterRequest_U);
+                                      hf_index, BER_CLASS_PRI, 18, false, dissect_ansi_map_ParameterRequest_U);
 
   return offset;
 }
@@ -11478,7 +11548,7 @@ static const value_string ansi_map_ReasonList_vals[] = {
 
 
 static int
-dissect_ansi_map_ReasonList(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_ReasonList(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_integer(implicit_tag, actx, tree, tvb, offset, hf_index,
                                   NULL);
 
@@ -11497,7 +11567,7 @@ static const ber_sequence_t ParameterRequestRes_U_set[] = {
 };
 
 static int
-dissect_ansi_map_ParameterRequestRes_U(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_ParameterRequestRes_U(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_set(implicit_tag, actx, tree, tvb, offset,
                               ParameterRequestRes_U_set, hf_index, ett_ansi_map_ParameterRequestRes_U);
 
@@ -11507,9 +11577,9 @@ dissect_ansi_map_ParameterRequestRes_U(gboolean implicit_tag _U_, tvbuff_t *tvb 
 
 
 static int
-dissect_ansi_map_ParameterRequestRes(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_ParameterRequestRes(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_tagged_type(implicit_tag, actx, tree, tvb, offset,
-                                      hf_index, BER_CLASS_PRI, 18, FALSE, dissect_ansi_map_ParameterRequestRes_U);
+                                      hf_index, BER_CLASS_PRI, 18, false, dissect_ansi_map_ParameterRequestRes_U);
 
   return offset;
 }
@@ -11517,7 +11587,7 @@ dissect_ansi_map_ParameterRequestRes(gboolean implicit_tag _U_, tvbuff_t *tvb _U
 
 
 static int
-dissect_ansi_map_NetworkTMSIExpirationTime(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_NetworkTMSIExpirationTime(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_octet_string(implicit_tag, actx, tree, tvb, offset, hf_index,
                                        NULL);
 
@@ -11527,7 +11597,7 @@ dissect_ansi_map_NetworkTMSIExpirationTime(gboolean implicit_tag _U_, tvbuff_t *
 
 
 static int
-dissect_ansi_map_NewNetworkTMSI(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_NewNetworkTMSI(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ansi_map_DigitsType(implicit_tag, tvb, offset, actx, tree, hf_index);
 
   return offset;
@@ -11545,7 +11615,7 @@ static const ber_sequence_t TMSIDirective_U_set[] = {
 };
 
 static int
-dissect_ansi_map_TMSIDirective_U(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_TMSIDirective_U(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_set(implicit_tag, actx, tree, tvb, offset,
                               TMSIDirective_U_set, hf_index, ett_ansi_map_TMSIDirective_U);
 
@@ -11555,9 +11625,9 @@ dissect_ansi_map_TMSIDirective_U(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, i
 
 
 static int
-dissect_ansi_map_TMSIDirective(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_TMSIDirective(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_tagged_type(implicit_tag, actx, tree, tvb, offset,
-                                      hf_index, BER_CLASS_PRI, 18, FALSE, dissect_ansi_map_TMSIDirective_U);
+                                      hf_index, BER_CLASS_PRI, 18, false, dissect_ansi_map_TMSIDirective_U);
 
   return offset;
 }
@@ -11573,7 +11643,7 @@ static const ber_sequence_t TMSIDirectiveRes_U_set[] = {
 };
 
 static int
-dissect_ansi_map_TMSIDirectiveRes_U(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_TMSIDirectiveRes_U(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_set(implicit_tag, actx, tree, tvb, offset,
                               TMSIDirectiveRes_U_set, hf_index, ett_ansi_map_TMSIDirectiveRes_U);
 
@@ -11583,9 +11653,9 @@ dissect_ansi_map_TMSIDirectiveRes_U(gboolean implicit_tag _U_, tvbuff_t *tvb _U_
 
 
 static int
-dissect_ansi_map_TMSIDirectiveRes(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_TMSIDirectiveRes(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_tagged_type(implicit_tag, actx, tree, tvb, offset,
-                                      hf_index, BER_CLASS_PRI, 18, FALSE, dissect_ansi_map_TMSIDirectiveRes_U);
+                                      hf_index, BER_CLASS_PRI, 18, false, dissect_ansi_map_TMSIDirectiveRes_U);
 
   return offset;
 }
@@ -11601,7 +11671,7 @@ static const ber_sequence_t NumberPortabilityRequest_U_set[] = {
 };
 
 static int
-dissect_ansi_map_NumberPortabilityRequest_U(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_NumberPortabilityRequest_U(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_set(implicit_tag, actx, tree, tvb, offset,
                               NumberPortabilityRequest_U_set, hf_index, ett_ansi_map_NumberPortabilityRequest_U);
 
@@ -11611,9 +11681,9 @@ dissect_ansi_map_NumberPortabilityRequest_U(gboolean implicit_tag _U_, tvbuff_t 
 
 
 static int
-dissect_ansi_map_NumberPortabilityRequest(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_NumberPortabilityRequest(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_tagged_type(implicit_tag, actx, tree, tvb, offset,
-                                      hf_index, BER_CLASS_PRI, 18, FALSE, dissect_ansi_map_NumberPortabilityRequest_U);
+                                      hf_index, BER_CLASS_PRI, 18, false, dissect_ansi_map_NumberPortabilityRequest_U);
 
   return offset;
 }
@@ -11625,7 +11695,7 @@ static const ber_sequence_t NumberPortabilityRequestRes_U_set[] = {
 };
 
 static int
-dissect_ansi_map_NumberPortabilityRequestRes_U(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_NumberPortabilityRequestRes_U(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_set(implicit_tag, actx, tree, tvb, offset,
                               NumberPortabilityRequestRes_U_set, hf_index, ett_ansi_map_NumberPortabilityRequestRes_U);
 
@@ -11635,9 +11705,9 @@ dissect_ansi_map_NumberPortabilityRequestRes_U(gboolean implicit_tag _U_, tvbuff
 
 
 static int
-dissect_ansi_map_NumberPortabilityRequestRes(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_NumberPortabilityRequestRes(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_tagged_type(implicit_tag, actx, tree, tvb, offset,
-                                      hf_index, BER_CLASS_PRI, 18, FALSE, dissect_ansi_map_NumberPortabilityRequestRes_U);
+                                      hf_index, BER_CLASS_PRI, 18, false, dissect_ansi_map_NumberPortabilityRequestRes_U);
 
   return offset;
 }
@@ -11645,7 +11715,7 @@ dissect_ansi_map_NumberPortabilityRequestRes(gboolean implicit_tag _U_, tvbuff_t
 
 
 static int
-dissect_ansi_map_ServiceID(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_ServiceID(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_octet_string(implicit_tag, actx, tree, tvb, offset, hf_index,
                                        NULL);
 
@@ -11655,7 +11725,7 @@ dissect_ansi_map_ServiceID(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int off
 
 
 static int
-dissect_ansi_map_DataID(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_DataID(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_octet_string(implicit_tag, actx, tree, tvb, offset, hf_index,
                                        NULL);
 
@@ -11673,7 +11743,7 @@ static const value_string ansi_map_Change_vals[] = {
 
 
 static int
-dissect_ansi_map_Change(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_Change(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_integer(implicit_tag, actx, tree, tvb, offset, hf_index,
                                   NULL);
 
@@ -11683,7 +11753,7 @@ dissect_ansi_map_Change(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset
 
 
 static int
-dissect_ansi_map_DataValue(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_DataValue(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_octet_string(implicit_tag, actx, tree, tvb, offset, hf_index,
                                        NULL);
 
@@ -11699,7 +11769,7 @@ static const ber_sequence_t DataAccessElement_sequence[] = {
 };
 
 static int
-dissect_ansi_map_DataAccessElement(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_DataAccessElement(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence(implicit_tag, actx, tree, tvb, offset,
                                    DataAccessElement_sequence, hf_index, ett_ansi_map_DataAccessElement);
 
@@ -11714,7 +11784,7 @@ static const ber_sequence_t DataAccessElementList_item_sequence[] = {
 };
 
 static int
-dissect_ansi_map_DataAccessElementList_item(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_DataAccessElementList_item(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence(implicit_tag, actx, tree, tvb, offset,
                                    DataAccessElementList_item_sequence, hf_index, ett_ansi_map_DataAccessElementList_item);
 
@@ -11727,7 +11797,7 @@ static const ber_sequence_t DataAccessElementList_sequence_of[1] = {
 };
 
 static int
-dissect_ansi_map_DataAccessElementList(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_DataAccessElementList(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence_of(implicit_tag, actx, tree, tvb, offset,
                                       DataAccessElementList_sequence_of, hf_index, ett_ansi_map_DataAccessElementList);
 
@@ -11737,7 +11807,7 @@ dissect_ansi_map_DataAccessElementList(gboolean implicit_tag _U_, tvbuff_t *tvb 
 
 
 static int
-dissect_ansi_map_TimeDateOffset(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_TimeDateOffset(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_octet_string(implicit_tag, actx, tree, tvb, offset, hf_index,
                                        NULL);
 
@@ -11747,7 +11817,7 @@ dissect_ansi_map_TimeDateOffset(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, in
 
 
 static int
-dissect_ansi_map_TimeOfDay(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_TimeOfDay(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_integer(implicit_tag, actx, tree, tvb, offset, hf_index,
                                                 NULL);
 
@@ -11804,7 +11874,7 @@ static const ber_sequence_t ServiceRequest_U_set[] = {
 };
 
 static int
-dissect_ansi_map_ServiceRequest_U(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_ServiceRequest_U(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_set(implicit_tag, actx, tree, tvb, offset,
                               ServiceRequest_U_set, hf_index, ett_ansi_map_ServiceRequest_U);
 
@@ -11814,9 +11884,9 @@ dissect_ansi_map_ServiceRequest_U(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, 
 
 
 static int
-dissect_ansi_map_ServiceRequest(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_ServiceRequest(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_tagged_type(implicit_tag, actx, tree, tvb, offset,
-                                      hf_index, BER_CLASS_PRI, 18, FALSE, dissect_ansi_map_ServiceRequest_U);
+                                      hf_index, BER_CLASS_PRI, 18, false, dissect_ansi_map_ServiceRequest_U);
 
   return offset;
 }
@@ -11855,7 +11925,7 @@ static const ber_sequence_t ServiceRequestRes_U_set[] = {
 };
 
 static int
-dissect_ansi_map_ServiceRequestRes_U(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_ServiceRequestRes_U(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_set(implicit_tag, actx, tree, tvb, offset,
                               ServiceRequestRes_U_set, hf_index, ett_ansi_map_ServiceRequestRes_U);
 
@@ -11865,9 +11935,9 @@ dissect_ansi_map_ServiceRequestRes_U(gboolean implicit_tag _U_, tvbuff_t *tvb _U
 
 
 static int
-dissect_ansi_map_ServiceRequestRes(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_ServiceRequestRes(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_tagged_type(implicit_tag, actx, tree, tvb, offset,
-                                      hf_index, BER_CLASS_PRI, 18, FALSE, dissect_ansi_map_ServiceRequestRes_U);
+                                      hf_index, BER_CLASS_PRI, 18, false, dissect_ansi_map_ServiceRequestRes_U);
 
   return offset;
 }
@@ -11880,7 +11950,7 @@ static const value_string ansi_map_DMH_BillingIndicator_vals[] = {
 
 
 static int
-dissect_ansi_map_DMH_BillingIndicator(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_DMH_BillingIndicator(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_integer(implicit_tag, actx, tree, tvb, offset, hf_index,
                                   NULL);
 
@@ -11928,7 +11998,7 @@ static const ber_sequence_t AnalyzedInformation_U_set[] = {
 };
 
 static int
-dissect_ansi_map_AnalyzedInformation_U(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_AnalyzedInformation_U(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_set(implicit_tag, actx, tree, tvb, offset,
                               AnalyzedInformation_U_set, hf_index, ett_ansi_map_AnalyzedInformation_U);
 
@@ -11938,9 +12008,9 @@ dissect_ansi_map_AnalyzedInformation_U(gboolean implicit_tag _U_, tvbuff_t *tvb 
 
 
 static int
-dissect_ansi_map_AnalyzedInformation(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_AnalyzedInformation(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_tagged_type(implicit_tag, actx, tree, tvb, offset,
-                                      hf_index, BER_CLASS_PRI, 18, FALSE, dissect_ansi_map_AnalyzedInformation_U);
+                                      hf_index, BER_CLASS_PRI, 18, false, dissect_ansi_map_AnalyzedInformation_U);
 
   return offset;
 }
@@ -11971,7 +12041,7 @@ static const ber_sequence_t AnalyzedInformationRes_U_set[] = {
 };
 
 static int
-dissect_ansi_map_AnalyzedInformationRes_U(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_AnalyzedInformationRes_U(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_set(implicit_tag, actx, tree, tvb, offset,
                               AnalyzedInformationRes_U_set, hf_index, ett_ansi_map_AnalyzedInformationRes_U);
 
@@ -11981,9 +12051,9 @@ dissect_ansi_map_AnalyzedInformationRes_U(gboolean implicit_tag _U_, tvbuff_t *t
 
 
 static int
-dissect_ansi_map_AnalyzedInformationRes(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_AnalyzedInformationRes(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_tagged_type(implicit_tag, actx, tree, tvb, offset,
-                                      hf_index, BER_CLASS_PRI, 18, FALSE, dissect_ansi_map_AnalyzedInformationRes_U);
+                                      hf_index, BER_CLASS_PRI, 18, false, dissect_ansi_map_AnalyzedInformationRes_U);
 
   return offset;
 }
@@ -11999,7 +12069,7 @@ static const value_string ansi_map_FailureType_vals[] = {
 
 
 static int
-dissect_ansi_map_FailureType(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_FailureType(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_integer(implicit_tag, actx, tree, tvb, offset, hf_index,
                                   NULL);
 
@@ -12009,7 +12079,7 @@ dissect_ansi_map_FailureType(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int o
 
 
 static int
-dissect_ansi_map_FailureCause(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_FailureCause(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_octet_string(implicit_tag, actx, tree, tvb, offset, hf_index,
                                        NULL);
 
@@ -12024,7 +12094,7 @@ static const ber_sequence_t ConnectionFailureReport_U_set[] = {
 };
 
 static int
-dissect_ansi_map_ConnectionFailureReport_U(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_ConnectionFailureReport_U(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_set(implicit_tag, actx, tree, tvb, offset,
                               ConnectionFailureReport_U_set, hf_index, ett_ansi_map_ConnectionFailureReport_U);
 
@@ -12034,9 +12104,9 @@ dissect_ansi_map_ConnectionFailureReport_U(gboolean implicit_tag _U_, tvbuff_t *
 
 
 static int
-dissect_ansi_map_ConnectionFailureReport(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_ConnectionFailureReport(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_tagged_type(implicit_tag, actx, tree, tvb, offset,
-                                      hf_index, BER_CLASS_PRI, 18, FALSE, dissect_ansi_map_ConnectionFailureReport_U);
+                                      hf_index, BER_CLASS_PRI, 18, false, dissect_ansi_map_ConnectionFailureReport_U);
 
   return offset;
 }
@@ -12050,7 +12120,7 @@ static const ber_sequence_t ConnectResource_U_set[] = {
 };
 
 static int
-dissect_ansi_map_ConnectResource_U(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_ConnectResource_U(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_set(implicit_tag, actx, tree, tvb, offset,
                               ConnectResource_U_set, hf_index, ett_ansi_map_ConnectResource_U);
 
@@ -12060,9 +12130,9 @@ dissect_ansi_map_ConnectResource_U(gboolean implicit_tag _U_, tvbuff_t *tvb _U_,
 
 
 static int
-dissect_ansi_map_ConnectResource(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_ConnectResource(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_tagged_type(implicit_tag, actx, tree, tvb, offset,
-                                      hf_index, BER_CLASS_PRI, 18, FALSE, dissect_ansi_map_ConnectResource_U);
+                                      hf_index, BER_CLASS_PRI, 18, false, dissect_ansi_map_ConnectResource_U);
 
   return offset;
 }
@@ -12100,7 +12170,7 @@ static const ber_sequence_t FacilitySelectedAndAvailable_U_set[] = {
 };
 
 static int
-dissect_ansi_map_FacilitySelectedAndAvailable_U(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_FacilitySelectedAndAvailable_U(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_set(implicit_tag, actx, tree, tvb, offset,
                               FacilitySelectedAndAvailable_U_set, hf_index, ett_ansi_map_FacilitySelectedAndAvailable_U);
 
@@ -12110,9 +12180,9 @@ dissect_ansi_map_FacilitySelectedAndAvailable_U(gboolean implicit_tag _U_, tvbuf
 
 
 static int
-dissect_ansi_map_FacilitySelectedAndAvailable(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_FacilitySelectedAndAvailable(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_tagged_type(implicit_tag, actx, tree, tvb, offset,
-                                      hf_index, BER_CLASS_PRI, 18, FALSE, dissect_ansi_map_FacilitySelectedAndAvailable_U);
+                                      hf_index, BER_CLASS_PRI, 18, false, dissect_ansi_map_FacilitySelectedAndAvailable_U);
 
   return offset;
 }
@@ -12138,7 +12208,7 @@ static const ber_sequence_t FacilitySelectedAndAvailableRes_U_set[] = {
 };
 
 static int
-dissect_ansi_map_FacilitySelectedAndAvailableRes_U(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_FacilitySelectedAndAvailableRes_U(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_set(implicit_tag, actx, tree, tvb, offset,
                               FacilitySelectedAndAvailableRes_U_set, hf_index, ett_ansi_map_FacilitySelectedAndAvailableRes_U);
 
@@ -12148,9 +12218,9 @@ dissect_ansi_map_FacilitySelectedAndAvailableRes_U(gboolean implicit_tag _U_, tv
 
 
 static int
-dissect_ansi_map_FacilitySelectedAndAvailableRes(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_FacilitySelectedAndAvailableRes(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_tagged_type(implicit_tag, actx, tree, tvb, offset,
-                                      hf_index, BER_CLASS_PRI, 18, FALSE, dissect_ansi_map_FacilitySelectedAndAvailableRes_U);
+                                      hf_index, BER_CLASS_PRI, 18, false, dissect_ansi_map_FacilitySelectedAndAvailableRes_U);
 
   return offset;
 }
@@ -12158,7 +12228,7 @@ dissect_ansi_map_FacilitySelectedAndAvailableRes(gboolean implicit_tag _U_, tvbu
 
 
 static int
-dissect_ansi_map_DatabaseKey(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_DatabaseKey(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_octet_string(implicit_tag, actx, tree, tvb, offset, hf_index,
                                        NULL);
 
@@ -12173,7 +12243,7 @@ static const ber_sequence_t ServiceDataAccessElement_sequence[] = {
 };
 
 static int
-dissect_ansi_map_ServiceDataAccessElement(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_ServiceDataAccessElement(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence(implicit_tag, actx, tree, tvb, offset,
                                    ServiceDataAccessElement_sequence, hf_index, ett_ansi_map_ServiceDataAccessElement);
 
@@ -12186,7 +12256,7 @@ static const ber_sequence_t ServiceDataAccessElementList_sequence_of[1] = {
 };
 
 static int
-dissect_ansi_map_ServiceDataAccessElementList(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_ServiceDataAccessElementList(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence_of(implicit_tag, actx, tree, tvb, offset,
                                       ServiceDataAccessElementList_sequence_of, hf_index, ett_ansi_map_ServiceDataAccessElementList);
 
@@ -12203,7 +12273,7 @@ static const value_string ansi_map_AllOrNone_vals[] = {
 
 
 static int
-dissect_ansi_map_AllOrNone(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_AllOrNone(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_integer(implicit_tag, actx, tree, tvb, offset, hf_index,
                                   NULL);
 
@@ -12218,7 +12288,7 @@ static const ber_sequence_t ModificationRequest_sequence[] = {
 };
 
 static int
-dissect_ansi_map_ModificationRequest(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_ModificationRequest(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence(implicit_tag, actx, tree, tvb, offset,
                                    ModificationRequest_sequence, hf_index, ett_ansi_map_ModificationRequest);
 
@@ -12231,7 +12301,7 @@ static const ber_sequence_t ModificationRequestList_sequence_of[1] = {
 };
 
 static int
-dissect_ansi_map_ModificationRequestList(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_ModificationRequestList(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence_of(implicit_tag, actx, tree, tvb, offset,
                                       ModificationRequestList_sequence_of, hf_index, ett_ansi_map_ModificationRequestList);
 
@@ -12246,7 +12316,7 @@ static const ber_sequence_t Modify_U_set[] = {
 };
 
 static int
-dissect_ansi_map_Modify_U(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_Modify_U(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_set(implicit_tag, actx, tree, tvb, offset,
                               Modify_U_set, hf_index, ett_ansi_map_Modify_U);
 
@@ -12256,9 +12326,9 @@ dissect_ansi_map_Modify_U(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offs
 
 
 static int
-dissect_ansi_map_Modify(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_Modify(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_tagged_type(implicit_tag, actx, tree, tvb, offset,
-                                      hf_index, BER_CLASS_PRI, 18, FALSE, dissect_ansi_map_Modify_U);
+                                      hf_index, BER_CLASS_PRI, 18, false, dissect_ansi_map_Modify_U);
 
   return offset;
 }
@@ -12275,7 +12345,7 @@ static const value_string ansi_map_DataResult_vals[] = {
 
 
 static int
-dissect_ansi_map_DataResult(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_DataResult(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_integer(implicit_tag, actx, tree, tvb, offset, hf_index,
                                   NULL);
 
@@ -12290,7 +12360,7 @@ static const ber_sequence_t DataUpdateResult_sequence[] = {
 };
 
 static int
-dissect_ansi_map_DataUpdateResult(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_DataUpdateResult(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence(implicit_tag, actx, tree, tvb, offset,
                                    DataUpdateResult_sequence, hf_index, ett_ansi_map_DataUpdateResult);
 
@@ -12303,7 +12373,7 @@ static const ber_sequence_t DataUpdateResultList_sequence_of[1] = {
 };
 
 static int
-dissect_ansi_map_DataUpdateResultList(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_DataUpdateResultList(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence_of(implicit_tag, actx, tree, tvb, offset,
                                       DataUpdateResultList_sequence_of, hf_index, ett_ansi_map_DataUpdateResultList);
 
@@ -12318,7 +12388,7 @@ static const ber_sequence_t ServiceDataResult_sequence[] = {
 };
 
 static int
-dissect_ansi_map_ServiceDataResult(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_ServiceDataResult(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence(implicit_tag, actx, tree, tvb, offset,
                                    ServiceDataResult_sequence, hf_index, ett_ansi_map_ServiceDataResult);
 
@@ -12331,7 +12401,7 @@ static const ber_sequence_t ServiceDataResultList_sequence_of[1] = {
 };
 
 static int
-dissect_ansi_map_ServiceDataResultList(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_ServiceDataResultList(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence_of(implicit_tag, actx, tree, tvb, offset,
                                       ServiceDataResultList_sequence_of, hf_index, ett_ansi_map_ServiceDataResultList);
 
@@ -12352,7 +12422,7 @@ static const ber_choice_t ModificationResult_choice[] = {
 };
 
 static int
-dissect_ansi_map_ModificationResult(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_ModificationResult(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_choice(actx, tree, tvb, offset,
                                  ModificationResult_choice, hf_index, ett_ansi_map_ModificationResult,
                                  NULL);
@@ -12366,7 +12436,7 @@ static const ber_sequence_t ModificationResultList_sequence_of[1] = {
 };
 
 static int
-dissect_ansi_map_ModificationResultList(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_ModificationResultList(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence_of(implicit_tag, actx, tree, tvb, offset,
                                       ModificationResultList_sequence_of, hf_index, ett_ansi_map_ModificationResultList);
 
@@ -12380,7 +12450,7 @@ static const ber_sequence_t ModifyRes_U_set[] = {
 };
 
 static int
-dissect_ansi_map_ModifyRes_U(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_ModifyRes_U(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_set(implicit_tag, actx, tree, tvb, offset,
                               ModifyRes_U_set, hf_index, ett_ansi_map_ModifyRes_U);
 
@@ -12390,9 +12460,9 @@ dissect_ansi_map_ModifyRes_U(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int o
 
 
 static int
-dissect_ansi_map_ModifyRes(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_ModifyRes(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_tagged_type(implicit_tag, actx, tree, tvb, offset,
-                                      hf_index, BER_CLASS_PRI, 18, FALSE, dissect_ansi_map_ModifyRes_U);
+                                      hf_index, BER_CLASS_PRI, 18, false, dissect_ansi_map_ModifyRes_U);
 
   return offset;
 }
@@ -12405,7 +12475,7 @@ static const ber_sequence_t Search_U_set[] = {
 };
 
 static int
-dissect_ansi_map_Search_U(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_Search_U(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_set(implicit_tag, actx, tree, tvb, offset,
                               Search_U_set, hf_index, ett_ansi_map_Search_U);
 
@@ -12415,9 +12485,9 @@ dissect_ansi_map_Search_U(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offs
 
 
 static int
-dissect_ansi_map_Search(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_Search(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_tagged_type(implicit_tag, actx, tree, tvb, offset,
-                                      hf_index, BER_CLASS_PRI, 18, FALSE, dissect_ansi_map_Search_U);
+                                      hf_index, BER_CLASS_PRI, 18, false, dissect_ansi_map_Search_U);
 
   return offset;
 }
@@ -12429,7 +12499,7 @@ static const ber_sequence_t SearchRes_U_set[] = {
 };
 
 static int
-dissect_ansi_map_SearchRes_U(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_SearchRes_U(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_set(implicit_tag, actx, tree, tvb, offset,
                               SearchRes_U_set, hf_index, ett_ansi_map_SearchRes_U);
 
@@ -12439,9 +12509,9 @@ dissect_ansi_map_SearchRes_U(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int o
 
 
 static int
-dissect_ansi_map_SearchRes(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_SearchRes(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_tagged_type(implicit_tag, actx, tree, tvb, offset,
-                                      hf_index, BER_CLASS_PRI, 18, FALSE, dissect_ansi_map_SearchRes_U);
+                                      hf_index, BER_CLASS_PRI, 18, false, dissect_ansi_map_SearchRes_U);
 
   return offset;
 }
@@ -12449,7 +12519,7 @@ dissect_ansi_map_SearchRes(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int off
 
 
 static int
-dissect_ansi_map_PrivateSpecializedResource(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_PrivateSpecializedResource(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_octet_string(implicit_tag, actx, tree, tvb, offset, hf_index,
                                        NULL);
 
@@ -12459,7 +12529,7 @@ dissect_ansi_map_PrivateSpecializedResource(gboolean implicit_tag _U_, tvbuff_t 
 
 
 static int
-dissect_ansi_map_SpecializedResource(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_SpecializedResource(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_octet_string(implicit_tag, actx, tree, tvb, offset, hf_index,
                                        NULL);
 
@@ -12475,7 +12545,7 @@ static const ber_sequence_t SeizeResource_U_set[] = {
 };
 
 static int
-dissect_ansi_map_SeizeResource_U(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_SeizeResource_U(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_set(implicit_tag, actx, tree, tvb, offset,
                               SeizeResource_U_set, hf_index, ett_ansi_map_SeizeResource_U);
 
@@ -12485,9 +12555,9 @@ dissect_ansi_map_SeizeResource_U(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, i
 
 
 static int
-dissect_ansi_map_SeizeResource(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_SeizeResource(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_tagged_type(implicit_tag, actx, tree, tvb, offset,
-                                      hf_index, BER_CLASS_PRI, 18, FALSE, dissect_ansi_map_SeizeResource_U);
+                                      hf_index, BER_CLASS_PRI, 18, false, dissect_ansi_map_SeizeResource_U);
 
   return offset;
 }
@@ -12499,7 +12569,7 @@ static const ber_sequence_t SeizeResourceRes_U_set[] = {
 };
 
 static int
-dissect_ansi_map_SeizeResourceRes_U(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_SeizeResourceRes_U(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_set(implicit_tag, actx, tree, tvb, offset,
                               SeizeResourceRes_U_set, hf_index, ett_ansi_map_SeizeResourceRes_U);
 
@@ -12509,9 +12579,9 @@ dissect_ansi_map_SeizeResourceRes_U(gboolean implicit_tag _U_, tvbuff_t *tvb _U_
 
 
 static int
-dissect_ansi_map_SeizeResourceRes(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_SeizeResourceRes(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_tagged_type(implicit_tag, actx, tree, tvb, offset,
-                                      hf_index, BER_CLASS_PRI, 18, FALSE, dissect_ansi_map_SeizeResourceRes_U);
+                                      hf_index, BER_CLASS_PRI, 18, false, dissect_ansi_map_SeizeResourceRes_U);
 
   return offset;
 }
@@ -12519,7 +12589,7 @@ dissect_ansi_map_SeizeResourceRes(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, 
 
 
 static int
-dissect_ansi_map_ScriptName(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_ScriptName(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_octet_string(implicit_tag, actx, tree, tvb, offset, hf_index,
                                        NULL);
 
@@ -12529,7 +12599,7 @@ dissect_ansi_map_ScriptName(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int of
 
 
 static int
-dissect_ansi_map_ScriptArgument(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_ScriptArgument(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_octet_string(implicit_tag, actx, tree, tvb, offset, hf_index,
                                        NULL);
 
@@ -12544,7 +12614,7 @@ static const ber_sequence_t ExecuteScript_sequence[] = {
 };
 
 static int
-dissect_ansi_map_ExecuteScript(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_ExecuteScript(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence(implicit_tag, actx, tree, tvb, offset,
                                    ExecuteScript_sequence, hf_index, ett_ansi_map_ExecuteScript);
 
@@ -12561,7 +12631,7 @@ static const ber_sequence_t SRFDirective_U_set[] = {
 };
 
 static int
-dissect_ansi_map_SRFDirective_U(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_SRFDirective_U(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_set(implicit_tag, actx, tree, tvb, offset,
                               SRFDirective_U_set, hf_index, ett_ansi_map_SRFDirective_U);
 
@@ -12571,9 +12641,9 @@ dissect_ansi_map_SRFDirective_U(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, in
 
 
 static int
-dissect_ansi_map_SRFDirective(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_SRFDirective(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_tagged_type(implicit_tag, actx, tree, tvb, offset,
-                                      hf_index, BER_CLASS_PRI, 18, FALSE, dissect_ansi_map_SRFDirective_U);
+                                      hf_index, BER_CLASS_PRI, 18, false, dissect_ansi_map_SRFDirective_U);
 
   return offset;
 }
@@ -12581,7 +12651,7 @@ dissect_ansi_map_SRFDirective(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int 
 
 
 static int
-dissect_ansi_map_ScriptResult(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_ScriptResult(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_octet_string(implicit_tag, actx, tree, tvb, offset, hf_index,
                                        NULL);
 
@@ -12596,7 +12666,7 @@ static const ber_sequence_t SRFDirectiveRes_U_set[] = {
 };
 
 static int
-dissect_ansi_map_SRFDirectiveRes_U(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_SRFDirectiveRes_U(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_set(implicit_tag, actx, tree, tvb, offset,
                               SRFDirectiveRes_U_set, hf_index, ett_ansi_map_SRFDirectiveRes_U);
 
@@ -12606,9 +12676,9 @@ dissect_ansi_map_SRFDirectiveRes_U(gboolean implicit_tag _U_, tvbuff_t *tvb _U_,
 
 
 static int
-dissect_ansi_map_SRFDirectiveRes(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_SRFDirectiveRes(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_tagged_type(implicit_tag, actx, tree, tvb, offset,
-                                      hf_index, BER_CLASS_PRI, 18, FALSE, dissect_ansi_map_SRFDirectiveRes_U);
+                                      hf_index, BER_CLASS_PRI, 18, false, dissect_ansi_map_SRFDirectiveRes_U);
 
   return offset;
 }
@@ -12645,7 +12715,7 @@ static const ber_sequence_t TBusy_U_set[] = {
 };
 
 static int
-dissect_ansi_map_TBusy_U(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_TBusy_U(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_set(implicit_tag, actx, tree, tvb, offset,
                               TBusy_U_set, hf_index, ett_ansi_map_TBusy_U);
 
@@ -12655,9 +12725,9 @@ dissect_ansi_map_TBusy_U(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offse
 
 
 static int
-dissect_ansi_map_TBusy(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_TBusy(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_tagged_type(implicit_tag, actx, tree, tvb, offset,
-                                      hf_index, BER_CLASS_PRI, 18, FALSE, dissect_ansi_map_TBusy_U);
+                                      hf_index, BER_CLASS_PRI, 18, false, dissect_ansi_map_TBusy_U);
 
   return offset;
 }
@@ -12689,7 +12759,7 @@ static const ber_sequence_t TBusyRes_U_set[] = {
 };
 
 static int
-dissect_ansi_map_TBusyRes_U(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_TBusyRes_U(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_set(implicit_tag, actx, tree, tvb, offset,
                               TBusyRes_U_set, hf_index, ett_ansi_map_TBusyRes_U);
 
@@ -12699,9 +12769,9 @@ dissect_ansi_map_TBusyRes_U(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int of
 
 
 static int
-dissect_ansi_map_TBusyRes(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_TBusyRes(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_tagged_type(implicit_tag, actx, tree, tvb, offset,
-                                      hf_index, BER_CLASS_PRI, 18, FALSE, dissect_ansi_map_TBusyRes_U);
+                                      hf_index, BER_CLASS_PRI, 18, false, dissect_ansi_map_TBusyRes_U);
 
   return offset;
 }
@@ -12738,7 +12808,7 @@ static const ber_sequence_t TNoAnswer_U_set[] = {
 };
 
 static int
-dissect_ansi_map_TNoAnswer_U(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_TNoAnswer_U(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_set(implicit_tag, actx, tree, tvb, offset,
                               TNoAnswer_U_set, hf_index, ett_ansi_map_TNoAnswer_U);
 
@@ -12748,9 +12818,9 @@ dissect_ansi_map_TNoAnswer_U(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int o
 
 
 static int
-dissect_ansi_map_TNoAnswer(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_TNoAnswer(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_tagged_type(implicit_tag, actx, tree, tvb, offset,
-                                      hf_index, BER_CLASS_PRI, 18, FALSE, dissect_ansi_map_TNoAnswer_U);
+                                      hf_index, BER_CLASS_PRI, 18, false, dissect_ansi_map_TNoAnswer_U);
 
   return offset;
 }
@@ -12783,7 +12853,7 @@ static const ber_sequence_t TNoAnswerRes_U_set[] = {
 };
 
 static int
-dissect_ansi_map_TNoAnswerRes_U(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_TNoAnswerRes_U(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_set(implicit_tag, actx, tree, tvb, offset,
                               TNoAnswerRes_U_set, hf_index, ett_ansi_map_TNoAnswerRes_U);
 
@@ -12793,9 +12863,9 @@ dissect_ansi_map_TNoAnswerRes_U(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, in
 
 
 static int
-dissect_ansi_map_TNoAnswerRes(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_TNoAnswerRes(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_tagged_type(implicit_tag, actx, tree, tvb, offset,
-                                      hf_index, BER_CLASS_PRI, 18, FALSE, dissect_ansi_map_TNoAnswerRes_U);
+                                      hf_index, BER_CLASS_PRI, 18, false, dissect_ansi_map_TNoAnswerRes_U);
 
   return offset;
 }
@@ -12818,7 +12888,7 @@ static const ber_sequence_t ChangeFacilities_U_set[] = {
 };
 
 static int
-dissect_ansi_map_ChangeFacilities_U(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_ChangeFacilities_U(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_set(implicit_tag, actx, tree, tvb, offset,
                               ChangeFacilities_U_set, hf_index, ett_ansi_map_ChangeFacilities_U);
 
@@ -12828,9 +12898,9 @@ dissect_ansi_map_ChangeFacilities_U(gboolean implicit_tag _U_, tvbuff_t *tvb _U_
 
 
 static int
-dissect_ansi_map_ChangeFacilities(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_ChangeFacilities(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_tagged_type(implicit_tag, actx, tree, tvb, offset,
-                                      hf_index, BER_CLASS_PRI, 18, FALSE, dissect_ansi_map_ChangeFacilities_U);
+                                      hf_index, BER_CLASS_PRI, 18, false, dissect_ansi_map_ChangeFacilities_U);
 
   return offset;
 }
@@ -12842,7 +12912,7 @@ static const ber_sequence_t ChangeFacilitiesRes_U_set[] = {
 };
 
 static int
-dissect_ansi_map_ChangeFacilitiesRes_U(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_ChangeFacilitiesRes_U(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_set(implicit_tag, actx, tree, tvb, offset,
                               ChangeFacilitiesRes_U_set, hf_index, ett_ansi_map_ChangeFacilitiesRes_U);
 
@@ -12852,9 +12922,9 @@ dissect_ansi_map_ChangeFacilitiesRes_U(gboolean implicit_tag _U_, tvbuff_t *tvb 
 
 
 static int
-dissect_ansi_map_ChangeFacilitiesRes(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_ChangeFacilitiesRes(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_tagged_type(implicit_tag, actx, tree, tvb, offset,
-                                      hf_index, BER_CLASS_PRI, 18, FALSE, dissect_ansi_map_ChangeFacilitiesRes_U);
+                                      hf_index, BER_CLASS_PRI, 18, false, dissect_ansi_map_ChangeFacilitiesRes_U);
 
   return offset;
 }
@@ -12862,7 +12932,7 @@ dissect_ansi_map_ChangeFacilitiesRes(gboolean implicit_tag _U_, tvbuff_t *tvb _U
 
 
 static int
-dissect_ansi_map_TDMAVoiceMode(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_TDMAVoiceMode(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_octet_string(implicit_tag, actx, tree, tvb, offset, hf_index,
                                        NULL);
 
@@ -12885,7 +12955,7 @@ static const ber_sequence_t ChangeService_U_set[] = {
 };
 
 static int
-dissect_ansi_map_ChangeService_U(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_ChangeService_U(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_set(implicit_tag, actx, tree, tvb, offset,
                               ChangeService_U_set, hf_index, ett_ansi_map_ChangeService_U);
 
@@ -12895,9 +12965,9 @@ dissect_ansi_map_ChangeService_U(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, i
 
 
 static int
-dissect_ansi_map_ChangeService(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_ChangeService(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_tagged_type(implicit_tag, actx, tree, tvb, offset,
-                                      hf_index, BER_CLASS_PRI, 18, FALSE, dissect_ansi_map_ChangeService_U);
+                                      hf_index, BER_CLASS_PRI, 18, false, dissect_ansi_map_ChangeService_U);
 
   return offset;
 }
@@ -12918,7 +12988,7 @@ static const ber_sequence_t ChangeServiceRes_U_set[] = {
 };
 
 static int
-dissect_ansi_map_ChangeServiceRes_U(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_ChangeServiceRes_U(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_set(implicit_tag, actx, tree, tvb, offset,
                               ChangeServiceRes_U_set, hf_index, ett_ansi_map_ChangeServiceRes_U);
 
@@ -12928,9 +12998,9 @@ dissect_ansi_map_ChangeServiceRes_U(gboolean implicit_tag _U_, tvbuff_t *tvb _U_
 
 
 static int
-dissect_ansi_map_ChangeServiceRes(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_ChangeServiceRes(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_tagged_type(implicit_tag, actx, tree, tvb, offset,
-                                      hf_index, BER_CLASS_PRI, 18, FALSE, dissect_ansi_map_ChangeServiceRes_U);
+                                      hf_index, BER_CLASS_PRI, 18, false, dissect_ansi_map_ChangeServiceRes_U);
 
   return offset;
 }
@@ -12944,7 +13014,7 @@ static const ber_sequence_t MessageDirective_U_set[] = {
 };
 
 static int
-dissect_ansi_map_MessageDirective_U(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_MessageDirective_U(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_set(implicit_tag, actx, tree, tvb, offset,
                               MessageDirective_U_set, hf_index, ett_ansi_map_MessageDirective_U);
 
@@ -12954,9 +13024,9 @@ dissect_ansi_map_MessageDirective_U(gboolean implicit_tag _U_, tvbuff_t *tvb _U_
 
 
 static int
-dissect_ansi_map_MessageDirective(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_MessageDirective(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_tagged_type(implicit_tag, actx, tree, tvb, offset,
-                                      hf_index, BER_CLASS_PRI, 18, FALSE, dissect_ansi_map_MessageDirective_U);
+                                      hf_index, BER_CLASS_PRI, 18, false, dissect_ansi_map_MessageDirective_U);
 
   return offset;
 }
@@ -12972,7 +13042,7 @@ static const ber_sequence_t BulkDisconnection_U_set[] = {
 };
 
 static int
-dissect_ansi_map_BulkDisconnection_U(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_BulkDisconnection_U(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_set(implicit_tag, actx, tree, tvb, offset,
                               BulkDisconnection_U_set, hf_index, ett_ansi_map_BulkDisconnection_U);
 
@@ -12982,9 +13052,9 @@ dissect_ansi_map_BulkDisconnection_U(gboolean implicit_tag _U_, tvbuff_t *tvb _U
 
 
 static int
-dissect_ansi_map_BulkDisconnection(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_BulkDisconnection(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_tagged_type(implicit_tag, actx, tree, tvb, offset,
-                                      hf_index, BER_CLASS_PRI, 18, FALSE, dissect_ansi_map_BulkDisconnection_U);
+                                      hf_index, BER_CLASS_PRI, 18, false, dissect_ansi_map_BulkDisconnection_U);
 
   return offset;
 }
@@ -13011,7 +13081,7 @@ static const ber_sequence_t CallControlDirective_U_set[] = {
 };
 
 static int
-dissect_ansi_map_CallControlDirective_U(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_CallControlDirective_U(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_set(implicit_tag, actx, tree, tvb, offset,
                               CallControlDirective_U_set, hf_index, ett_ansi_map_CallControlDirective_U);
 
@@ -13021,9 +13091,9 @@ dissect_ansi_map_CallControlDirective_U(gboolean implicit_tag _U_, tvbuff_t *tvb
 
 
 static int
-dissect_ansi_map_CallControlDirective(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_CallControlDirective(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_tagged_type(implicit_tag, actx, tree, tvb, offset,
-                                      hf_index, BER_CLASS_PRI, 18, FALSE, dissect_ansi_map_CallControlDirective_U);
+                                      hf_index, BER_CLASS_PRI, 18, false, dissect_ansi_map_CallControlDirective_U);
 
   return offset;
 }
@@ -13039,7 +13109,7 @@ static const value_string ansi_map_CallStatus_vals[] = {
 
 
 static int
-dissect_ansi_map_CallStatus(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_CallStatus(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_integer(implicit_tag, actx, tree, tvb, offset, hf_index,
                                   NULL);
 
@@ -13053,7 +13123,7 @@ static const ber_sequence_t CallControlDirectiveRes_U_set[] = {
 };
 
 static int
-dissect_ansi_map_CallControlDirectiveRes_U(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_CallControlDirectiveRes_U(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_set(implicit_tag, actx, tree, tvb, offset,
                               CallControlDirectiveRes_U_set, hf_index, ett_ansi_map_CallControlDirectiveRes_U);
 
@@ -13063,9 +13133,9 @@ dissect_ansi_map_CallControlDirectiveRes_U(gboolean implicit_tag _U_, tvbuff_t *
 
 
 static int
-dissect_ansi_map_CallControlDirectiveRes(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_CallControlDirectiveRes(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_tagged_type(implicit_tag, actx, tree, tvb, offset,
-                                      hf_index, BER_CLASS_PRI, 18, FALSE, dissect_ansi_map_CallControlDirectiveRes_U);
+                                      hf_index, BER_CLASS_PRI, 18, false, dissect_ansi_map_CallControlDirectiveRes_U);
 
   return offset;
 }
@@ -13089,7 +13159,7 @@ static const ber_sequence_t OAnswer_U_set[] = {
 };
 
 static int
-dissect_ansi_map_OAnswer_U(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_OAnswer_U(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_set(implicit_tag, actx, tree, tvb, offset,
                               OAnswer_U_set, hf_index, ett_ansi_map_OAnswer_U);
 
@@ -13099,9 +13169,9 @@ dissect_ansi_map_OAnswer_U(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int off
 
 
 static int
-dissect_ansi_map_OAnswer(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_OAnswer(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_tagged_type(implicit_tag, actx, tree, tvb, offset,
-                                      hf_index, BER_CLASS_PRI, 18, FALSE, dissect_ansi_map_OAnswer_U);
+                                      hf_index, BER_CLASS_PRI, 18, false, dissect_ansi_map_OAnswer_U);
 
   return offset;
 }
@@ -13117,7 +13187,7 @@ static const value_string ansi_map_ReleaseCause_vals[] = {
 
 
 static int
-dissect_ansi_map_ReleaseCause(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_ReleaseCause(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_integer(implicit_tag, actx, tree, tvb, offset, hf_index,
                                   NULL);
 
@@ -13145,7 +13215,7 @@ static const ber_sequence_t ODisconnect_U_set[] = {
 };
 
 static int
-dissect_ansi_map_ODisconnect_U(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_ODisconnect_U(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_set(implicit_tag, actx, tree, tvb, offset,
                               ODisconnect_U_set, hf_index, ett_ansi_map_ODisconnect_U);
 
@@ -13155,9 +13225,9 @@ dissect_ansi_map_ODisconnect_U(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int
 
 
 static int
-dissect_ansi_map_ODisconnect(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_ODisconnect(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_tagged_type(implicit_tag, actx, tree, tvb, offset,
-                                      hf_index, BER_CLASS_PRI, 18, FALSE, dissect_ansi_map_ODisconnect_U);
+                                      hf_index, BER_CLASS_PRI, 18, false, dissect_ansi_map_ODisconnect_U);
 
   return offset;
 }
@@ -13170,7 +13240,7 @@ static const ber_sequence_t ODisconnectRes_U_set[] = {
 };
 
 static int
-dissect_ansi_map_ODisconnectRes_U(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_ODisconnectRes_U(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_set(implicit_tag, actx, tree, tvb, offset,
                               ODisconnectRes_U_set, hf_index, ett_ansi_map_ODisconnectRes_U);
 
@@ -13180,9 +13250,9 @@ dissect_ansi_map_ODisconnectRes_U(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, 
 
 
 static int
-dissect_ansi_map_ODisconnectRes(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_ODisconnectRes(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_tagged_type(implicit_tag, actx, tree, tvb, offset,
-                                      hf_index, BER_CLASS_PRI, 18, FALSE, dissect_ansi_map_ODisconnectRes_U);
+                                      hf_index, BER_CLASS_PRI, 18, false, dissect_ansi_map_ODisconnectRes_U);
 
   return offset;
 }
@@ -13196,7 +13266,7 @@ static const ber_sequence_t CallRecoveryID_set[] = {
 };
 
 static int
-dissect_ansi_map_CallRecoveryID(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_CallRecoveryID(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_set(implicit_tag, actx, tree, tvb, offset,
                               CallRecoveryID_set, hf_index, ett_ansi_map_CallRecoveryID);
 
@@ -13209,7 +13279,7 @@ static const ber_sequence_t CallRecoveryIDList_set_of[1] = {
 };
 
 static int
-dissect_ansi_map_CallRecoveryIDList(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_CallRecoveryIDList(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_set_of(implicit_tag, actx, tree, tvb, offset,
                                  CallRecoveryIDList_set_of, hf_index, ett_ansi_map_CallRecoveryIDList);
 
@@ -13223,7 +13293,7 @@ static const ber_sequence_t CallRecoveryReport_U_set[] = {
 };
 
 static int
-dissect_ansi_map_CallRecoveryReport_U(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_CallRecoveryReport_U(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_set(implicit_tag, actx, tree, tvb, offset,
                               CallRecoveryReport_U_set, hf_index, ett_ansi_map_CallRecoveryReport_U);
 
@@ -13233,9 +13303,9 @@ dissect_ansi_map_CallRecoveryReport_U(gboolean implicit_tag _U_, tvbuff_t *tvb _
 
 
 static int
-dissect_ansi_map_CallRecoveryReport(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_CallRecoveryReport(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_tagged_type(implicit_tag, actx, tree, tvb, offset,
-                                      hf_index, BER_CLASS_PRI, 18, FALSE, dissect_ansi_map_CallRecoveryReport_U);
+                                      hf_index, BER_CLASS_PRI, 18, false, dissect_ansi_map_CallRecoveryReport_U);
 
   return offset;
 }
@@ -13262,7 +13332,7 @@ static const ber_sequence_t TAnswer_U_set[] = {
 };
 
 static int
-dissect_ansi_map_TAnswer_U(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_TAnswer_U(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_set(implicit_tag, actx, tree, tvb, offset,
                               TAnswer_U_set, hf_index, ett_ansi_map_TAnswer_U);
 
@@ -13272,9 +13342,9 @@ dissect_ansi_map_TAnswer_U(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int off
 
 
 static int
-dissect_ansi_map_TAnswer(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_TAnswer(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_tagged_type(implicit_tag, actx, tree, tvb, offset,
-                                      hf_index, BER_CLASS_PRI, 18, FALSE, dissect_ansi_map_TAnswer_U);
+                                      hf_index, BER_CLASS_PRI, 18, false, dissect_ansi_map_TAnswer_U);
 
   return offset;
 }
@@ -13300,7 +13370,7 @@ static const ber_sequence_t TDisconnect_U_set[] = {
 };
 
 static int
-dissect_ansi_map_TDisconnect_U(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_TDisconnect_U(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_set(implicit_tag, actx, tree, tvb, offset,
                               TDisconnect_U_set, hf_index, ett_ansi_map_TDisconnect_U);
 
@@ -13310,9 +13380,9 @@ dissect_ansi_map_TDisconnect_U(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int
 
 
 static int
-dissect_ansi_map_TDisconnect(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_TDisconnect(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_tagged_type(implicit_tag, actx, tree, tvb, offset,
-                                      hf_index, BER_CLASS_PRI, 18, FALSE, dissect_ansi_map_TDisconnect_U);
+                                      hf_index, BER_CLASS_PRI, 18, false, dissect_ansi_map_TDisconnect_U);
 
   return offset;
 }
@@ -13324,7 +13394,7 @@ static const ber_sequence_t TDisconnectRes_U_set[] = {
 };
 
 static int
-dissect_ansi_map_TDisconnectRes_U(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_TDisconnectRes_U(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_set(implicit_tag, actx, tree, tvb, offset,
                               TDisconnectRes_U_set, hf_index, ett_ansi_map_TDisconnectRes_U);
 
@@ -13334,9 +13404,9 @@ dissect_ansi_map_TDisconnectRes_U(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, 
 
 
 static int
-dissect_ansi_map_TDisconnectRes(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_TDisconnectRes(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_tagged_type(implicit_tag, actx, tree, tvb, offset,
-                                      hf_index, BER_CLASS_PRI, 18, FALSE, dissect_ansi_map_TDisconnectRes_U);
+                                      hf_index, BER_CLASS_PRI, 18, false, dissect_ansi_map_TDisconnectRes_U);
 
   return offset;
 }
@@ -13349,7 +13419,7 @@ static const ber_sequence_t UnreliableCallData_U_set[] = {
 };
 
 static int
-dissect_ansi_map_UnreliableCallData_U(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_UnreliableCallData_U(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_set(implicit_tag, actx, tree, tvb, offset,
                               UnreliableCallData_U_set, hf_index, ett_ansi_map_UnreliableCallData_U);
 
@@ -13359,9 +13429,9 @@ dissect_ansi_map_UnreliableCallData_U(gboolean implicit_tag _U_, tvbuff_t *tvb _
 
 
 static int
-dissect_ansi_map_UnreliableCallData(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_UnreliableCallData(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_tagged_type(implicit_tag, actx, tree, tvb, offset,
-                                      hf_index, BER_CLASS_PRI, 18, FALSE, dissect_ansi_map_UnreliableCallData_U);
+                                      hf_index, BER_CLASS_PRI, 18, false, dissect_ansi_map_UnreliableCallData_U);
 
   return offset;
 }
@@ -13395,7 +13465,7 @@ static const ber_sequence_t OCalledPartyBusy_U_set[] = {
 };
 
 static int
-dissect_ansi_map_OCalledPartyBusy_U(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_OCalledPartyBusy_U(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_set(implicit_tag, actx, tree, tvb, offset,
                               OCalledPartyBusy_U_set, hf_index, ett_ansi_map_OCalledPartyBusy_U);
 
@@ -13405,9 +13475,9 @@ dissect_ansi_map_OCalledPartyBusy_U(gboolean implicit_tag _U_, tvbuff_t *tvb _U_
 
 
 static int
-dissect_ansi_map_OCalledPartyBusy(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_OCalledPartyBusy(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_tagged_type(implicit_tag, actx, tree, tvb, offset,
-                                      hf_index, BER_CLASS_PRI, 18, FALSE, dissect_ansi_map_OCalledPartyBusy_U);
+                                      hf_index, BER_CLASS_PRI, 18, false, dissect_ansi_map_OCalledPartyBusy_U);
 
   return offset;
 }
@@ -13434,7 +13504,7 @@ static const ber_sequence_t OCalledPartyBusyRes_U_set[] = {
 };
 
 static int
-dissect_ansi_map_OCalledPartyBusyRes_U(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_OCalledPartyBusyRes_U(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_set(implicit_tag, actx, tree, tvb, offset,
                               OCalledPartyBusyRes_U_set, hf_index, ett_ansi_map_OCalledPartyBusyRes_U);
 
@@ -13444,9 +13514,9 @@ dissect_ansi_map_OCalledPartyBusyRes_U(gboolean implicit_tag _U_, tvbuff_t *tvb 
 
 
 static int
-dissect_ansi_map_OCalledPartyBusyRes(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_OCalledPartyBusyRes(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_tagged_type(implicit_tag, actx, tree, tvb, offset,
-                                      hf_index, BER_CLASS_PRI, 18, FALSE, dissect_ansi_map_OCalledPartyBusyRes_U);
+                                      hf_index, BER_CLASS_PRI, 18, false, dissect_ansi_map_OCalledPartyBusyRes_U);
 
   return offset;
 }
@@ -13479,7 +13549,7 @@ static const ber_sequence_t ONoAnswer_U_set[] = {
 };
 
 static int
-dissect_ansi_map_ONoAnswer_U(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_ONoAnswer_U(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_set(implicit_tag, actx, tree, tvb, offset,
                               ONoAnswer_U_set, hf_index, ett_ansi_map_ONoAnswer_U);
 
@@ -13489,9 +13559,9 @@ dissect_ansi_map_ONoAnswer_U(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int o
 
 
 static int
-dissect_ansi_map_ONoAnswer(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_ONoAnswer(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_tagged_type(implicit_tag, actx, tree, tvb, offset,
-                                      hf_index, BER_CLASS_PRI, 18, FALSE, dissect_ansi_map_ONoAnswer_U);
+                                      hf_index, BER_CLASS_PRI, 18, false, dissect_ansi_map_ONoAnswer_U);
 
   return offset;
 }
@@ -13518,7 +13588,7 @@ static const ber_sequence_t ONoAnswerRes_U_set[] = {
 };
 
 static int
-dissect_ansi_map_ONoAnswerRes_U(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_ONoAnswerRes_U(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_set(implicit_tag, actx, tree, tvb, offset,
                               ONoAnswerRes_U_set, hf_index, ett_ansi_map_ONoAnswerRes_U);
 
@@ -13528,9 +13598,9 @@ dissect_ansi_map_ONoAnswerRes_U(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, in
 
 
 static int
-dissect_ansi_map_ONoAnswerRes(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_ONoAnswerRes(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_tagged_type(implicit_tag, actx, tree, tvb, offset,
-                                      hf_index, BER_CLASS_PRI, 18, FALSE, dissect_ansi_map_ONoAnswerRes_U);
+                                      hf_index, BER_CLASS_PRI, 18, false, dissect_ansi_map_ONoAnswerRes_U);
 
   return offset;
 }
@@ -13538,7 +13608,7 @@ dissect_ansi_map_ONoAnswerRes(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int 
 
 
 static int
-dissect_ansi_map_PositionInformationCode(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_PositionInformationCode(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_octet_string(implicit_tag, actx, tree, tvb, offset, hf_index,
                                        NULL);
 
@@ -13557,7 +13627,7 @@ static const ber_sequence_t PositionRequest_U_set[] = {
 };
 
 static int
-dissect_ansi_map_PositionRequest_U(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_PositionRequest_U(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_set(implicit_tag, actx, tree, tvb, offset,
                               PositionRequest_U_set, hf_index, ett_ansi_map_PositionRequest_U);
 
@@ -13567,9 +13637,9 @@ dissect_ansi_map_PositionRequest_U(gboolean implicit_tag _U_, tvbuff_t *tvb _U_,
 
 
 static int
-dissect_ansi_map_PositionRequest(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_PositionRequest(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_tagged_type(implicit_tag, actx, tree, tvb, offset,
-                                      hf_index, BER_CLASS_PRI, 18, FALSE, dissect_ansi_map_PositionRequest_U);
+                                      hf_index, BER_CLASS_PRI, 18, false, dissect_ansi_map_PositionRequest_U);
 
   return offset;
 }
@@ -13577,7 +13647,7 @@ dissect_ansi_map_PositionRequest(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, i
 
 
 static int
-dissect_ansi_map_MSStatus(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_MSStatus(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_octet_string(implicit_tag, actx, tree, tvb, offset, hf_index,
                                        NULL);
 
@@ -13600,7 +13670,7 @@ static const ber_sequence_t PositionRequestRes_U_set[] = {
 };
 
 static int
-dissect_ansi_map_PositionRequestRes_U(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_PositionRequestRes_U(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_set(implicit_tag, actx, tree, tvb, offset,
                               PositionRequestRes_U_set, hf_index, ett_ansi_map_PositionRequestRes_U);
 
@@ -13610,9 +13680,9 @@ dissect_ansi_map_PositionRequestRes_U(gboolean implicit_tag _U_, tvbuff_t *tvb _
 
 
 static int
-dissect_ansi_map_PositionRequestRes(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_PositionRequestRes(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_tagged_type(implicit_tag, actx, tree, tvb, offset,
-                                      hf_index, BER_CLASS_PRI, 18, FALSE, dissect_ansi_map_PositionRequestRes_U);
+                                      hf_index, BER_CLASS_PRI, 18, false, dissect_ansi_map_PositionRequestRes_U);
 
   return offset;
 }
@@ -13628,7 +13698,7 @@ static const ber_sequence_t PositionRequestForward_U_set[] = {
 };
 
 static int
-dissect_ansi_map_PositionRequestForward_U(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_PositionRequestForward_U(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_set(implicit_tag, actx, tree, tvb, offset,
                               PositionRequestForward_U_set, hf_index, ett_ansi_map_PositionRequestForward_U);
 
@@ -13638,9 +13708,9 @@ dissect_ansi_map_PositionRequestForward_U(gboolean implicit_tag _U_, tvbuff_t *t
 
 
 static int
-dissect_ansi_map_PositionRequestForward(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_PositionRequestForward(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_tagged_type(implicit_tag, actx, tree, tvb, offset,
-                                      hf_index, BER_CLASS_PRI, 18, FALSE, dissect_ansi_map_PositionRequestForward_U);
+                                      hf_index, BER_CLASS_PRI, 18, false, dissect_ansi_map_PositionRequestForward_U);
 
   return offset;
 }
@@ -13655,7 +13725,7 @@ static const ber_sequence_t PositionRequestForwardRes_U_set[] = {
 };
 
 static int
-dissect_ansi_map_PositionRequestForwardRes_U(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_PositionRequestForwardRes_U(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_set(implicit_tag, actx, tree, tvb, offset,
                               PositionRequestForwardRes_U_set, hf_index, ett_ansi_map_PositionRequestForwardRes_U);
 
@@ -13665,9 +13735,9 @@ dissect_ansi_map_PositionRequestForwardRes_U(gboolean implicit_tag _U_, tvbuff_t
 
 
 static int
-dissect_ansi_map_PositionRequestForwardRes(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_PositionRequestForwardRes(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_tagged_type(implicit_tag, actx, tree, tvb, offset,
-                                      hf_index, BER_CLASS_PRI, 18, FALSE, dissect_ansi_map_PositionRequestForwardRes_U);
+                                      hf_index, BER_CLASS_PRI, 18, false, dissect_ansi_map_PositionRequestForwardRes_U);
 
   return offset;
 }
@@ -13682,7 +13752,7 @@ static const ber_sequence_t CallTerminationReport_U_set[] = {
 };
 
 static int
-dissect_ansi_map_CallTerminationReport_U(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_CallTerminationReport_U(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_set(implicit_tag, actx, tree, tvb, offset,
                               CallTerminationReport_U_set, hf_index, ett_ansi_map_CallTerminationReport_U);
 
@@ -13692,9 +13762,9 @@ dissect_ansi_map_CallTerminationReport_U(gboolean implicit_tag _U_, tvbuff_t *tv
 
 
 static int
-dissect_ansi_map_CallTerminationReport(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_CallTerminationReport(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_tagged_type(implicit_tag, actx, tree, tvb, offset,
-                                      hf_index, BER_CLASS_PRI, 18, FALSE, dissect_ansi_map_CallTerminationReport_U);
+                                      hf_index, BER_CLASS_PRI, 18, false, dissect_ansi_map_CallTerminationReport_U);
 
   return offset;
 }
@@ -13702,7 +13772,7 @@ dissect_ansi_map_CallTerminationReport(gboolean implicit_tag _U_, tvbuff_t *tvb 
 
 
 static int
-dissect_ansi_map_PositionRequestType(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_PositionRequestType(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_octet_string(implicit_tag, actx, tree, tvb, offset, hf_index,
                                        NULL);
 
@@ -13712,7 +13782,7 @@ dissect_ansi_map_PositionRequestType(gboolean implicit_tag _U_, tvbuff_t *tvb _U
 
 
 static int
-dissect_ansi_map_LCSBillingID(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_LCSBillingID(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_octet_string(implicit_tag, actx, tree, tvb, offset, hf_index,
                                        NULL);
 
@@ -13722,7 +13792,7 @@ dissect_ansi_map_LCSBillingID(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int 
 
 
 static int
-dissect_ansi_map_LCS_Client_ID(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_LCS_Client_ID(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ansi_map_DigitsType(implicit_tag, tvb, offset, actx, tree, hf_index);
 
   return offset;
@@ -13731,7 +13801,7 @@ dissect_ansi_map_LCS_Client_ID(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int
 
 
 static int
-dissect_ansi_map_DTXIndication(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_DTXIndication(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_octet_string(implicit_tag, actx, tree, tvb, offset, hf_index,
                                        NULL);
 
@@ -13741,46 +13811,7 @@ dissect_ansi_map_DTXIndication(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int
 
 
 static int
-dissect_ansi_map_CDMAMobileCapabilities(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
-  offset = dissect_ber_octet_string(implicit_tag, actx, tree, tvb, offset, hf_index,
-                                       NULL);
-
-  return offset;
-}
-
-
-static const ber_sequence_t CDMAPSMMList_item_set[] = {
-  { &hf_ansi_map_cdmaServingOneWayDelay2, BER_CLASS_CON, 347, BER_FLAGS_IMPLTAG, dissect_ansi_map_CDMAServingOneWayDelay2 },
-  { &hf_ansi_map_cdmaTargetMAHOList, BER_CLASS_CON, 136, BER_FLAGS_IMPLTAG, dissect_ansi_map_CDMATargetMAHOList },
-  { &hf_ansi_map_cdmaTargetMAHOList2, BER_CLASS_CON, 136, BER_FLAGS_OPTIONAL|BER_FLAGS_IMPLTAG, dissect_ansi_map_CDMATargetMAHOList },
-  { NULL, 0, 0, 0, NULL }
-};
-
-static int
-dissect_ansi_map_CDMAPSMMList_item(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
-  offset = dissect_ber_set(implicit_tag, actx, tree, tvb, offset,
-                              CDMAPSMMList_item_set, hf_index, ett_ansi_map_CDMAPSMMList_item);
-
-  return offset;
-}
-
-
-static const ber_sequence_t CDMAPSMMList_set_of[1] = {
-  { &hf_ansi_map_CDMAPSMMList_item, BER_CLASS_UNI, BER_UNI_TAG_SET, BER_FLAGS_NOOWNTAG, dissect_ansi_map_CDMAPSMMList_item },
-};
-
-static int
-dissect_ansi_map_CDMAPSMMList(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
-  offset = dissect_ber_set_of(implicit_tag, actx, tree, tvb, offset,
-                                 CDMAPSMMList_set_of, hf_index, ett_ansi_map_CDMAPSMMList);
-
-  return offset;
-}
-
-
-
-static int
-dissect_ansi_map_TDMA_MAHO_CELLID(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_TDMA_MAHO_CELLID(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_octet_string(implicit_tag, actx, tree, tvb, offset, hf_index,
                                        NULL);
 
@@ -13790,7 +13821,7 @@ dissect_ansi_map_TDMA_MAHO_CELLID(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, 
 
 
 static int
-dissect_ansi_map_TDMA_MAHO_CHANNEL(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_TDMA_MAHO_CHANNEL(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_octet_string(implicit_tag, actx, tree, tvb, offset, hf_index,
                                        NULL);
 
@@ -13800,7 +13831,7 @@ dissect_ansi_map_TDMA_MAHO_CHANNEL(gboolean implicit_tag _U_, tvbuff_t *tvb _U_,
 
 
 static int
-dissect_ansi_map_TDMA_TimeAlignment(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_TDMA_TimeAlignment(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_octet_string(implicit_tag, actx, tree, tvb, offset, hf_index,
                                        NULL);
 
@@ -13810,7 +13841,7 @@ dissect_ansi_map_TDMA_TimeAlignment(gboolean implicit_tag _U_, tvbuff_t *tvb _U_
 
 
 static int
-dissect_ansi_map_PQOS_HorizontalPosition(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_PQOS_HorizontalPosition(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_octet_string(implicit_tag, actx, tree, tvb, offset, hf_index,
                                        NULL);
 
@@ -13820,7 +13851,7 @@ dissect_ansi_map_PQOS_HorizontalPosition(gboolean implicit_tag _U_, tvbuff_t *tv
 
 
 static int
-dissect_ansi_map_PQOS_HorizontalVelocity(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_PQOS_HorizontalVelocity(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_octet_string(implicit_tag, actx, tree, tvb, offset, hf_index,
                                        NULL);
 
@@ -13830,7 +13861,7 @@ dissect_ansi_map_PQOS_HorizontalVelocity(gboolean implicit_tag _U_, tvbuff_t *tv
 
 
 static int
-dissect_ansi_map_PQOS_MaximumPositionAge(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_PQOS_MaximumPositionAge(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_octet_string(implicit_tag, actx, tree, tvb, offset, hf_index,
                                        NULL);
 
@@ -13840,7 +13871,7 @@ dissect_ansi_map_PQOS_MaximumPositionAge(gboolean implicit_tag _U_, tvbuff_t *tv
 
 
 static int
-dissect_ansi_map_PQOS_PositionPriority(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_PQOS_PositionPriority(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_octet_string(implicit_tag, actx, tree, tvb, offset, hf_index,
                                        NULL);
 
@@ -13858,7 +13889,7 @@ static const value_string ansi_map_PQOS_ResponseTime_vals[] = {
 
 
 static int
-dissect_ansi_map_PQOS_ResponseTime(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_PQOS_ResponseTime(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_integer(implicit_tag, actx, tree, tvb, offset, hf_index,
                                   NULL);
 
@@ -13868,7 +13899,7 @@ dissect_ansi_map_PQOS_ResponseTime(gboolean implicit_tag _U_, tvbuff_t *tvb _U_,
 
 
 static int
-dissect_ansi_map_PQOS_VerticalPosition(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_PQOS_VerticalPosition(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_octet_string(implicit_tag, actx, tree, tvb, offset, hf_index,
                                        NULL);
 
@@ -13878,7 +13909,7 @@ dissect_ansi_map_PQOS_VerticalPosition(gboolean implicit_tag _U_, tvbuff_t *tvb 
 
 
 static int
-dissect_ansi_map_PQOS_VerticalVelocity(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_PQOS_VerticalVelocity(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_octet_string(implicit_tag, actx, tree, tvb, offset, hf_index,
                                        NULL);
 
@@ -13930,7 +13961,7 @@ static const ber_sequence_t GeoPositionRequest_U_set[] = {
 };
 
 static int
-dissect_ansi_map_GeoPositionRequest_U(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_GeoPositionRequest_U(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_set(implicit_tag, actx, tree, tvb, offset,
                               GeoPositionRequest_U_set, hf_index, ett_ansi_map_GeoPositionRequest_U);
 
@@ -13940,9 +13971,9 @@ dissect_ansi_map_GeoPositionRequest_U(gboolean implicit_tag _U_, tvbuff_t *tvb _
 
 
 static int
-dissect_ansi_map_GeoPositionRequest(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_GeoPositionRequest(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_tagged_type(implicit_tag, actx, tree, tvb, offset,
-                                      hf_index, BER_CLASS_PRI, 18, FALSE, dissect_ansi_map_GeoPositionRequest_U);
+                                      hf_index, BER_CLASS_PRI, 18, false, dissect_ansi_map_GeoPositionRequest_U);
 
   return offset;
 }
@@ -13950,7 +13981,7 @@ dissect_ansi_map_GeoPositionRequest(gboolean implicit_tag _U_, tvbuff_t *tvb _U_
 
 
 static int
-dissect_ansi_map_CDMAPSMMCount(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_CDMAPSMMCount(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_octet_string(implicit_tag, actx, tree, tvb, offset, hf_index,
                                        NULL);
 
@@ -13966,7 +13997,7 @@ static const value_string ansi_map_LIRAuthorization_vals[] = {
 
 
 static int
-dissect_ansi_map_LIRAuthorization(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_LIRAuthorization(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_integer(implicit_tag, actx, tree, tvb, offset, hf_index,
                                   NULL);
 
@@ -13976,7 +14007,7 @@ dissect_ansi_map_LIRAuthorization(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, 
 
 
 static int
-dissect_ansi_map_MPCID(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_MPCID(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ansi_map_DigitsType(implicit_tag, tvb, offset, actx, tree, hf_index);
 
   return offset;
@@ -13985,7 +14016,7 @@ dissect_ansi_map_MPCID(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset 
 
 
 static int
-dissect_ansi_map_TDMA_MAHORequest(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_TDMA_MAHORequest(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_octet_string(implicit_tag, actx, tree, tvb, offset, hf_index,
                                        NULL);
 
@@ -14046,7 +14077,7 @@ static const ber_sequence_t InterSystemPositionRequest_U_set[] = {
 };
 
 static int
-dissect_ansi_map_InterSystemPositionRequest_U(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_InterSystemPositionRequest_U(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_set(implicit_tag, actx, tree, tvb, offset,
                               InterSystemPositionRequest_U_set, hf_index, ett_ansi_map_InterSystemPositionRequest_U);
 
@@ -14056,9 +14087,9 @@ dissect_ansi_map_InterSystemPositionRequest_U(gboolean implicit_tag _U_, tvbuff_
 
 
 static int
-dissect_ansi_map_InterSystemPositionRequest(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_InterSystemPositionRequest(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_tagged_type(implicit_tag, actx, tree, tvb, offset,
-                                      hf_index, BER_CLASS_PRI, 18, FALSE, dissect_ansi_map_InterSystemPositionRequest_U);
+                                      hf_index, BER_CLASS_PRI, 18, false, dissect_ansi_map_InterSystemPositionRequest_U);
 
   return offset;
 }
@@ -14066,7 +14097,7 @@ dissect_ansi_map_InterSystemPositionRequest(gboolean implicit_tag _U_, tvbuff_t 
 
 
 static int
-dissect_ansi_map_PositionResult(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_PositionResult(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_octet_string(implicit_tag, actx, tree, tvb, offset, hf_index,
                                        NULL);
 
@@ -14076,7 +14107,7 @@ dissect_ansi_map_PositionResult(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, in
 
 
 static int
-dissect_ansi_map_GeneralizedTime(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_GeneralizedTime(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_GeneralizedTime(implicit_tag, actx, tree, tvb, offset, hf_index);
 
   return offset;
@@ -14085,7 +14116,7 @@ dissect_ansi_map_GeneralizedTime(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, i
 
 
 static int
-dissect_ansi_map_GeographicPosition(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_GeographicPosition(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_octet_string(implicit_tag, actx, tree, tvb, offset, hf_index,
                                        NULL);
 
@@ -14095,7 +14126,7 @@ dissect_ansi_map_GeographicPosition(gboolean implicit_tag _U_, tvbuff_t *tvb _U_
 
 
 static int
-dissect_ansi_map_PositionSource(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_PositionSource(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_octet_string(implicit_tag, actx, tree, tvb, offset, hf_index,
                                        NULL);
 
@@ -14105,7 +14136,7 @@ dissect_ansi_map_PositionSource(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, in
 
 
 static int
-dissect_ansi_map_Horizontal_Velocity(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_Horizontal_Velocity(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_octet_string(implicit_tag, actx, tree, tvb, offset, hf_index,
                                        NULL);
 
@@ -14115,7 +14146,7 @@ dissect_ansi_map_Horizontal_Velocity(gboolean implicit_tag _U_, tvbuff_t *tvb _U
 
 
 static int
-dissect_ansi_map_Vertical_Velocity(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_Vertical_Velocity(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_octet_string(implicit_tag, actx, tree, tvb, offset, hf_index,
                                        NULL);
 
@@ -14133,7 +14164,7 @@ static const ber_sequence_t PositionInformation_set[] = {
 };
 
 static int
-dissect_ansi_map_PositionInformation(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_PositionInformation(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_set(implicit_tag, actx, tree, tvb, offset,
                               PositionInformation_set, hf_index, ett_ansi_map_PositionInformation);
 
@@ -14171,7 +14202,7 @@ static const ber_sequence_t InterSystemPositionRequestRes_U_set[] = {
 };
 
 static int
-dissect_ansi_map_InterSystemPositionRequestRes_U(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_InterSystemPositionRequestRes_U(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_set(implicit_tag, actx, tree, tvb, offset,
                               InterSystemPositionRequestRes_U_set, hf_index, ett_ansi_map_InterSystemPositionRequestRes_U);
 
@@ -14181,9 +14212,9 @@ dissect_ansi_map_InterSystemPositionRequestRes_U(gboolean implicit_tag _U_, tvbu
 
 
 static int
-dissect_ansi_map_InterSystemPositionRequestRes(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_InterSystemPositionRequestRes(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_tagged_type(implicit_tag, actx, tree, tvb, offset,
-                                      hf_index, BER_CLASS_PRI, 18, FALSE, dissect_ansi_map_InterSystemPositionRequestRes_U);
+                                      hf_index, BER_CLASS_PRI, 18, false, dissect_ansi_map_InterSystemPositionRequestRes_U);
 
   return offset;
 }
@@ -14212,7 +14243,7 @@ static const ber_sequence_t InterSystemPositionRequestForward_U_set[] = {
 };
 
 static int
-dissect_ansi_map_InterSystemPositionRequestForward_U(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_InterSystemPositionRequestForward_U(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_set(implicit_tag, actx, tree, tvb, offset,
                               InterSystemPositionRequestForward_U_set, hf_index, ett_ansi_map_InterSystemPositionRequestForward_U);
 
@@ -14222,9 +14253,9 @@ dissect_ansi_map_InterSystemPositionRequestForward_U(gboolean implicit_tag _U_, 
 
 
 static int
-dissect_ansi_map_InterSystemPositionRequestForward(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_InterSystemPositionRequestForward(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_tagged_type(implicit_tag, actx, tree, tvb, offset,
-                                      hf_index, BER_CLASS_PRI, 18, FALSE, dissect_ansi_map_InterSystemPositionRequestForward_U);
+                                      hf_index, BER_CLASS_PRI, 18, false, dissect_ansi_map_InterSystemPositionRequestForward_U);
 
   return offset;
 }
@@ -14240,7 +14271,7 @@ static const ber_sequence_t InterSystemPositionRequestForwardRes_U_set[] = {
 };
 
 static int
-dissect_ansi_map_InterSystemPositionRequestForwardRes_U(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_InterSystemPositionRequestForwardRes_U(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_set(implicit_tag, actx, tree, tvb, offset,
                               InterSystemPositionRequestForwardRes_U_set, hf_index, ett_ansi_map_InterSystemPositionRequestForwardRes_U);
 
@@ -14250,9 +14281,9 @@ dissect_ansi_map_InterSystemPositionRequestForwardRes_U(gboolean implicit_tag _U
 
 
 static int
-dissect_ansi_map_InterSystemPositionRequestForwardRes(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_InterSystemPositionRequestForwardRes(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_tagged_type(implicit_tag, actx, tree, tvb, offset,
-                                      hf_index, BER_CLASS_PRI, 18, FALSE, dissect_ansi_map_InterSystemPositionRequestForwardRes_U);
+                                      hf_index, BER_CLASS_PRI, 18, false, dissect_ansi_map_InterSystemPositionRequestForwardRes_U);
 
   return offset;
 }
@@ -14260,7 +14291,7 @@ dissect_ansi_map_InterSystemPositionRequestForwardRes(gboolean implicit_tag _U_,
 
 
 static int
-dissect_ansi_map_ControlType(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_ControlType(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_octet_string(implicit_tag, actx, tree, tvb, offset, hf_index,
                                        NULL);
 
@@ -14275,7 +14306,7 @@ static const value_string ansi_map_GapDuration_vals[] = {
 
 
 static int
-dissect_ansi_map_GapDuration(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_GapDuration(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_integer(implicit_tag, actx, tree, tvb, offset, hf_index,
                                   NULL);
 
@@ -14290,7 +14321,7 @@ static const value_string ansi_map_SCFOverloadGapInterval_vals[] = {
 
 
 static int
-dissect_ansi_map_SCFOverloadGapInterval(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_SCFOverloadGapInterval(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_integer(implicit_tag, actx, tree, tvb, offset, hf_index,
                                   NULL);
 
@@ -14305,7 +14336,7 @@ static const value_string ansi_map_ServiceManagementSystemGapInterval_vals[] = {
 
 
 static int
-dissect_ansi_map_ServiceManagementSystemGapInterval(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_ServiceManagementSystemGapInterval(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_integer(implicit_tag, actx, tree, tvb, offset, hf_index,
                                   NULL);
 
@@ -14326,7 +14357,7 @@ static const ber_choice_t GapInterval_choice[] = {
 };
 
 static int
-dissect_ansi_map_GapInterval(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_GapInterval(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_choice(actx, tree, tvb, offset,
                                  GapInterval_choice, hf_index, ett_ansi_map_GapInterval,
                                  NULL);
@@ -14344,7 +14375,7 @@ static const ber_sequence_t ACGDirective_U_set[] = {
 };
 
 static int
-dissect_ansi_map_ACGDirective_U(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_ACGDirective_U(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_set(implicit_tag, actx, tree, tvb, offset,
                               ACGDirective_U_set, hf_index, ett_ansi_map_ACGDirective_U);
 
@@ -14354,9 +14385,9 @@ dissect_ansi_map_ACGDirective_U(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, in
 
 
 static int
-dissect_ansi_map_ACGDirective(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_ACGDirective(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_tagged_type(implicit_tag, actx, tree, tvb, offset,
-                                      hf_index, BER_CLASS_PRI, 18, FALSE, dissect_ansi_map_ACGDirective_U);
+                                      hf_index, BER_CLASS_PRI, 18, false, dissect_ansi_map_ACGDirective_U);
 
   return offset;
 }
@@ -14364,7 +14395,7 @@ dissect_ansi_map_ACGDirective(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int 
 
 
 static int
-dissect_ansi_map_InvokingNEType(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_InvokingNEType(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_integer(implicit_tag, actx, tree, tvb, offset, hf_index,
                                                 NULL);
 
@@ -14374,7 +14405,7 @@ dissect_ansi_map_InvokingNEType(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, in
 
 
 static int
-dissect_ansi_map_Range(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_Range(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_integer(implicit_tag, actx, tree, tvb, offset, hf_index,
                                                 NULL);
 
@@ -14392,7 +14423,7 @@ static const ber_sequence_t RoamerDatabaseVerificationRequest_U_set[] = {
 };
 
 static int
-dissect_ansi_map_RoamerDatabaseVerificationRequest_U(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_RoamerDatabaseVerificationRequest_U(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_set(implicit_tag, actx, tree, tvb, offset,
                               RoamerDatabaseVerificationRequest_U_set, hf_index, ett_ansi_map_RoamerDatabaseVerificationRequest_U);
 
@@ -14402,9 +14433,9 @@ dissect_ansi_map_RoamerDatabaseVerificationRequest_U(gboolean implicit_tag _U_, 
 
 
 static int
-dissect_ansi_map_RoamerDatabaseVerificationRequest(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_RoamerDatabaseVerificationRequest(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_tagged_type(implicit_tag, actx, tree, tvb, offset,
-                                      hf_index, BER_CLASS_PRI, 18, FALSE, dissect_ansi_map_RoamerDatabaseVerificationRequest_U);
+                                      hf_index, BER_CLASS_PRI, 18, false, dissect_ansi_map_RoamerDatabaseVerificationRequest_U);
 
   return offset;
 }
@@ -14416,7 +14447,7 @@ static const ber_sequence_t RoamerDatabaseVerificationRequestRes_U_set[] = {
 };
 
 static int
-dissect_ansi_map_RoamerDatabaseVerificationRequestRes_U(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_RoamerDatabaseVerificationRequestRes_U(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_set(implicit_tag, actx, tree, tvb, offset,
                               RoamerDatabaseVerificationRequestRes_U_set, hf_index, ett_ansi_map_RoamerDatabaseVerificationRequestRes_U);
 
@@ -14426,9 +14457,9 @@ dissect_ansi_map_RoamerDatabaseVerificationRequestRes_U(gboolean implicit_tag _U
 
 
 static int
-dissect_ansi_map_RoamerDatabaseVerificationRequestRes(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_RoamerDatabaseVerificationRequestRes(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_tagged_type(implicit_tag, actx, tree, tvb, offset,
-                                      hf_index, BER_CLASS_PRI, 18, FALSE, dissect_ansi_map_RoamerDatabaseVerificationRequestRes_U);
+                                      hf_index, BER_CLASS_PRI, 18, false, dissect_ansi_map_RoamerDatabaseVerificationRequestRes_U);
 
   return offset;
 }
@@ -14442,7 +14473,7 @@ static const ber_sequence_t LCSParameterRequest_U_set[] = {
 };
 
 static int
-dissect_ansi_map_LCSParameterRequest_U(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_LCSParameterRequest_U(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_set(implicit_tag, actx, tree, tvb, offset,
                               LCSParameterRequest_U_set, hf_index, ett_ansi_map_LCSParameterRequest_U);
 
@@ -14452,9 +14483,9 @@ dissect_ansi_map_LCSParameterRequest_U(gboolean implicit_tag _U_, tvbuff_t *tvb 
 
 
 static int
-dissect_ansi_map_LCSParameterRequest(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_LCSParameterRequest(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_tagged_type(implicit_tag, actx, tree, tvb, offset,
-                                      hf_index, BER_CLASS_PRI, 18, FALSE, dissect_ansi_map_LCSParameterRequest_U);
+                                      hf_index, BER_CLASS_PRI, 18, false, dissect_ansi_map_LCSParameterRequest_U);
 
   return offset;
 }
@@ -14476,7 +14507,7 @@ static const ber_sequence_t LCSParameterRequestRes_U_set[] = {
 };
 
 static int
-dissect_ansi_map_LCSParameterRequestRes_U(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_LCSParameterRequestRes_U(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_set(implicit_tag, actx, tree, tvb, offset,
                               LCSParameterRequestRes_U_set, hf_index, ett_ansi_map_LCSParameterRequestRes_U);
 
@@ -14486,9 +14517,9 @@ dissect_ansi_map_LCSParameterRequestRes_U(gboolean implicit_tag _U_, tvbuff_t *t
 
 
 static int
-dissect_ansi_map_LCSParameterRequestRes(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_LCSParameterRequestRes(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_tagged_type(implicit_tag, actx, tree, tvb, offset,
-                                      hf_index, BER_CLASS_PRI, 18, FALSE, dissect_ansi_map_LCSParameterRequestRes_U);
+                                      hf_index, BER_CLASS_PRI, 18, false, dissect_ansi_map_LCSParameterRequestRes_U);
 
   return offset;
 }
@@ -14505,7 +14536,7 @@ static const ber_sequence_t CheckMEID_U_set[] = {
 };
 
 static int
-dissect_ansi_map_CheckMEID_U(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_CheckMEID_U(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_set(implicit_tag, actx, tree, tvb, offset,
                               CheckMEID_U_set, hf_index, ett_ansi_map_CheckMEID_U);
 
@@ -14515,9 +14546,9 @@ dissect_ansi_map_CheckMEID_U(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int o
 
 
 static int
-dissect_ansi_map_CheckMEID(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_CheckMEID(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_tagged_type(implicit_tag, actx, tree, tvb, offset,
-                                      hf_index, BER_CLASS_PRI, 18, FALSE, dissect_ansi_map_CheckMEID_U);
+                                      hf_index, BER_CLASS_PRI, 18, false, dissect_ansi_map_CheckMEID_U);
 
   return offset;
 }
@@ -14525,7 +14556,7 @@ dissect_ansi_map_CheckMEID(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int off
 
 
 static int
-dissect_ansi_map_MEIDStatus(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_MEIDStatus(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_octet_string(implicit_tag, actx, tree, tvb, offset, hf_index,
                                        NULL);
 
@@ -14539,7 +14570,7 @@ static const ber_sequence_t CheckMEIDRes_U_set[] = {
 };
 
 static int
-dissect_ansi_map_CheckMEIDRes_U(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_CheckMEIDRes_U(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_set(implicit_tag, actx, tree, tvb, offset,
                               CheckMEIDRes_U_set, hf_index, ett_ansi_map_CheckMEIDRes_U);
 
@@ -14549,9 +14580,9 @@ dissect_ansi_map_CheckMEIDRes_U(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, in
 
 
 static int
-dissect_ansi_map_CheckMEIDRes(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_CheckMEIDRes(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_tagged_type(implicit_tag, actx, tree, tvb, offset,
-                                      hf_index, BER_CLASS_PRI, 18, FALSE, dissect_ansi_map_CheckMEIDRes_U);
+                                      hf_index, BER_CLASS_PRI, 18, false, dissect_ansi_map_CheckMEIDRes_U);
 
   return offset;
 }
@@ -14568,7 +14599,7 @@ static const ber_sequence_t AddService_U_set[] = {
 };
 
 static int
-dissect_ansi_map_AddService_U(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_AddService_U(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_set(implicit_tag, actx, tree, tvb, offset,
                               AddService_U_set, hf_index, ett_ansi_map_AddService_U);
 
@@ -14578,9 +14609,9 @@ dissect_ansi_map_AddService_U(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int 
 
 
 static int
-dissect_ansi_map_AddService(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_AddService(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_tagged_type(implicit_tag, actx, tree, tvb, offset,
-                                      hf_index, BER_CLASS_PRI, 18, FALSE, dissect_ansi_map_AddService_U);
+                                      hf_index, BER_CLASS_PRI, 18, false, dissect_ansi_map_AddService_U);
 
   return offset;
 }
@@ -14595,7 +14626,7 @@ static const ber_sequence_t AddServiceRes_U_set[] = {
 };
 
 static int
-dissect_ansi_map_AddServiceRes_U(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_AddServiceRes_U(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_set(implicit_tag, actx, tree, tvb, offset,
                               AddServiceRes_U_set, hf_index, ett_ansi_map_AddServiceRes_U);
 
@@ -14605,9 +14636,9 @@ dissect_ansi_map_AddServiceRes_U(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, i
 
 
 static int
-dissect_ansi_map_AddServiceRes(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_AddServiceRes(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_tagged_type(implicit_tag, actx, tree, tvb, offset,
-                                      hf_index, BER_CLASS_PRI, 18, FALSE, dissect_ansi_map_AddServiceRes_U);
+                                      hf_index, BER_CLASS_PRI, 18, false, dissect_ansi_map_AddServiceRes_U);
 
   return offset;
 }
@@ -14624,7 +14655,7 @@ static const ber_sequence_t DropService_U_set[] = {
 };
 
 static int
-dissect_ansi_map_DropService_U(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_DropService_U(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_set(implicit_tag, actx, tree, tvb, offset,
                               DropService_U_set, hf_index, ett_ansi_map_DropService_U);
 
@@ -14634,9 +14665,9 @@ dissect_ansi_map_DropService_U(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int
 
 
 static int
-dissect_ansi_map_DropService(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_DropService(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_tagged_type(implicit_tag, actx, tree, tvb, offset,
-                                      hf_index, BER_CLASS_PRI, 18, FALSE, dissect_ansi_map_DropService_U);
+                                      hf_index, BER_CLASS_PRI, 18, false, dissect_ansi_map_DropService_U);
 
   return offset;
 }
@@ -14648,7 +14679,7 @@ static const ber_sequence_t DropServiceRes_U_set[] = {
 };
 
 static int
-dissect_ansi_map_DropServiceRes_U(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_DropServiceRes_U(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_set(implicit_tag, actx, tree, tvb, offset,
                               DropServiceRes_U_set, hf_index, ett_ansi_map_DropServiceRes_U);
 
@@ -14658,9 +14689,9 @@ dissect_ansi_map_DropServiceRes_U(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, 
 
 
 static int
-dissect_ansi_map_DropServiceRes(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_DropServiceRes(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_tagged_type(implicit_tag, actx, tree, tvb, offset,
-                                      hf_index, BER_CLASS_PRI, 18, FALSE, dissect_ansi_map_DropServiceRes_U);
+                                      hf_index, BER_CLASS_PRI, 18, false, dissect_ansi_map_DropServiceRes_U);
 
   return offset;
 }
@@ -14675,7 +14706,7 @@ static const ber_sequence_t PositionEventNotification_U_set[] = {
 };
 
 static int
-dissect_ansi_map_PositionEventNotification_U(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_PositionEventNotification_U(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_set(implicit_tag, actx, tree, tvb, offset,
                               PositionEventNotification_U_set, hf_index, ett_ansi_map_PositionEventNotification_U);
 
@@ -14685,9 +14716,9 @@ dissect_ansi_map_PositionEventNotification_U(gboolean implicit_tag _U_, tvbuff_t
 
 
 static int
-dissect_ansi_map_PositionEventNotification(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_PositionEventNotification(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_tagged_type(implicit_tag, actx, tree, tvb, offset,
-                                      hf_index, BER_CLASS_PRI, 18, FALSE, dissect_ansi_map_PositionEventNotification_U);
+                                      hf_index, BER_CLASS_PRI, 18, false, dissect_ansi_map_PositionEventNotification_U);
 
   return offset;
 }
@@ -14695,7 +14726,7 @@ dissect_ansi_map_PositionEventNotification(gboolean implicit_tag _U_, tvbuff_t *
 
 
 static int
-dissect_ansi_map_AKeyProtocolVersion(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_AKeyProtocolVersion(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_octet_string(implicit_tag, actx, tree, tvb, offset, hf_index,
                                        NULL);
 
@@ -14705,7 +14736,7 @@ dissect_ansi_map_AKeyProtocolVersion(gboolean implicit_tag _U_, tvbuff_t *tvb _U
 
 
 static int
-dissect_ansi_map_MobileStationPartialKey(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_MobileStationPartialKey(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_octet_string(implicit_tag, actx, tree, tvb, offset, hf_index,
                                        NULL);
 
@@ -14726,7 +14757,7 @@ static const ber_choice_t NewlyAssignedMSID_choice[] = {
 };
 
 static int
-dissect_ansi_map_NewlyAssignedMSID(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_NewlyAssignedMSID(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_choice(actx, tree, tvb, offset,
                                  NewlyAssignedMSID_choice, hf_index, ett_ansi_map_NewlyAssignedMSID,
                                  NULL);
@@ -14757,7 +14788,7 @@ static const ber_sequence_t OTASPRequest_U_set[] = {
 };
 
 static int
-dissect_ansi_map_OTASPRequest_U(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_OTASPRequest_U(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_set(implicit_tag, actx, tree, tvb, offset,
                               OTASPRequest_U_set, hf_index, ett_ansi_map_OTASPRequest_U);
 
@@ -14767,9 +14798,9 @@ dissect_ansi_map_OTASPRequest_U(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, in
 
 
 static int
-dissect_ansi_map_OTASPRequest(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_OTASPRequest(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_tagged_type(implicit_tag, actx, tree, tvb, offset,
-                                      hf_index, BER_CLASS_PRI, 18, FALSE, dissect_ansi_map_OTASPRequest_U);
+                                      hf_index, BER_CLASS_PRI, 18, false, dissect_ansi_map_OTASPRequest_U);
 
   return offset;
 }
@@ -14777,7 +14808,7 @@ dissect_ansi_map_OTASPRequest(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int 
 
 
 static int
-dissect_ansi_map_BaseStationPartialKey(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_BaseStationPartialKey(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_octet_string(implicit_tag, actx, tree, tvb, offset, hf_index,
                                        NULL);
 
@@ -14787,7 +14818,7 @@ dissect_ansi_map_BaseStationPartialKey(gboolean implicit_tag _U_, tvbuff_t *tvb 
 
 
 static int
-dissect_ansi_map_ModulusValue(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_ModulusValue(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_octet_string(implicit_tag, actx, tree, tvb, offset, hf_index,
                                        NULL);
 
@@ -14797,7 +14828,7 @@ dissect_ansi_map_ModulusValue(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int 
 
 
 static int
-dissect_ansi_map_OTASP_ResultCode(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_OTASP_ResultCode(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_octet_string(implicit_tag, actx, tree, tvb, offset, hf_index,
                                        NULL);
 
@@ -14807,7 +14838,7 @@ dissect_ansi_map_OTASP_ResultCode(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, 
 
 
 static int
-dissect_ansi_map_PrimitiveValue(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_PrimitiveValue(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_octet_string(implicit_tag, actx, tree, tvb, offset, hf_index,
                                        NULL);
 
@@ -14831,7 +14862,7 @@ static const ber_sequence_t OTASPRequestRes_U_set[] = {
 };
 
 static int
-dissect_ansi_map_OTASPRequestRes_U(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_OTASPRequestRes_U(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_set(implicit_tag, actx, tree, tvb, offset,
                               OTASPRequestRes_U_set, hf_index, ett_ansi_map_OTASPRequestRes_U);
 
@@ -14841,9 +14872,9 @@ dissect_ansi_map_OTASPRequestRes_U(gboolean implicit_tag _U_, tvbuff_t *tvb _U_,
 
 
 static int
-dissect_ansi_map_OTASPRequestRes(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_OTASPRequestRes(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_tagged_type(implicit_tag, actx, tree, tvb, offset,
-                                      hf_index, BER_CLASS_PRI, 18, FALSE, dissect_ansi_map_OTASPRequestRes_U);
+                                      hf_index, BER_CLASS_PRI, 18, false, dissect_ansi_map_OTASPRequestRes_U);
 
   return offset;
 }
@@ -14851,7 +14882,7 @@ dissect_ansi_map_OTASPRequestRes(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, i
 
 
 static int
-dissect_ansi_map_Record_Type(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_Record_Type(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_octet_string(implicit_tag, actx, tree, tvb, offset, hf_index,
                                        NULL);
 
@@ -14866,7 +14897,7 @@ static const ber_sequence_t StatusRequest_U_set[] = {
 };
 
 static int
-dissect_ansi_map_StatusRequest_U(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_StatusRequest_U(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_set(implicit_tag, actx, tree, tvb, offset,
                               StatusRequest_U_set, hf_index, ett_ansi_map_StatusRequest_U);
 
@@ -14876,9 +14907,9 @@ dissect_ansi_map_StatusRequest_U(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, i
 
 
 static int
-dissect_ansi_map_StatusRequest(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_StatusRequest(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_tagged_type(implicit_tag, actx, tree, tvb, offset,
-                                      hf_index, BER_CLASS_PRI, 18, FALSE, dissect_ansi_map_StatusRequest_U);
+                                      hf_index, BER_CLASS_PRI, 18, false, dissect_ansi_map_StatusRequest_U);
 
   return offset;
 }
@@ -14886,7 +14917,7 @@ dissect_ansi_map_StatusRequest(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int
 
 
 static int
-dissect_ansi_map_Information_Record(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_Information_Record(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_octet_string(implicit_tag, actx, tree, tvb, offset, hf_index,
                                        NULL);
 
@@ -14900,7 +14931,7 @@ static const ber_sequence_t StatusRequestRes_U_set[] = {
 };
 
 static int
-dissect_ansi_map_StatusRequestRes_U(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_StatusRequestRes_U(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_set(implicit_tag, actx, tree, tvb, offset,
                               StatusRequestRes_U_set, hf_index, ett_ansi_map_StatusRequestRes_U);
 
@@ -14910,9 +14941,9 @@ dissect_ansi_map_StatusRequestRes_U(gboolean implicit_tag _U_, tvbuff_t *tvb _U_
 
 
 static int
-dissect_ansi_map_StatusRequestRes(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_StatusRequestRes(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_tagged_type(implicit_tag, actx, tree, tvb, offset,
-                                      hf_index, BER_CLASS_PRI, 18, FALSE, dissect_ansi_map_StatusRequestRes_U);
+                                      hf_index, BER_CLASS_PRI, 18, false, dissect_ansi_map_StatusRequestRes_U);
 
   return offset;
 }
@@ -14931,7 +14962,7 @@ static const ber_sequence_t InterSystemSMSDeliveryPointToPoint_U_set[] = {
 };
 
 static int
-dissect_ansi_map_InterSystemSMSDeliveryPointToPoint_U(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_InterSystemSMSDeliveryPointToPoint_U(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_set(implicit_tag, actx, tree, tvb, offset,
                               InterSystemSMSDeliveryPointToPoint_U_set, hf_index, ett_ansi_map_InterSystemSMSDeliveryPointToPoint_U);
 
@@ -14941,9 +14972,9 @@ dissect_ansi_map_InterSystemSMSDeliveryPointToPoint_U(gboolean implicit_tag _U_,
 
 
 static int
-dissect_ansi_map_InterSystemSMSDeliveryPointToPoint(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_InterSystemSMSDeliveryPointToPoint(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_tagged_type(implicit_tag, actx, tree, tvb, offset,
-                                      hf_index, BER_CLASS_PRI, 18, FALSE, dissect_ansi_map_InterSystemSMSDeliveryPointToPoint_U);
+                                      hf_index, BER_CLASS_PRI, 18, false, dissect_ansi_map_InterSystemSMSDeliveryPointToPoint_U);
 
   return offset;
 }
@@ -14956,7 +14987,7 @@ static const ber_sequence_t InterSystemSMSDeliveryPointToPointRes_U_set[] = {
 };
 
 static int
-dissect_ansi_map_InterSystemSMSDeliveryPointToPointRes_U(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_InterSystemSMSDeliveryPointToPointRes_U(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_set(implicit_tag, actx, tree, tvb, offset,
                               InterSystemSMSDeliveryPointToPointRes_U_set, hf_index, ett_ansi_map_InterSystemSMSDeliveryPointToPointRes_U);
 
@@ -14966,9 +14997,9 @@ dissect_ansi_map_InterSystemSMSDeliveryPointToPointRes_U(gboolean implicit_tag _
 
 
 static int
-dissect_ansi_map_InterSystemSMSDeliveryPointToPointRes(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_InterSystemSMSDeliveryPointToPointRes(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_tagged_type(implicit_tag, actx, tree, tvb, offset,
-                                      hf_index, BER_CLASS_PRI, 18, FALSE, dissect_ansi_map_InterSystemSMSDeliveryPointToPointRes_U);
+                                      hf_index, BER_CLASS_PRI, 18, false, dissect_ansi_map_InterSystemSMSDeliveryPointToPointRes_U);
 
   return offset;
 }
@@ -14976,7 +15007,7 @@ dissect_ansi_map_InterSystemSMSDeliveryPointToPointRes(gboolean implicit_tag _U_
 
 
 static int
-dissect_ansi_map_CDMA2000MobileSupportedCapabilities(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_CDMA2000MobileSupportedCapabilities(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_octet_string(implicit_tag, actx, tree, tvb, offset, hf_index,
                                        NULL);
 
@@ -15008,7 +15039,7 @@ static const ber_sequence_t InterSystemSMSPage_U_set[] = {
 };
 
 static int
-dissect_ansi_map_InterSystemSMSPage_U(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_InterSystemSMSPage_U(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_set(implicit_tag, actx, tree, tvb, offset,
                               InterSystemSMSPage_U_set, hf_index, ett_ansi_map_InterSystemSMSPage_U);
 
@@ -15018,9 +15049,9 @@ dissect_ansi_map_InterSystemSMSPage_U(gboolean implicit_tag _U_, tvbuff_t *tvb _
 
 
 static int
-dissect_ansi_map_InterSystemSMSPage(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_InterSystemSMSPage(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_tagged_type(implicit_tag, actx, tree, tvb, offset,
-                                      hf_index, BER_CLASS_PRI, 18, FALSE, dissect_ansi_map_InterSystemSMSPage_U);
+                                      hf_index, BER_CLASS_PRI, 18, false, dissect_ansi_map_InterSystemSMSPage_U);
 
   return offset;
 }
@@ -15049,7 +15080,7 @@ static const ber_sequence_t QualificationRequest2_U_set[] = {
 };
 
 static int
-dissect_ansi_map_QualificationRequest2_U(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_QualificationRequest2_U(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_set(implicit_tag, actx, tree, tvb, offset,
                               QualificationRequest2_U_set, hf_index, ett_ansi_map_QualificationRequest2_U);
 
@@ -15059,9 +15090,9 @@ dissect_ansi_map_QualificationRequest2_U(gboolean implicit_tag _U_, tvbuff_t *tv
 
 
 static int
-dissect_ansi_map_QualificationRequest2(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_QualificationRequest2(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_tagged_type(implicit_tag, actx, tree, tvb, offset,
-                                      hf_index, BER_CLASS_PRI, 18, FALSE, dissect_ansi_map_QualificationRequest2_U);
+                                      hf_index, BER_CLASS_PRI, 18, false, dissect_ansi_map_QualificationRequest2_U);
 
   return offset;
 }
@@ -15121,7 +15152,7 @@ static const ber_sequence_t QualificationRequest2Res_U_set[] = {
 };
 
 static int
-dissect_ansi_map_QualificationRequest2Res_U(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_QualificationRequest2Res_U(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_set(implicit_tag, actx, tree, tvb, offset,
                               QualificationRequest2Res_U_set, hf_index, ett_ansi_map_QualificationRequest2Res_U);
 
@@ -15131,9 +15162,9 @@ dissect_ansi_map_QualificationRequest2Res_U(gboolean implicit_tag _U_, tvbuff_t 
 
 
 static int
-dissect_ansi_map_QualificationRequest2Res(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_ansi_map_QualificationRequest2Res(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_tagged_type(implicit_tag, actx, tree, tvb, offset,
-                                      hf_index, BER_CLASS_PRI, 18, FALSE, dissect_ansi_map_QualificationRequest2Res_U);
+                                      hf_index, BER_CLASS_PRI, 18, false, dissect_ansi_map_QualificationRequest2Res_U);
 
   return offset;
 }
@@ -15151,13 +15182,13 @@ dissect_ansi_map_win_trigger_list(tvbuff_t *tvb, packet_info *pinfo _U_, proto_t
     int end_offset = 0;
     int j = 0;
     proto_tree *subtree;
-    guint8 octet;
+    uint8_t octet;
 
     end_offset = tvb_reported_length_remaining(tvb,offset);
     subtree = proto_item_add_subtree(actx->created_item, ett_win_trigger_list);
 
     while(offset< end_offset) {
-        octet = tvb_get_guint8(tvb,offset);
+        octet = tvb_get_uint8(tvb,offset);
         switch (octet){
         case 0xdc:
             proto_tree_add_uint_format(subtree, hf_ansi_map_win_trigger_list, tvb, offset, 1, octet, "TDP-R's armed");
@@ -15186,7 +15217,7 @@ dissect_ansi_map_win_trigger_list(tvbuff_t *tvb, packet_info *pinfo _U_, proto_t
 
 
 static int dissect_invokeData(proto_tree *tree, tvbuff_t *tvb, int offset, asn1_ctx_t *actx) {
-    static gboolean               opCodeKnown = TRUE;
+    static bool                   opCodeKnown = true;
     static ansi_map_tap_rec_t     tap_rec[16];
     static ansi_map_tap_rec_t     *tap_p;
     static int                    tap_current=0;
@@ -15203,55 +15234,55 @@ static int dissect_invokeData(proto_tree *tree, tvbuff_t *tvb, int offset, asn1_
 
     switch(OperationCode){
     case 1: /*Handoff Measurement Request*/
-        offset = dissect_ansi_map_HandoffMeasurementRequest(TRUE, tvb, offset, actx, tree, hf_ansi_map_handoffMeasurementRequest);
+        offset = dissect_ansi_map_HandoffMeasurementRequest(true, tvb, offset, actx, tree, hf_ansi_map_handoffMeasurementRequest);
         break;
     case 2: /*Facilities Directive*/
-        offset = dissect_ansi_map_FacilitiesDirective(TRUE, tvb, offset, actx, tree, hf_ansi_map_facilitiesDirective);
+        offset = dissect_ansi_map_FacilitiesDirective(true, tvb, offset, actx, tree, hf_ansi_map_facilitiesDirective);
         break;
     case 3: /*Mobile On Channel*/
         proto_tree_add_expert(tree, actx->pinfo, &ei_ansi_map_no_data, tvb, offset, -1);
         break;
     case 4: /*Handoff Back*/
-        offset = dissect_ansi_map_HandoffBack(TRUE, tvb, offset, actx, tree, hf_ansi_map_handoffBack);
+        offset = dissect_ansi_map_HandoffBack(true, tvb, offset, actx, tree, hf_ansi_map_handoffBack);
         break;
     case 5: /*Facilities Release*/
-        offset = dissect_ansi_map_FacilitiesRelease(TRUE, tvb, offset, actx, tree, hf_ansi_map_facilitiesRelease);
+        offset = dissect_ansi_map_FacilitiesRelease(true, tvb, offset, actx, tree, hf_ansi_map_facilitiesRelease);
         break;
     case 6: /*Qualification Request*/
-        offset = dissect_ansi_map_QualificationRequest(TRUE, tvb, offset, actx, tree, hf_ansi_map_qualificationRequest);
+        offset = dissect_ansi_map_QualificationRequest(true, tvb, offset, actx, tree, hf_ansi_map_qualificationRequest);
         break;
     case 7: /*Qualification Directive*/
-        offset = dissect_ansi_map_QualificationDirective(TRUE, tvb, offset, actx, tree, hf_ansi_map_qualificationDirective);
+        offset = dissect_ansi_map_QualificationDirective(true, tvb, offset, actx, tree, hf_ansi_map_qualificationDirective);
         break;
     case 8: /*Blocking*/
-        offset = dissect_ansi_map_Blocking(TRUE, tvb, offset, actx, tree, hf_ansi_map_blocking);
+        offset = dissect_ansi_map_Blocking(true, tvb, offset, actx, tree, hf_ansi_map_blocking);
         break;
     case 9: /*Unblocking*/
-        offset = dissect_ansi_map_Unblocking(TRUE, tvb, offset, actx, tree, hf_ansi_map_unblocking);
+        offset = dissect_ansi_map_Unblocking(true, tvb, offset, actx, tree, hf_ansi_map_unblocking);
         break;
     case 10: /*Reset Circuit*/
-        offset = dissect_ansi_map_ResetCircuit(TRUE, tvb, offset, actx, tree, hf_ansi_map_resetCircuit);
+        offset = dissect_ansi_map_ResetCircuit(true, tvb, offset, actx, tree, hf_ansi_map_resetCircuit);
         break;
     case 11: /*Trunk Test*/
-        offset = dissect_ansi_map_TrunkTest(TRUE, tvb, offset, actx, tree, hf_ansi_map_trunkTest);
+        offset = dissect_ansi_map_TrunkTest(true, tvb, offset, actx, tree, hf_ansi_map_trunkTest);
         break;
     case 12: /*Trunk Test Disconnect*/
-        offset = dissect_ansi_map_TrunkTestDisconnect(TRUE, tvb, offset, actx, tree, hf_ansi_map_trunkTestDisconnect);
+        offset = dissect_ansi_map_TrunkTestDisconnect(true, tvb, offset, actx, tree, hf_ansi_map_trunkTestDisconnect);
         break;
     case  13: /*Registration Notification*/
-        offset = dissect_ansi_map_RegistrationNotification(TRUE, tvb, offset, actx, tree, hf_ansi_map_registrationNotification);
+        offset = dissect_ansi_map_RegistrationNotification(true, tvb, offset, actx, tree, hf_ansi_map_registrationNotification);
         break;
     case  14: /*Registration Cancellation*/
-        offset = dissect_ansi_map_RegistrationCancellation(TRUE, tvb, offset, actx, tree, hf_ansi_map_registrationCancellation);
+        offset = dissect_ansi_map_RegistrationCancellation(true, tvb, offset, actx, tree, hf_ansi_map_registrationCancellation);
         break;
     case  15: /*Location Request*/
-        offset = dissect_ansi_map_LocationRequest(TRUE, tvb, offset, actx, tree, hf_ansi_map_locationRequest);
+        offset = dissect_ansi_map_LocationRequest(true, tvb, offset, actx, tree, hf_ansi_map_locationRequest);
         break;
     case  16: /*Routing Request*/
-        offset = dissect_ansi_map_RoutingRequest(TRUE, tvb, offset, actx, tree, hf_ansi_map_routingRequest);
+        offset = dissect_ansi_map_RoutingRequest(true, tvb, offset, actx, tree, hf_ansi_map_routingRequest);
         break;
     case  17: /*Feature Request*/
-        offset = dissect_ansi_map_FeatureRequest(TRUE, tvb, offset, actx, tree, hf_ansi_map_featureRequest);
+        offset = dissect_ansi_map_FeatureRequest(true, tvb, offset, actx, tree, hf_ansi_map_featureRequest);
         break;
     case  18: /*Reserved 18 (Service Profile Request, IS-41-C)*/
         proto_tree_add_expert_format(tree, actx->pinfo, &ei_ansi_map_unknown_invokeData_blob, tvb, offset, -1, "Unknown invokeData blob(18 (Service Profile Request, IS-41-C)");
@@ -15260,296 +15291,296 @@ static int dissect_invokeData(proto_tree *tree, tvbuff_t *tvb, int offset, asn1_
         proto_tree_add_expert_format(tree, actx->pinfo, &ei_ansi_map_unknown_invokeData_blob, tvb, offset, -1, "Unknown invokeData blob(19 Service Profile Directive, IS-41-C)");
         break;
     case  20: /*Unreliable Roamer Data Directive*/
-        offset = dissect_ansi_map_UnreliableRoamerDataDirective(TRUE, tvb, offset, actx, tree, hf_ansi_map_unreliableRoamerDataDirective);
+        offset = dissect_ansi_map_UnreliableRoamerDataDirective(true, tvb, offset, actx, tree, hf_ansi_map_unreliableRoamerDataDirective);
         break;
     case  21: /*Reserved 21 (Call Data Request, IS-41-C)*/
         proto_tree_add_expert_format(tree, actx->pinfo, &ei_ansi_map_unknown_invokeData_blob, tvb, offset, -1, "Unknown invokeData blob(Reserved 21 (Call Data Request, IS-41-C)");
         break;
     case  22: /*MS Inactive*/
-        offset = dissect_ansi_map_MSInactive(TRUE, tvb, offset, actx, tree, hf_ansi_map_mSInactive);
+        offset = dissect_ansi_map_MSInactive(true, tvb, offset, actx, tree, hf_ansi_map_mSInactive);
         break;
     case  23: /*Transfer To Number Request*/
-        offset = dissect_ansi_map_TransferToNumberRequest(TRUE, tvb, offset, actx, tree, hf_ansi_map_transferToNumberRequest);
+        offset = dissect_ansi_map_TransferToNumberRequest(true, tvb, offset, actx, tree, hf_ansi_map_transferToNumberRequest);
         break;
     case  24: /*Redirection Request*/
-        offset = dissect_ansi_map_RedirectionRequest(TRUE, tvb, offset, actx, tree, hf_ansi_map_redirectionRequest);
+        offset = dissect_ansi_map_RedirectionRequest(true, tvb, offset, actx, tree, hf_ansi_map_redirectionRequest);
         break;
     case  25: /*Handoff To Third*/
-        offset = dissect_ansi_map_HandoffToThird(TRUE, tvb, offset, actx, tree, hf_ansi_map_handoffToThird);
+        offset = dissect_ansi_map_HandoffToThird(true, tvb, offset, actx, tree, hf_ansi_map_handoffToThird);
         break;
     case  26: /*Flash Request*/
-        offset = dissect_ansi_map_FlashRequest(TRUE, tvb, offset, actx, tree, hf_ansi_map_flashRequest);
+        offset = dissect_ansi_map_FlashRequest(true, tvb, offset, actx, tree, hf_ansi_map_flashRequest);
         break;
     case  27: /*Authentication Directive*/
-        offset = dissect_ansi_map_AuthenticationDirective(TRUE, tvb, offset, actx, tree, hf_ansi_map_authenticationDirective);
+        offset = dissect_ansi_map_AuthenticationDirective(true, tvb, offset, actx, tree, hf_ansi_map_authenticationDirective);
         break;
     case  28: /*Authentication Request*/
-        offset = dissect_ansi_map_AuthenticationRequest(TRUE, tvb, offset, actx, tree, hf_ansi_map_authenticationRequest);
+        offset = dissect_ansi_map_AuthenticationRequest(true, tvb, offset, actx, tree, hf_ansi_map_authenticationRequest);
         break;
     case  29: /*Base Station Challenge*/
-        offset = dissect_ansi_map_BaseStationChallenge(TRUE, tvb, offset, actx, tree, hf_ansi_map_baseStationChallenge);
+        offset = dissect_ansi_map_BaseStationChallenge(true, tvb, offset, actx, tree, hf_ansi_map_baseStationChallenge);
         break;
     case  30: /*Authentication Failure Report*/
-        offset = dissect_ansi_map_AuthenticationFailureReport(TRUE, tvb, offset, actx, tree, hf_ansi_map_authenticationFailureReport);
+        offset = dissect_ansi_map_AuthenticationFailureReport(true, tvb, offset, actx, tree, hf_ansi_map_authenticationFailureReport);
         break;
     case  31: /*Count Request*/
-        offset = dissect_ansi_map_CountRequest(TRUE, tvb, offset, actx, tree, hf_ansi_map_countRequest);
+        offset = dissect_ansi_map_CountRequest(true, tvb, offset, actx, tree, hf_ansi_map_countRequest);
         break;
     case  32: /*Inter System Page*/
-        offset = dissect_ansi_map_InterSystemPage(TRUE, tvb, offset, actx, tree, hf_ansi_map_interSystemPage);
+        offset = dissect_ansi_map_InterSystemPage(true, tvb, offset, actx, tree, hf_ansi_map_interSystemPage);
         break;
     case  33: /*Unsolicited Response*/
-        offset = dissect_ansi_map_UnsolicitedResponse(TRUE, tvb, offset, actx, tree, hf_ansi_map_unsolicitedResponse);
+        offset = dissect_ansi_map_UnsolicitedResponse(true, tvb, offset, actx, tree, hf_ansi_map_unsolicitedResponse);
         break;
     case  34: /*Bulk Deregistration*/
-        offset = dissect_ansi_map_BulkDeregistration(TRUE, tvb, offset, actx, tree, hf_ansi_map_bulkDeregistration);
+        offset = dissect_ansi_map_BulkDeregistration(true, tvb, offset, actx, tree, hf_ansi_map_bulkDeregistration);
         break;
     case  35: /*Handoff Measurement Request 2*/
-        offset = dissect_ansi_map_HandoffMeasurementRequest2(TRUE, tvb, offset, actx, tree, hf_ansi_map_handoffMeasurementRequest2);
+        offset = dissect_ansi_map_HandoffMeasurementRequest2(true, tvb, offset, actx, tree, hf_ansi_map_handoffMeasurementRequest2);
         break;
     case  36: /*Facilities Directive 2*/
-        offset = dissect_ansi_map_FacilitiesDirective2(TRUE, tvb, offset, actx, tree, hf_ansi_map_facilitiesDirective2);
+        offset = dissect_ansi_map_FacilitiesDirective2(true, tvb, offset, actx, tree, hf_ansi_map_facilitiesDirective2);
         break;
     case  37: /*Handoff Back 2*/
-        offset = dissect_ansi_map_HandoffBack2(TRUE, tvb, offset, actx, tree, hf_ansi_map_handoffBack2);
+        offset = dissect_ansi_map_HandoffBack2(true, tvb, offset, actx, tree, hf_ansi_map_handoffBack2);
         break;
     case  38: /*Handoff To Third 2*/
-        offset = dissect_ansi_map_HandoffToThird2(TRUE, tvb, offset, actx, tree, hf_ansi_map_handoffToThird2);
+        offset = dissect_ansi_map_HandoffToThird2(true, tvb, offset, actx, tree, hf_ansi_map_handoffToThird2);
         break;
     case  39: /*Authentication Directive Forward*/
-        offset = dissect_ansi_map_AuthenticationDirectiveForward(TRUE, tvb, offset, actx, tree, hf_ansi_map_authenticationDirectiveForward);
+        offset = dissect_ansi_map_AuthenticationDirectiveForward(true, tvb, offset, actx, tree, hf_ansi_map_authenticationDirectiveForward);
         break;
     case  40: /*Authentication Status Report*/
-        offset = dissect_ansi_map_AuthenticationStatusReport(TRUE, tvb, offset, actx, tree, hf_ansi_map_authenticationStatusReport);
+        offset = dissect_ansi_map_AuthenticationStatusReport(true, tvb, offset, actx, tree, hf_ansi_map_authenticationStatusReport);
         break;
     case  41: /*Reserved 41*/
         proto_tree_add_expert_format(tree, actx->pinfo, &ei_ansi_map_unknown_invokeData_blob, tvb, offset, -1, "Reserved 41, Unknown invokeData blob");
         break;
     case  42: /*Information Directive*/
-        offset = dissect_ansi_map_InformationDirective(TRUE, tvb, offset, actx, tree, hf_ansi_map_informationDirective);
+        offset = dissect_ansi_map_InformationDirective(true, tvb, offset, actx, tree, hf_ansi_map_informationDirective);
         break;
     case  43: /*Information Forward*/
-        offset = dissect_ansi_map_InformationForward(TRUE, tvb, offset, actx, tree, hf_ansi_map_informationForward);
+        offset = dissect_ansi_map_InformationForward(true, tvb, offset, actx, tree, hf_ansi_map_informationForward);
         break;
     case  44: /*Inter System Answer*/
-        offset = dissect_ansi_map_InterSystemAnswer(TRUE, tvb, offset, actx, tree, hf_ansi_map_interSystemAnswer);
+        offset = dissect_ansi_map_InterSystemAnswer(true, tvb, offset, actx, tree, hf_ansi_map_interSystemAnswer);
         break;
     case  45: /*Inter System Page 2*/
-        offset = dissect_ansi_map_InterSystemPage2(TRUE, tvb, offset, actx, tree, hf_ansi_map_interSystemPage2);
+        offset = dissect_ansi_map_InterSystemPage2(true, tvb, offset, actx, tree, hf_ansi_map_interSystemPage2);
         break;
     case  46: /*Inter System Setup*/
-        offset = dissect_ansi_map_InterSystemSetup(TRUE, tvb, offset, actx, tree, hf_ansi_map_interSystemSetup);
+        offset = dissect_ansi_map_InterSystemSetup(true, tvb, offset, actx, tree, hf_ansi_map_interSystemSetup);
         break;
     case  47: /*OriginationRequest*/
-        offset = dissect_ansi_map_OriginationRequest(TRUE, tvb, offset, actx, tree, hf_ansi_map_originationRequest);
+        offset = dissect_ansi_map_OriginationRequest(true, tvb, offset, actx, tree, hf_ansi_map_originationRequest);
         break;
     case  48: /*Random Variable Request*/
-        offset = dissect_ansi_map_RandomVariableRequest(TRUE, tvb, offset, actx, tree, hf_ansi_map_randomVariableRequest);
+        offset = dissect_ansi_map_RandomVariableRequest(true, tvb, offset, actx, tree, hf_ansi_map_randomVariableRequest);
         break;
     case  49: /*Redirection Directive*/
-        offset = dissect_ansi_map_RedirectionDirective(TRUE, tvb, offset, actx, tree, hf_ansi_map_redirectionDirective);
+        offset = dissect_ansi_map_RedirectionDirective(true, tvb, offset, actx, tree, hf_ansi_map_redirectionDirective);
         break;
     case  50: /*Remote User Interaction Directive*/
-        offset = dissect_ansi_map_RemoteUserInteractionDirective(TRUE, tvb, offset, actx, tree, hf_ansi_map_remoteUserInteractionDirective);
+        offset = dissect_ansi_map_RemoteUserInteractionDirective(true, tvb, offset, actx, tree, hf_ansi_map_remoteUserInteractionDirective);
         break;
     case  51: /*SMS Delivery Backward*/
-        offset = dissect_ansi_map_SMSDeliveryBackward(TRUE, tvb, offset, actx, tree, hf_ansi_map_sMSDeliveryBackward);
+        offset = dissect_ansi_map_SMSDeliveryBackward(true, tvb, offset, actx, tree, hf_ansi_map_sMSDeliveryBackward);
         break;
     case  52: /*SMS Delivery Forward*/
-        offset = dissect_ansi_map_SMSDeliveryForward(TRUE, tvb, offset, actx, tree, hf_ansi_map_sMSDeliveryForward);
+        offset = dissect_ansi_map_SMSDeliveryForward(true, tvb, offset, actx, tree, hf_ansi_map_sMSDeliveryForward);
         break;
     case  53: /*SMS Delivery Point to Point*/
-        offset = dissect_ansi_map_SMSDeliveryPointToPoint(TRUE, tvb, offset, actx, tree, hf_ansi_map_sMSDeliveryPointToPoint);
+        offset = dissect_ansi_map_SMSDeliveryPointToPoint(true, tvb, offset, actx, tree, hf_ansi_map_sMSDeliveryPointToPoint);
         break;
     case  54: /*SMS Notification*/
-        offset = dissect_ansi_map_SMSNotification(TRUE, tvb, offset, actx, tree, hf_ansi_map_sMSNotification);
+        offset = dissect_ansi_map_SMSNotification(true, tvb, offset, actx, tree, hf_ansi_map_sMSNotification);
         break;
     case  55: /*SMS Request*/
-        offset = dissect_ansi_map_SMSRequest(TRUE, tvb, offset, actx, tree, hf_ansi_map_sMSRequest);
+        offset = dissect_ansi_map_SMSRequest(true, tvb, offset, actx, tree, hf_ansi_map_sMSRequest);
         break;
         /* End N.S0005*/
         /* N.S0010-0 v 1.0 */
         /* N.S0011-0 v 1.0 */
     case  56: /*OTASP Request 6.4.2.CC*/
-        offset = dissect_ansi_map_OTASPRequest(TRUE, tvb, offset, actx, tree, hf_ansi_map_oTASPRequest);
+        offset = dissect_ansi_map_OTASPRequest(true, tvb, offset, actx, tree, hf_ansi_map_oTASPRequest);
         break;
         /*End N.S0011-0 v 1.0 */
     case  57: /*Information Backward*/
         break;
         /*  N.S0008-0 v 1.0 */
     case  58: /*Change Facilities*/
-        offset = dissect_ansi_map_ChangeFacilities(TRUE, tvb, offset, actx, tree, hf_ansi_map_changeFacilities);
+        offset = dissect_ansi_map_ChangeFacilities(true, tvb, offset, actx, tree, hf_ansi_map_changeFacilities);
         break;
     case  59: /*Change Service*/
-        offset = dissect_ansi_map_ChangeService(TRUE, tvb, offset, actx, tree, hf_ansi_map_changeService);
+        offset = dissect_ansi_map_ChangeService(true, tvb, offset, actx, tree, hf_ansi_map_changeService);
         break;
         /* End N.S0008-0 v 1.0 */
     case  60: /*Parameter Request*/
-        offset = dissect_ansi_map_ParameterRequest(TRUE, tvb, offset, actx, tree, hf_ansi_map_parameterRequest);
+        offset = dissect_ansi_map_ParameterRequest(true, tvb, offset, actx, tree, hf_ansi_map_parameterRequest);
         break;
     case  61: /*TMSI Directive*/
-        offset = dissect_ansi_map_TMSIDirective(TRUE, tvb, offset, actx, tree, hf_ansi_map_tMSIDirective);
+        offset = dissect_ansi_map_TMSIDirective(true, tvb, offset, actx, tree, hf_ansi_map_tMSIDirective);
         break;
         /*End  N.S0010-0 v 1.0 */
     case  62: /*NumberPortabilityRequest 62*/
-        offset = dissect_ansi_map_NumberPortabilityRequest(TRUE, tvb, offset, actx, tree, hf_ansi_map_numberPortabilityRequest);
+        offset = dissect_ansi_map_NumberPortabilityRequest(true, tvb, offset, actx, tree, hf_ansi_map_numberPortabilityRequest);
         break;
     case  63: /*Service Request N.S0012-0 v 1.0*/
-        offset = dissect_ansi_map_ServiceRequest(TRUE, tvb, offset, actx, tree, hf_ansi_map_serviceRequest);
+        offset = dissect_ansi_map_ServiceRequest(true, tvb, offset, actx, tree, hf_ansi_map_serviceRequest);
         break;
         /* N.S0013 */
     case  64: /*Analyzed Information Request*/
-        offset = dissect_ansi_map_AnalyzedInformation(TRUE, tvb, offset, actx, tree, hf_ansi_map_analyzedInformation);
+        offset = dissect_ansi_map_AnalyzedInformation(true, tvb, offset, actx, tree, hf_ansi_map_analyzedInformation);
         break;
     case  65: /*Connection Failure Report*/
-        offset = dissect_ansi_map_ConnectionFailureReport(TRUE, tvb, offset, actx, tree, hf_ansi_map_connectionFailureReport);
+        offset = dissect_ansi_map_ConnectionFailureReport(true, tvb, offset, actx, tree, hf_ansi_map_connectionFailureReport);
         break;
     case  66: /*Connect Resource*/
-        offset = dissect_ansi_map_ConnectResource(TRUE, tvb, offset, actx, tree, hf_ansi_map_connectResource);
+        offset = dissect_ansi_map_ConnectResource(true, tvb, offset, actx, tree, hf_ansi_map_connectResource);
         break;
     case  67: /*Disconnect Resource*/
         /* No data */
         break;
     case  68: /*Facility Selected and Available*/
-        offset = dissect_ansi_map_FacilitySelectedAndAvailable(TRUE, tvb, offset, actx, tree, hf_ansi_map_facilitySelectedAndAvailable);
+        offset = dissect_ansi_map_FacilitySelectedAndAvailable(true, tvb, offset, actx, tree, hf_ansi_map_facilitySelectedAndAvailable);
         break;
     case  69: /*Instruction Request*/
         /* No data */
         break;
     case  70: /*Modify*/
-        offset = dissect_ansi_map_Modify(TRUE, tvb, offset, actx, tree, hf_ansi_map_modify);
+        offset = dissect_ansi_map_Modify(true, tvb, offset, actx, tree, hf_ansi_map_modify);
         break;
     case  71: /*Reset Timer*/
         /*No Data*/
         break;
     case  72: /*Search*/
-        offset = dissect_ansi_map_Search(TRUE, tvb, offset, actx, tree, hf_ansi_map_search);
+        offset = dissect_ansi_map_Search(true, tvb, offset, actx, tree, hf_ansi_map_search);
         break;
     case  73: /*Seize Resource*/
-        offset = dissect_ansi_map_SeizeResource(TRUE, tvb, offset, actx, tree, hf_ansi_map_seizeResource);
+        offset = dissect_ansi_map_SeizeResource(true, tvb, offset, actx, tree, hf_ansi_map_seizeResource);
         break;
     case  74: /*SRF Directive*/
-        offset = dissect_ansi_map_SRFDirective(TRUE, tvb, offset, actx, tree, hf_ansi_map_sRFDirective);
+        offset = dissect_ansi_map_SRFDirective(true, tvb, offset, actx, tree, hf_ansi_map_sRFDirective);
         break;
     case  75: /*T Busy*/
-        offset = dissect_ansi_map_TBusy(TRUE, tvb, offset, actx, tree, hf_ansi_map_tBusy);
+        offset = dissect_ansi_map_TBusy(true, tvb, offset, actx, tree, hf_ansi_map_tBusy);
         break;
     case  76: /*T NoAnswer*/
-        offset = dissect_ansi_map_TNoAnswer(TRUE, tvb, offset, actx, tree, hf_ansi_map_tNoAnswer);
+        offset = dissect_ansi_map_TNoAnswer(true, tvb, offset, actx, tree, hf_ansi_map_tNoAnswer);
         break;
         /*END N.S0013 */
     case  77: /*Release*/
         break;
     case  78: /*SMS Delivery Point to Point Ack*/
-        offset = dissect_ansi_map_SMSDeliveryPointToPointAck(TRUE, tvb, offset, actx, tree, hf_ansi_map_smsDeliveryPointToPointAck);
+        offset = dissect_ansi_map_SMSDeliveryPointToPointAck(true, tvb, offset, actx, tree, hf_ansi_map_smsDeliveryPointToPointAck);
         break;
         /* N.S0024*/
     case  79: /*Message Directive*/
-        offset = dissect_ansi_map_MessageDirective(TRUE, tvb, offset, actx, tree, hf_ansi_map_messageDirective);
+        offset = dissect_ansi_map_MessageDirective(true, tvb, offset, actx, tree, hf_ansi_map_messageDirective);
         break;
         /*END N.S0024*/
         /* N.S0018 PN-4287*/
     case  80: /*Bulk Disconnection*/
-        offset = dissect_ansi_map_BulkDisconnection(TRUE, tvb, offset, actx, tree, hf_ansi_map_bulkDisconnection);
+        offset = dissect_ansi_map_BulkDisconnection(true, tvb, offset, actx, tree, hf_ansi_map_bulkDisconnection);
         break;
     case  81: /*Call Control Directive*/
-        offset = dissect_ansi_map_CallControlDirective(TRUE, tvb, offset, actx, tree, hf_ansi_map_callControlDirective);
+        offset = dissect_ansi_map_CallControlDirective(true, tvb, offset, actx, tree, hf_ansi_map_callControlDirective);
         break;
     case  82: /*O Answer*/
-        offset = dissect_ansi_map_OAnswer(TRUE, tvb, offset, actx, tree, hf_ansi_map_oAnswer);
+        offset = dissect_ansi_map_OAnswer(true, tvb, offset, actx, tree, hf_ansi_map_oAnswer);
         break;
     case  83: /*O Disconnect*/
-        offset = dissect_ansi_map_ODisconnect(TRUE, tvb, offset, actx, tree, hf_ansi_map_oDisconnect);
+        offset = dissect_ansi_map_ODisconnect(true, tvb, offset, actx, tree, hf_ansi_map_oDisconnect);
         break;
     case  84: /*Call Recovery Report*/
-        offset = dissect_ansi_map_CallRecoveryReport(TRUE, tvb, offset, actx, tree, hf_ansi_map_callRecoveryReport);
+        offset = dissect_ansi_map_CallRecoveryReport(true, tvb, offset, actx, tree, hf_ansi_map_callRecoveryReport);
         break;
     case  85: /*T Answer*/
-        offset = dissect_ansi_map_TAnswer(TRUE, tvb, offset, actx, tree, hf_ansi_map_tAnswer);
+        offset = dissect_ansi_map_TAnswer(true, tvb, offset, actx, tree, hf_ansi_map_tAnswer);
         break;
     case  86: /*T Disconnect*/
-        offset = dissect_ansi_map_TDisconnect(TRUE, tvb, offset, actx, tree, hf_ansi_map_tDisconnect);
+        offset = dissect_ansi_map_TDisconnect(true, tvb, offset, actx, tree, hf_ansi_map_tDisconnect);
         break;
     case  87: /*Unreliable Call Data*/
-        offset = dissect_ansi_map_UnreliableCallData(TRUE, tvb, offset, actx, tree, hf_ansi_map_unreliableCallData);
+        offset = dissect_ansi_map_UnreliableCallData(true, tvb, offset, actx, tree, hf_ansi_map_unreliableCallData);
         break;
         /* N.S0018 PN-4287*/
         /*N.S0004 */
     case  88: /*O CalledPartyBusy*/
-        offset = dissect_ansi_map_OCalledPartyBusy(TRUE, tvb, offset, actx, tree, hf_ansi_map_oCalledPartyBusy);
+        offset = dissect_ansi_map_OCalledPartyBusy(true, tvb, offset, actx, tree, hf_ansi_map_oCalledPartyBusy);
         break;
     case  89: /*O NoAnswer*/
-        offset = dissect_ansi_map_ONoAnswer(TRUE, tvb, offset, actx, tree, hf_ansi_map_oNoAnswer);
+        offset = dissect_ansi_map_ONoAnswer(true, tvb, offset, actx, tree, hf_ansi_map_oNoAnswer);
         break;
     case  90: /*Position Request*/
-        offset = dissect_ansi_map_PositionRequest(TRUE, tvb, offset, actx, tree, hf_ansi_map_positionRequest);
+        offset = dissect_ansi_map_PositionRequest(true, tvb, offset, actx, tree, hf_ansi_map_positionRequest);
         break;
     case  91: /*Position Request Forward*/
-        offset = dissect_ansi_map_PositionRequestForward(TRUE, tvb, offset, actx, tree, hf_ansi_map_positionRequestForward);
+        offset = dissect_ansi_map_PositionRequestForward(true, tvb, offset, actx, tree, hf_ansi_map_positionRequestForward);
         break;
         /*END N.S0004 */
     case  92: /*Call Termination Report*/
-        offset = dissect_ansi_map_CallTerminationReport(TRUE, tvb, offset, actx, tree, hf_ansi_map_callTerminationReport);
+        offset = dissect_ansi_map_CallTerminationReport(true, tvb, offset, actx, tree, hf_ansi_map_callTerminationReport);
         break;
     case  93: /*Geo Position Directive*/
         break;
     case  94: /*Geo Position Request*/
-        offset = dissect_ansi_map_GeoPositionRequest(TRUE, tvb, offset, actx, tree, hf_ansi_map_geoPositionRequest);
+        offset = dissect_ansi_map_GeoPositionRequest(true, tvb, offset, actx, tree, hf_ansi_map_geoPositionRequest);
         break;
     case  95: /*Inter System Position Request*/
-        offset = dissect_ansi_map_InterSystemPositionRequest(TRUE, tvb, offset, actx, tree, hf_ansi_map_interSystemPositionRequest);
+        offset = dissect_ansi_map_InterSystemPositionRequest(true, tvb, offset, actx, tree, hf_ansi_map_interSystemPositionRequest);
         break;
     case  96: /*Inter System Position Request Forward*/
-        offset = dissect_ansi_map_InterSystemPositionRequestForward(TRUE, tvb, offset, actx, tree, hf_ansi_map_interSystemPositionRequestForward);
+        offset = dissect_ansi_map_InterSystemPositionRequestForward(true, tvb, offset, actx, tree, hf_ansi_map_interSystemPositionRequestForward);
         break;
         /* 3GPP2 N.S0023-0 */
     case  97: /*ACG Directive*/
-        offset = dissect_ansi_map_ACGDirective(TRUE, tvb, offset, actx, tree, hf_ansi_map_aCGDirective);
+        offset = dissect_ansi_map_ACGDirective(true, tvb, offset, actx, tree, hf_ansi_map_aCGDirective);
         break;
         /* END 3GPP2 N.S0023-0 */
     case  98: /*Roamer Database Verification Request*/
-        offset = dissect_ansi_map_RoamerDatabaseVerificationRequest(TRUE, tvb, offset, actx, tree, hf_ansi_map_roamerDatabaseVerificationRequest);
+        offset = dissect_ansi_map_RoamerDatabaseVerificationRequest(true, tvb, offset, actx, tree, hf_ansi_map_roamerDatabaseVerificationRequest);
         break;
         /* N.S0029 X.S0001-A v1.0*/
     case  99: /*Add Service*/
-        offset = dissect_ansi_map_AddService(TRUE, tvb, offset, actx, tree, hf_ansi_map_addService);
+        offset = dissect_ansi_map_AddService(true, tvb, offset, actx, tree, hf_ansi_map_addService);
         break;
     case  100: /*Drop Service*/
-        offset = dissect_ansi_map_DropService(TRUE, tvb, offset, actx, tree, hf_ansi_map_dropService);
+        offset = dissect_ansi_map_DropService(true, tvb, offset, actx, tree, hf_ansi_map_dropService);
         break;
         /*End N.S0029 X.S0001-A v1.0*/
         /* X.S0002-0 v1.0 */
         /* LCSParameterRequest */
     case 101:    /* InterSystemSMSPage 101 */
-        offset = dissect_ansi_map_InterSystemSMSPage(TRUE, tvb, offset, actx, tree, hf_ansi_map_interSystemSMSPage);
+        offset = dissect_ansi_map_InterSystemSMSPage(true, tvb, offset, actx, tree, hf_ansi_map_interSystemSMSPage);
         break;
     case 102:
-        offset = dissect_ansi_map_LCSParameterRequest(TRUE, tvb, offset, actx, tree, hf_ansi_map_lcsParameterRequest);
+        offset = dissect_ansi_map_LCSParameterRequest(true, tvb, offset, actx, tree, hf_ansi_map_lcsParameterRequest);
         break;
         /* CheckMEID X.S0008-0 v1.0*/
     case 104:
-        offset = dissect_ansi_map_CheckMEID(TRUE, tvb, offset, actx, tree, hf_ansi_map_checkMEID);
+        offset = dissect_ansi_map_CheckMEID(true, tvb, offset, actx, tree, hf_ansi_map_checkMEID);
         break;
         /* PositionEventNotification */
     case 106:
-        offset = dissect_ansi_map_PositionEventNotification(TRUE, tvb, offset, actx, tree, hf_ansi_map_positionEventNotification);
+        offset = dissect_ansi_map_PositionEventNotification(true, tvb, offset, actx, tree, hf_ansi_map_positionEventNotification);
         break;
     case 107:
         /* StatusRequest X.S0008-0 v1.0*/
-        offset = dissect_ansi_map_StatusRequest(TRUE, tvb, offset, actx, tree, hf_ansi_map_statusRequest);
+        offset = dissect_ansi_map_StatusRequest(true, tvb, offset, actx, tree, hf_ansi_map_statusRequest);
         break;
         /* InterSystemSMSDelivery-PointToPoint 111 X.S0004-540-E v2.0*/
     case 111:
         /* InterSystemSMSDeliveryPointToPoint X.S0004-540-E v2.0 */
-        offset = dissect_ansi_map_InterSystemSMSDeliveryPointToPoint(TRUE, tvb, offset, actx, tree, hf_ansi_map_interSystemSMSDeliveryPointToPoint);
+        offset = dissect_ansi_map_InterSystemSMSDeliveryPointToPoint(true, tvb, offset, actx, tree, hf_ansi_map_interSystemSMSDeliveryPointToPoint);
         break;
     case 112:
         /* QualificationRequest2 112 X.S0004-540-E v2.0*/
-        offset = dissect_ansi_map_QualificationRequest2(TRUE, tvb, offset, actx, tree, hf_ansi_map_qualificationRequest2);
+        offset = dissect_ansi_map_QualificationRequest2(true, tvb, offset, actx, tree, hf_ansi_map_qualificationRequest2);
         break;
     default:
         proto_tree_add_expert(tree, actx->pinfo, &ei_ansi_map_unknown_invokeData_blob, tvb, offset, -1);
-        opCodeKnown = FALSE;
+        opCodeKnown = false;
         break;
     }
 
@@ -15565,7 +15596,7 @@ static int dissect_invokeData(proto_tree *tree, tvbuff_t *tvb, int offset, asn1_
 }
 
 static int dissect_returnData(proto_tree *tree, tvbuff_t *tvb, int offset, asn1_ctx_t *actx) {
-    static gboolean               opCodeKnown = TRUE;
+    static bool                   opCodeKnown = true;
     static ansi_map_tap_rec_t     tap_rec[16];
     static ansi_map_tap_rec_t     *tap_p;
     static int                    tap_current=0;
@@ -15582,245 +15613,245 @@ static int dissect_returnData(proto_tree *tree, tvbuff_t *tvb, int offset, asn1_
 
     switch(OperationCode){
     case 1: /*Handoff Measurement Request*/
-        offset = dissect_ansi_map_HandoffMeasurementRequestRes(TRUE, tvb, offset, actx, tree, hf_ansi_map_handoffMeasurementRequestRes);
+        offset = dissect_ansi_map_HandoffMeasurementRequestRes(true, tvb, offset, actx, tree, hf_ansi_map_handoffMeasurementRequestRes);
         break;
     case 2: /*Facilities Directive*/
-        offset = dissect_ansi_map_FacilitiesDirectiveRes(TRUE, tvb, offset, actx, tree, hf_ansi_map_facilitiesDirectiveRes);
+        offset = dissect_ansi_map_FacilitiesDirectiveRes(true, tvb, offset, actx, tree, hf_ansi_map_facilitiesDirectiveRes);
         break;
     case 4: /*Handoff Back*/
-        offset = dissect_ansi_map_HandoffBackRes(TRUE, tvb, offset, actx, tree, hf_ansi_map_handoffBackRes);
+        offset = dissect_ansi_map_HandoffBackRes(true, tvb, offset, actx, tree, hf_ansi_map_handoffBackRes);
         break;
     case 5: /*Facilities Release*/
-        offset = dissect_ansi_map_FacilitiesReleaseRes(TRUE, tvb, offset, actx, tree, hf_ansi_map_facilitiesReleaseRes);
+        offset = dissect_ansi_map_FacilitiesReleaseRes(true, tvb, offset, actx, tree, hf_ansi_map_facilitiesReleaseRes);
         break;
     case 6: /*Qualification Request*/
-        offset = dissect_ansi_map_QualificationRequestRes(TRUE, tvb, offset, actx, tree, hf_ansi_map_qualificationRequestRes);
+        offset = dissect_ansi_map_QualificationRequestRes(true, tvb, offset, actx, tree, hf_ansi_map_qualificationRequestRes);
         break;
     case 7: /*Qualification Directive*/
-        offset = dissect_ansi_map_QualificationDirectiveRes(TRUE, tvb, offset, actx, tree, hf_ansi_map_qualificationDirectiveRes);
+        offset = dissect_ansi_map_QualificationDirectiveRes(true, tvb, offset, actx, tree, hf_ansi_map_qualificationDirectiveRes);
         break;
     case 10: /*Reset Circuit*/
-        offset = dissect_ansi_map_ResetCircuitRes(TRUE, tvb, offset, actx, tree, hf_ansi_map_resetCircuitRes);
+        offset = dissect_ansi_map_ResetCircuitRes(true, tvb, offset, actx, tree, hf_ansi_map_resetCircuitRes);
         break;
     case 13: /*Registration Notification*/
-        offset = dissect_ansi_map_RegistrationNotificationRes(TRUE, tvb, offset, actx, tree, hf_ansi_map_registrationNotificationRes);
+        offset = dissect_ansi_map_RegistrationNotificationRes(true, tvb, offset, actx, tree, hf_ansi_map_registrationNotificationRes);
         break;
     case  14: /*Registration Cancellation*/
-        offset = dissect_ansi_map_RegistrationCancellationRes(TRUE, tvb, offset, actx, tree, hf_ansi_map_registrationCancellationRes);
+        offset = dissect_ansi_map_RegistrationCancellationRes(true, tvb, offset, actx, tree, hf_ansi_map_registrationCancellationRes);
         break;
     case  15: /*Location Request*/
-        offset = dissect_ansi_map_LocationRequestRes(TRUE, tvb, offset, actx, tree, hf_ansi_map_locationRequestRes);
+        offset = dissect_ansi_map_LocationRequestRes(true, tvb, offset, actx, tree, hf_ansi_map_locationRequestRes);
         break;
     case  16: /*Routing Request*/
-        offset = dissect_ansi_map_RoutingRequestRes(TRUE, tvb, offset, actx, tree, hf_ansi_map_routingRequestRes);
+        offset = dissect_ansi_map_RoutingRequestRes(true, tvb, offset, actx, tree, hf_ansi_map_routingRequestRes);
         break;
     case  17: /*Feature Request*/
-        offset = dissect_ansi_map_FeatureRequestRes(TRUE, tvb, offset, actx, tree, hf_ansi_map_featureRequestRes);
+        offset = dissect_ansi_map_FeatureRequestRes(true, tvb, offset, actx, tree, hf_ansi_map_featureRequestRes);
         break;
     case  23: /*Transfer To Number Request*/
-        offset = dissect_ansi_map_TransferToNumberRequestRes(TRUE, tvb, offset, actx, tree, hf_ansi_map_transferToNumberRequestRes);
+        offset = dissect_ansi_map_TransferToNumberRequestRes(true, tvb, offset, actx, tree, hf_ansi_map_transferToNumberRequestRes);
         break;
     case  25: /*Handoff To Third*/
-        offset = dissect_ansi_map_HandoffToThirdRes(TRUE, tvb, offset, actx, tree, hf_ansi_map_handoffToThirdRes);
+        offset = dissect_ansi_map_HandoffToThirdRes(true, tvb, offset, actx, tree, hf_ansi_map_handoffToThirdRes);
         break;
     case  26: /*Flash Request*/
         /* No data */
         proto_tree_add_expert(tree, actx->pinfo, &ei_ansi_map_no_data, tvb, offset, -1);
         break;
     case  27: /*Authentication Directive*/
-        offset = dissect_ansi_map_AuthenticationDirectiveRes(TRUE, tvb, offset, actx, tree, hf_ansi_map_authenticationDirectiveRes);
+        offset = dissect_ansi_map_AuthenticationDirectiveRes(true, tvb, offset, actx, tree, hf_ansi_map_authenticationDirectiveRes);
         break;
     case  28: /*Authentication Request*/
-        offset = dissect_ansi_map_AuthenticationRequestRes(TRUE, tvb, offset, actx, tree, hf_ansi_map_authenticationRequestRes);
+        offset = dissect_ansi_map_AuthenticationRequestRes(true, tvb, offset, actx, tree, hf_ansi_map_authenticationRequestRes);
         break;
     case  29: /*Base Station Challenge*/
-        offset = dissect_ansi_map_BaseStationChallengeRes(TRUE, tvb, offset, actx, tree, hf_ansi_map_baseStationChallengeRes);
+        offset = dissect_ansi_map_BaseStationChallengeRes(true, tvb, offset, actx, tree, hf_ansi_map_baseStationChallengeRes);
         break;
     case  30: /*Authentication Failure Report*/
-        offset = dissect_ansi_map_AuthenticationFailureReportRes(TRUE, tvb, offset, actx, tree, hf_ansi_map_authenticationFailureReportRes);
+        offset = dissect_ansi_map_AuthenticationFailureReportRes(true, tvb, offset, actx, tree, hf_ansi_map_authenticationFailureReportRes);
         break;
     case  31: /*Count Request*/
-        offset = dissect_ansi_map_CountRequestRes(TRUE, tvb, offset, actx, tree, hf_ansi_map_countRequestRes);
+        offset = dissect_ansi_map_CountRequestRes(true, tvb, offset, actx, tree, hf_ansi_map_countRequestRes);
         break;
     case  32: /*Inter System Page*/
-        offset = dissect_ansi_map_InterSystemPageRes(TRUE, tvb, offset, actx, tree, hf_ansi_map_interSystemPageRes);
+        offset = dissect_ansi_map_InterSystemPageRes(true, tvb, offset, actx, tree, hf_ansi_map_interSystemPageRes);
         break;
     case  33: /*Unsolicited Response*/
-        offset = dissect_ansi_map_UnsolicitedResponseRes(TRUE, tvb, offset, actx, tree, hf_ansi_map_unsolicitedResponseRes);
+        offset = dissect_ansi_map_UnsolicitedResponseRes(true, tvb, offset, actx, tree, hf_ansi_map_unsolicitedResponseRes);
         break;
     case  35: /*Handoff Measurement Request 2*/
-        offset = dissect_ansi_map_HandoffMeasurementRequest2Res(TRUE, tvb, offset, actx, tree, hf_ansi_map_handoffMeasurementRequest2Res);
+        offset = dissect_ansi_map_HandoffMeasurementRequest2Res(true, tvb, offset, actx, tree, hf_ansi_map_handoffMeasurementRequest2Res);
         break;
     case  36: /*Facilities Directive 2*/
-        offset = dissect_ansi_map_FacilitiesDirective2Res(TRUE, tvb, offset, actx, tree, hf_ansi_map_facilitiesDirective2Res);
+        offset = dissect_ansi_map_FacilitiesDirective2Res(true, tvb, offset, actx, tree, hf_ansi_map_facilitiesDirective2Res);
         break;
     case  37: /*Handoff Back 2*/
-        offset = dissect_ansi_map_HandoffBack2Res(TRUE, tvb, offset, actx, tree, hf_ansi_map_handoffBack2Res);
+        offset = dissect_ansi_map_HandoffBack2Res(true, tvb, offset, actx, tree, hf_ansi_map_handoffBack2Res);
         break;
     case  38: /*Handoff To Third 2*/
-        offset = dissect_ansi_map_HandoffToThird2Res(TRUE, tvb, offset, actx, tree, hf_ansi_map_handoffToThird2Res);
+        offset = dissect_ansi_map_HandoffToThird2Res(true, tvb, offset, actx, tree, hf_ansi_map_handoffToThird2Res);
         break;
     case  39: /*Authentication Directive Forward*/
-        offset = dissect_ansi_map_AuthenticationDirectiveForwardRes(TRUE, tvb, offset, actx, tree, hf_ansi_map_authenticationDirectiveForwardRes);
+        offset = dissect_ansi_map_AuthenticationDirectiveForwardRes(true, tvb, offset, actx, tree, hf_ansi_map_authenticationDirectiveForwardRes);
         break;
     case  40: /*Authentication Status Report*/
-        offset = dissect_ansi_map_AuthenticationStatusReportRes(TRUE, tvb, offset, actx, tree, hf_ansi_map_authenticationStatusReportRes);
+        offset = dissect_ansi_map_AuthenticationStatusReportRes(true, tvb, offset, actx, tree, hf_ansi_map_authenticationStatusReportRes);
         break;
         /*Reserved 41*/
     case  42: /*Information Directive*/
-        offset = dissect_ansi_map_InformationDirectiveRes(TRUE, tvb, offset, actx, tree, hf_ansi_map_informationDirectiveRes);
+        offset = dissect_ansi_map_InformationDirectiveRes(true, tvb, offset, actx, tree, hf_ansi_map_informationDirectiveRes);
         break;
     case  43: /*Information Forward*/
-        offset = dissect_ansi_map_InformationForwardRes(TRUE, tvb, offset, actx, tree, hf_ansi_map_informationForwardRes);
+        offset = dissect_ansi_map_InformationForwardRes(true, tvb, offset, actx, tree, hf_ansi_map_informationForwardRes);
         break;
     case  45: /*Inter System Page 2*/
-        offset = dissect_ansi_map_InterSystemPage2Res(TRUE, tvb, offset, actx, tree, hf_ansi_map_interSystemPage2Res);
+        offset = dissect_ansi_map_InterSystemPage2Res(true, tvb, offset, actx, tree, hf_ansi_map_interSystemPage2Res);
         break;
     case  46: /*Inter System Setup*/
-        offset = dissect_ansi_map_InterSystemSetupRes(TRUE, tvb, offset, actx, tree, hf_ansi_map_interSystemSetupRes);
+        offset = dissect_ansi_map_InterSystemSetupRes(true, tvb, offset, actx, tree, hf_ansi_map_interSystemSetupRes);
         break;
     case  47: /*OriginationRequest*/
-        offset = dissect_ansi_map_OriginationRequestRes(TRUE, tvb, offset, actx, tree, hf_ansi_map_originationRequestRes);
+        offset = dissect_ansi_map_OriginationRequestRes(true, tvb, offset, actx, tree, hf_ansi_map_originationRequestRes);
         break;
     case  48: /*Random Variable Request*/
-        offset = dissect_ansi_map_RandomVariableRequestRes(TRUE, tvb, offset, actx, tree, hf_ansi_map_randomVariableRequestRes);
+        offset = dissect_ansi_map_RandomVariableRequestRes(true, tvb, offset, actx, tree, hf_ansi_map_randomVariableRequestRes);
         break;
     case  50: /*Remote User Interaction Directive*/
-        offset = dissect_ansi_map_RemoteUserInteractionDirectiveRes(TRUE, tvb, offset, actx, tree, hf_ansi_map_remoteUserInteractionDirectiveRes);
+        offset = dissect_ansi_map_RemoteUserInteractionDirectiveRes(true, tvb, offset, actx, tree, hf_ansi_map_remoteUserInteractionDirectiveRes);
         break;
     case  51: /*SMS Delivery Backward*/
-        offset = dissect_ansi_map_SMSDeliveryBackwardRes(TRUE, tvb, offset, actx, tree, hf_ansi_map_sMSDeliveryBackwardRes);
+        offset = dissect_ansi_map_SMSDeliveryBackwardRes(true, tvb, offset, actx, tree, hf_ansi_map_sMSDeliveryBackwardRes);
         break;
     case  52: /*SMS Delivery Forward*/
-        offset = dissect_ansi_map_SMSDeliveryForwardRes(TRUE, tvb, offset, actx, tree, hf_ansi_map_sMSDeliveryForwardRes);
+        offset = dissect_ansi_map_SMSDeliveryForwardRes(true, tvb, offset, actx, tree, hf_ansi_map_sMSDeliveryForwardRes);
         break;
     case  53: /*SMS Delivery Point to Point*/
-        offset = dissect_ansi_map_SMSDeliveryPointToPointRes(TRUE, tvb, offset, actx, tree, hf_ansi_map_sMSDeliveryPointToPointRes);
+        offset = dissect_ansi_map_SMSDeliveryPointToPointRes(true, tvb, offset, actx, tree, hf_ansi_map_sMSDeliveryPointToPointRes);
         break;
     case  54: /*SMS Notification*/
-        offset = dissect_ansi_map_SMSNotificationRes(TRUE, tvb, offset, actx, tree, hf_ansi_map_sMSNotificationRes);
+        offset = dissect_ansi_map_SMSNotificationRes(true, tvb, offset, actx, tree, hf_ansi_map_sMSNotificationRes);
         break;
     case  55: /*SMS Request*/
-        offset = dissect_ansi_map_SMSRequestRes(TRUE, tvb, offset, actx, tree, hf_ansi_map_sMSRequestRes);
+        offset = dissect_ansi_map_SMSRequestRes(true, tvb, offset, actx, tree, hf_ansi_map_sMSRequestRes);
         break;
         /*  N.S0008-0 v 1.0 */
     case  56: /*OTASP Request 6.4.2.CC*/
-        offset = dissect_ansi_map_OTASPRequestRes(TRUE, tvb, offset, actx, tree, hf_ansi_map_oTASPRequestRes);
+        offset = dissect_ansi_map_OTASPRequestRes(true, tvb, offset, actx, tree, hf_ansi_map_oTASPRequestRes);
         break;
     /* 57 Information Backward*/
     case  58: /*Change Facilities*/
-        offset = dissect_ansi_map_ChangeFacilitiesRes(TRUE, tvb, offset, actx, tree, hf_ansi_map_changeFacilitiesRes);
+        offset = dissect_ansi_map_ChangeFacilitiesRes(true, tvb, offset, actx, tree, hf_ansi_map_changeFacilitiesRes);
         break;
     case  59: /*Change Service*/
-        offset = dissect_ansi_map_ChangeServiceRes(TRUE, tvb, offset, actx, tree, hf_ansi_map_changeServiceRes);
+        offset = dissect_ansi_map_ChangeServiceRes(true, tvb, offset, actx, tree, hf_ansi_map_changeServiceRes);
         break;
     case  60: /*Parameter Request*/
-        offset = dissect_ansi_map_ParameterRequestRes(TRUE, tvb, offset, actx, tree, hf_ansi_map_parameterRequestRes);
+        offset = dissect_ansi_map_ParameterRequestRes(true, tvb, offset, actx, tree, hf_ansi_map_parameterRequestRes);
         break;
     case  61: /*TMSI Directive*/
-        offset = dissect_ansi_map_TMSIDirectiveRes(TRUE, tvb, offset, actx, tree, hf_ansi_map_tMSIDirectiveRes);
+        offset = dissect_ansi_map_TMSIDirectiveRes(true, tvb, offset, actx, tree, hf_ansi_map_tMSIDirectiveRes);
         break;
     case  62: /*NumberPortabilityRequest */
-        offset = dissect_ansi_map_NumberPortabilityRequestRes(TRUE, tvb, offset, actx, tree, hf_ansi_map_numberPortabilityRequestRes);
+        offset = dissect_ansi_map_NumberPortabilityRequestRes(true, tvb, offset, actx, tree, hf_ansi_map_numberPortabilityRequestRes);
         break;
     case  63: /*Service Request*/
-        offset = dissect_ansi_map_ServiceRequestRes(TRUE, tvb, offset, actx, tree, hf_ansi_map_serviceRequestRes);
+        offset = dissect_ansi_map_ServiceRequestRes(true, tvb, offset, actx, tree, hf_ansi_map_serviceRequestRes);
         break;
         /* N.S0013 */
     case  64: /*Analyzed Information Request*/
-        offset = dissect_ansi_map_AnalyzedInformationRes(TRUE, tvb, offset, actx, tree, hf_ansi_map_analyzedInformationRes);
+        offset = dissect_ansi_map_AnalyzedInformationRes(true, tvb, offset, actx, tree, hf_ansi_map_analyzedInformationRes);
         break;
     /* 65 Connection Failure Report*/
     /* 66 Connect Resource*/
     /* 67 Disconnect Resource*/
     case  68: /*Facility Selected and Available*/
-        offset = dissect_ansi_map_FacilitySelectedAndAvailableRes(TRUE, tvb, offset, actx, tree, hf_ansi_map_facilitySelectedAndAvailableRes);
+        offset = dissect_ansi_map_FacilitySelectedAndAvailableRes(true, tvb, offset, actx, tree, hf_ansi_map_facilitySelectedAndAvailableRes);
         break;
     /* 69 Instruction Request*/
     case  70: /*Modify*/
-        offset = dissect_ansi_map_ModifyRes(TRUE, tvb, offset, actx, tree, hf_ansi_map_modifyRes);
+        offset = dissect_ansi_map_ModifyRes(true, tvb, offset, actx, tree, hf_ansi_map_modifyRes);
         break;
     case  72: /*Search*/
-        offset = dissect_ansi_map_SearchRes(TRUE, tvb, offset, actx, tree, hf_ansi_map_searchRes);
+        offset = dissect_ansi_map_SearchRes(true, tvb, offset, actx, tree, hf_ansi_map_searchRes);
         break;
     case  73: /*Seize Resource*/
-        offset = dissect_ansi_map_SeizeResourceRes(TRUE, tvb, offset, actx, tree, hf_ansi_map_seizeResourceRes);
+        offset = dissect_ansi_map_SeizeResourceRes(true, tvb, offset, actx, tree, hf_ansi_map_seizeResourceRes);
         break;
     case  74: /*SRF Directive*/
-        offset = dissect_ansi_map_SRFDirectiveRes(TRUE, tvb, offset, actx, tree, hf_ansi_map_sRFDirectiveRes);
+        offset = dissect_ansi_map_SRFDirectiveRes(true, tvb, offset, actx, tree, hf_ansi_map_sRFDirectiveRes);
         break;
     case  75: /*T Busy*/
-        offset = dissect_ansi_map_TBusyRes(TRUE, tvb, offset, actx, tree, hf_ansi_map_tBusyRes);
+        offset = dissect_ansi_map_TBusyRes(true, tvb, offset, actx, tree, hf_ansi_map_tBusyRes);
         break;
     case  76: /*T NoAnswer*/
-        offset = dissect_ansi_map_TNoAnswerRes(TRUE, tvb, offset, actx, tree, hf_ansi_map_tNoAnswerRes);
+        offset = dissect_ansi_map_TNoAnswerRes(true, tvb, offset, actx, tree, hf_ansi_map_tNoAnswerRes);
         break;
     case  81: /*Call Control Directive*/
-        offset = dissect_ansi_map_CallControlDirectiveRes(TRUE, tvb, offset, actx, tree, hf_ansi_map_callControlDirectiveRes);
+        offset = dissect_ansi_map_CallControlDirectiveRes(true, tvb, offset, actx, tree, hf_ansi_map_callControlDirectiveRes);
         break;
     case  83: /*O Disconnect*/
-        offset = dissect_ansi_map_ODisconnectRes(TRUE, tvb, offset, actx, tree, hf_ansi_map_oDisconnectRes);
+        offset = dissect_ansi_map_ODisconnectRes(true, tvb, offset, actx, tree, hf_ansi_map_oDisconnectRes);
         break;
     case  86: /*T Disconnect*/
-        offset = dissect_ansi_map_TDisconnectRes(TRUE, tvb, offset, actx, tree, hf_ansi_map_tDisconnectRes);
+        offset = dissect_ansi_map_TDisconnectRes(true, tvb, offset, actx, tree, hf_ansi_map_tDisconnectRes);
         break;
     case  88: /*O CalledPartyBusy*/
-        offset = dissect_ansi_map_OCalledPartyBusyRes(TRUE, tvb, offset, actx, tree, hf_ansi_map_oCalledPartyBusyRes);
+        offset = dissect_ansi_map_OCalledPartyBusyRes(true, tvb, offset, actx, tree, hf_ansi_map_oCalledPartyBusyRes);
         break;
     case  89: /*O NoAnswer*/
-        offset = dissect_ansi_map_ONoAnswerRes(TRUE, tvb, offset, actx, tree, hf_ansi_map_oNoAnswerRes);
+        offset = dissect_ansi_map_ONoAnswerRes(true, tvb, offset, actx, tree, hf_ansi_map_oNoAnswerRes);
         break;
     case  90: /*Position Request*/
-        offset = dissect_ansi_map_PositionRequestRes(TRUE, tvb, offset, actx, tree, hf_ansi_map_positionRequestRes);
+        offset = dissect_ansi_map_PositionRequestRes(true, tvb, offset, actx, tree, hf_ansi_map_positionRequestRes);
         break;
     case  91: /*Position Request Forward*/
-        offset = dissect_ansi_map_PositionRequestForwardRes(TRUE, tvb, offset, actx, tree, hf_ansi_map_positionRequestForwardRes);
+        offset = dissect_ansi_map_PositionRequestForwardRes(true, tvb, offset, actx, tree, hf_ansi_map_positionRequestForwardRes);
         break;
     case  95: /*Inter System Position Request*/
-        offset = dissect_ansi_map_InterSystemPositionRequestRes(TRUE, tvb, offset, actx, tree, hf_ansi_map_interSystemPositionRequestRes);
+        offset = dissect_ansi_map_InterSystemPositionRequestRes(true, tvb, offset, actx, tree, hf_ansi_map_interSystemPositionRequestRes);
         break;
     case  96: /*Inter System Position Request Forward*/
-        offset = dissect_ansi_map_InterSystemPositionRequestForwardRes(TRUE, tvb, offset, actx, tree, hf_ansi_map_interSystemPositionRequestForwardRes);
+        offset = dissect_ansi_map_InterSystemPositionRequestForwardRes(true, tvb, offset, actx, tree, hf_ansi_map_interSystemPositionRequestForwardRes);
         break;
     case  98: /*Roamer Database Verification Request*/
-        offset = dissect_ansi_map_RoamerDatabaseVerificationRequestRes(TRUE, tvb, offset, actx, tree, hf_ansi_map_roamerDatabaseVerificationRequestRes);
+        offset = dissect_ansi_map_RoamerDatabaseVerificationRequestRes(true, tvb, offset, actx, tree, hf_ansi_map_roamerDatabaseVerificationRequestRes);
         break;
     case  99: /*Add Service*/
-        offset = dissect_ansi_map_AddServiceRes(TRUE, tvb, offset, actx, tree, hf_ansi_map_addServiceRes);
+        offset = dissect_ansi_map_AddServiceRes(true, tvb, offset, actx, tree, hf_ansi_map_addServiceRes);
         break;
     case  100: /*Drop Service*/
-        offset = dissect_ansi_map_DropServiceRes(TRUE, tvb, offset, actx, tree, hf_ansi_map_dropServiceRes);
+        offset = dissect_ansi_map_DropServiceRes(true, tvb, offset, actx, tree, hf_ansi_map_dropServiceRes);
         break;
         /*End N.S0029 */
         /* X.S0002-0 v1.0 */
         /* LCSParameterRequest */
     case 102:
-        offset = dissect_ansi_map_LCSParameterRequestRes(TRUE, tvb, offset, actx, tree, hf_ansi_map_lcsParameterRequestRes);
+        offset = dissect_ansi_map_LCSParameterRequestRes(true, tvb, offset, actx, tree, hf_ansi_map_lcsParameterRequestRes);
         break;
         /* CheckMEID X.S0008-0 v1.0*/
     case 104:
-        offset = dissect_ansi_map_CheckMEIDRes(TRUE, tvb, offset, actx, tree, hf_ansi_map_checkMEIDRes);
+        offset = dissect_ansi_map_CheckMEIDRes(true, tvb, offset, actx, tree, hf_ansi_map_checkMEIDRes);
         break;
         /* PositionEventNotification *
            case 106:
-           offset = dissect_ansi_map_PositionEventNotification(TRUE, tvb, offset, actx, tree, hf_ansi_map_positionEventNotificationRes);
+           offset = dissect_ansi_map_PositionEventNotification(true, tvb, offset, actx, tree, hf_ansi_map_positionEventNotificationRes);
            break;
         */
     case 107:
         /* StatusRequest X.S0008-0 v1.0*/
-        offset = dissect_ansi_map_StatusRequestRes(TRUE, tvb, offset, actx, tree, hf_ansi_map_statusRequestRes);
+        offset = dissect_ansi_map_StatusRequestRes(true, tvb, offset, actx, tree, hf_ansi_map_statusRequestRes);
         break;
     case 111:
         /* InterSystemSMSDeliveryPointToPointRes X.S0004-540-E v2.0 */
-        offset = dissect_ansi_map_InterSystemSMSDeliveryPointToPointRes(TRUE, tvb, offset, actx, tree, hf_ansi_map_interSystemSMSDeliveryPointToPointRes);
+        offset = dissect_ansi_map_InterSystemSMSDeliveryPointToPointRes(true, tvb, offset, actx, tree, hf_ansi_map_interSystemSMSDeliveryPointToPointRes);
         break;
     case 112:
         /* QualificationRequest2Res 112 X.S0004-540-E v2.0*/
-        offset = dissect_ansi_map_QualificationRequest2Res(TRUE, tvb, offset, actx, tree, hf_ansi_map_qualificationRequest2Res);
+        offset = dissect_ansi_map_QualificationRequest2Res(true, tvb, offset, actx, tree, hf_ansi_map_qualificationRequest2Res);
         break;
     default:
         proto_tree_add_expert(tree, actx->pinfo, &ei_ansi_map_unknown_invokeData_blob, tvb, offset, -1);
-        opCodeKnown = FALSE;
+        opCodeKnown = false;
         break;
     }
 
@@ -15840,14 +15871,14 @@ find_saved_invokedata(asn1_ctx_t *actx, struct ansi_tcap_private_t *p_private_tc
     struct ansi_map_invokedata_t *ansi_map_saved_invokedata;
     address* src = &(actx->pinfo->src);
     address* dst = &(actx->pinfo->dst);
-    guint8 *src_str;
-    guint8 *dst_str;
+    uint8_t *src_str;
+    uint8_t *dst_str;
     char *buf;
 
     buf=(char *)wmem_alloc(actx->pinfo->pool, 1024);
 
     /* Data from the TCAP dissector */
-    /* The hash string needs to contain src and dest to distiguish differnt flows */
+    /* The hash string needs to contain src and dest to distinguish different flows */
     src_str = address_to_str(actx->pinfo->pool, src);
     dst_str = address_to_str(actx->pinfo->pool, dst);
     /* Reverse order to invoke */
@@ -15883,7 +15914,7 @@ dissect_ansi_map(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, void* data
     proto_tree *ansi_map_tree = NULL;
     struct ansi_tcap_private_t *p_private_tcap = (struct ansi_tcap_private_t *)data;
     asn1_ctx_t asn1_ctx;
-    asn1_ctx_init(&asn1_ctx, ASN1_ENC_BER, TRUE, pinfo);
+    asn1_ctx_init(&asn1_ctx, ASN1_ENC_BER, true, pinfo);
 
     SMS_BearerData_tvb = NULL;
     ansi_map_sms_tele_id = -1;
@@ -15903,9 +15934,9 @@ dissect_ansi_map(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, void* data
      */
     ansi_map_item = proto_tree_add_item(tree, proto_ansi_map, tvb, 0, -1, ENC_NA);
     ansi_map_tree = proto_item_add_subtree(ansi_map_item, ett_ansi_map);
-    ansi_map_is_invoke = FALSE;
-    is683_ota = FALSE;
-    is801_pld = FALSE;
+    ansi_map_is_invoke = false;
+    is683_ota = false;
+    is801_pld = false;
     ServiceIndicator = 0;
 
     switch(p_private_tcap->d.pdu){
@@ -15917,7 +15948,7 @@ dissect_ansi_map(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, void* data
         */
     case 1:
         OperationCode = p_private_tcap->d.OperationCode_private & 0x00ff;
-        ansi_map_is_invoke = TRUE;
+        ansi_map_is_invoke = true;
         col_add_fstr(pinfo->cinfo, COL_INFO,"%s Invoke ", val_to_str_ext(OperationCode, &ansi_map_opr_code_strings_ext, "Unknown ANSI-MAP PDU (%u)"));
         proto_item_append_text(p_private_tcap->d.OperationCode_item," %s",val_to_str_ext(OperationCode, &ansi_map_opr_code_strings_ext, "Unknown ANSI-MAP PDU (%u)"));
         dissect_invokeData(ansi_map_tree, tvb, 0, &asn1_ctx);
@@ -15944,14 +15975,14 @@ dissect_ansi_map(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, void* data
     return tvb_captured_length(tvb);
 }
 
-static void range_delete_callback(guint32 ssn, gpointer ptr _U_)
+static void range_delete_callback(uint32_t ssn, void *ptr _U_)
 {
     if (ssn) {
         delete_ansi_tcap_subdissector(ssn, ansi_map_handle);
     }
 }
 
-static void range_add_callback(guint32 ssn, gpointer ptr _U_)
+static void range_add_callback(uint32_t ssn, void *ptr _U_)
 {
     if (ssn) {
         add_ansi_tcap_subdissector(ssn, ansi_map_handle);
@@ -15975,10 +16006,10 @@ static stat_tap_table_item stat_fields[] = {{TABLE_ITEM_UINT, TAP_ALIGN_RIGHT, "
 static void ansi_map_stat_init(stat_tap_table_ui* new_stat)
 {
     const char *table_name = "ANSI MAP Operation Statistics";
-    int num_fields = sizeof(stat_fields)/sizeof(stat_tap_table_item);
+    int num_fields = array_length(stat_fields);
     stat_tap_table *table;
     int i = 0;
-    stat_tap_table_item_type items[sizeof(stat_fields)/sizeof(stat_tap_table_item)];
+    stat_tap_table_item_type items[array_length(stat_fields)];
 
     table = stat_tap_find_table(new_stat, table_name);
     if (table) {
@@ -16018,7 +16049,7 @@ ansi_map_stat_packet(void *tapdata, packet_info *pinfo _U_, epan_dissect_t *edt 
     const ansi_map_tap_rec_t    *data_p = (const ansi_map_tap_rec_t *)data;
     stat_tap_table* table;
     stat_tap_table_item_type* item_data;
-    guint count, total_bytes;
+    unsigned count, total_bytes;
 
     /* Only tracking field values we know */
     if (try_val_to_str(data_p->message_type, ansi_map_opr_code_strings) == NULL)
@@ -16046,7 +16077,7 @@ ansi_map_stat_packet(void *tapdata, packet_info *pinfo _U_, epan_dissect_t *edt 
 static void
 ansi_map_stat_reset(stat_tap_table* table)
 {
-    guint element;
+    unsigned element;
     stat_tap_table_item_type* item_data;
 
     for (element = 0; element < table->num_elements; element++)
@@ -16069,12 +16100,12 @@ ansi_map_stat_reset(stat_tap_table* table)
 void
 proto_reg_handoff_ansi_map(void)
 {
-    static gboolean ansi_map_prefs_initialized = FALSE;
+    static bool ansi_map_prefs_initialized = false;
     static range_t *ssn_range;
 
     if(!ansi_map_prefs_initialized)
     {
-        ansi_map_prefs_initialized = TRUE;
+        ansi_map_prefs_initialized = true;
     }
     else
     {
@@ -16566,7 +16597,7 @@ void proto_register_ansi_map(void) {
         {&hf_ansi_map_cdmachanneldata_lc_mask_b6,
          { "Long Code Mask (byte 6) MSB", "ansi_map.cdmachanneldata.lc_mask_b6",
            FT_UINT8, BASE_HEX, NULL, 0x03,
-           "Long Code Mask MSB (byte 6)", HFILL }},
+           NULL, HFILL }},
         {&hf_ansi_map_cdmachanneldata_lc_mask_b5,
          { "Long Code Mask (byte 5)", "ansi_map.cdmachanneldata.lc_mask_b5",
            FT_UINT8, BASE_HEX, NULL, 0xff,
@@ -16635,7 +16666,7 @@ void proto_register_ansi_map(void) {
             NULL, HFILL }},
         { &hf_ansi_map_ConfidentialityModes_vp,
           { "Voice Privacy (VP) Confidentiality Status", "ansi_map.confidentialitymodes.vp",
-            FT_BOOLEAN, 8, TFS(&ansi_map_ConfidentialityModes_bool_val),0x01,
+            FT_BOOLEAN, 8, TFS(&tfs_on_off),0x01,
             NULL, HFILL }},
         { &hf_ansi_map_controlchanneldata_dcc,
           { "Digital Color Code (DCC)", "ansi_map.controlchanneldata.dcc",
@@ -16659,11 +16690,11 @@ void proto_register_ansi_map(void) {
             NULL, HFILL }},
         { &hf_ansi_map_ConfidentialityModes_se,
           { "Signaling Message Encryption (SE) Confidentiality Status", "ansi_map.confidentialitymodes.se",
-            FT_BOOLEAN, 8, TFS(&ansi_map_ConfidentialityModes_bool_val),0x02,
+            FT_BOOLEAN, 8, TFS(&tfs_on_off),0x02,
             NULL, HFILL }},
         { &hf_ansi_map_ConfidentialityModes_dp,
           { "DataPrivacy (DP) Confidentiality Status", "ansi_map.confidentialitymodes.dp",
-            FT_BOOLEAN, 8, TFS(&ansi_map_ConfidentialityModes_bool_val),0x04,
+            FT_BOOLEAN, 8, TFS(&tfs_on_off),0x04,
             NULL, HFILL }},
 
         { &hf_ansi_map_deniedauthorizationperiod_period,
@@ -17648,33 +17679,9 @@ void proto_register_ansi_map(void) {
       { "sms-MessageWaitingIndicator", "ansi_map.sms_MessageWaitingIndicator_element",
         FT_NONE, BASE_NONE, NULL, 0,
         NULL, HFILL }},
-    { &hf_ansi_map_originationTriggers,
-      { "originationTriggers", "ansi_map.originationTriggers",
-        FT_BYTES, BASE_NONE, NULL, 0,
-        NULL, HFILL }},
     { &hf_ansi_map_featureIndicator,
       { "featureIndicator", "ansi_map.featureIndicator",
         FT_UINT32, BASE_DEC, VALS(ansi_map_FeatureIndicator_vals), 0,
-        NULL, HFILL }},
-    { &hf_ansi_map_dmh_ChargeInformation,
-      { "dmh-ChargeInformation", "ansi_map.dmh_ChargeInformation",
-        FT_BYTES, BASE_NONE, NULL, 0,
-        NULL, HFILL }},
-    { &hf_ansi_map_qualificationInformationCode,
-      { "qualificationInformationCode", "ansi_map.qualificationInformationCode",
-        FT_UINT32, BASE_DEC, VALS(ansi_map_QualificationInformationCode_vals), 0,
-        NULL, HFILL }},
-    { &hf_ansi_map_authorizationDenied,
-      { "authorizationDenied", "ansi_map.authorizationDenied",
-        FT_UINT32, BASE_DEC, VALS(ansi_map_AuthorizationDenied_vals), 0,
-        NULL, HFILL }},
-    { &hf_ansi_map_authorizationPeriod,
-      { "authorizationPeriod", "ansi_map.authorizationPeriod",
-        FT_BYTES, BASE_NONE, NULL, 0,
-        NULL, HFILL }},
-    { &hf_ansi_map_deniedAuthorizationPeriod,
-      { "deniedAuthorizationPeriod", "ansi_map.deniedAuthorizationPeriod",
-        FT_BYTES, BASE_NONE, NULL, 0,
         NULL, HFILL }},
     { &hf_ansi_map_authenticationCapability,
       { "authenticationCapability", "ansi_map.authenticationCapability",
@@ -17699,6 +17706,10 @@ void proto_register_ansi_map(void) {
     { &hf_ansi_map_originationIndicator,
       { "originationIndicator", "ansi_map.originationIndicator",
         FT_UINT32, BASE_DEC, VALS(ansi_map_OriginationIndicator_vals), 0,
+        NULL, HFILL }},
+    { &hf_ansi_map_originationTriggers,
+      { "originationTriggers", "ansi_map.originationTriggers",
+        FT_BYTES, BASE_NONE, NULL, 0,
         NULL, HFILL }},
     { &hf_ansi_map_restrictionDigits,
       { "restrictionDigits", "ansi_map.restrictionDigits",
@@ -17731,6 +17742,46 @@ void proto_register_ansi_map(void) {
     { &hf_ansi_map_lirMode,
       { "lirMode", "ansi_map.lirMode",
         FT_UINT32, BASE_DEC, VALS(ansi_map_LIRMode_vals), 0,
+        NULL, HFILL }},
+    { &hf_ansi_map_cdmaCodeChannel,
+      { "cdmaCodeChannel", "ansi_map.cdmaCodeChannel",
+        FT_BYTES, BASE_NONE, NULL, 0,
+        NULL, HFILL }},
+    { &hf_ansi_map_cdmaMobileCapabilities,
+      { "cdmaMobileCapabilities", "ansi_map.cdmaMobileCapabilities",
+        FT_BYTES, BASE_NONE, NULL, 0,
+        NULL, HFILL }},
+    { &hf_ansi_map_cdmaServingOneWayDelay2,
+      { "cdmaServingOneWayDelay2", "ansi_map.cdmaServingOneWayDelay2",
+        FT_BYTES, BASE_NONE, NULL, 0,
+        NULL, HFILL }},
+    { &hf_ansi_map_cdmaPSMMList,
+      { "cdmaPSMMList", "ansi_map.cdmaPSMMList",
+        FT_UINT32, BASE_DEC, NULL, 0,
+        NULL, HFILL }},
+    { &hf_ansi_map_mpcAddress,
+      { "mpcAddress", "ansi_map.mpcAddress",
+        FT_BYTES, BASE_NONE, NULL, 0,
+        NULL, HFILL }},
+    { &hf_ansi_map_dmh_ChargeInformation,
+      { "dmh-ChargeInformation", "ansi_map.dmh_ChargeInformation",
+        FT_BYTES, BASE_NONE, NULL, 0,
+        NULL, HFILL }},
+    { &hf_ansi_map_qualificationInformationCode,
+      { "qualificationInformationCode", "ansi_map.qualificationInformationCode",
+        FT_UINT32, BASE_DEC, VALS(ansi_map_QualificationInformationCode_vals), 0,
+        NULL, HFILL }},
+    { &hf_ansi_map_authorizationDenied,
+      { "authorizationDenied", "ansi_map.authorizationDenied",
+        FT_UINT32, BASE_DEC, VALS(ansi_map_AuthorizationDenied_vals), 0,
+        NULL, HFILL }},
+    { &hf_ansi_map_authorizationPeriod,
+      { "authorizationPeriod", "ansi_map.authorizationPeriod",
+        FT_BYTES, BASE_NONE, NULL, 0,
+        NULL, HFILL }},
+    { &hf_ansi_map_deniedAuthorizationPeriod,
+      { "deniedAuthorizationPeriod", "ansi_map.deniedAuthorizationPeriod",
+        FT_BYTES, BASE_NONE, NULL, 0,
         NULL, HFILL }},
     { &hf_ansi_map_randValidTime,
       { "randValidTime", "ansi_map.randValidTime",
@@ -17775,10 +17826,6 @@ void proto_register_ansi_map(void) {
     { &hf_ansi_map_sms_Address,
       { "sms-Address", "ansi_map.sms_Address_element",
         FT_NONE, BASE_NONE, NULL, 0,
-        NULL, HFILL }},
-    { &hf_ansi_map_mpcAddress,
-      { "mpcAddress", "ansi_map.mpcAddress",
-        FT_BYTES, BASE_NONE, NULL, 0,
         NULL, HFILL }},
     { &hf_ansi_map_mpcAddressList,
       { "mpcAddressList", "ansi_map.mpcAddressList_element",
@@ -17843,10 +17890,6 @@ void proto_register_ansi_map(void) {
     { &hf_ansi_map_sms_CauseCode,
       { "sms-CauseCode", "ansi_map.sms_CauseCode",
         FT_UINT8, BASE_DEC|BASE_EXT_STRING|BASE_EXT_STRING, &ansi_map_SMS_CauseCode_vals_ext, 0,
-        NULL, HFILL }},
-    { &hf_ansi_map_cdmaServingOneWayDelay2,
-      { "cdmaServingOneWayDelay2", "ansi_map.cdmaServingOneWayDelay2",
-        FT_BYTES, BASE_NONE, NULL, 0,
         NULL, HFILL }},
     { &hf_ansi_map_interMessageTime,
       { "interMessageTime", "ansi_map.interMessageTime",
@@ -18019,18 +18062,6 @@ void proto_register_ansi_map(void) {
     { &hf_ansi_map_dtxIndication,
       { "dtxIndication", "ansi_map.dtxIndication",
         FT_BYTES, BASE_NONE, NULL, 0,
-        NULL, HFILL }},
-    { &hf_ansi_map_cdmaCodeChannel,
-      { "cdmaCodeChannel", "ansi_map.cdmaCodeChannel",
-        FT_BYTES, BASE_NONE, NULL, 0,
-        NULL, HFILL }},
-    { &hf_ansi_map_cdmaMobileCapabilities,
-      { "cdmaMobileCapabilities", "ansi_map.cdmaMobileCapabilities",
-        FT_BYTES, BASE_NONE, NULL, 0,
-        NULL, HFILL }},
-    { &hf_ansi_map_cdmaPSMMList,
-      { "cdmaPSMMList", "ansi_map.cdmaPSMMList",
-        FT_UINT32, BASE_DEC, NULL, 0,
         NULL, HFILL }},
     { &hf_ansi_map_tdma_MAHO_CELLID,
       { "tdma-MAHO-CELLID", "ansi_map.tdma_MAHO_CELLID",
@@ -19099,7 +19130,7 @@ void proto_register_ansi_map(void) {
     };
 
     /* List of subtrees */
-    static gint *ett[] = {
+    static int *ett[] = {
         &ett_ansi_map,
         &ett_mintype,
         &ett_digitstype,
@@ -19362,15 +19393,15 @@ void proto_register_ansi_map(void) {
     expert_module_t* expert_ansi_map;
 
     static const enum_val_t ansi_map_response_matching_type_values[] = {
-        {"Only Transaction ID will be used in Invoke/response matching",                    "Transaction ID only", ANSI_MAP_TID_ONLY},
-        {"Transaction ID and Source will be used in Invoke/response matching",                "Transaction ID and Source", ANSI_MAP_TID_AND_SOURCE},
-        {"Transaction ID Source and Destination will be used in Invoke/response matching",    "Transaction ID Source and Destination", ANSI_MAP_TID_SOURCE_AND_DEST},
+        {"tid",                "Transaction ID only", ANSI_MAP_TID_ONLY},
+        {"tid_source",         "Transaction ID and Source", ANSI_MAP_TID_AND_SOURCE},
+        {"tid_source_dest",    "Transaction ID Source and Destination", ANSI_MAP_TID_SOURCE_AND_DEST},
         {NULL, NULL, -1}
     };
 
     /* TAP STAT INFO */
     static stat_tap_table_ui stat_table = {
-        REGISTER_STAT_GROUP_TELEPHONY_ANSI,
+        REGISTER_TELEPHONY_GROUP_ANSI,
         "Map Operation Statistics",
         "ansi_map",
         "ansi_map",
@@ -19379,7 +19410,7 @@ void proto_register_ansi_map(void) {
         ansi_map_stat_reset,
         NULL,
         NULL,
-        sizeof(stat_fields)/sizeof(stat_tap_table_item), stat_fields,
+        array_length(stat_fields), stat_fields,
         0, NULL,
         NULL,
         0
@@ -19422,7 +19453,7 @@ void proto_register_ansi_map(void) {
     prefs_register_enum_preference(ansi_map_module, "transaction.matchtype",
                                   "Type of matching invoke/response",
                                   "Type of matching invoke/response, risk of mismatch if loose matching chosen",
-                                  &ansi_map_response_matching_type, ansi_map_response_matching_type_values, FALSE);
+                                  &ansi_map_response_matching_type, ansi_map_response_matching_type_values, false);
 
     TransactionId_table = wmem_multimap_new_autoreset(wmem_epan_scope(), wmem_file_scope(), wmem_str_hash, g_str_equal);
     register_stat_tap_table_ui(&stat_table);

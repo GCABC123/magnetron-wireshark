@@ -23,17 +23,17 @@ void proto_register_ethercat_frame(void);
 void proto_reg_handoff_ethercat_frame(void);
 
 /* Define the Ethercat frame proto */
-static int proto_ethercat_frame = -1;
+static int proto_ethercat_frame;
 
 static dissector_table_t ethercat_frame_dissector_table;
 
 static dissector_handle_t ethercat_frame_handle;
 
 /* Define the tree for the EtherCAT frame */
-static int ett_ethercat_frame = -1;
-static int hf_ethercat_frame_length = -1;
-static int hf_ethercat_frame_reserved = -1;
-static int hf_ethercat_frame_type = -1;
+static int ett_ethercat_frame;
+static int hf_ethercat_frame_length;
+static int hf_ethercat_frame_reserved;
+static int hf_ethercat_frame_type;
 
 static const value_string EthercatFrameTypes[] =
 {
@@ -58,7 +58,7 @@ static int dissect_ethercat_frame(tvbuff_t *tvb, packet_info *pinfo, proto_tree 
    tvbuff_t *next_tvb;
    proto_item *ti;
    proto_tree *ethercat_frame_tree;
-   gint offset = 0;
+   int offset = 0;
    EtherCATFrameParserHDR hdr;
 
    col_set_str(pinfo->cinfo, COL_PROTOCOL, "ECATF");
@@ -115,7 +115,7 @@ void proto_register_ethercat_frame(void)
          }
       };
 
-   static gint *ett[] =
+   static int *ett[] =
       {
          &ett_ethercat_frame
       };

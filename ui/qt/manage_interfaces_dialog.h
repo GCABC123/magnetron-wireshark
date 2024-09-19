@@ -12,7 +12,6 @@
 
 #include <config.h>
 
-#include <glib.h>
 #include "capture_opts.h"
 
 #include <ui/qt/models/interface_tree_cache_model.h>
@@ -48,6 +47,10 @@ private:
     InterfaceSortFilterModel * pipeProxyModel;
 
     void showRemoteInterfaces();
+#ifdef HAVE_PCAP_REMOTE
+    void addRemote(const QVariantMap&&);
+    void populateExistingRemotes();
+#endif
 
 signals:
     void ifsChanged();
@@ -58,8 +61,6 @@ signals:
 
 private slots:
     void updateWidgets();
-
-    void on_buttonBox_accepted();
 
 #ifdef HAVE_LIBPCAP
     void on_addPipe_clicked();

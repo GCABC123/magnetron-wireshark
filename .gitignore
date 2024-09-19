@@ -20,7 +20,8 @@
 *.lo
 *.obj
 *.pyc
-*.so*
+*.so
+*.so.*
 *.[oa]
 *.dylib
 *grammar.out
@@ -28,7 +29,6 @@
 *scanner.c
 *_dict.c
 *_lex.h
-init.lua
 epan/dissectors/dcerpc/idl2wrs
 epan/dissectors/dcerpc/*/packet-dcerpc-*.[hc]
 epan/dissectors/mesa
@@ -79,18 +79,18 @@ epan/dissectors/dcerpc/*-stamp
 
 # Doc #
 ########
-doc/*.html
-doc/*.[14]
-doc/ws.css
-docbook/developer-guide*.xml
-docbook/user-guide*.xml
-docbook/*-guide-*.pdf
-docbook/ws?g_html/
-docbook/ws?g_html_chunked/
-docbook/release-notes-*.pdf
-docbook/release-notes.txt
-docbook/wsluarm
-docbook/wsluarm_src/
+doc/man_pages/*.html
+doc/man_pages/*.[14]
+doc/developer-guide*.xml
+doc/user-guide*.xml
+doc/*-guide-*.pdf
+doc/ws?g_html/
+doc/ws?g_html_chunked/
+doc/release-notes-*.pdf
+doc/release-notes.html
+doc/release-notes.txt
+doc/wsluarm
+doc/wsluarm_src/
 wsar_html/
 wsar_html.zip
 
@@ -102,7 +102,6 @@ wsar_html.zip
 /ui/qt/i18n.qrc
 /ui/qt/qrc_*.cpp
 /ui/qt/ui_*.h
-/ui/qt/console.lua
 *.ui.autosave
 
 # Windows Stuff #
@@ -160,7 +159,7 @@ CMakeLists.txt.user*
 .vagrant
 .vscode
 .idea
-*.swp
+*.sw?
 *~
 cscope.*
 tags
@@ -169,3 +168,4 @@ vgcore.*
 .pytest_cache/
 test/*.log
 *.code-workspace
+__pycache__/

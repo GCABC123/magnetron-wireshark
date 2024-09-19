@@ -17,18 +17,20 @@
 void proto_register_ax4000(void);
 void proto_reg_handoff_ax4000(void);
 
+static dissector_handle_t ax4000_handle;
+
 /* Initialize the protocol and registered fields */
-static int proto_ax4000 = -1;
-static int hf_ax4000_port = -1;
-static int hf_ax4000_chassis = -1;
-static int hf_ax4000_fill = -1;
-static int hf_ax4000_index = -1;
-static int hf_ax4000_timestamp = -1;
-static int hf_ax4000_seq = -1;
-static int hf_ax4000_crc = -1;
+static int proto_ax4000;
+static int hf_ax4000_port;
+static int hf_ax4000_chassis;
+static int hf_ax4000_fill;
+static int hf_ax4000_index;
+static int hf_ax4000_timestamp;
+static int hf_ax4000_seq;
+static int hf_ax4000_crc;
 
 /* Initialize the subtree pointers */
-static gint ett_ax4000 = -1;
+static int ett_ax4000;
 
 /* Code to actually dissect the packets */
 static int
@@ -37,7 +39,7 @@ dissect_ax4000(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, void* data _
 	proto_item *ti;
 	proto_tree *ax4000_tree;
 
-	guint32 ax_port, ax_chassis, ax_index, ax_seq, ax_timestamp;
+	uint32_t ax_port, ax_chassis, ax_index, ax_seq, ax_timestamp;
 
 	/* Make entries in Protocol column and Info column on summary display */
 	col_set_str(pinfo->cinfo, COL_PROTOCOL, "AX4000");
@@ -111,7 +113,7 @@ proto_register_ax4000(void)
 	};
 
 	/* Setup protocol subtree array */
-	static gint *ett[] = {
+	static int *ett[] = {
 		&ett_ax4000
 	};
 
@@ -122,6 +124,8 @@ proto_register_ax4000(void)
 	/* Required function calls to register the header fields and subtrees used */
 	proto_register_field_array(proto_ax4000, hf, array_length(hf));
 	proto_register_subtree_array(ett, array_length(ett));
+
+	ax4000_handle = register_dissector("ax4000", dissect_ax4000, proto_ax4000);
 }
 
 #define AX4000_TCP_PORT 3357 /* assigned by IANA */
@@ -130,10 +134,6 @@ proto_register_ax4000(void)
 void
 proto_reg_handoff_ax4000(void)
 {
-	dissector_handle_t ax4000_handle;
-
-	ax4000_handle = create_dissector_handle(dissect_ax4000, proto_ax4000);
-
 	dissector_add_uint("ip.proto", IP_PROTO_AX4000, ax4000_handle);
 	dissector_add_uint_with_preference("tcp.port", AX4000_TCP_PORT, ax4000_handle);
 	dissector_add_uint_with_preference("udp.port", AX4000_UDP_PORT, ax4000_handle);

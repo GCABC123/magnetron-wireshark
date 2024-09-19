@@ -15,6 +15,7 @@
 #include <glib.h>
 
 #include "wmem_core.h"
+#include "wmem_list.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -78,7 +79,7 @@ G_GNUC_MALLOC;
 
 /** Inserts a value into the map.
  *
- * @param map The map to insert into.
+ * @param map The map to insert into. Must not be NULL.
  * @param key The key to insert by.
  * @param value The value to insert.
  * @return The previous value stored at this key if any, or NULL.
@@ -89,17 +90,17 @@ wmem_map_insert(wmem_map_t *map, const void *key, void *value);
 
 /** Check if a value is in the map.
  *
- * @param map The map to search in.
+ * @param map The map to search in. May be NULL.
  * @param key The key to lookup.
  * @return true if the key is in the map, otherwise false.
  */
 WS_DLL_PUBLIC
-gboolean
+bool
 wmem_map_contains(wmem_map_t *map, const void *key);
 
 /** Lookup a value in the map.
  *
- * @param map The map to search in.
+ * @param map The map to search in. May be NULL.
  * @param key The key to lookup.
  * @return The value stored at the key if any, or NULL.
  */
@@ -110,20 +111,20 @@ wmem_map_lookup(wmem_map_t *map, const void *key);
 /** Lookup a value in the map, returning the key, value, and a boolean which
  * is true if the key is found.
  *
- * @param map The map to search in.
+ * @param map The map to search in. May be NULL.
  * @param key The key to lookup.
  * @param orig_key (optional) The key that was determined to be a match, if any.
  * @param value (optional) The value stored at the key, if any.
  * @return true if the key is in the map, otherwise false.
  */
 WS_DLL_PUBLIC
-gboolean
+bool
 wmem_map_lookup_extended(wmem_map_t *map, const void *key, const void **orig_key, void **value);
 
 /** Remove a value from the map. If no value is stored at that key, nothing
  * happens.
  *
- * @param map The map to remove from.
+ * @param map The map to remove from. May be NULL.
  * @param key The key of the value to remove.
  * @return The (removed) value stored at the key if any, or NULL.
  */
@@ -134,12 +135,12 @@ wmem_map_remove(wmem_map_t *map, const void *key);
 /** Remove a key and value from the map but does not destroy (free) them. If no
  * value is stored at that key, nothing happens.
  *
- * @param map The map to remove from.
+ * @param map The map to remove from. May be NULL.
  * @param key The key of the value to remove.
- * @return TRUE if key is found FALSE if not.
+ * @return true if key is found false if not.
  */
 WS_DLL_PUBLIC
-gboolean
+bool
 wmem_map_steal(wmem_map_t *map, const void *key);
 
 /** Retrieves a list of keys inside the map
@@ -156,27 +157,27 @@ wmem_map_get_keys(wmem_allocator_t *list_allocator, wmem_map_t *map);
  * of the calls is unpredictable, since it is based on the internal
  * storage of data.
  *
- * @param map The map to use
+ * @param map The map to use. May be NULL.
  * @param foreach_func the function to call for each key/value pair
  * @param user_data user data to pass to the function
  */
 WS_DLL_PUBLIC
 void
-wmem_map_foreach(wmem_map_t *map, GHFunc foreach_func, gpointer user_data);
+wmem_map_foreach(wmem_map_t *map, GHFunc foreach_func, void * user_data);
 
 /** Run a function against all key/value pairs in the map. If the
- * function returns TRUE, then the key/value pair is removed from
+ * function returns true, then the key/value pair is removed from
  * the map. The order of the calls is unpredictable, since it is
  * based on the internal storage of data.
  *
- * @param map The map to use
+ * @param map The map to use. May be NULL.
  * @param foreach_func the function to call for each key/value pair
  * @param user_data user data to pass to the function
  * @return The number of items removed
  */
 WS_DLL_PUBLIC
-guint
-wmem_map_foreach_remove(wmem_map_t *map, GHRFunc foreach_func, gpointer user_data);
+unsigned
+wmem_map_foreach_remove(wmem_map_t *map, GHRFunc foreach_func, void * user_data);
 
 /** Return the number of elements of the map.
  *
@@ -184,7 +185,7 @@ wmem_map_foreach_remove(wmem_map_t *map, GHRFunc foreach_func, gpointer user_dat
  * @return the number of elements
 */
 WS_DLL_PUBLIC
-guint
+unsigned
 wmem_map_size(wmem_map_t *map);
 
 /** Compute a strong hash value for an arbitrary sequence of bytes. Use of this
@@ -198,29 +199,29 @@ wmem_map_size(wmem_map_t *map);
  * @return The hash value.
  */
 WS_DLL_PUBLIC
-guint32
-wmem_strong_hash(const guint8 *buf, const size_t len);
+uint32_t
+wmem_strong_hash(const uint8_t *buf, const size_t len);
 
 /** An implementation of GHashFunc using wmem_strong_hash. Prefer this over
  * g_str_hash when the data comes from an untrusted source.
  */
 WS_DLL_PUBLIC
-guint
-wmem_str_hash(gconstpointer key);
+unsigned
+wmem_str_hash(const void *key);
 
 /** An implementation of GHashFunc using wmem_strong_hash. Prefer this over
  * g_int64_hash when the data comes from an untrusted source.
  */
 WS_DLL_PUBLIC
-guint
-wmem_int64_hash(gconstpointer key);
+unsigned
+wmem_int64_hash(const void *key);
 
 /** An implementation of GHashFunc using wmem_strong_hash. Prefer this over
  * g_double_hash when the data comes from an untrusted source.
  */
 WS_DLL_PUBLIC
-guint
-wmem_double_hash(gconstpointer key);
+unsigned
+wmem_double_hash(const void *key);
 
 /**   @}
  *  @} */

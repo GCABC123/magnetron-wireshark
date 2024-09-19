@@ -23,19 +23,21 @@
 void proto_register_ripng(void);
 void proto_reg_handoff_ripng(void);
 
-static int proto_ripng = -1;
-static int hf_ripng_cmd = -1;
-static int hf_ripng_version = -1;
-static int hf_ripng_reserved = -1;
+static dissector_handle_t ripng_handle;
 
-static int hf_ripng_rte = -1;
-static int hf_ripng_rte_ipv6_prefix = -1;
-static int hf_ripng_rte_route_tag = -1;
-static int hf_ripng_rte_prefix_length = -1;
-static int hf_ripng_rte_metric = -1;
+static int proto_ripng;
+static int hf_ripng_cmd;
+static int hf_ripng_version;
+static int hf_ripng_reserved;
 
-static gint ett_ripng = -1;
-static gint ett_ripng_rte = -1;
+static int hf_ripng_rte;
+static int hf_ripng_rte_ipv6_prefix;
+static int hf_ripng_rte_route_tag;
+static int hf_ripng_rte_prefix_length;
+static int hf_ripng_rte_metric;
+
+static int ett_ripng;
+static int ett_ripng_rte;
 
 #define UDP_PORT_RIPNG  521
 
@@ -56,8 +58,8 @@ dissect_ripng(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, void* data _U
 
     col_set_str(pinfo->cinfo, COL_PROTOCOL, "RIPng");
     col_add_fstr(pinfo->cinfo, COL_INFO," Command %s, Version %u",
-                 val_to_str(tvb_get_guint8(tvb, offset), cmdvals, "Unknown (%u)"),
-                 tvb_get_guint8(tvb, offset +1));
+                 val_to_str(tvb_get_uint8(tvb, offset), cmdvals, "Unknown (%u)"),
+                 tvb_get_uint8(tvb, offset +1));
 
     if (tree) {
         ti = proto_tree_add_item(tree, proto_ripng, tvb, offset, -1, ENC_NA);
@@ -92,12 +94,12 @@ dissect_ripng(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, void* data _U
 
             /* Prefix Length */
             proto_tree_add_item(rte_tree, hf_ripng_rte_prefix_length, tvb, offset, 1, ENC_BIG_ENDIAN);
-            proto_item_append_text(rte_ti, "/%u", tvb_get_guint8(tvb, offset));
+            proto_item_append_text(rte_ti, "/%u", tvb_get_uint8(tvb, offset));
             offset += 1;
 
             /* Metric */
             proto_tree_add_item(rte_tree, hf_ripng_rte_metric, tvb, offset, 1, ENC_BIG_ENDIAN);
-            proto_item_append_text(rte_ti, " Metric: %u", tvb_get_guint8(tvb, offset));
+            proto_item_append_text(rte_ti, " Metric: %u", tvb_get_uint8(tvb, offset));
             offset += 1;
         }
     }
@@ -144,7 +146,7 @@ proto_register_ripng(void)
             "The current metric for the destination; the value 16 (infinity) indicates that the destination is not reachable", HFILL }},
     };
 
-    static gint *ett[] = {
+    static int *ett[] = {
         &ett_ripng,
         &ett_ripng_rte,
     };
@@ -152,14 +154,13 @@ proto_register_ripng(void)
     proto_ripng = proto_register_protocol("RIPng", "RIPng", "ripng");
     proto_register_field_array(proto_ripng, hf, array_length(hf));
     proto_register_subtree_array(ett, array_length(ett));
+
+    ripng_handle = register_dissector("ripng", dissect_ripng, proto_ripng);
 }
 
 void
 proto_reg_handoff_ripng(void)
 {
-    dissector_handle_t ripng_handle;
-
-    ripng_handle = create_dissector_handle(dissect_ripng, proto_ripng);
     dissector_add_uint_with_preference("udp.port", UDP_PORT_RIPNG, ripng_handle);
 }
 

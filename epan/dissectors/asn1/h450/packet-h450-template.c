@@ -20,6 +20,7 @@
 #include <epan/expert.h>
 
 #include <epan/asn1.h>
+#include <wsutil/array.h>
 
 #include "packet-per.h"
 #include "packet-h225.h"
@@ -33,19 +34,22 @@
 void proto_register_h450(void);
 void proto_reg_handoff_h450(void);
 
+static dissector_handle_t h450_arg_handle;
+static dissector_handle_t h450_res_handle;
+static dissector_handle_t h450_err_handle;
 
 /* Initialize the protocol and registered fields */
-static int proto_h450 = -1;
-static int hf_h450_operation = -1;
-static int hf_h450_error = -1;
+static int proto_h450;
+static int hf_h450_operation;
+static int hf_h450_error;
 #include "packet-h450-hf.c"
 
 /* Initialize the subtree pointers */
 #include "packet-h450-ett.c"
 
-static expert_field ei_h450_unsupported_arg_type = EI_INIT;
-static expert_field ei_h450_unsupported_result_type = EI_INIT;
-static expert_field ei_h450_unsupported_error_type = EI_INIT;
+static expert_field ei_h450_unsupported_arg_type;
+static expert_field ei_h450_unsupported_result_type;
+static expert_field ei_h450_unsupported_error_type;
 
 static const value_string h450_str_operation[] = {
 #include "packet-h450-table10.c"
@@ -65,7 +69,7 @@ static rose_ctx_t h450_rose_ctx;
 #include "packet-h450-fn.c"
 
 typedef struct _h450_op_t {
-  gint32 opcode;
+  int32_t opcode;
   dissector_t arg_pdu;
   dissector_t res_pdu;
 } h450_op_t;
@@ -75,7 +79,7 @@ static const h450_op_t h450_op_tab[] = {
 };
 
 typedef struct _h450_err_t {
-  gint32 errcode;
+  int32_t errcode;
   dissector_t err_pdu;
 } h450_err_t;
 
@@ -83,7 +87,7 @@ static const h450_err_t h450_err_tab[] = {
 #include "packet-h450-table21.c"
 };
 
-static const h450_op_t *get_op(gint32 opcode) {
+static const h450_op_t *get_op(int32_t opcode) {
   int i;
 
   /* search from the end to get the last occurrence if the operation is redefined in some newer specification */
@@ -93,7 +97,7 @@ static const h450_op_t *get_op(gint32 opcode) {
   return NULL;
 }
 
-static const h450_err_t *get_err(gint32 errcode) {
+static const h450_err_t *get_err(int32_t errcode) {
   int i;
 
   /* search from the end to get the last occurrence if the operation is redefined in some newer specification */
@@ -109,9 +113,9 @@ dissect_h450_arg(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, void *data
   proto_item *hidden_item;
   int offset = 0;
   rose_ctx_t *rctx;
-  gint32 opcode;
+  int32_t opcode;
   const h450_op_t *op_ptr;
-  const gchar *p;
+  const char *p;
 
   /* Reject the packet if data is NULL */
   if (data == NULL)
@@ -154,9 +158,9 @@ dissect_h450_res(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, void *data
   proto_item *hidden_item;
   int offset = 0;
   rose_ctx_t *rctx;
-  gint32 opcode;
+  int32_t opcode;
   const h450_op_t *op_ptr;
-  const gchar *p;
+  const char *p;
 
   /* Reject the packet if data is NULL */
   if (data == NULL)
@@ -199,9 +203,9 @@ dissect_h450_err(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, void *data
   proto_item *hidden_item;
   int offset = 0;
   rose_ctx_t *rctx;
-  gint32 errcode;
+  int32_t errcode;
   const h450_err_t *err_ptr;
-  const gchar *p;
+  const char *p;
 
   /* Reject the packet if data is NULL */
   if (data == NULL)
@@ -253,7 +257,7 @@ void proto_register_h450(void) {
   };
 
   /* List of subtrees */
-  static gint *ett[] = {
+  static int *ett[] = {
 #include "packet-h450-ettarr.c"
   };
 
@@ -276,12 +280,17 @@ void proto_register_h450(void) {
 
   rose_ctx_init(&h450_rose_ctx);
 
+  /* Register dissectors */
+  h450_arg_handle = register_dissector("h4501_arg", dissect_h450_arg, proto_h450);
+  h450_res_handle = register_dissector("h4501_res", dissect_h450_res, proto_h450);
+  h450_err_handle = register_dissector("h4501_err", dissect_h450_err, proto_h450);
+
   /* Register dissector tables */
-  h450_rose_ctx.arg_global_dissector_table = register_dissector_table("h450.ros.global.arg", "H.450 Operation Argument (global opcode)", proto_h450, FT_STRING, BASE_NONE);
-  h450_rose_ctx.res_global_dissector_table = register_dissector_table("h450.ros.global.res", "H.450 Operation Result (global opcode)", proto_h450, FT_STRING, BASE_NONE);
+  h450_rose_ctx.arg_global_dissector_table = register_dissector_table("h450.ros.global.arg", "H.450 Operation Argument (global opcode)", proto_h450, FT_STRING, STRING_CASE_SENSITIVE);
+  h450_rose_ctx.res_global_dissector_table = register_dissector_table("h450.ros.global.res", "H.450 Operation Result (global opcode)", proto_h450, FT_STRING, STRING_CASE_SENSITIVE);
   h450_rose_ctx.arg_local_dissector_table = register_dissector_table("h450.ros.local.arg", "H.450 Operation Argument (local opcode)", proto_h450, FT_UINT32, BASE_HEX);
   h450_rose_ctx.res_local_dissector_table = register_dissector_table("h450.ros.local.res", "H.450 Operation Result (local opcode)", proto_h450, FT_UINT32, BASE_HEX);
-  h450_rose_ctx.err_global_dissector_table = register_dissector_table("h450.ros.global.err", "H.450 Error (global opcode)", proto_h450, FT_STRING, BASE_NONE);
+  h450_rose_ctx.err_global_dissector_table = register_dissector_table("h450.ros.global.err", "H.450 Error (global opcode)", proto_h450, FT_STRING, STRING_CASE_SENSITIVE);
   h450_rose_ctx.err_local_dissector_table = register_dissector_table("h450.ros.local.err", "H.450 Error (local opcode)", proto_h450, FT_UINT32, BASE_HEX);
 
 }
@@ -292,17 +301,11 @@ void
 proto_reg_handoff_h450(void)
 {
   int i;
-  dissector_handle_t h450_arg_handle;
-  dissector_handle_t h450_res_handle;
-  dissector_handle_t h450_err_handle;
 
-  h450_arg_handle = create_dissector_handle(dissect_h450_arg, proto_h450);
-  h450_res_handle = create_dissector_handle(dissect_h450_res, proto_h450);
   for (i=0; i<(int)array_length(h450_op_tab); i++) {
     dissector_add_uint("h450.ros.local.arg", h450_op_tab[i].opcode, h450_arg_handle);
     dissector_add_uint("h450.ros.local.res", h450_op_tab[i].opcode, h450_res_handle);
   }
-  h450_err_handle = create_dissector_handle(dissect_h450_err, proto_h450);
   for (i=0; i<(int)array_length(h450_err_tab); i++) {
     dissector_add_uint("h450.ros.local.err", h450_err_tab[i].errcode, h450_err_handle);
   }

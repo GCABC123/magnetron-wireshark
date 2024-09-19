@@ -27,19 +27,23 @@
 void proto_register_mac_mgmt_msg_dsc(void);
 void proto_reg_handoff_mac_mgmt_msg_dsc(void);
 
-static gint proto_mac_mgmt_msg_dsc_decoder = -1;
-static gint ett_mac_mgmt_msg_dsc_req_decoder = -1;
-static gint ett_mac_mgmt_msg_dsc_rsp_decoder = -1;
-static gint ett_mac_mgmt_msg_dsc_ack_decoder = -1;
+static dissector_handle_t dsc_req_handle;
+static dissector_handle_t dsc_rsp_handle;
+static dissector_handle_t dsc_ack_handle;
+
+static int proto_mac_mgmt_msg_dsc_decoder;
+static int ett_mac_mgmt_msg_dsc_req_decoder;
+static int ett_mac_mgmt_msg_dsc_rsp_decoder;
+static int ett_mac_mgmt_msg_dsc_ack_decoder;
 
 /* fix fields */
-static gint hf_dsc_transaction_id = -1;
-static gint hf_dsc_confirmation_code = -1;
+static int hf_dsc_transaction_id;
+static int hf_dsc_confirmation_code;
 
 
 static int dissect_mac_mgmt_msg_dsc_req_decoder(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, void* data _U_)
 {
-	guint offset = 0;
+	unsigned offset = 0;
 	proto_item *dsc_item;
 	proto_tree *dsc_tree;
 
@@ -63,7 +67,7 @@ static int dissect_mac_mgmt_msg_dsc_req_decoder(tvbuff_t *tvb, packet_info *pinf
 
 static int dissect_mac_mgmt_msg_dsc_rsp_decoder(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, void* data _U_)
 {
-	guint offset = 0;
+	unsigned offset = 0;
 	proto_item *dsc_item;
 	proto_tree *dsc_tree;
 
@@ -90,7 +94,7 @@ static int dissect_mac_mgmt_msg_dsc_rsp_decoder(tvbuff_t *tvb, packet_info *pinf
 
 static int dissect_mac_mgmt_msg_dsc_ack_decoder(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, void* data _U_)
 {
-	guint offset = 0;
+	unsigned offset = 0;
 	proto_item *dsc_item;
 	proto_tree *dsc_tree;
 
@@ -138,7 +142,7 @@ void proto_register_mac_mgmt_msg_dsc(void)
 	};
 
 	/* Setup protocol subtree array */
-	static gint *ett[] =
+	static int *ett[] =
 		{
 			&ett_mac_mgmt_msg_dsc_req_decoder,
 			&ett_mac_mgmt_msg_dsc_rsp_decoder,
@@ -154,22 +158,17 @@ void proto_register_mac_mgmt_msg_dsc(void)
 	proto_register_field_array(proto_mac_mgmt_msg_dsc_decoder, hf, array_length(hf));
 	proto_register_subtree_array(ett, array_length(ett));
 
-	register_dissector("mac_mgmt_msg_dsc_rsp_handler", dissect_mac_mgmt_msg_dsc_rsp_decoder, -1);
+	dsc_req_handle = register_dissector("mac_mgmt_msg_dsc_req_handler", dissect_mac_mgmt_msg_dsc_req_decoder, proto_mac_mgmt_msg_dsc_decoder);
+	dsc_rsp_handle = register_dissector("mac_mgmt_msg_dsc_rsp_handler", dissect_mac_mgmt_msg_dsc_rsp_decoder, proto_mac_mgmt_msg_dsc_decoder);
+	dsc_ack_handle = register_dissector("mac_mgmt_msg_dsc_ack_handler", dissect_mac_mgmt_msg_dsc_ack_decoder, proto_mac_mgmt_msg_dsc_decoder);
 }
 
 void
 proto_reg_handoff_mac_mgmt_msg_dsc(void)
 {
-	dissector_handle_t dsc_handle;
-
-	dsc_handle = create_dissector_handle(dissect_mac_mgmt_msg_dsc_req_decoder, proto_mac_mgmt_msg_dsc_decoder);
-	dissector_add_uint("wmx.mgmtmsg", MAC_MGMT_MSG_DSC_REQ, dsc_handle);
-
-	dsc_handle = create_dissector_handle(dissect_mac_mgmt_msg_dsc_rsp_decoder, proto_mac_mgmt_msg_dsc_decoder);
-	dissector_add_uint("wmx.mgmtmsg", MAC_MGMT_MSG_DSC_RSP, dsc_handle);
-
-	dsc_handle = create_dissector_handle(dissect_mac_mgmt_msg_dsc_ack_decoder, proto_mac_mgmt_msg_dsc_decoder);
-	dissector_add_uint("wmx.mgmtmsg", MAC_MGMT_MSG_DSC_ACK, dsc_handle);
+	dissector_add_uint("wmx.mgmtmsg", MAC_MGMT_MSG_DSC_REQ, dsc_req_handle);
+	dissector_add_uint("wmx.mgmtmsg", MAC_MGMT_MSG_DSC_RSP, dsc_rsp_handle);
+	dissector_add_uint("wmx.mgmtmsg", MAC_MGMT_MSG_DSC_ACK, dsc_ack_handle);
 }
 
 /*

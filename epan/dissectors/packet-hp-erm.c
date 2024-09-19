@@ -34,22 +34,26 @@
 #include "config.h"
 
 #include <epan/packet.h>
+#include <epan/tfs.h>
+#include <wsutil/array.h>
 
 void proto_register_hp_erm(void);
 void proto_reg_handoff_hp_erm(void);
 
+static dissector_handle_t hp_erm_handle;
+
 #define PROTO_SHORT_NAME "HP_ERM"
 #define PROTO_LONG_NAME  "HP encapsulated remote mirroring"
 
-static int  proto_hp_erm        = -1;
-static gint ett_hp_erm          = -1;
-static int  hf_hp_erm_unknown1  = -1;
-static int  hf_hp_erm_unknown2  = -1;
-static int  hf_hp_erm_unknown3  = -1;
-static int  hf_hp_erm_priority  = -1;
-static int  hf_hp_erm_cfi       = -1;
-static int  hf_hp_erm_vlan      = -1;
-static int  hf_hp_erm_is_tagged = -1;
+static int  proto_hp_erm;
+static int ett_hp_erm;
+static int  hf_hp_erm_unknown1;
+static int  hf_hp_erm_unknown2;
+static int  hf_hp_erm_unknown3;
+static int  hf_hp_erm_priority;
+static int  hf_hp_erm_cfi;
+static int  hf_hp_erm_vlan;
+static int  hf_hp_erm_is_tagged;
 
 static const value_string hp_erm_pri_vals[] = {
   { 0, "Background"                        },
@@ -74,7 +78,7 @@ dissect_hp_erm(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, void* data _
     proto_tree *hp_erm_tree;
     tvbuff_t   *eth_tvb;
     int        offset = 0;
-    int * const flags[] = {
+    static int * const flags[] = {
         &hf_hp_erm_unknown2,
         &hf_hp_erm_priority,
         &hf_hp_erm_cfi,
@@ -135,7 +139,7 @@ proto_register_hp_erm(void)
             0x0000007F, NULL, HFILL }}
     };
 
-    static gint *ett[] = {
+    static int *ett[] = {
         &ett_hp_erm,
     };
 
@@ -143,15 +147,14 @@ proto_register_hp_erm(void)
 
     proto_register_field_array(proto_hp_erm, hf, array_length(hf));
     proto_register_subtree_array(ett, array_length(ett));
+
+    hp_erm_handle = register_dissector("hp_erm", dissect_hp_erm, proto_hp_erm);
 }
 
 void
 proto_reg_handoff_hp_erm(void)
 {
-    dissector_handle_t hp_erm_handle;
-
     eth_withoutfcs_handle = find_dissector_add_dependency("eth_withoutfcs", proto_hp_erm);
-    hp_erm_handle = create_dissector_handle(dissect_hp_erm, proto_hp_erm);
     dissector_add_for_decode_as_with_preference("udp.port", hp_erm_handle);
 }
 /*

@@ -29,43 +29,45 @@
 void proto_register_userlog(void);
 void proto_reg_handoff_userlog(void);
 
-static int proto_userlog           = -1;
+static dissector_handle_t userlog_handle;
 
-static int hf_userlog_version      = -1;
-static int hf_userlog_logtype      = -1;
-static int hf_userlog_count        = -1;
-static int hf_userlog_timestamp    = -1;
-static int hf_userlog_header_reserved = -1;
+static int proto_userlog;
 
-static int hf_userlog_proto        = -1;
-static int hf_userlog_Operator     = -1;
-static int hf_userlog_IPVerion     = -1;
-static int hf_userlog_IPToS        = -1;
+static int hf_userlog_version;
+static int hf_userlog_logtype;
+static int hf_userlog_count;
+static int hf_userlog_timestamp;
+static int hf_userlog_header_reserved;
 
-static int hf_userlog_SourceIP     = -1;
-static int hf_userlog_SrcNatIP     = -1;
-static int hf_userlog_DestIP       = -1;
-static int hf_userlog_DestNatIP    = -1;
-static int hf_userlog_SrcPort      = -1;
-static int hf_userlog_SrcNatPort   = -1;
-static int hf_userlog_DestPort     = -1;
-static int hf_userlog_DestNatPort  = -1;
+static int hf_userlog_proto;
+static int hf_userlog_Operator;
+static int hf_userlog_IPVerion;
+static int hf_userlog_IPToS;
 
-static int hf_userlog_StartTime    = -1;
-static int hf_userlog_EndTime      = -1;
+static int hf_userlog_SourceIP;
+static int hf_userlog_SrcNatIP;
+static int hf_userlog_DestIP;
+static int hf_userlog_DestNatIP;
+static int hf_userlog_SrcPort;
+static int hf_userlog_SrcNatPort;
+static int hf_userlog_DestPort;
+static int hf_userlog_DestNatPort;
 
-static int hf_userlog_InTotalPkg   = -1;
-static int hf_userlog_InTotalByte  = -1;
-static int hf_userlog_OutTotalPkg  = -1;
-static int hf_userlog_OutTotalByte = -1;
+static int hf_userlog_StartTime;
+static int hf_userlog_EndTime;
 
-static int hf_userlog_Reserved1    = -1;
-static int hf_userlog_Reserved2    = -1;
-static int hf_userlog_Reserved3    = -1;
+static int hf_userlog_InTotalPkg;
+static int hf_userlog_InTotalByte;
+static int hf_userlog_OutTotalPkg;
+static int hf_userlog_OutTotalByte;
 
-static gint ett_userlog            = -1;
-static gint ett_userlog_header     = -1;
-static gint ett_userlog_log        = -1;
+static int hf_userlog_Reserved1;
+static int hf_userlog_Reserved2;
+static int hf_userlog_Reserved3;
+
+static int ett_userlog;
+static int ett_userlog_header;
+static int ett_userlog_log;
 
 static const value_string version[] = {
 { 1, "V1" },
@@ -106,9 +108,9 @@ dissect_userlog(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, void* data 
 	proto_tree *userlog_header, *userlog_tree;
 	proto_tree *userlog_log;
 	/* Other misc. local variables. */
-	gint offset    = 0;
-	guint log_count = 1;
-	guint log_type, log_max;
+	int offset    = 0;
+	unsigned log_count = 1;
+	unsigned log_type, log_max;
 
 	/* Check that the packet is long enough for it to belong to us. */
 	if (tvb_reported_length(tvb) < USERLOG_MIN_LENGTH)
@@ -229,7 +231,7 @@ proto_register_userlog(void)
 		},
 
 		{ &hf_userlog_header_reserved,
-			{ "Reserved", "userlog.header_reserved",
+			{ "Reserved", "userlog.reserved",
 			FT_BYTES, BASE_NONE,
 			NULL, 0x0,
 			NULL, HFILL }
@@ -385,7 +387,7 @@ proto_register_userlog(void)
 	};
 
 	/* Setup protocol subtree array */
-	static gint *ett[] = {
+	static int *ett[] = {
 		&ett_userlog,
 		&ett_userlog_header,
 		&ett_userlog_log
@@ -394,14 +396,12 @@ proto_register_userlog(void)
 	proto_userlog = proto_register_protocol("UserLog Protocol", "UserLog", "userlog");
 	proto_register_field_array(proto_userlog, hf, array_length(hf));
 	proto_register_subtree_array(ett, array_length(ett));
+	userlog_handle = register_dissector("userlog", dissect_userlog, proto_userlog);
 }
 
 void
 proto_reg_handoff_userlog(void)
 {
-	dissector_handle_t userlog_handle;
-
-	userlog_handle = create_dissector_handle(dissect_userlog, proto_userlog);
 	dissector_add_for_decode_as_with_preference("udp.port", userlog_handle);
 
 }

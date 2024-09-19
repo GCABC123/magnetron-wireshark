@@ -28,13 +28,26 @@
  *      the length field (that value does not include the length
  *      of the type or length fields themselves).
  *
- * TLVs are not guaranteed to be aligned to any particular number
- * of bytes.
+ * Buffer layout:
+ *  0                   1                   2                   3
+ *  0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
+ * +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+ * |      Option Code              |         Option Length         |
+ * +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+ * /                       Option Value                            /
+ * /             variable length, aligned to 32 bits               /
+ * +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+ * /                                                               /
+ * /                 . . . other options . . .                     /
+ * /                                                               /
+ * +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+ * |   Option Code == opt_endofopt  |  Option Length == 0          |
+ * +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
  *
  * The list of TLVs may begin with a TLV of type EXP_PDU_TAG_OPTIONS_LENGTH;
  * its value is a 4-byte integer value, giving the length of all TLVs
  * following that TLV (i.e., the length does not include the length of
- * the EXP_PDU_TAG_OPTIONS_LENGTH TLV).  This tag is deprecated; it is
+ * the EXP_PDU_TAG_OPTIONS_LENGTH TLV). This tag is deprecated; it is
  * not guaranteed to be present, and code reading packets should not
  * require it to be present.
  *
@@ -161,6 +174,22 @@
 #define EXP_PDU_TAG_TCP_INFO_DATA  34
 
 #define EXP_PDU_TAG_P2P_DIRECTION  35  /**< The packet direction (P2P_DIR_SENT, P2P_DIR_RECV). */
+
+#define EXP_PDU_TAG_COL_INFO_TEXT  36 /**< UTF-8 text string to put in COL_INFO, useful when putting meta data into the packet list.
+                                        */
+
+#define EXP_PDU_TAG_USER_DATA_PDU  37 /**< Raw user data PDU which can be dissected as any protocol. */
+
+/* 3GPP identity types for EXP_PDU_TAG_3GPP_ID */
+#define EXP_PDU_3GPP_ID_CGI     0 /**< 56-bit 2G/3G Cell Global Identifier (MNC big-endian encoding) */
+#define EXP_PDU_3GPP_ID_ECGI    1 /**< 52-bit 4G E-UTRAN Cell Global Identifier (MNC big-endian encoding) */
+#define EXP_PDU_3GPP_ID_NCGI    2 /**< 60-bit NR Cell Global Identifier (MNC big-endian encoding) */
+
+/**< Stores a 3GPP identifier.
+    The value begins with a 1-byte identity type (EXP_PDU_3GPP_ID_*),
+    followed by the identity itself.
+*/
+#define EXP_PDU_TAG_3GPP_ID   38
 
 #define EXP_PDU_TAG_IPV4_LEN            4
 #define EXP_PDU_TAG_IPV6_LEN            16

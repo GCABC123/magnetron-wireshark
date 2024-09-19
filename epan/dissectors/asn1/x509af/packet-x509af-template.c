@@ -15,6 +15,7 @@
 #include <epan/oids.h>
 #include <epan/asn1.h>
 #include <epan/strutil.h>
+#include <wsutil/array.h>
 
 #include "packet-ber.h"
 #include "packet-x509af.h"
@@ -34,16 +35,18 @@
 void proto_register_x509af(void);
 void proto_reg_handoff_x509af(void);
 
+static dissector_handle_t pkix_crl_handle;
+
 /* Initialize the protocol and registered fields */
-static int proto_x509af = -1;
-static int hf_x509af_algorithm_id = -1;
-static int hf_x509af_extension_id = -1;
+static int proto_x509af;
+static int hf_x509af_algorithm_id;
+static int hf_x509af_extension_id;
 #include "packet-x509af-hf.c"
 
 /* Initialize the subtree pointers */
-static gint ett_pkix_crl = -1;
+static int ett_pkix_crl;
 #include "packet-x509af-ett.c"
-static const char *algorithm_id = NULL;
+static const char *algorithm_id;
 static void
 x509af_export_publickey(tvbuff_t *tvb, asn1_ctx_t *actx, int offset, int len);
 #include "packet-x509af-fn.c"
@@ -57,7 +60,7 @@ x509af_export_publickey(tvbuff_t *tvb _U_, asn1_ctx_t *actx _U_, int offset _U_,
 #if defined(HAVE_LIBGNUTLS)
   gnutls_datum_t *subjectPublicKeyInfo = (gnutls_datum_t *)actx->private_data;
   if (subjectPublicKeyInfo) {
-    subjectPublicKeyInfo->data = (guchar *) tvb_get_ptr(tvb, offset, len);
+    subjectPublicKeyInfo->data = (unsigned char *) tvb_get_ptr(tvb, offset, len);
     subjectPublicKeyInfo->size = len;
     actx->private_data = NULL;
   }
@@ -74,7 +77,7 @@ dissect_pkix_crl(tvbuff_t *tvb, packet_info *pinfo, proto_tree *parent_tree, voi
 {
 	proto_tree *tree;
 	asn1_ctx_t asn1_ctx;
-	asn1_ctx_init(&asn1_ctx, ASN1_ENC_BER, TRUE, pinfo);
+	asn1_ctx_init(&asn1_ctx, ASN1_ENC_BER, true, pinfo);
 
 	col_set_str(pinfo->cinfo, COL_PROTOCOL, "PKIX-CRL");
 
@@ -83,7 +86,7 @@ dissect_pkix_crl(tvbuff_t *tvb, packet_info *pinfo, proto_tree *parent_tree, voi
 
 	tree=proto_tree_add_subtree(parent_tree, tvb, 0, -1, ett_pkix_crl, NULL, "Certificate Revocation List");
 
-	return dissect_x509af_CertificateList(FALSE, tvb, 0, &asn1_ctx, tree, -1);
+	return dissect_x509af_CertificateList(false, tvb, 0, &asn1_ctx, tree, -1);
 }
 
 static void
@@ -109,7 +112,7 @@ void proto_register_x509af(void) {
   };
 
   /* List of subtrees */
-  static gint *ett[] = {
+  static int *ett[] = {
     &ett_pkix_crl,
 #include "packet-x509af-ettarr.c"
   };
@@ -123,6 +126,8 @@ void proto_register_x509af(void) {
 
   register_cleanup_routine(&x509af_cleanup_protocol);
 
+  pkix_crl_handle = register_dissector(PFNAME, dissect_pkix_crl, proto_x509af);
+
   register_ber_syntax_dissector("Certificate", proto_x509af, dissect_x509af_Certificate_PDU);
   register_ber_syntax_dissector("CertificateList", proto_x509af, dissect_CertificateList_PDU);
   register_ber_syntax_dissector("CrossCertificatePair", proto_x509af, dissect_CertificatePair_PDU);
@@ -135,9 +140,7 @@ void proto_register_x509af(void) {
 
 /*--- proto_reg_handoff_x509af -------------------------------------------*/
 void proto_reg_handoff_x509af(void) {
-	dissector_handle_t pkix_crl_handle;
 
-	pkix_crl_handle = create_dissector_handle(dissect_pkix_crl, proto_x509af);
 	dissector_add_string("media_type", "application/pkix-crl", pkix_crl_handle);
 
 #include "packet-x509af-dis-tab.c"

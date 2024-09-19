@@ -28,27 +28,30 @@
 void proto_register_mac_mgmt_msg_dsd(void);
 void proto_reg_handoff_mac_mgmt_msg_dsd(void);
 
-static gint proto_mac_mgmt_msg_dsd_decoder = -1;
-static gint ett_mac_mgmt_msg_dsd_req_decoder = -1;
-static gint ett_mac_mgmt_msg_dsd_rsp_decoder = -1;
-/* static gint ett_dsd_ul_sfe_decoder = -1; */
-/* static gint ett_dsd_dl_sfe_decoder = -1; */
-/* static gint ett_dsd_hmac_tuple = -1;     */
-/* static gint ett_dsd_cmac_tuple = -1;     */
+static dissector_handle_t dsd_req_handle;
+static dissector_handle_t dsd_rsp_handle;
+
+static int proto_mac_mgmt_msg_dsd_decoder;
+static int ett_mac_mgmt_msg_dsd_req_decoder;
+static int ett_mac_mgmt_msg_dsd_rsp_decoder;
+/* static int ett_dsd_ul_sfe_decoder; */
+/* static int ett_dsd_dl_sfe_decoder; */
+/* static int ett_dsd_hmac_tuple;     */
+/* static int ett_dsd_cmac_tuple;     */
 
 /* fix fields */
-static gint hf_dsd_transaction_id = -1;
-static gint hf_dsd_service_flow_id = -1;
-static gint hf_dsd_confirmation_code = -1;
-static gint hf_dsd_invalid_tlv = -1;
-static gint hf_dsd_unknown_type = -1;
+static int hf_dsd_transaction_id;
+static int hf_dsd_service_flow_id;
+static int hf_dsd_confirmation_code;
+static int hf_dsd_invalid_tlv;
+static int hf_dsd_unknown_type;
 
 
 static int dissect_mac_mgmt_msg_dsd_req_decoder(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, void* data _U_)
 {
-	guint offset = 0;
-	guint tvb_len, tlv_len, tlv_value_offset;
-	gint  tlv_type;
+	unsigned offset = 0;
+	unsigned tvb_len, tlv_len, tlv_value_offset;
+	int   tlv_type;
 	proto_item *dsd_item;
 	proto_tree *dsd_tree;
 	proto_tree *tlv_tree = NULL;
@@ -116,9 +119,9 @@ static int dissect_mac_mgmt_msg_dsd_req_decoder(tvbuff_t *tvb, packet_info *pinf
 
 static int dissect_mac_mgmt_msg_dsd_rsp_decoder(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, void* data _U_)
 {
-	guint offset = 0;
-	guint tvb_len, tlv_len, tlv_value_offset;
-	gint  tlv_type;
+	unsigned offset = 0;
+	unsigned tvb_len, tlv_len, tlv_value_offset;
+	int   tlv_type;
 	proto_item *dsd_item;
 	proto_tree *dsd_tree;
 	proto_tree *tlv_tree = NULL;
@@ -231,7 +234,7 @@ void proto_register_mac_mgmt_msg_dsd(void)
 	};
 
 	/* Setup protocol subtree array */
-	static gint *ett[] =
+	static int *ett[] =
 		{
 			&ett_mac_mgmt_msg_dsd_req_decoder,
 			&ett_mac_mgmt_msg_dsd_rsp_decoder,
@@ -249,18 +252,16 @@ void proto_register_mac_mgmt_msg_dsd(void)
 
 	proto_register_field_array(proto_mac_mgmt_msg_dsd_decoder, hf, array_length(hf));
 	proto_register_subtree_array(ett, array_length(ett));
+
+	dsd_req_handle = register_dissector("mac_mgmt_msg_dsd_req_handler", dissect_mac_mgmt_msg_dsd_req_decoder, proto_mac_mgmt_msg_dsd_decoder);
+	dsd_rsp_handle = register_dissector("mac_mgmt_msg_dsd_rsp_handler", dissect_mac_mgmt_msg_dsd_rsp_decoder, proto_mac_mgmt_msg_dsd_decoder);
 }
 
 void
 proto_reg_handoff_mac_mgmt_msg_dsd(void)
 {
-	dissector_handle_t dsd_handle;
-
-	dsd_handle = create_dissector_handle(dissect_mac_mgmt_msg_dsd_req_decoder, proto_mac_mgmt_msg_dsd_decoder);
-	dissector_add_uint("wmx.mgmtmsg", MAC_MGMT_MSG_DSD_REQ, dsd_handle);
-
-	dsd_handle = create_dissector_handle(dissect_mac_mgmt_msg_dsd_rsp_decoder, proto_mac_mgmt_msg_dsd_decoder);
-	dissector_add_uint("wmx.mgmtmsg", MAC_MGMT_MSG_DSD_RSP, dsd_handle);
+	dissector_add_uint("wmx.mgmtmsg", MAC_MGMT_MSG_DSD_REQ, dsd_req_handle);
+	dissector_add_uint("wmx.mgmtmsg", MAC_MGMT_MSG_DSD_RSP, dsd_rsp_handle);
 }
 
 

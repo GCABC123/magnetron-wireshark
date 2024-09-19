@@ -18,6 +18,8 @@
 void proto_register_hsr_prp_supervision(void);
 void proto_reg_handoff_hsr_prp_supervision(void);
 
+static dissector_handle_t hsr_prp_supervision_handle;
+
 /**********************************************************/
 /* Channel values for the supervision type field          */
 /**********************************************************/
@@ -37,22 +39,22 @@ static const value_string type_vals[] = {
 /* Initialize the protocol and registered fields          */
 /**********************************************************/
 
-static int proto_hsr_prp_supervision = -1;
+static int proto_hsr_prp_supervision;
 
 /* Initialize supervision frame fields */
-static int hf_hsr_prp_supervision_path = -1;
-static int hf_hsr_prp_supervision_version = -1;
-static int hf_hsr_prp_supervision_seqno = -1;
-static int hf_hsr_prp_supervision_tlv_type = -1;
-static int hf_hsr_prp_supervision_tlv_length = -1;
-static int hf_hsr_prp_supervision_source_mac_address_A = -1;
-static int hf_hsr_prp_supervision_source_mac_address_B = -1;
-static int hf_hsr_prp_supervision_source_mac_address = -1;
-static int hf_hsr_prp_supervision_red_box_mac_address = -1;
-static int hf_hsr_prp_supervision_vdan_mac_address = -1;
+static int hf_hsr_prp_supervision_path;
+static int hf_hsr_prp_supervision_version;
+static int hf_hsr_prp_supervision_seqno;
+static int hf_hsr_prp_supervision_tlv_type;
+static int hf_hsr_prp_supervision_tlv_length;
+static int hf_hsr_prp_supervision_source_mac_address_A;
+static int hf_hsr_prp_supervision_source_mac_address_B;
+static int hf_hsr_prp_supervision_source_mac_address;
+static int hf_hsr_prp_supervision_red_box_mac_address;
+static int hf_hsr_prp_supervision_vdan_mac_address;
 
 /* Initialize the subtree pointers */
-static gint ett_hsr_prp_supervision = -1;
+static int ett_hsr_prp_supervision;
 
 /* Code to actually dissect the packets */
 static int
@@ -60,9 +62,9 @@ dissect_hsr_prp_supervision(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree,
 {
     proto_item *ti;
     proto_tree *hsr_prp_supervision_tree;
-    guint8 tlv_type;
-    guint8 tlv_length;
-    guint16 sup_version;
+    uint8_t tlv_type;
+    uint8_t tlv_length;
+    uint16_t sup_version;
     int offset;
 
     col_set_str(pinfo->cinfo, COL_PROTOCOL, "HSR/PRP");
@@ -94,13 +96,13 @@ dissect_hsr_prp_supervision(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree,
 
     while (tvb_reported_length_remaining(tvb, offset) > 0) {
         /* TLV.type */
-        tlv_type = tvb_get_guint8(tvb, offset);
+        tlv_type = tvb_get_uint8(tvb, offset);
         proto_tree_add_item(hsr_prp_supervision_tree, hf_hsr_prp_supervision_tlv_type,
                             tvb, offset, 1, ENC_BIG_ENDIAN);
         offset += 1;
 
         /* TLV.length */
-        tlv_length = tvb_get_guint8(tvb, offset);
+        tlv_length = tvb_get_uint8(tvb, offset);
         proto_tree_add_item(hsr_prp_supervision_tree, hf_hsr_prp_supervision_tlv_length,
                             tvb, offset, 1, ENC_BIG_ENDIAN);
         offset += 1;
@@ -223,7 +225,7 @@ void proto_register_hsr_prp_supervision(void)
     };
 
 
-    static gint *ett[] = {
+    static int *ett[] = {
         &ett_hsr_prp_supervision
     };
 
@@ -235,13 +237,14 @@ void proto_register_hsr_prp_supervision(void)
     /* Required function calls to register the header fields and subtree used */
     proto_register_field_array(proto_hsr_prp_supervision, hf, array_length(hf));
     proto_register_subtree_array(ett, array_length(ett));
+
+    hsr_prp_supervision_handle = register_dissector("hsr_prp_supervision",
+                        dissect_hsr_prp_supervision, proto_hsr_prp_supervision);
 }
 
 
 void proto_reg_handoff_hsr_prp_supervision(void)
 {
-    dissector_handle_t hsr_prp_supervision_handle;
-    hsr_prp_supervision_handle = create_dissector_handle(dissect_hsr_prp_supervision, proto_hsr_prp_supervision);
     dissector_add_uint("ethertype", ETHERTYPE_PRP, hsr_prp_supervision_handle);
 }
 

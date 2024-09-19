@@ -1,6 +1,9 @@
 /* packet-nhrp.c
  * Routines for NBMA Next Hop Resolution Protocol
- * RFC 2332 plus Cisco extensions (documented where?), plus extensions from:
+ * RFC 2332 plus Cisco extensions:
+ *     I-D draft-detienne-dmvpn-01: Flexible Dynamic Mesh VPN
+ *     others?  (documented where?)
+ * plus extensions from:
  *     RFC 2520: NHRP with Mobile NHCs
  *     RFC 2735: NHRP Support for Virtual Private Networks
  *
@@ -33,116 +36,119 @@
 void proto_register_nhrp(void);
 void proto_reg_handoff_nhrp(void);
 
+static dissector_handle_t nhrp_handle;
+
 /* forward reference */
 static void _dissect_nhrp(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree,
-    gboolean nested, gboolean codeinfo);
+    bool nested, bool codeinfo);
 
-static int proto_nhrp = -1;
-static int hf_nhrp_hdr_afn = -1;
-static int hf_nhrp_hdr_pro_type = -1;
-static int hf_nhrp_hdr_pro_snap_oui = -1;
-static int hf_nhrp_hdr_pro_snap_pid = -1;
-static int hf_nhrp_hdr_hopcnt = -1;
-static int hf_nhrp_hdr_pktsz = -1;
-static int hf_nhrp_hdr_chksum = -1;
-static int hf_nhrp_hdr_chksum_status = -1;
-static int hf_nhrp_hdr_extoff = -1;
-static int hf_nhrp_hdr_version = -1;
-static int hf_nhrp_hdr_op_type = -1;
-static int hf_nhrp_hdr_shtl = -1;
-static int hf_nhrp_hdr_shtl_type = -1;
-static int hf_nhrp_hdr_shtl_len = -1;
-static int hf_nhrp_hdr_sstl = -1;
-static int hf_nhrp_hdr_sstl_type = -1;
-static int hf_nhrp_hdr_sstl_len = -1;
+static int proto_nhrp;
+static int hf_nhrp_hdr_afn;
+static int hf_nhrp_hdr_pro_type;
+static int hf_nhrp_hdr_pro_snap_oui;
+static int hf_nhrp_hdr_pro_snap_pid;
+static int hf_nhrp_hdr_hopcnt;
+static int hf_nhrp_hdr_pktsz;
+static int hf_nhrp_hdr_chksum;
+static int hf_nhrp_hdr_chksum_status;
+static int hf_nhrp_hdr_extoff;
+static int hf_nhrp_hdr_version;
+static int hf_nhrp_hdr_op_type;
+static int hf_nhrp_hdr_shtl;
+static int hf_nhrp_hdr_shtl_type;
+static int hf_nhrp_hdr_shtl_len;
+static int hf_nhrp_hdr_sstl;
+static int hf_nhrp_hdr_sstl_type;
+static int hf_nhrp_hdr_sstl_len;
 
-static int hf_nhrp_src_proto_len = -1;
-static int hf_nhrp_dst_proto_len = -1;
-static int hf_nhrp_flags = -1;
-static int hf_nhrp_flag_Q = -1;
-static int hf_nhrp_flag_N = -1;
-static int hf_nhrp_flag_A = -1;
-static int hf_nhrp_flag_D = -1;
-static int hf_nhrp_flag_U1 = -1;
-static int hf_nhrp_flag_U2 = -1;
-static int hf_nhrp_flag_S = -1;
-static int hf_nhrp_flag_NAT = -1;
-static int hf_nhrp_src_nbma_addr = -1;
-static int hf_nhrp_src_nbma_saddr = -1;
-static int hf_nhrp_src_prot_addr = -1;
-static int hf_nhrp_dst_prot_addr = -1;
-static int hf_nhrp_request_id = -1;
+static int hf_nhrp_src_proto_len;
+static int hf_nhrp_dst_proto_len;
+static int hf_nhrp_flags;
+static int hf_nhrp_flag_Q;
+static int hf_nhrp_flag_N;
+static int hf_nhrp_flag_A;
+static int hf_nhrp_flag_D;
+static int hf_nhrp_flag_U1;
+static int hf_nhrp_flag_U2;
+static int hf_nhrp_flag_S;
+static int hf_nhrp_flag_NAT;
+static int hf_nhrp_src_nbma_addr;
+static int hf_nhrp_src_nbma_saddr;
+static int hf_nhrp_src_prot_addr;
+static int hf_nhrp_dst_prot_addr;
+static int hf_nhrp_request_id;
 
-static int hf_nhrp_code = -1;
-static int hf_nhrp_prefix_len = -1;
-static int hf_nhrp_unused = -1;
-static int hf_nhrp_mtu = -1;
-static int hf_nhrp_holding_time = -1;
-static int hf_nhrp_cli_addr_tl = -1;
-static int hf_nhrp_cli_addr_tl_type = -1;
-static int hf_nhrp_cli_addr_tl_len = -1;
-static int hf_nhrp_cli_saddr_tl = -1;
-static int hf_nhrp_cli_saddr_tl_type = -1;
-static int hf_nhrp_cli_saddr_tl_len = -1;
-static int hf_nhrp_cli_prot_len = -1;
-static int hf_nhrp_pref = -1;
-static int hf_nhrp_client_nbma_addr = -1;
-static int hf_nhrp_client_nbma_saddr = -1;
-static int hf_nhrp_client_prot_addr = -1;
-static int hf_nhrp_ext_C = -1;
-static int hf_nhrp_ext_type = -1;
-static int hf_nhrp_ext_len = -1;
-/* static int hf_nhrp_ext_value = -1; */          /* TBD: Not used */
-static int hf_nhrp_error_code = -1;
-static int hf_nhrp_error_offset = -1;
-/* static int hf_nhrp_error_packet = -1; */       /* TBD: Not used */
+static int hf_nhrp_code;
+static int hf_nhrp_prefix_len;
+static int hf_nhrp_unused;
+static int hf_nhrp_mtu;
+static int hf_nhrp_holding_time;
+static int hf_nhrp_cli_addr_tl;
+static int hf_nhrp_cli_addr_tl_type;
+static int hf_nhrp_cli_addr_tl_len;
+static int hf_nhrp_cli_saddr_tl;
+static int hf_nhrp_cli_saddr_tl_type;
+static int hf_nhrp_cli_saddr_tl_len;
+static int hf_nhrp_cli_prot_len;
+static int hf_nhrp_pref;
+static int hf_nhrp_client_nbma_addr;
+static int hf_nhrp_client_nbma_saddr;
+static int hf_nhrp_client_prot_addr;
+static int hf_nhrp_ext_C;
+static int hf_nhrp_ext_type;
+static int hf_nhrp_ext_len;
+/* static int hf_nhrp_ext_value; */          /* TBD: Not used */
+static int hf_nhrp_error_code;
+static int hf_nhrp_error_offset;
+static int hf_nhrp_traffic_code;
+/* static int hf_nhrp_error_packet; */       /* TBD: Not used */
 
-static int hf_nhrp_auth_ext_reserved = -1;
-static int hf_nhrp_auth_ext_spi = -1;
-static int hf_nhrp_auth_ext_src_addr = -1;
-static int hf_nhrp_vendor_ext_id = -1;
-static int hf_nhrp_devcap_ext_srccap = -1;
-static int hf_nhrp_devcap_ext_srccap_V = -1;
-static int hf_nhrp_devcap_ext_dstcap = -1;
-static int hf_nhrp_devcap_ext_dstcap_V = -1;
-static int hf_nhrp_unknown_ext_value = -1;
+static int hf_nhrp_auth_ext_reserved;
+static int hf_nhrp_auth_ext_spi;
+static int hf_nhrp_auth_ext_src_addr;
+static int hf_nhrp_vendor_ext_id;
+static int hf_nhrp_devcap_ext_srccap;
+static int hf_nhrp_devcap_ext_srccap_V;
+static int hf_nhrp_devcap_ext_dstcap;
+static int hf_nhrp_devcap_ext_dstcap_V;
+static int hf_nhrp_unknown_ext_value;
 
 /* Generated from convert_proto_tree_add_text.pl */
-static int hf_nhrp_dst_prot_addr_bytes = -1;
-static int hf_nhrp_auth_ext_src_addr_bytes = -1;
-static int hf_nhrp_vendor_ext_data = -1;
-static int hf_nhrp_protocol_type = -1;
-static int hf_nhrp_src_nbma_addr_bytes = -1;
-static int hf_nhrp_client_nbma_address_bytes = -1;
-static int hf_nhrp_client_prot_addr_bytes = -1;
-static int hf_nhrp_auth_data = -1;
-static int hf_nhrp_src_prot_addr_bytes = -1;
+static int hf_nhrp_dst_prot_addr_bytes;
+static int hf_nhrp_auth_ext_src_addr_bytes;
+static int hf_nhrp_vendor_ext_data;
+static int hf_nhrp_protocol_type;
+static int hf_nhrp_src_nbma_addr_bytes;
+static int hf_nhrp_client_nbma_address_bytes;
+static int hf_nhrp_client_prot_addr_bytes;
+static int hf_nhrp_auth_data;
+static int hf_nhrp_src_prot_addr_bytes;
 
-static gint ett_nhrp = -1;
-static gint ett_nhrp_hdr = -1;
-static gint ett_nhrp_hdr_shtl = -1;
-static gint ett_nhrp_hdr_sstl = -1;
-static gint ett_nhrp_mand = -1;
-static gint ett_nhrp_ext = -1;
-static gint ett_nhrp_mand_flag = -1;
-static gint ett_nhrp_cie = -1;
-static gint ett_nhrp_cie_cli_addr_tl = -1;
-static gint ett_nhrp_cie_cli_saddr_tl = -1;
-static gint ett_nhrp_indication = -1;
-static gint ett_nhrp_auth_ext = -1;
-static gint ett_nhrp_vendor_ext = -1;
-static gint ett_nhrp_devcap_ext = -1;
-static gint ett_nhrp_devcap_ext_srccap = -1;
-static gint ett_nhrp_devcap_ext_dstcap = -1;
+static int ett_nhrp;
+static int ett_nhrp_hdr;
+static int ett_nhrp_hdr_shtl;
+static int ett_nhrp_hdr_sstl;
+static int ett_nhrp_mand;
+static int ett_nhrp_ext;
+static int ett_nhrp_mand_flag;
+static int ett_nhrp_cie;
+static int ett_nhrp_cie_cli_addr_tl;
+static int ett_nhrp_cie_cli_saddr_tl;
+static int ett_nhrp_indication;
+static int ett_nhrp_auth_ext;
+static int ett_nhrp_vendor_ext;
+static int ett_nhrp_devcap_ext;
+static int ett_nhrp_devcap_ext_srccap;
+static int ett_nhrp_devcap_ext_dstcap;
 
-static expert_field ei_nhrp_hdr_pktsz = EI_INIT;
-static expert_field ei_nhrp_hdr_extoff = EI_INIT;
-static expert_field ei_nhrp_hdr_chksum = EI_INIT;
-static expert_field ei_nhrp_ext_not_allowed = EI_INIT;
-static expert_field ei_nhrp_ext_malformed = EI_INIT;
-static expert_field ei_nhrp_ext_extra = EI_INIT;
+static expert_field ei_nhrp_hdr_pktsz;
+static expert_field ei_nhrp_hdr_extoff;
+static expert_field ei_nhrp_hdr_chksum;
+static expert_field ei_nhrp_ext_not_allowed;
+static expert_field ei_nhrp_ext_malformed;
+static expert_field ei_nhrp_ext_extra;
 
-static gboolean pref_auth_ext_has_addr = TRUE;
+static bool pref_auth_ext_has_addr = true;
 
 /* NHRP Packet Types */
 #define NHRP_RESOLUTION_REQ     1
@@ -243,6 +249,11 @@ static const value_string nhrp_error_code_vals[] = {
     { 0,                                NULL }
 };
 
+static const value_string nhrp_traffic_code_vals[] = {
+    { 0, "NHRP traffic redirect/indirection" },
+    { 0, NULL }
+};
+
 static const value_string nhrp_cie_code_vals[] = {
     { NHRP_CODE_SUCCESS,                "Success" },
     { NHRP_CODE_ADMIN_PROHIBITED,       "Administratively Prohibited" },
@@ -262,26 +273,26 @@ static dissector_table_t ethertype_subdissector_table;
  * This is not all of the fields.
  */
 typedef struct _e_nhrp {
-    guint16 ar_afn;
-    guint16 ar_pro_type;
-    guint32 ar_pro_type_oui;
-    guint16 ar_pro_type_pid;
-    guint8  ar_op_type;
-    guint8  ar_shtl;
-    guint8  ar_sstl;
+    uint16_t ar_afn;
+    uint16_t ar_pro_type;
+    uint32_t ar_pro_type_oui;
+    uint16_t ar_pro_type_pid;
+    uint8_t ar_op_type;
+    uint8_t ar_shtl;
+    uint8_t ar_sstl;
 } e_nhrp_hdr;
 
-static gboolean dissect_nhrp_hdr(tvbuff_t     *tvb,
+static bool dissect_nhrp_hdr(tvbuff_t     *tvb,
                       packet_info  *pinfo,
                       proto_tree   *tree,
-                      gint         *pOffset,
-                      gint         *pMandLen,
-                      gint         *pExtLen,
+                      int          *pOffset,
+                      int          *pMandLen,
+                      int          *pExtLen,
                       oui_info_t  **pOuiInfo,
                       e_nhrp_hdr   *hdr)
 {
-    gint         offset    = *pOffset;
-    const gchar *pro_type_str;
+    int          offset    = *pOffset;
+    const char *pro_type_str;
 
     proto_tree *nhrp_tree;
     proto_item *nhrp_item;
@@ -289,18 +300,18 @@ static gboolean dissect_nhrp_hdr(tvbuff_t     *tvb,
     proto_tree *shtl_tree;
     proto_item *sstl_tree_item;
     proto_tree *sstl_tree;
-    proto_item *ti;
-    guint32     afn;
-    guint32     oui;
-    guint32     pid;
-    guint32     pktsz;
-    guint32     extoff;
-    guint8      version;
+    proto_item *ti, *ti_extoff;
+    uint32_t    afn;
+    uint32_t    oui;
+    uint32_t    pid;
+    uint32_t    pktsz;
+    uint32_t    extoff;
+    uint8_t     version;
 
     nhrp_tree = proto_tree_add_subtree(tree, tvb, offset, -1, ett_nhrp_hdr, &nhrp_item, "NHRP Fixed Header");
 
     proto_tree_add_item_ret_uint(nhrp_tree, hf_nhrp_hdr_afn, tvb, offset, 2, ENC_BIG_ENDIAN, &afn);
-    hdr->ar_afn = (guint16)afn;
+    hdr->ar_afn = (uint16_t)afn;
     offset += 2;
 
     /* XXX - range_string? */
@@ -345,7 +356,7 @@ static gboolean dissect_nhrp_hdr(tvbuff_t     *tvb,
             proto_tree_add_item_ret_uint(nhrp_tree, hf_nhrp_hdr_pro_snap_pid,
                 tvb, offset, 2, ENC_BIG_ENDIAN, &pid);
         }
-        hdr->ar_pro_type_pid = (guint16)pid;
+        hdr->ar_pro_type_pid = (uint16_t)pid;
     } else {
         /*
          * XXX - we should check that this is zero, as RFC 2332
@@ -365,7 +376,7 @@ static gboolean dissect_nhrp_hdr(tvbuff_t     *tvb,
          */
         expert_add_info(pinfo, ti, &ei_nhrp_hdr_pktsz);
         proto_item_set_end(nhrp_item, tvb, offset + 2);
-        return FALSE;
+        return false;
     }
     offset += 2;
 
@@ -381,14 +392,26 @@ static gboolean dissect_nhrp_hdr(tvbuff_t     *tvb,
     }
     offset += 2;
 
-    ti = proto_tree_add_item_ret_uint(nhrp_tree, hf_nhrp_hdr_extoff, tvb, offset, 2, ENC_BIG_ENDIAN, &extoff);
-    if (extoff != 0 && (extoff < 20 || extoff > pktsz)) {
-        /* Bogus value; keep dissecting the header */
-        expert_add_info(pinfo, ti, &ei_nhrp_hdr_extoff);
+    ti_extoff = proto_tree_add_item_ret_uint(nhrp_tree, hf_nhrp_hdr_extoff, tvb, offset, 2, ENC_BIG_ENDIAN, &extoff);
+    if (extoff != 0) {
+        if (extoff < 20 || extoff > pktsz) {
+            /* Bogus value; keep dissecting the header */
+            expert_add_info(pinfo, ti_extoff, &ei_nhrp_hdr_extoff);
+        }
+        switch (hdr->ar_op_type)
+        {
+        case NHRP_ERROR_INDICATION:
+            /* According to RFC 2332, section 5.2.7, there shouldn't be any
+             * extensions in the Error Indication packet. */
+            expert_add_info(pinfo, ti_extoff, &ei_nhrp_ext_not_allowed);
+            break;
+        default:
+            break;
+        }
     }
     offset += 2;
 
-    version = tvb_get_guint8(tvb, offset);
+    version = tvb_get_uint8(tvb, offset);
     proto_tree_add_uint_format_value(nhrp_tree, hf_nhrp_hdr_version, tvb, offset, 1,
         version, "%u (%s)", version,
         (version == 1) ? "NHRP - rfc2332" : "Unknown");
@@ -396,7 +419,7 @@ static gboolean dissect_nhrp_hdr(tvbuff_t     *tvb,
     proto_tree_add_item(nhrp_tree, hf_nhrp_hdr_op_type, tvb, offset, 1, ENC_BIG_ENDIAN);
     offset += 1;
 
-    hdr->ar_shtl = tvb_get_guint8(tvb, offset);
+    hdr->ar_shtl = tvb_get_uint8(tvb, offset);
     shtl_tree_item = proto_tree_add_uint_format_value(nhrp_tree, hf_nhrp_hdr_shtl,
         tvb, offset, 1, hdr->ar_shtl, "%s/%u",
         val_to_str_const(NHRP_SHTL_TYPE(hdr->ar_shtl), nhrp_shtl_type_vals, "Unknown Type"),
@@ -406,7 +429,7 @@ static gboolean dissect_nhrp_hdr(tvbuff_t     *tvb,
     proto_tree_add_item(shtl_tree, hf_nhrp_hdr_shtl_len, tvb, offset, 1, ENC_BIG_ENDIAN);
     offset += 1;
 
-    hdr->ar_sstl = tvb_get_guint8(tvb, offset);
+    hdr->ar_sstl = tvb_get_uint8(tvb, offset);
     sstl_tree_item = proto_tree_add_uint_format_value(nhrp_tree, hf_nhrp_hdr_sstl,
         tvb, offset, 1, hdr->ar_sstl, "%s/%u",
         val_to_str_const(NHRP_SHTL_TYPE(hdr->ar_sstl), nhrp_shtl_type_vals, "Unknown Type"),
@@ -421,7 +444,7 @@ static gboolean dissect_nhrp_hdr(tvbuff_t     *tvb,
     if (extoff != 0) {
         if (extoff < 20 || extoff > pktsz) {
             /* Bogus value */
-            return FALSE;
+            return false;
         }
         *pMandLen = extoff - 20;
         *pExtLen = pktsz - extoff;
@@ -430,36 +453,36 @@ static gboolean dissect_nhrp_hdr(tvbuff_t     *tvb,
         *pMandLen = pktsz - 20;
         *pExtLen = 0;
     }
-    return TRUE;
+    return true;
 }
 
 static void dissect_cie_list(tvbuff_t    *tvb,
                       packet_info *pinfo,
                       proto_tree  *tree,
-                      gint         offset,
-                      gint         cieEnd,
+                      int          offset,
+                      int          cieEnd,
                       e_nhrp_hdr  *hdr,
-                      gint         isReq,
-                      gboolean     codeinfo)
+                      int          isReq,
+                      bool         codeinfo)
 {
     proto_item *cli_addr_tree_item;
     proto_tree *cli_addr_tree;
     proto_item *cli_saddr_tree_item;
     proto_tree *cli_saddr_tree;
-    guint8      val;
+    uint8_t     val;
 
     while ((offset + 12)          <= cieEnd) {
-        guint       cli_addr_len   = tvb_get_guint8(tvb, offset + 8);
-        guint       cli_saddr_len  = tvb_get_guint8(tvb, offset + 9);
-        guint       cli_prot_len   = tvb_get_guint8(tvb, offset + 10);
-        guint       cie_len        = 12 + cli_addr_len + cli_saddr_len + cli_prot_len;
+        unsigned    cli_addr_len   = tvb_get_uint8(tvb, offset + 8);
+        unsigned    cli_saddr_len  = tvb_get_uint8(tvb, offset + 9);
+        unsigned    cli_prot_len   = tvb_get_uint8(tvb, offset + 10);
+        unsigned    cie_len        = 12 + cli_addr_len + cli_saddr_len + cli_prot_len;
         proto_tree *cie_tree       = proto_tree_add_subtree(tree, tvb, offset, cie_len, ett_nhrp_cie, NULL, "Client Information Entry");
 
         if (isReq) {
             proto_tree_add_item(cie_tree, hf_nhrp_code, tvb, offset, 1, ENC_BIG_ENDIAN);
         }
         else {
-            guint8 code = tvb_get_guint8(tvb, offset);
+            uint8_t code = tvb_get_uint8(tvb, offset);
             if ( codeinfo ) {
                 col_append_fstr(pinfo->cinfo, COL_INFO, ", Code=%s",
                     val_to_str(code, nhrp_cie_code_vals, "Unknown (%u)"));
@@ -480,7 +503,7 @@ static void dissect_cie_list(tvbuff_t    *tvb,
         proto_tree_add_item(cie_tree, hf_nhrp_holding_time, tvb, offset, 2, ENC_BIG_ENDIAN);
         offset += 2;
 
-        val = tvb_get_guint8(tvb, offset);
+        val = tvb_get_uint8(tvb, offset);
         cli_addr_tree_item = proto_tree_add_uint_format_value(cie_tree,
             hf_nhrp_cli_addr_tl, tvb, offset, 1, val, "%s/%u",
             val_to_str_const(NHRP_SHTL_TYPE(val), nhrp_shtl_type_vals, "Unknown Type"),
@@ -490,7 +513,7 @@ static void dissect_cie_list(tvbuff_t    *tvb,
         proto_tree_add_item(cli_addr_tree, hf_nhrp_cli_addr_tl_len, tvb, offset, 1, ENC_BIG_ENDIAN);
         offset += 1;
 
-        val = tvb_get_guint8(tvb, offset);
+        val = tvb_get_uint8(tvb, offset);
         cli_saddr_tree_item = proto_tree_add_uint_format_value(cie_tree,
             hf_nhrp_cli_saddr_tl, tvb, offset, 1, val, "%s/%u",
             val_to_str_const(NHRP_SHTL_TYPE(val), nhrp_shtl_type_vals, "Unknown Type"),
@@ -539,114 +562,107 @@ static void dissect_cie_list(tvbuff_t    *tvb,
     }
 }
 
+// NOLINTNEXTLINE(misc-no-recursion)
 static void dissect_nhrp_mand(tvbuff_t    *tvb,
                        packet_info *pinfo,
                        proto_tree  *tree,
-                       gint        *pOffset,
-                       gint         mandLen,
                        oui_info_t  *oui_info,
                        e_nhrp_hdr  *hdr,
-                       guint       *srcLen,
-                       gboolean     codeinfo)
+                       unsigned    *srcLen,
+                       bool         codeinfo)
 {
-    gint     offset  = *pOffset;
-    gint     mandEnd = offset + mandLen;
-    guint8   ssl, shl;
-    guint    dstLen;
-    gboolean isReq   = FALSE;
-    gboolean isErr   = FALSE;
-    gboolean isInd   = FALSE;
+    int      offset  = 0;
+    int      mandEnd = tvb_reported_length(tvb);
+    uint8_t  ssl, shl;
+    unsigned dstLen;
 
     proto_tree *nhrp_tree;
     proto_item *nhrp_item;
 
-    switch (hdr->ar_op_type)
-    {
-    case NHRP_RESOLUTION_REPLY:
-    case NHRP_REGISTRATION_REPLY:
-    case NHRP_PURGE_REPLY:
-        break;
-    case NHRP_RESOLUTION_REQ:
-    case NHRP_REGISTRATION_REQ:
-    case NHRP_PURGE_REQ:
-        isReq = TRUE;
-        break;
-    case NHRP_ERROR_INDICATION: /* This needs special treatment */
-        isErr = TRUE;
-        isInd = TRUE;
-        break;
-    case NHRP_TRAFFIC_INDICATION:
-        isInd = TRUE;
-        break;
-    }
+    proto_tree *ind_tree;
+    proto_item *ind_item;
+    bool        save_in_error_pkt;
+    int         dissected;
+    tvbuff_t   *sub_tvb;
+
     nhrp_tree = proto_tree_add_subtree(tree, tvb, offset, -1, ett_nhrp_mand, &nhrp_item, "NHRP Mandatory Part");
 
-    *srcLen = tvb_get_guint8(tvb, offset);
+    /* Src Proto Len, present in all current packet types */
+    *srcLen = tvb_get_uint8(tvb, offset);
     proto_tree_add_item(nhrp_tree, hf_nhrp_src_proto_len, tvb, offset, 1, ENC_BIG_ENDIAN);
     offset += 1;
 
-    dstLen = tvb_get_guint8(tvb, offset);
+    /* Dst Proto Len, present in all current packet types */
+    dstLen = tvb_get_uint8(tvb, offset);
     proto_tree_add_item(nhrp_tree, hf_nhrp_dst_proto_len, tvb, offset, 1, ENC_BIG_ENDIAN);
     offset += 1;
 
-    if (!isInd) {
-        switch (hdr->ar_op_type)
+    /*
+     * Flags: different flags are used for different packet types, and
+     * aren't even present in all packet types.
+     *
+     * Next 4 bytes: request ID in most packet types, error code and
+     * offset in Error Indication, traffic code and unused field in
+     * Traffic Indication.
+     */
+    switch (hdr->ar_op_type)
+    {
+    case NHRP_RESOLUTION_REQ:
+    case NHRP_RESOLUTION_REPLY:
         {
-        case NHRP_RESOLUTION_REQ:
-        case NHRP_RESOLUTION_REPLY:
-            {
-            static int * const flags[] = {
-                &hf_nhrp_flag_Q,
-                &hf_nhrp_flag_A,
-                &hf_nhrp_flag_D,
-                &hf_nhrp_flag_U1,
-                &hf_nhrp_flag_S,
-                &hf_nhrp_flag_NAT,
-                NULL
-            };
-            proto_tree_add_bitmask(nhrp_tree, tvb, offset, hf_nhrp_flags, ett_nhrp_mand_flag, flags, ENC_BIG_ENDIAN);
-            }
-            break;
-        case NHRP_REGISTRATION_REQ:
-        case NHRP_REGISTRATION_REPLY:
-            {
-            static int * const flags[] = {
-                &hf_nhrp_flag_U2,
-                &hf_nhrp_flag_NAT,
-                NULL
-            };
-            proto_tree_add_bitmask(nhrp_tree, tvb, offset, hf_nhrp_flags, ett_nhrp_mand_flag, flags, ENC_BIG_ENDIAN);
-            }
-            break;
-
-        case NHRP_PURGE_REQ:
-        case NHRP_PURGE_REPLY:
-            {
-            static int * const flags[] = {
-                &hf_nhrp_flag_N,
-                &hf_nhrp_flag_NAT,
-                NULL
-            };
-            proto_tree_add_bitmask(nhrp_tree, tvb, offset, hf_nhrp_flags, ett_nhrp_mand_flag, flags, ENC_BIG_ENDIAN);
-            }
-            break;
-        default:
-            {
-            static int * const flags[] = {
-                &hf_nhrp_flag_NAT,
-                NULL
-            };
-            proto_tree_add_bitmask(nhrp_tree, tvb, offset, hf_nhrp_flags, ett_nhrp_mand_flag, flags, ENC_BIG_ENDIAN);
-            }
-            break;
-        }
+        static int * const flags[] = {
+            &hf_nhrp_flag_Q,
+            &hf_nhrp_flag_A,
+            &hf_nhrp_flag_D,
+            &hf_nhrp_flag_U1,
+            &hf_nhrp_flag_S,
+            &hf_nhrp_flag_NAT,
+            NULL
+        };
+        proto_tree_add_bitmask(nhrp_tree, tvb, offset, hf_nhrp_flags, ett_nhrp_mand_flag, flags, ENC_BIG_ENDIAN);
         offset += 2;
 
         col_append_fstr(pinfo->cinfo, COL_INFO, ", ID=%u", tvb_get_ntohl(tvb, offset));
         proto_tree_add_item(nhrp_tree, hf_nhrp_request_id, tvb, offset, 4, ENC_BIG_ENDIAN);
         offset += 4;
-    }
-    else if (isErr) {
+        }
+        break;
+    case NHRP_REGISTRATION_REQ:
+    case NHRP_REGISTRATION_REPLY:
+        {
+        static int * const flags[] = {
+            &hf_nhrp_flag_U2,
+            &hf_nhrp_flag_NAT,
+            NULL
+        };
+        proto_tree_add_bitmask(nhrp_tree, tvb, offset, hf_nhrp_flags, ett_nhrp_mand_flag, flags, ENC_BIG_ENDIAN);
+        offset += 2;
+
+        col_append_fstr(pinfo->cinfo, COL_INFO, ", ID=%u", tvb_get_ntohl(tvb, offset));
+        proto_tree_add_item(nhrp_tree, hf_nhrp_request_id, tvb, offset, 4, ENC_BIG_ENDIAN);
+        offset += 4;
+        }
+        break;
+
+    case NHRP_PURGE_REQ:
+    case NHRP_PURGE_REPLY:
+        {
+        static int * const flags[] = {
+            &hf_nhrp_flag_N,
+            &hf_nhrp_flag_NAT,
+            NULL
+        };
+        proto_tree_add_bitmask(nhrp_tree, tvb, offset, hf_nhrp_flags, ett_nhrp_mand_flag, flags, ENC_BIG_ENDIAN);
+        offset += 2;
+
+        col_append_fstr(pinfo->cinfo, COL_INFO, ", ID=%u", tvb_get_ntohl(tvb, offset));
+        proto_tree_add_item(nhrp_tree, hf_nhrp_request_id, tvb, offset, 4, ENC_BIG_ENDIAN);
+        offset += 4;
+        }
+        break;
+    case NHRP_ERROR_INDICATION:
+        {
+        /* Skip unused field */
         offset += 2;
 
         col_append_fstr(pinfo->cinfo, COL_INFO, ", %s",
@@ -656,9 +672,26 @@ static void dissect_nhrp_mand(tvbuff_t    *tvb,
 
         proto_tree_add_item(nhrp_tree, hf_nhrp_error_offset, tvb, offset, 2, ENC_BIG_ENDIAN);
         offset += 2;
-    }
-    else {
+        }
+        break;
+    case NHRP_TRAFFIC_INDICATION:
+        {
+        /* Skip unused field */
+        offset += 2;
+
+        col_append_fstr(pinfo->cinfo, COL_INFO, ", %s",
+            val_to_str(tvb_get_ntohs(tvb, offset), nhrp_traffic_code_vals, "Unknown traffic code (%u)"));
+        proto_tree_add_item(nhrp_tree, hf_nhrp_traffic_code, tvb, offset, 2, ENC_BIG_ENDIAN);
+        offset += 2;
+
+        /* Skip unused field */
+        offset += 2;
+        }
+        break;
+    default:
+        /* Unknown packet type */
         offset += 6;
+        break;
     }
 
     shl = NHRP_SHTL_LEN(hdr->ar_shtl);
@@ -704,120 +737,121 @@ static void dissect_nhrp_mand(tvbuff_t    *tvb,
         offset += dstLen;
     }
 
-    if (isInd) {
-        gboolean    save_in_error_pkt;
-        proto_tree *ind_tree;
-        proto_item *ind_item;
-        int         dissected;
-        tvbuff_t   *sub_tvb;
-
+    /*
+     * CIE list in most packet types, NHRP packet in error in Error
+     * Indication, data packet in Traffic Indication.
+     */
+    switch (hdr->ar_op_type)
+    {
+    case NHRP_RESOLUTION_REQ:
+    case NHRP_REGISTRATION_REQ:
+    case NHRP_PURGE_REQ:
+        dissect_cie_list(tvb, pinfo, nhrp_tree, offset, mandEnd, hdr, true, codeinfo);
+        break;
+    case NHRP_RESOLUTION_REPLY:
+    case NHRP_REGISTRATION_REPLY:
+    case NHRP_PURGE_REPLY:
+        dissect_cie_list(tvb, pinfo, nhrp_tree, offset, mandEnd, hdr, false, codeinfo);
+        break;
+    case NHRP_ERROR_INDICATION:
         ind_tree = proto_tree_add_subtree(tree, tvb, offset, -1, ett_nhrp_indication, &ind_item, "Packet Causing Indication");
         save_in_error_pkt = pinfo->flags.in_error_pkt;
-        pinfo->flags.in_error_pkt = TRUE;
+        pinfo->flags.in_error_pkt = true;
         sub_tvb = tvb_new_subset_remaining(tvb, offset);
-        if (isErr) {
-            _dissect_nhrp(sub_tvb, pinfo, ind_tree, TRUE, FALSE);
-        }
-        else {
-            if (hdr->ar_pro_type <= 0xFF) {
-                /* It's an NLPID */
-                if (hdr->ar_pro_type == NLPID_SNAP) {
+        // We recurse here, but we'll run out of packet before we run out of stack.
+        _dissect_nhrp(sub_tvb, pinfo, ind_tree, true, false);
+        pinfo->flags.in_error_pkt = save_in_error_pkt;
+        break;
+    case NHRP_TRAFFIC_INDICATION:
+        ind_tree = proto_tree_add_subtree(tree, tvb, offset, -1, ett_nhrp_indication, &ind_item, "Packet Causing Indication");
+        save_in_error_pkt = pinfo->flags.in_error_pkt;
+        pinfo->flags.in_error_pkt = true;
+        sub_tvb = tvb_new_subset_remaining(tvb, offset);
+        if (hdr->ar_pro_type <= 0xFF) {
+            /* It's an NLPID */
+            if (hdr->ar_pro_type == NLPID_SNAP) {
+                /*
+                 * Dissect based on the SNAP OUI and PID.
+                 */
+                if (hdr->ar_pro_type_oui == 0x000000) {
                     /*
-                     * Dissect based on the SNAP OUI
-                     * and PID.
-                     */
-                    if (hdr->ar_pro_type_oui == 0x000000) {
-                        /*
-                         * "Should not happen", as
-                         * the protocol type should
-                         * be the Ethertype, but....
-                         */
-                        dissected = dissector_try_uint(
-                            ethertype_subdissector_table,
-                            hdr->ar_pro_type_pid,
-                            sub_tvb, pinfo, ind_tree);
-                    } else {
-                        /*
-                         * If we have a dissector
-                         * table, use it, otherwise
-                         * just dissect as data.
-                         */
-                        if (oui_info != NULL) {
-                            dissected = dissector_try_uint(
-                                oui_info->table,
-                                hdr->ar_pro_type_pid,
-                                sub_tvb, pinfo,
-                                ind_tree);
-                        } else
-                            dissected = 0;
-                    }
-                } else {
-                    /*
-                     * Dissect based on the NLPID.
+                     * "Should not happen", as the protocol type should
+                     * be the Ethertype, but....
                      */
                     dissected = dissector_try_uint(
-                        osinl_incl_subdissector_table,
-                        hdr->ar_pro_type, sub_tvb, pinfo,
-                        ind_tree) ||
-                                dissector_try_uint(
-                        osinl_excl_subdissector_table,
-                        hdr->ar_pro_type, sub_tvb, pinfo,
-                        ind_tree);
+                        ethertype_subdissector_table,
+                        hdr->ar_pro_type_pid,
+                        sub_tvb, pinfo, ind_tree);
+                } else {
+                    /*
+                     * If we have a dissector table, use it, otherwise
+                     * just dissect as data.
+                     */
+                    if (oui_info != NULL) {
+                        dissected = dissector_try_uint(
+                            oui_info->table,
+                            hdr->ar_pro_type_pid,
+                            sub_tvb, pinfo,
+                            ind_tree);
+                    } else
+                        dissected = 0;
                 }
-            } else if (hdr->ar_pro_type <= 0x3FF) {
-                /* Reserved for future use by the IETF */
-                dissected = 0;
-            } else if (hdr->ar_pro_type <= 0x04FF) {
-                /* Allocated for use by the ATM Forum */
-                dissected = 0;
-            } else if (hdr->ar_pro_type <= 0x05FF) {
-                /* Experimental/Local use */
-                dissected = 0;
             } else {
+                /*
+                 * Dissect based on the NLPID.
+                 */
                 dissected = dissector_try_uint(
-                    ethertype_subdissector_table,
-                    hdr->ar_pro_type, sub_tvb, pinfo, ind_tree);
+                    osinl_incl_subdissector_table,
+                    hdr->ar_pro_type, sub_tvb, pinfo,
+                    ind_tree) ||
+                            dissector_try_uint(
+                    osinl_excl_subdissector_table,
+                    hdr->ar_pro_type, sub_tvb, pinfo,
+                    ind_tree);
             }
-            if (!dissected) {
-                call_data_dissector(sub_tvb, pinfo, ind_tree);
-            }
+        } else if (hdr->ar_pro_type <= 0x3FF) {
+            /* Reserved for future use by the IETF */
+            dissected = 0;
+        } else if (hdr->ar_pro_type <= 0x04FF) {
+            /* Allocated for use by the ATM Forum */
+            dissected = 0;
+        } else if (hdr->ar_pro_type <= 0x05FF) {
+            /* Experimental/Local use */
+            dissected = 0;
+        } else {
+            dissected = dissector_try_uint(
+                ethertype_subdissector_table,
+                hdr->ar_pro_type, sub_tvb, pinfo, ind_tree);
+        }
+        if (!dissected) {
+            call_data_dissector(sub_tvb, pinfo, ind_tree);
         }
         pinfo->flags.in_error_pkt = save_in_error_pkt;
-        proto_item_set_end(ind_item, tvb, offset);
-        offset = mandEnd;
+        break;
+    default:
+        break;
     }
-    proto_item_set_len(nhrp_item, mandLen);
-
-    /* According to RFC 2332, section 5.2.7, there shouldn't be any extensions
-     * in the Error Indication packet. */
-    if (isErr && tvb_reported_length_remaining(tvb, offset)) {
-        expert_add_info(pinfo, tree, &ei_nhrp_ext_not_allowed);
-    }
-
-    dissect_cie_list(tvb, pinfo, nhrp_tree, offset, mandEnd, hdr, isReq, codeinfo);
-
-    *pOffset = mandEnd;
 }
 
 static void dissect_nhrp_ext(tvbuff_t    *tvb,
                       packet_info *pinfo,
                       proto_tree  *tree,
-                      gint        *pOffset,
-                      gint         extLen,
+                      int         *pOffset,
+                      int          extLen,
                       e_nhrp_hdr  *hdr,
-                      guint        srcLen,
-                      gboolean     nested)
+                      unsigned     srcLen,
+                      bool         nested)
 {
-    gint offset = *pOffset;
-    gint extEnd = offset + extLen;
+    int offset = *pOffset;
+    int extEnd = offset + extLen;
 
     while ((offset + 4) <= extEnd)
     {
         proto_tree *nhrp_tree;
         proto_item *nhrp_item;
-        gint        extTypeC = tvb_get_ntohs(tvb, offset);
-        gint        extType  = extTypeC & 0x3FFF;
-        guint       len      = tvb_get_ntohs(tvb, offset+2);
+        int         extTypeC = tvb_get_ntohs(tvb, offset);
+        int         extType  = extTypeC & 0x3FFF;
+        unsigned    len      = tvb_get_ntohs(tvb, offset+2);
 
         if ((extType == NHRP_EXT_NAT_ADDRESS) && (len == 8)) {
             /* Assume it's not really a Cisco NAT extension, but a device
@@ -865,7 +899,7 @@ static void dissect_nhrp_ext(tvbuff_t    *tvb,
             case NHRP_EXT_REV_RECORD:
             case NHRP_EXT_NAT_ADDRESS:
                 dissect_cie_list(tvb, pinfo, nhrp_tree,
-                    offset, offset + len, hdr, 0, FALSE);
+                    offset, offset + len, hdr, 0, false);
                 break;
 
             case NHRP_EXT_AUTH:
@@ -883,7 +917,7 @@ static void dissect_nhrp_ext(tvbuff_t    *tvb,
                 else {
                     proto_tree *auth_tree;
                     proto_item *auth_item;
-                    guint32 spi;
+                    uint32_t spi;
 
                     auth_tree = proto_tree_add_subtree_format(nhrp_tree, tvb, offset, -1,
                         ett_nhrp_auth_ext, &auth_item, "Extension Data");
@@ -912,8 +946,8 @@ static void dissect_nhrp_ext(tvbuff_t    *tvb,
                 else {
                     proto_tree *vendor_tree;
                     proto_item *vendor_item;
-                    guint32 manuf;
-                    const gchar* oui;
+                    uint32_t manuf;
+                    const char* oui;
 
                     vendor_tree = proto_tree_add_subtree(nhrp_tree, tvb, offset, len,
                         ett_nhrp_vendor_ext, &vendor_item, "Extension Data:");
@@ -958,21 +992,22 @@ skip_switch:
 
 static int dissect_nhrp(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, void* data _U_)
 {
-    _dissect_nhrp(tvb, pinfo, tree, FALSE, TRUE);
+    _dissect_nhrp(tvb, pinfo, tree, false, true);
     return tvb_captured_length(tvb);
 }
 
+// NOLINTNEXTLINE(misc-no-recursion)
 static void _dissect_nhrp(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree,
-    gboolean nested, gboolean codeinfo)
+    bool nested, bool codeinfo)
 {
     e_nhrp_hdr  hdr;
-    gint        mandLen  = 0;
-    gint        extLen   = 0;
-    gint        offset   = 0;
+    int         mandLen  = 0;
+    int         extLen   = 0;
+    int         offset   = 0;
     proto_item *ti;
     proto_tree *nhrp_tree;
     oui_info_t *oui_info = NULL;
-    guint       srcLen   = 0;
+    unsigned    srcLen   = 0;
 
     if (!nested) {
         col_set_str(pinfo->cinfo, COL_PROTOCOL, "NHRP");
@@ -980,7 +1015,7 @@ static void _dissect_nhrp(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree,
     }
 
     memset(&hdr, 0, sizeof(e_nhrp_hdr));
-    hdr.ar_op_type = tvb_get_guint8(tvb, 17);
+    hdr.ar_op_type = tvb_get_uint8(tvb, 17);
 
     if (!nested) {
         col_add_str(pinfo->cinfo, COL_INFO,
@@ -1001,8 +1036,11 @@ static void _dissect_nhrp(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree,
         return;
     }
     if (mandLen) {
-        dissect_nhrp_mand(tvb, pinfo, nhrp_tree, &offset, mandLen,
-            oui_info, &hdr, &srcLen, codeinfo);
+        tvbuff_t *mand_tvb = tvb_new_subset_length(tvb, offset, mandLen);
+        // We recurse here, but we'll run out of packet before we run out of stack.
+        dissect_nhrp_mand(mand_tvb, pinfo, nhrp_tree, oui_info, &hdr, &srcLen,
+            codeinfo);
+        offset += mandLen;
     }
 
     if (extLen) {
@@ -1270,7 +1308,7 @@ proto_register_nhrp(void)
         },
         { &hf_nhrp_ext_type,
           { "Extension Type", "nhrp.ext.type",
-            FT_UINT16, BASE_HEX, NULL, 0x3FFF,
+            FT_UINT16, BASE_HEX, VALS(ext_type_vals), 0x3FFF,
             NULL, HFILL }
         },
         { &hf_nhrp_ext_len,
@@ -1303,6 +1341,11 @@ proto_register_nhrp(void)
             NULL, HFILL }
         },
 #endif
+        { &hf_nhrp_traffic_code,
+          { "Traffic Code", "nhrp.tind.code",
+            FT_UINT16, BASE_DEC, VALS(nhrp_traffic_code_vals), 0x0,
+            NULL, HFILL }
+        },
         { &hf_nhrp_auth_ext_reserved,
           { "Reserved", "nhrp.auth_ext.reserved",
             FT_UINT16, BASE_DEC, NULL, 0x0,
@@ -1361,7 +1404,7 @@ proto_register_nhrp(void)
       { &hf_nhrp_vendor_ext_data, { "Data", "nhrp.vendor_ext.data", FT_BYTES, BASE_NONE, NULL, 0x0, NULL, HFILL }},
     };
 
-    static gint *ett[] = {
+    static int *ett[] = {
         &ett_nhrp,
         &ett_nhrp_hdr,
         &ett_nhrp_hdr_shtl,
@@ -1403,18 +1446,17 @@ proto_register_nhrp(void)
                                    &pref_auth_ext_has_addr);
     expert_nhrp = expert_register_protocol(proto_nhrp);
     expert_register_field_array(expert_nhrp, ei, array_length(ei));
+
+    nhrp_handle = register_dissector("nhrp", dissect_nhrp, proto_nhrp);
 }
 
 void
 proto_reg_handoff_nhrp(void)
 {
-    dissector_handle_t nhrp_handle;
-
     osinl_incl_subdissector_table = find_dissector_table("osinl.incl");
     osinl_excl_subdissector_table = find_dissector_table("osinl.excl");
     ethertype_subdissector_table  = find_dissector_table("ethertype");
 
-    nhrp_handle = create_dissector_handle(dissect_nhrp, proto_nhrp);
     dissector_add_uint("ip.proto", IP_PROTO_NARP, nhrp_handle);
     dissector_add_uint("gre.proto", GRE_NHRP, nhrp_handle);
     dissector_add_uint("llc.iana_pid", IANA_PID_MARS_NHRP_CONTROL, nhrp_handle);

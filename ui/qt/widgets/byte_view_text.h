@@ -50,10 +50,12 @@ signals:
 public slots:
     void setMonospaceFont(const QFont &mono_font);
     void updateByteViewSettings();
+    void detachData();
 
     void markProtocol(int start, int length);
     void markField(int start, int length, bool scroll_to = true);
     void markAppendix(int start, int length);
+    void unmarkField();
 
 protected:
     virtual void paintEvent(QPaintEvent *);
@@ -75,7 +77,7 @@ private:
     } HighlightMode;
 
     QTextLayout *layout_;
-    const QByteArray data_;
+    QByteArray data_;
 
     void updateLayoutMetrics();
     int stringWidth(const QString &line);
@@ -133,6 +135,8 @@ private:
     // Context menu actions
     QAction *action_allow_hover_selection_;
     QAction *action_bytes_hex_;
+    QAction *action_bytes_dec_;
+    QAction *action_bytes_oct_;
     QAction *action_bytes_bits_;
     QAction *action_bytes_enc_from_packet_;
     QAction *action_bytes_enc_ascii_;

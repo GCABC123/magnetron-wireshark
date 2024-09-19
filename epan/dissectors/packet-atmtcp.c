@@ -21,14 +21,16 @@
 void proto_register_atmtcp(void);
 void proto_reg_handoff_atmtcp(void);
 
-static int proto_atmtcp = -1;
-static int hf_atmtcp_vpi = -1;
-static int hf_atmtcp_vci = -1;
-static int hf_atmtcp_length = -1;
+static dissector_handle_t atmtcp_handle;
+
+static int proto_atmtcp;
+static int hf_atmtcp_vpi;
+static int hf_atmtcp_vci;
+static int hf_atmtcp_length;
 
 #define ATMTCP_TCP_PORT     2812
 
-static gint ett_atmtcp = -1;
+static int ett_atmtcp;
 
 #define ATMTCP_HDR_MAGIC        (~0)    /* this length indicates a command */
 #define ATMTCP_CTRL_OPEN        1       /* request/reply */
@@ -40,13 +42,13 @@ dissect_atmtcp(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, void *data _
 
     proto_item *ti;
     proto_tree *atmtcp_tree;
-    guint       offset = 0;
-    gint32      length;
+    unsigned    offset = 0;
+    int32_t     length;
     tvbuff_t   *next_tvb;
 
     col_set_str(pinfo->cinfo, COL_PROTOCOL, "ATMTCP");
 
-    col_add_str(pinfo->cinfo, COL_INFO, "ATMTCP");
+    col_set_str(pinfo->cinfo, COL_INFO, "ATMTCP");
 
     if (tree) {
         ti = proto_tree_add_item(tree, proto_atmtcp, tvb, 0, -1, ENC_NA);
@@ -107,7 +109,7 @@ proto_register_atmtcp(void)
     };
 
 
-    static gint *ett[] = {
+    static int *ett[] = {
         &ett_atmtcp
     };
 
@@ -116,16 +118,14 @@ proto_register_atmtcp(void)
 
     proto_register_field_array(proto_atmtcp, hf, array_length(hf));
     proto_register_subtree_array(ett, array_length(ett));
+
+    atmtcp_handle = register_dissector("atm.tcp", dissect_atmtcp, proto_atmtcp);
 }
 
 
 void
 proto_reg_handoff_atmtcp(void)
 {
-    dissector_handle_t atmtcp_handle;
-
-    atmtcp_handle = create_dissector_handle(dissect_atmtcp, proto_atmtcp);
-
     dissector_add_uint_with_preference("tcp.port", ATMTCP_TCP_PORT, atmtcp_handle);
 }
 

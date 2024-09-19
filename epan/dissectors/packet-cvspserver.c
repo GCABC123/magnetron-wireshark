@@ -18,20 +18,22 @@
 void proto_register_cvspserver(void);
 void proto_reg_handoff_cvspserver(void);
 
-static int proto_cvspserver = -1;
+static dissector_handle_t cvspserver_handle;
 
-static int hf_cvspserver_data = -1;
+static int proto_cvspserver;
 
-static gint ett_cvspserver = -1;
+static int hf_cvspserver_data;
+
+static int ett_cvspserver;
 
 static int
 dissect_cvspserver(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, void* dissector_data _U_)
 {
 	proto_tree* cvspserver_tree;
 	proto_item* ti;
-	gint length;
-	gint next_offset, offset;
-	guint lines = 0;
+	int length;
+	int next_offset, offset;
+	unsigned lines = 0;
 
 	col_set_str(pinfo->cinfo, COL_PROTOCOL, "CVSPSERVER");
 	col_clear(pinfo->cinfo, COL_INFO);
@@ -65,21 +67,20 @@ proto_register_cvspserver(void)
 			NULL, 0, NULL, HFILL }}
 		};
 
-	static gint *ett[] = {
+	static int *ett[] = {
 		&ett_cvspserver
 	};
 
 	proto_cvspserver = proto_register_protocol("CVS pserver", "cvspserver", "cvspserver");
 	proto_register_field_array(proto_cvspserver, hf, array_length(hf));
 	proto_register_subtree_array(ett, array_length(ett));
+
+	cvspserver_handle = register_dissector("cvspserver", dissect_cvspserver, proto_cvspserver);
 }
 
 void
 proto_reg_handoff_cvspserver(void)
 {
-	dissector_handle_t cvspserver_handle;
-
-	cvspserver_handle = create_dissector_handle(dissect_cvspserver, proto_cvspserver);
 	dissector_add_uint_with_preference("tcp.port", CVSPSERVER_PORT_TCP, cvspserver_handle);
 }
 

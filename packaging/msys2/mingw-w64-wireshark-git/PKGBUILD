@@ -22,10 +22,10 @@ depends=("${MINGW_PACKAGE_PREFIX}-bcg729"
          "${MINGW_PACKAGE_PREFIX}-libsmi"
          "${MINGW_PACKAGE_PREFIX}-libssh"
          "${MINGW_PACKAGE_PREFIX}-libxml2"
-         "${MINGW_PACKAGE_PREFIX}-lua51"
          "${MINGW_PACKAGE_PREFIX}-lz4"
          "${MINGW_PACKAGE_PREFIX}-minizip"
          "${MINGW_PACKAGE_PREFIX}-nghttp2"
+         "${MINGW_PACKAGE_PREFIX}-opencore-amr"
          "${MINGW_PACKAGE_PREFIX}-opus"
          "${MINGW_PACKAGE_PREFIX}-pcre2"
          "${MINGW_PACKAGE_PREFIX}-qt6-base"
@@ -40,9 +40,14 @@ depends=("${MINGW_PACKAGE_PREFIX}-bcg729"
 makedepends=("${MINGW_PACKAGE_PREFIX}-cmake"
              "${MINGW_PACKAGE_PREFIX}-ninja"
              "${MINGW_PACKAGE_PREFIX}-cc"
-             "${MINGW_PACKAGE_PREFIX}-python"         
+             "${MINGW_PACKAGE_PREFIX}-python"
              "${MINGW_PACKAGE_PREFIX}-qt6-tools"
+             "${MINGW_PACKAGE_PREFIX}-asciidoctor"
+             "${MINGW_PACKAGE_PREFIX}-docbook-xsl"
+             "${MINGW_PACKAGE_PREFIX}-libxslt"
              'git')
+checkdepends=("${MINGW_PACKAGE_PREFIX}-python-pytest"
+              "${MINGW_PACKAGE_PREFIX}-python-pytest-xdist")
 provides=("${MINGW_PACKAGE_PREFIX}-${_realname}")
 conflicts=("${MINGW_PACKAGE_PREFIX}-${_realname}")
 _commit=${PKG_COMMIT:-HEAD}
@@ -73,21 +78,26 @@ build() {
       -DENABLE_WERROR=OFF \
       -DUSE_qt6=ON \
       -DENABLE_WINSPARKLE=OFF \
+      -DFETCH_lua=ON \
       ../${_realname}
 
   "${MINGW_PREFIX}"/bin/cmake.exe --build .
+  "${MINGW_PREFIX}"/bin/cmake.exe --build . --target user_guide_html
 }
 
 check() {
   cd "${srcdir}/build-${MSYSTEM}"
 
-  "${MINGW_PREFIX}"/bin/cmake.exe --build . --target test
+  "${MINGW_PREFIX}"/bin/cmake.exe --build . --target test-programs
+  "${MINGW_PREFIX}"/bin/pytest.exe
 }
 
 package() {
   cd "${srcdir}/build-${MSYSTEM}"
 
   DESTDIR="${pkgdir}" "${MINGW_PREFIX}"/bin/cmake.exe --install .
+  DESTDIR="${pkgdir}" "${MINGW_PREFIX}"/bin/cmake.exe --install . --component UserGuide
+  DESTDIR="${pkgdir}" "${MINGW_PREFIX}"/bin/cmake.exe --install . --component Development
 
   install -Dm644 "${srcdir}/${_realname}/COPYING" "${pkgdir}${MINGW_PREFIX}/share/licenses/${_realname}/COPYING"
 }

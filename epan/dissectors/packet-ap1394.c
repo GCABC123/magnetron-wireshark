@@ -20,22 +20,25 @@
 void proto_register_ap1394(void);
 void proto_reg_handoff_ap1394(void);
 
-static int proto_ap1394 = -1;
-static int hf_ap1394_dst = -1;
-static int hf_ap1394_src = -1;
-static int hf_ap1394_type = -1;
+static dissector_handle_t ap1394_handle;
+static capture_dissector_handle_t ap1394_cap_handle;
 
-static gint ett_ap1394 = -1;
+static int proto_ap1394;
+static int hf_ap1394_dst;
+static int hf_ap1394_src;
+static int hf_ap1394_type;
+
+static int ett_ap1394;
 
 static dissector_table_t ethertype_subdissector_table;
 
-static gboolean
-capture_ap1394(const guchar *pd, int offset, int len, capture_packet_info_t *cpinfo, const union wtap_pseudo_header *pseudo_header)
+static bool
+capture_ap1394(const unsigned char *pd, int offset, int len, capture_packet_info_t *cpinfo, const union wtap_pseudo_header *pseudo_header)
 {
-  guint16    etype;
+  uint16_t   etype;
 
   if (!BYTES_ARE_IN_FRAME(offset, len, 18)) {
-    return FALSE;
+    return false;
   }
 
   /* Skip destination and source addresses */
@@ -51,7 +54,7 @@ dissect_ap1394(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, void* data _
 {
   proto_item *ti;
   proto_tree *fh_tree = NULL;
-  guint16    etype;
+  uint16_t   etype;
   tvbuff_t *next_tvb;
 
   col_set_str(pinfo->cinfo, COL_PROTOCOL, "IP/IEEE1394");
@@ -96,27 +99,25 @@ proto_register_ap1394(void)
       { "Type", "ap1394.type", FT_UINT16, BASE_HEX,
         VALS(etype_vals), 0x0, NULL, HFILL }},
   };
-  static gint *ett[] = {
+  static int *ett[] = {
     &ett_ap1394,
   };
 
   proto_ap1394 = proto_register_protocol("Apple IP-over-IEEE 1394", "IP/IEEE1394", "ap1394");
   proto_register_field_array(proto_ap1394, hf, array_length(hf));
   proto_register_subtree_array(ett, array_length(ett));
+
+  ap1394_handle = register_dissector("ap1394", dissect_ap1394, proto_ap1394);
+  ap1394_cap_handle = register_capture_dissector("ap1394", capture_ap1394, proto_ap1394);
 }
 
 void
 proto_reg_handoff_ap1394(void)
 {
-  dissector_handle_t ap1394_handle;
-  capture_dissector_handle_t ap1394_cap_handle;
-
   ethertype_subdissector_table = find_dissector_table("ethertype");
 
-  ap1394_handle = create_dissector_handle(dissect_ap1394, proto_ap1394);
   dissector_add_uint("wtap_encap", WTAP_ENCAP_APPLE_IP_OVER_IEEE1394, ap1394_handle);
 
-  ap1394_cap_handle = create_capture_dissector_handle(capture_ap1394, proto_ap1394);
   capture_dissector_add_uint("wtap_encap", WTAP_ENCAP_APPLE_IP_OVER_IEEE1394, ap1394_cap_handle);
 }
 

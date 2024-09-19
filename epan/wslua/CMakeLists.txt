@@ -74,7 +74,7 @@ add_custom_command(
 		# XXX taps.txt doesn't appear to be used anywhere.
 		${CMAKE_BINARY_DIR}/epan/wslua/taps.txt
 	COMMAND
-		${PYTHON_EXECUTABLE}
+		${Python3_EXECUTABLE}
 		${CMAKE_SOURCE_DIR}/epan/wslua/make-taps.py
 		${CMAKE_BINARY_DIR}/epan/wslua/taps_wslua.c
 		${CMAKE_BINARY_DIR}/epan/wslua/taps.txt
@@ -91,7 +91,7 @@ add_custom_command(
 		declare_wslua.h
 		register_wslua.c
 	COMMAND
-		${PYTHON_EXECUTABLE}
+		${Python3_EXECUTABLE}
 		${CMAKE_SOURCE_DIR}/epan/wslua/make-reg.py
 		${WSLUA_MODULES}
 	DEPENDS
@@ -109,18 +109,13 @@ add_custom_target(
 
 set_target_properties(register_wslua PROPERTIES FOLDER "Libs/epan/wslua")
 
-install(
-	FILES
-		console.lua
-		dtd_gen.lua
-		init.lua
-	DESTINATION
-		${CMAKE_INSTALL_DATADIR}
-)
-
 add_library(wslua OBJECT
 	${WSLUA_FILES}
 )
+
+if(FETCH_lua)
+	add_dependencies(wslua lua54)
+endif()
 
 target_include_directories(wslua
 	SYSTEM PRIVATE

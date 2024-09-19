@@ -19,11 +19,13 @@
 void proto_register_ieee802a(void);
 void proto_reg_handoff_ieee802a(void);
 
-static int proto_ieee802a = -1;
-static int hf_ieee802a_oui = -1;
-static int hf_ieee802a_pid = -1;
+static dissector_handle_t ieee802a_handle;
 
-static gint ett_ieee802a = -1;
+static int proto_ieee802a;
+static int hf_ieee802a_oui;
+static int hf_ieee802a_pid;
+
+static int ett_ieee802a;
 
 /*
  * Hash table for translating OUIs to a dissector table/field info pair;
@@ -35,13 +37,13 @@ typedef struct {
 	hf_register_info *field_info;
 } oui_info_t;
 
-static GHashTable *oui_info_table = NULL;
+static GHashTable *oui_info_table;
 
 /*
  * Add an entry for a new OUI.
  */
 void
-ieee802a_add_oui(guint32 oui, const char *table_name, const char *table_ui_name,
+ieee802a_add_oui(uint32_t oui, const char *table_name, const char *table_ui_name,
 		 hf_register_info *hf_item, const int proto)
 {
 	oui_info_t *new_info;
@@ -68,9 +70,9 @@ dissect_ieee802a(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, void* data
 	proto_tree	*ieee802a_tree;
 	proto_item	*ti;
 	tvbuff_t	*next_tvb;
-	const gchar	*manuf;
-	guint32		oui32;
-	guint16		pid;
+	const char	*manuf;
+	uint32_t		oui32;
+	uint16_t		pid;
 	oui_info_t	*oui_info;
 	dissector_table_t subdissector_table;
 	int		hf;
@@ -137,7 +139,7 @@ proto_register_ieee802a(void)
 		  { "Protocol ID", "ieee802a.pid", FT_UINT16, BASE_HEX,
 		    NULL, 0x0, NULL, HFILL }}
 	};
-	static gint *ett[] = {
+	static int *ett[] = {
 		&ett_ieee802a,
 	};
 
@@ -145,10 +147,12 @@ proto_register_ieee802a(void)
 	proto_register_field_array(proto_ieee802a, hf, array_length(hf));
 	proto_register_subtree_array(ett, array_length(ett));
 	register_shutdown_routine(ieee802a_shutdown);
+
+	ieee802a_handle = register_dissector("ieee802a", dissect_ieee802a, proto_ieee802a);
 }
 
 static void
-register_hf(gpointer key _U_, gpointer value, gpointer user_data _U_)
+register_hf(void *key _U_, void *value, void *user_data _U_)
 {
 	oui_info_t *info = (oui_info_t *)value;
 
@@ -158,10 +162,6 @@ register_hf(gpointer key _U_, gpointer value, gpointer user_data _U_)
 void
 proto_reg_handoff_ieee802a(void)
 {
-	dissector_handle_t ieee802a_handle;
-
-	ieee802a_handle = create_dissector_handle(dissect_ieee802a,
-	    proto_ieee802a);
 	dissector_add_uint("ethertype", ETHERTYPE_IEEE802_OUI_EXTENDED,
 	    ieee802a_handle);
 

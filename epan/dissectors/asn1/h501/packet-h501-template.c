@@ -15,6 +15,7 @@
 #include <epan/prefs.h>
 #include <epan/oids.h>
 #include <epan/asn1.h>
+#include <wsutil/array.h>
 
 #include "packet-tpkt.h"
 #include "packet-per.h"
@@ -28,19 +29,21 @@
 void proto_register_h501(void);
 
 /* Initialize the protocol and registered fields */
-static int proto_h501 = -1;
+static int proto_h501;
 #include "packet-h501-hf.c"
 
 /* Initialize the subtree pointers */
-static int ett_h501 = -1;
+static int ett_h501;
 #include "packet-h501-ett.c"
 
 /* Dissectors */
 static dissector_handle_t h501_pdu_handle;
+static dissector_handle_t h501_udp_handle;
+static dissector_handle_t h501_tcp_handle;
 
 /* Preferences */
 #define H501_PORT 2099
-static gboolean h501_desegment_tcp = TRUE;
+static bool h501_desegment_tcp = true;
 
 void proto_reg_handoff_h501(void);
 
@@ -63,7 +66,7 @@ dissect_h501_pdu(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, void *data
 static int
 dissect_h501_udp(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, void *data _U_)
 {
-  dissect_tpkt_encap(tvb, pinfo, tree, FALSE, h501_pdu_handle);
+  dissect_tpkt_encap(tvb, pinfo, tree, false, h501_pdu_handle);
   return tvb_captured_length(tvb);
 }
 
@@ -84,7 +87,7 @@ void proto_register_h501(void) {
   };
 
   /* List of subtrees */
-  static gint *ett[] = {
+  static int *ett[] = {
     &ett_h501,
 #include "packet-h501-ettarr.c"
   };
@@ -96,8 +99,12 @@ void proto_register_h501(void) {
   proto_register_field_array(proto_h501, hf, array_length(hf));
   proto_register_subtree_array(ett, array_length(ett));
 
+  /* Register dissectors */
   h501_pdu_handle = register_dissector(PFNAME, dissect_h501_pdu, proto_h501);
+  h501_udp_handle = register_dissector(PFNAME ".udp", dissect_h501_udp, proto_h501);
+  h501_tcp_handle = register_dissector(PFNAME ".tcp", dissect_h501_tcp, proto_h501);
 
+  /* Register dissection preferences */
   h501_module = prefs_register_protocol(proto_h501, NULL);
   prefs_register_bool_preference(h501_module, "desegment",
                                  "Desegment H.501 over TCP",
@@ -109,11 +116,6 @@ void proto_register_h501(void) {
 /*--- proto_reg_handoff_h501 -------------------------------------------*/
 void proto_reg_handoff_h501(void)
 {
-  dissector_handle_t h501_udp_handle;
-  dissector_handle_t h501_tcp_handle;
-
-  h501_udp_handle = create_dissector_handle(dissect_h501_udp, proto_h501);
-  h501_tcp_handle = create_dissector_handle(dissect_h501_tcp, proto_h501);
   dissector_add_uint_with_preference("tcp.port", H501_PORT, h501_tcp_handle);
   dissector_add_uint_with_preference("udp.port", H501_PORT, h501_udp_handle);
 }

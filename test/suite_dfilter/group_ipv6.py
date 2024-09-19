@@ -2,13 +2,11 @@
 #
 # SPDX-License-Identifier: GPL-2.0-or-later
 
-import unittest
-import fixtures
+import pytest
 from suite_dfilter.dfiltertest import *
 
 
-@fixtures.uses_fixtures
-class case_bytes_ipv6(unittest.TestCase):
+class TestDfilterIpv6:
     trace_file = "ipv6.pcap"
 
     def test_eq_1(self, checkDFilterCount):
@@ -100,11 +98,12 @@ class case_bytes_ipv6(unittest.TestCase):
         checkDFilterCount(dfilter, 0)
 
     def test_slice_3(self, checkDFilterCount):
-        dfilter = "ipv6.dst[15:1] == 99"
+        dfilter = "ipv6.dst[15:1] == 153"
         checkDFilterCount(dfilter, 1)
 
     def test_slice_4(self, checkDFilterCount):
-        dfilter = "ipv6.dst[15:1] == 00"
+        dfilter = "ipv6.dst[15:1] == 99:"
+        checkDFilterCount(dfilter, 1)
 
     #
     # Test some addresses are parsed correctly

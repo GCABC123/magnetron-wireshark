@@ -1,7 +1,7 @@
 /* Do not modify this file. Changes will be overwritten.                      */
 /* Generated automatically by the ASN.1 to Wireshark dissector compiler       */
 /* packet-z3950.c                                                             */
-/* asn2wrs.py -b -L -p z3950 -c ./z3950.cnf -s ./packet-z3950-template -D . -O ../.. z3950.asn z3950-oclc.asn z3950-externals.asn */
+/* asn2wrs.py -b -q -L -p z3950 -c ./z3950.cnf -s ./packet-z3950-template -D . -O ../.. z3950.asn z3950-oclc.asn z3950-externals.asn */
 
 /* packet-z3950.c
  * Routines for dissection of the NISO Z39.50 Information Retrieval protocol
@@ -19,12 +19,12 @@
  *
  * References:
  * ISO 2709: https://www.iso.org/standard/41319.html
- * MARC21: http://www.loc.gov/marc/bibliographic/
- * Z39.50 Maintenance Agency: http://www.loc.gov/z3950/agency/
- * Z39.50 2003 standard: http://www.loc.gov/z3950/agency/Z39-50-2003.pdf
+ * MARC21: https://www.loc.gov/marc/bibliographic/
+ * Z39.50 Maintenance Agency: https://www.loc.gov/z3950/agency/
+ * Z39.50 2003 standard: https://www.loc.gov/z3950/agency/Z39-50-2003.pdf
  * Z39.50 1995 ASN.1: https://www.loc.gov/z3950/agency/asn1.html
  * Registered Z39.50 Object Identifiers:
- *   http://www.loc.gov/z3950/agency/defns/oids.html
+ *   https://www.loc.gov/z3950/agency/defns/oids.html
  * Bib-1 Attribute Set: https://www.loc.gov/z3950/agency/defns/bib1.html
  * Bib-1 Diagnostics: https://www.loc.gov/z3950/agency/defns/bib1diag.html
  * RFC for Z39.50 over TCP/IP: https://tools.ietf.org/html/rfc1729
@@ -41,19 +41,20 @@
 #include <epan/proto_data.h>
 #include <wsutil/str_util.h>
 
+
 #include <string.h>
 
 #include "packet-ber.h"
 #include "packet-tcp.h"
 
 typedef struct z3950_atinfo_t {
-    gint     atsetidx;
-    gint     attype;
+    int      atsetidx;
+    int      attype;
 } z3950_atinfo_t;
 
 typedef struct z3950_diaginfo_t {
-    gint     diagsetidx;
-    gint     diagcondition;
+    int      diagsetidx;
+    int      diagcondition;
 } z3950_diaginfo_t;
 
 #define PNAME  "Z39.50 Protocol"
@@ -99,20 +100,20 @@ typedef struct z3950_diaginfo_t {
 #define marc_char_to_int(x)        ((x) - '0')
 
 typedef struct marc_directory_entry {
-    guint32 tag;
-    guint32 length;
-    guint32 starting_character;
+    uint32_t tag;
+    uint32_t length;
+    uint32_t starting_character;
 } marc_directory_entry;
 
-static dissector_handle_t z3950_handle=NULL;
+static dissector_handle_t z3950_handle;
 
 void proto_reg_handoff_z3950(void);
 void proto_register_z3950(void);
 
 /* Initialize the protocol and registered fields */
-static int proto_z3950 = -1;
+static int proto_z3950;
 static int global_z3950_port = Z3950_PORT;
-static gboolean z3950_desegment = TRUE;
+static bool z3950_desegment = true;
 
 static const value_string z3950_bib1_att_types[] = {
     { Z3950_BIB1_AT_USE, "Use" },
@@ -298,7 +299,7 @@ static const value_string z3950_bib1_at_use[] = {
     { 1108, "DC-Source" },
     { 1109, "DC-Relation" },
     { 1110, "DC-Coverage" },
-    { 1111, "DC-RightsManagment" },
+    { 1111, "DC-RightsManagement" },
     { 1112, "GILS Controlled Subject Index" },
     { 1113, "GILS Subject Thesaurus" },
     { 1114, "GILS Index Terms -- Controlled" },
@@ -648,7 +649,7 @@ static const value_string z3950_bib1_diagconditions[] = {
     { 1067, "Encapsulation: Encapsulated sequence of PDUs not supported" },
     { 1068, "Encapsulation: Base operation (and encapsulated PDUs) not executed based on pre-screening analysis" },
     { 1069, "No syntaxes available for this request" },
-    { 1070, "user not authorized to receive record(s) in requested syntax" },
+    { 1070, "User not authorized to receive record(s) in requested syntax" },
     { 1071, "preferredRecordSyntax not supplied" },
     { 1072, "Query term includes characters that do not translate into the target character set" },
     { 1073, "Database records do not contain data associated with access point" },
@@ -656,1202 +657,1202 @@ static const value_string z3950_bib1_diagconditions[] = {
     { 0, NULL}
 };
 
-static int hf_z3950_OCLC_UserInformation_PDU = -1;  /* OCLC_UserInformation */
-static int hf_z3950_SutrsRecord_PDU = -1;         /* SutrsRecord */
-static int hf_z3950_OPACRecord_PDU = -1;          /* OPACRecord */
-static int hf_z3950_DiagnosticFormat_PDU = -1;    /* DiagnosticFormat */
-static int hf_z3950_Explain_Record_PDU = -1;      /* Explain_Record */
-static int hf_z3950_BriefBib_PDU = -1;            /* BriefBib */
-static int hf_z3950_GenericRecord_PDU = -1;       /* GenericRecord */
-static int hf_z3950_TaskPackage_PDU = -1;         /* TaskPackage */
-static int hf_z3950_PromptObject_PDU = -1;        /* PromptObject */
-static int hf_z3950_DES_RN_Object_PDU = -1;       /* DES_RN_Object */
-static int hf_z3950_KRBObject_PDU = -1;           /* KRBObject */
-static int hf_z3950_SearchInfoReport_PDU = -1;    /* SearchInfoReport */
-static int hf_z3950_initRequest = -1;             /* InitializeRequest */
-static int hf_z3950_initResponse = -1;            /* InitializeResponse */
-static int hf_z3950_searchRequest = -1;           /* SearchRequest */
-static int hf_z3950_searchResponse = -1;          /* SearchResponse */
-static int hf_z3950_presentRequest = -1;          /* PresentRequest */
-static int hf_z3950_presentResponse = -1;         /* PresentResponse */
-static int hf_z3950_deleteResultSetRequest = -1;  /* DeleteResultSetRequest */
-static int hf_z3950_deleteResultSetResponse = -1;  /* DeleteResultSetResponse */
-static int hf_z3950_accessControlRequest = -1;    /* AccessControlRequest */
-static int hf_z3950_accessControlResponse = -1;   /* AccessControlResponse */
-static int hf_z3950_resourceControlRequest = -1;  /* ResourceControlRequest */
-static int hf_z3950_resourceControlResponse = -1;  /* ResourceControlResponse */
-static int hf_z3950_triggerResourceControlRequest = -1;  /* TriggerResourceControlRequest */
-static int hf_z3950_resourceReportRequest = -1;   /* ResourceReportRequest */
-static int hf_z3950_resourceReportResponse = -1;  /* ResourceReportResponse */
-static int hf_z3950_scanRequest = -1;             /* ScanRequest */
-static int hf_z3950_scanResponse = -1;            /* ScanResponse */
-static int hf_z3950_sortRequest = -1;             /* SortRequest */
-static int hf_z3950_sortResponse = -1;            /* SortResponse */
-static int hf_z3950_segmentRequest = -1;          /* Segment */
-static int hf_z3950_extendedServicesRequest = -1;  /* ExtendedServicesRequest */
-static int hf_z3950_extendedServicesResponse = -1;  /* ExtendedServicesResponse */
-static int hf_z3950_close = -1;                   /* Close */
-static int hf_z3950_referenceId = -1;             /* ReferenceId */
-static int hf_z3950_protocolVersion = -1;         /* ProtocolVersion */
-static int hf_z3950_options = -1;                 /* Options */
-static int hf_z3950_preferredMessageSize = -1;    /* INTEGER */
-static int hf_z3950_exceptionalRecordSize = -1;   /* INTEGER */
-static int hf_z3950_idAuthentication = -1;        /* T_idAuthentication */
-static int hf_z3950_open = -1;                    /* VisibleString */
-static int hf_z3950_idPass = -1;                  /* T_idPass */
-static int hf_z3950_groupId = -1;                 /* InternationalString */
-static int hf_z3950_userId = -1;                  /* InternationalString */
-static int hf_z3950_password = -1;                /* InternationalString */
-static int hf_z3950_anonymous = -1;               /* NULL */
-static int hf_z3950_other = -1;                   /* EXTERNAL */
-static int hf_z3950_implementationId = -1;        /* InternationalString */
-static int hf_z3950_implementationName = -1;      /* InternationalString */
-static int hf_z3950_implementationVersion = -1;   /* InternationalString */
-static int hf_z3950_userInformationField = -1;    /* EXTERNAL */
-static int hf_z3950_otherInfo = -1;               /* OtherInformation */
-static int hf_z3950_result = -1;                  /* BOOLEAN */
-static int hf_z3950_smallSetUpperBound = -1;      /* INTEGER */
-static int hf_z3950_largeSetLowerBound = -1;      /* INTEGER */
-static int hf_z3950_mediumSetPresentNumber = -1;  /* INTEGER */
-static int hf_z3950_replaceIndicator = -1;        /* BOOLEAN */
-static int hf_z3950_resultSetName = -1;           /* InternationalString */
-static int hf_z3950_databaseNames = -1;           /* SEQUENCE_OF_DatabaseName */
-static int hf_z3950_databaseNames_item = -1;      /* DatabaseName */
-static int hf_z3950_smallSetElementSetNames = -1;  /* ElementSetNames */
-static int hf_z3950_mediumSetElementSetNames = -1;  /* ElementSetNames */
-static int hf_z3950_preferredRecordSyntax = -1;   /* OBJECT_IDENTIFIER */
-static int hf_z3950_query = -1;                   /* Query */
-static int hf_z3950_additionalSearchInfo = -1;    /* OtherInformation */
-static int hf_z3950_type_0 = -1;                  /* T_type_0 */
-static int hf_z3950_type_1 = -1;                  /* RPNQuery */
-static int hf_z3950_type_2 = -1;                  /* OCTET_STRING */
-static int hf_z3950_type_100 = -1;                /* OCTET_STRING */
-static int hf_z3950_type_101 = -1;                /* RPNQuery */
-static int hf_z3950_type_102 = -1;                /* OCTET_STRING */
-static int hf_z3950_attributeSet = -1;            /* AttributeSetId */
-static int hf_z3950_rpn = -1;                     /* RPNStructure */
-static int hf_z3950_operandRpnOp = -1;            /* Operand */
-static int hf_z3950_rpnRpnOp = -1;                /* T_rpnRpnOp */
-static int hf_z3950_rpn1 = -1;                    /* RPNStructure */
-static int hf_z3950_rpn2 = -1;                    /* RPNStructure */
-static int hf_z3950_operatorRpnOp = -1;           /* Operator */
-static int hf_z3950_attrTerm = -1;                /* AttributesPlusTerm */
-static int hf_z3950_resultSet = -1;               /* ResultSetId */
-static int hf_z3950_resultAttr = -1;              /* ResultSetPlusAttributes */
-static int hf_z3950_attributes = -1;              /* AttributeList */
-static int hf_z3950_term = -1;                    /* Term */
-static int hf_z3950_attributeList_item = -1;      /* AttributeElement */
-static int hf_z3950_general = -1;                 /* T_general */
-static int hf_z3950_numeric = -1;                 /* INTEGER */
-static int hf_z3950_characterString = -1;         /* InternationalString */
-static int hf_z3950_oid = -1;                     /* OBJECT_IDENTIFIER */
-static int hf_z3950_dateTime = -1;                /* GeneralizedTime */
-static int hf_z3950_external = -1;                /* EXTERNAL */
-static int hf_z3950_integerAndUnit = -1;          /* IntUnit */
-static int hf_z3950_null = -1;                    /* NULL */
-static int hf_z3950_and = -1;                     /* NULL */
-static int hf_z3950_or = -1;                      /* NULL */
-static int hf_z3950_and_not = -1;                 /* NULL */
-static int hf_z3950_prox = -1;                    /* ProximityOperator */
-static int hf_z3950_attributeElement_attributeType = -1;  /* T_attributeElement_attributeType */
-static int hf_z3950_attributeValue = -1;          /* T_attributeValue */
-static int hf_z3950_attributeValue_numeric = -1;  /* T_attributeValue_numeric */
-static int hf_z3950_attributeValue_complex = -1;  /* T_attributeValue_complex */
-static int hf_z3950_attributeValue_complex_list = -1;  /* SEQUENCE_OF_StringOrNumeric */
-static int hf_z3950_attributeValue_complex_list_item = -1;  /* StringOrNumeric */
-static int hf_z3950_semanticAction = -1;          /* T_semanticAction */
-static int hf_z3950_semanticAction_item = -1;     /* INTEGER */
-static int hf_z3950_exclusion = -1;               /* BOOLEAN */
-static int hf_z3950_distance = -1;                /* INTEGER */
-static int hf_z3950_ordered = -1;                 /* BOOLEAN */
-static int hf_z3950_relationType = -1;            /* T_relationType */
-static int hf_z3950_proximityUnitCode = -1;       /* T_proximityUnitCode */
-static int hf_z3950_known = -1;                   /* KnownProximityUnit */
-static int hf_z3950_private = -1;                 /* INTEGER */
-static int hf_z3950_resultCount = -1;             /* INTEGER */
-static int hf_z3950_numberOfRecordsReturned = -1;  /* INTEGER */
-static int hf_z3950_nextResultSetPosition = -1;   /* INTEGER */
-static int hf_z3950_searchStatus = -1;            /* BOOLEAN */
-static int hf_z3950_search_resultSetStatus = -1;  /* T_search_resultSetStatus */
-static int hf_z3950_presentStatus = -1;           /* PresentStatus */
-static int hf_z3950_records = -1;                 /* Records */
-static int hf_z3950_resultSetId = -1;             /* ResultSetId */
-static int hf_z3950_resultSetStartPoint = -1;     /* INTEGER */
-static int hf_z3950_numberOfRecordsRequested = -1;  /* INTEGER */
-static int hf_z3950_additionalRanges = -1;        /* SEQUENCE_OF_Range */
-static int hf_z3950_additionalRanges_item = -1;   /* Range */
-static int hf_z3950_recordComposition = -1;       /* T_recordComposition */
-static int hf_z3950_simple = -1;                  /* ElementSetNames */
-static int hf_z3950_recordComposition_complex = -1;  /* CompSpec */
-static int hf_z3950_maxSegmentCount = -1;         /* INTEGER */
-static int hf_z3950_maxRecordSize = -1;           /* INTEGER */
-static int hf_z3950_maxSegmentSize = -1;          /* INTEGER */
-static int hf_z3950_segmentRecords = -1;          /* SEQUENCE_OF_NamePlusRecord */
-static int hf_z3950_segmentRecords_item = -1;     /* NamePlusRecord */
-static int hf_z3950_responseRecords = -1;         /* SEQUENCE_OF_NamePlusRecord */
-static int hf_z3950_responseRecords_item = -1;    /* NamePlusRecord */
-static int hf_z3950_nonSurrogateDiagnostic = -1;  /* DefaultDiagFormat */
-static int hf_z3950_multipleNonSurDiagnostics = -1;  /* SEQUENCE_OF_DiagRec */
-static int hf_z3950_multipleNonSurDiagnostics_item = -1;  /* DiagRec */
-static int hf_z3950_namePlusRecord_name = -1;     /* DatabaseName */
-static int hf_z3950_record = -1;                  /* T_record */
-static int hf_z3950_retrievalRecord = -1;         /* EXTERNAL */
-static int hf_z3950_surrogateDiagnostic = -1;     /* DiagRec */
-static int hf_z3950_startingFragment = -1;        /* FragmentSyntax */
-static int hf_z3950_intermediateFragment = -1;    /* FragmentSyntax */
-static int hf_z3950_finalFragment = -1;           /* FragmentSyntax */
-static int hf_z3950_externallyTagged = -1;        /* EXTERNAL */
-static int hf_z3950_notExternallyTagged = -1;     /* OCTET_STRING */
-static int hf_z3950_defaultFormat = -1;           /* DefaultDiagFormat */
-static int hf_z3950_externallyDefined = -1;       /* EXTERNAL */
-static int hf_z3950_diagnosticSetId = -1;         /* T_diagnosticSetId */
-static int hf_z3950_condition = -1;               /* T_condition */
-static int hf_z3950_addinfo = -1;                 /* T_addinfo */
-static int hf_z3950_v2Addinfo = -1;               /* VisibleString */
-static int hf_z3950_v3Addinfo = -1;               /* InternationalString */
-static int hf_z3950_startingPosition = -1;        /* INTEGER */
-static int hf_z3950_numberOfRecords = -1;         /* INTEGER */
-static int hf_z3950_genericElementSetName = -1;   /* InternationalString */
-static int hf_z3950_databaseSpecific = -1;        /* T_databaseSpecific */
-static int hf_z3950_databaseSpecific_item = -1;   /* T_databaseSpecific_item */
-static int hf_z3950_dbName = -1;                  /* DatabaseName */
-static int hf_z3950_esn = -1;                     /* ElementSetName */
-static int hf_z3950_selectAlternativeSyntax = -1;  /* BOOLEAN */
-static int hf_z3950_compSpec_generic = -1;        /* Specification */
-static int hf_z3950_dbSpecific = -1;              /* T_dbSpecific */
-static int hf_z3950_dbSpecific_item = -1;         /* T_dbSpecific_item */
-static int hf_z3950_db = -1;                      /* DatabaseName */
-static int hf_z3950_spec = -1;                    /* Specification */
-static int hf_z3950_compSpec_recordSyntax = -1;   /* T_compSpec_recordSyntax */
-static int hf_z3950_compSpec_recordSyntax_item = -1;  /* OBJECT_IDENTIFIER */
-static int hf_z3950_schema = -1;                  /* OBJECT_IDENTIFIER */
-static int hf_z3950_specification_elementSpec = -1;  /* T_specification_elementSpec */
-static int hf_z3950_elementSetName = -1;          /* InternationalString */
-static int hf_z3950_externalEspec = -1;           /* EXTERNAL */
-static int hf_z3950_deleteFunction = -1;          /* T_deleteFunction */
-static int hf_z3950_resultSetList = -1;           /* SEQUENCE_OF_ResultSetId */
-static int hf_z3950_resultSetList_item = -1;      /* ResultSetId */
-static int hf_z3950_deleteOperationStatus = -1;   /* DeleteSetStatus */
-static int hf_z3950_deleteListStatuses = -1;      /* ListStatuses */
-static int hf_z3950_numberNotDeleted = -1;        /* INTEGER */
-static int hf_z3950_bulkStatuses = -1;            /* ListStatuses */
-static int hf_z3950_deleteMessage = -1;           /* InternationalString */
-static int hf_z3950_ListStatuses_item = -1;       /* ListStatuses_item */
-static int hf_z3950_listStatuses_id = -1;         /* ResultSetId */
-static int hf_z3950_status = -1;                  /* DeleteSetStatus */
-static int hf_z3950_securityChallenge = -1;       /* T_securityChallenge */
-static int hf_z3950_simpleForm = -1;              /* OCTET_STRING */
-static int hf_z3950_securityChallengeResponse = -1;  /* T_securityChallengeResponse */
-static int hf_z3950_diagnostic = -1;              /* DiagRec */
-static int hf_z3950_suspendedFlag = -1;           /* BOOLEAN */
-static int hf_z3950_resourceReport = -1;          /* ResourceReport */
-static int hf_z3950_partialResultsAvailable = -1;  /* T_partialResultsAvailable */
-static int hf_z3950_resourceControlRequest_responseRequired = -1;  /* BOOLEAN */
-static int hf_z3950_triggeredRequestFlag = -1;    /* BOOLEAN */
-static int hf_z3950_continueFlag = -1;            /* BOOLEAN */
-static int hf_z3950_resultSetWanted = -1;         /* BOOLEAN */
-static int hf_z3950_requestedAction = -1;         /* T_requestedAction */
-static int hf_z3950_prefResourceReportFormat = -1;  /* ResourceReportId */
-static int hf_z3950_opId = -1;                    /* ReferenceId */
-static int hf_z3950_resourceReportStatus = -1;    /* T_resourceReportStatus */
-static int hf_z3950_termListAndStartPoint = -1;   /* AttributesPlusTerm */
-static int hf_z3950_stepSize = -1;                /* INTEGER */
-static int hf_z3950_numberOfTermsRequested = -1;  /* INTEGER */
-static int hf_z3950_preferredPositionInResponse = -1;  /* INTEGER */
-static int hf_z3950_scanStatus = -1;              /* T_scanStatus */
-static int hf_z3950_numberOfEntriesReturned = -1;  /* INTEGER */
-static int hf_z3950_positionOfTerm = -1;          /* INTEGER */
-static int hf_z3950_scanResponse_entries = -1;    /* ListEntries */
-static int hf_z3950_listEntries_entries = -1;     /* SEQUENCE_OF_Entry */
-static int hf_z3950_listEntries_entries_item = -1;  /* Entry */
-static int hf_z3950_nonsurrogateDiagnostics = -1;  /* SEQUENCE_OF_DiagRec */
-static int hf_z3950_nonsurrogateDiagnostics_item = -1;  /* DiagRec */
-static int hf_z3950_termInfo = -1;                /* TermInfo */
-static int hf_z3950_displayTerm = -1;             /* InternationalString */
-static int hf_z3950_suggestedAttributes = -1;     /* AttributeList */
-static int hf_z3950_alternativeTerm = -1;         /* SEQUENCE_OF_AttributesPlusTerm */
-static int hf_z3950_alternativeTerm_item = -1;    /* AttributesPlusTerm */
-static int hf_z3950_globalOccurrences = -1;       /* INTEGER */
-static int hf_z3950_byAttributes = -1;            /* OccurrenceByAttributes */
-static int hf_z3950_otherTermInfo = -1;           /* OtherInformation */
-static int hf_z3950_OccurrenceByAttributes_item = -1;  /* OccurrenceByAttributes_item */
-static int hf_z3950_occurrences = -1;             /* T_occurrences */
-static int hf_z3950_global = -1;                  /* INTEGER */
-static int hf_z3950_byDatabase = -1;              /* T_byDatabase */
-static int hf_z3950_byDatabase_item = -1;         /* T_byDatabase_item */
-static int hf_z3950_num = -1;                     /* INTEGER */
-static int hf_z3950_otherDbInfo = -1;             /* OtherInformation */
-static int hf_z3950_otherOccurInfo = -1;          /* OtherInformation */
-static int hf_z3950_inputResultSetNames = -1;     /* SEQUENCE_OF_InternationalString */
-static int hf_z3950_inputResultSetNames_item = -1;  /* InternationalString */
-static int hf_z3950_sortedResultSetName = -1;     /* InternationalString */
-static int hf_z3950_sortSequence = -1;            /* SEQUENCE_OF_SortKeySpec */
-static int hf_z3950_sortSequence_item = -1;       /* SortKeySpec */
-static int hf_z3950_sortStatus = -1;              /* T_sortStatus */
-static int hf_z3950_sort_resultSetStatus = -1;    /* T_sort_resultSetStatus */
-static int hf_z3950_diagnostics = -1;             /* SEQUENCE_OF_DiagRec */
-static int hf_z3950_diagnostics_item = -1;        /* DiagRec */
-static int hf_z3950_sortElement = -1;             /* SortElement */
-static int hf_z3950_sortRelation = -1;            /* T_sortRelation */
-static int hf_z3950_caseSensitivity = -1;         /* T_caseSensitivity */
-static int hf_z3950_missingValueAction = -1;      /* T_missingValueAction */
-static int hf_z3950_abort = -1;                   /* NULL */
-static int hf_z3950_missingValueData = -1;        /* OCTET_STRING */
-static int hf_z3950_sortElement_generic = -1;     /* SortKey */
-static int hf_z3950_datbaseSpecific = -1;         /* T_datbaseSpecific */
-static int hf_z3950_datbaseSpecific_item = -1;    /* T_datbaseSpecific_item */
-static int hf_z3950_databaseName = -1;            /* DatabaseName */
-static int hf_z3950_dbSort = -1;                  /* SortKey */
-static int hf_z3950_sortfield = -1;               /* InternationalString */
-static int hf_z3950_sortKey_elementSpec = -1;     /* Specification */
-static int hf_z3950_sortAttributes = -1;          /* T_sortAttributes */
-static int hf_z3950_sortAttributes_id = -1;       /* AttributeSetId */
-static int hf_z3950_sortAttributes_list = -1;     /* AttributeList */
-static int hf_z3950_function = -1;                /* T_function */
-static int hf_z3950_packageType = -1;             /* OBJECT_IDENTIFIER */
-static int hf_z3950_packageName = -1;             /* InternationalString */
-static int hf_z3950_retentionTime = -1;           /* IntUnit */
-static int hf_z3950_permissions = -1;             /* Permissions */
-static int hf_z3950_extendedServicesRequest_description = -1;  /* InternationalString */
-static int hf_z3950_taskSpecificParameters = -1;  /* EXTERNAL */
-static int hf_z3950_waitAction = -1;              /* T_waitAction */
-static int hf_z3950_elements = -1;                /* ElementSetName */
-static int hf_z3950_operationStatus = -1;         /* T_operationStatus */
-static int hf_z3950_taskPackage = -1;             /* EXTERNAL */
-static int hf_z3950_Permissions_item = -1;        /* Permissions_item */
-static int hf_z3950_allowableFunctions = -1;      /* T_allowableFunctions */
-static int hf_z3950_allowableFunctions_item = -1;  /* T_allowableFunctions_item */
-static int hf_z3950_closeReason = -1;             /* CloseReason */
-static int hf_z3950_diagnosticInformation = -1;   /* InternationalString */
-static int hf_z3950_resourceReportFormat = -1;    /* ResourceReportId */
-static int hf_z3950_otherInformation_item = -1;   /* T__untag_item */
-static int hf_z3950_category = -1;                /* InfoCategory */
-static int hf_z3950_information = -1;             /* T_information */
-static int hf_z3950_characterInfo = -1;           /* InternationalString */
-static int hf_z3950_binaryInfo = -1;              /* OCTET_STRING */
-static int hf_z3950_externallyDefinedInfo = -1;   /* EXTERNAL */
-static int hf_z3950_categoryTypeId = -1;          /* OBJECT_IDENTIFIER */
-static int hf_z3950_categoryValue = -1;           /* INTEGER */
-static int hf_z3950_value = -1;                   /* INTEGER */
-static int hf_z3950_unitUsed = -1;                /* Unit */
-static int hf_z3950_unitSystem = -1;              /* InternationalString */
-static int hf_z3950_unitType = -1;                /* StringOrNumeric */
-static int hf_z3950_unit = -1;                    /* StringOrNumeric */
-static int hf_z3950_scaleFactor = -1;             /* INTEGER */
-static int hf_z3950_string = -1;                  /* InternationalString */
-static int hf_z3950_motd = -1;                    /* VisibleString */
-static int hf_z3950_dblist = -1;                  /* SEQUENCE_OF_DBName */
-static int hf_z3950_dblist_item = -1;             /* DBName */
-static int hf_z3950_failReason = -1;              /* BOOLEAN */
-static int hf_z3950_oCLC_UserInformation_text = -1;  /* VisibleString */
-static int hf_z3950_bibliographicRecord = -1;     /* EXTERNAL */
-static int hf_z3950_holdingsData = -1;            /* SEQUENCE_OF_HoldingsRecord */
-static int hf_z3950_holdingsData_item = -1;       /* HoldingsRecord */
-static int hf_z3950_marcHoldingsRecord = -1;      /* EXTERNAL */
-static int hf_z3950_holdingsAndCirc = -1;         /* HoldingsAndCircData */
-static int hf_z3950_typeOfRecord = -1;            /* InternationalString */
-static int hf_z3950_encodingLevel = -1;           /* InternationalString */
-static int hf_z3950_format = -1;                  /* InternationalString */
-static int hf_z3950_receiptAcqStatus = -1;        /* InternationalString */
-static int hf_z3950_generalRetention = -1;        /* InternationalString */
-static int hf_z3950_completeness = -1;            /* InternationalString */
-static int hf_z3950_dateOfReport = -1;            /* InternationalString */
-static int hf_z3950_nucCode = -1;                 /* InternationalString */
-static int hf_z3950_localLocation = -1;           /* InternationalString */
-static int hf_z3950_shelvingLocation = -1;        /* InternationalString */
-static int hf_z3950_callNumber = -1;              /* InternationalString */
-static int hf_z3950_shelvingData = -1;            /* InternationalString */
-static int hf_z3950_copyNumber = -1;              /* InternationalString */
-static int hf_z3950_publicNote = -1;              /* InternationalString */
-static int hf_z3950_reproductionNote = -1;        /* InternationalString */
-static int hf_z3950_termsUseRepro = -1;           /* InternationalString */
-static int hf_z3950_enumAndChron = -1;            /* InternationalString */
-static int hf_z3950_volumes = -1;                 /* SEQUENCE_OF_Volume */
-static int hf_z3950_volumes_item = -1;            /* Volume */
-static int hf_z3950_circulationData = -1;         /* SEQUENCE_OF_CircRecord */
-static int hf_z3950_circulationData_item = -1;    /* CircRecord */
-static int hf_z3950_enumeration = -1;             /* InternationalString */
-static int hf_z3950_chronology = -1;              /* InternationalString */
-static int hf_z3950_availableNow = -1;            /* BOOLEAN */
-static int hf_z3950_availablityDate = -1;         /* InternationalString */
-static int hf_z3950_availableThru = -1;           /* InternationalString */
-static int hf_z3950_circRecord_restrictions = -1;  /* InternationalString */
-static int hf_z3950_itemId = -1;                  /* InternationalString */
-static int hf_z3950_renewable = -1;               /* BOOLEAN */
-static int hf_z3950_onHold = -1;                  /* BOOLEAN */
-static int hf_z3950_midspine = -1;                /* InternationalString */
-static int hf_z3950_temporaryLocation = -1;       /* InternationalString */
-static int hf_z3950_DiagnosticFormat_item = -1;   /* DiagnosticFormat_item */
-static int hf_z3950_diagnosticFormat_item_diagnostic = -1;  /* T_diagnosticFormat_item_diagnostic */
-static int hf_z3950_defaultDiagRec = -1;          /* DefaultDiagFormat */
-static int hf_z3950_explicitDiagnostic = -1;      /* DiagFormat */
-static int hf_z3950_message = -1;                 /* InternationalString */
-static int hf_z3950_tooMany = -1;                 /* T_tooMany */
-static int hf_z3950_tooManyWhat = -1;             /* T_tooManyWhat */
-static int hf_z3950_max = -1;                     /* INTEGER */
-static int hf_z3950_badSpec = -1;                 /* T_badSpec */
-static int hf_z3950_goodOnes = -1;                /* SEQUENCE_OF_Specification */
-static int hf_z3950_goodOnes_item = -1;           /* Specification */
-static int hf_z3950_dbUnavail = -1;               /* T_dbUnavail */
-static int hf_z3950_why = -1;                     /* T_why */
-static int hf_z3950_reasonCode = -1;              /* T_reasonCode */
-static int hf_z3950_unSupOp = -1;                 /* T_unSupOp */
-static int hf_z3950_attribute = -1;               /* T_attribute */
-static int hf_z3950_id = -1;                      /* OBJECT_IDENTIFIER */
-static int hf_z3950_type = -1;                    /* INTEGER */
-static int hf_z3950_attCombo = -1;                /* T_attCombo */
-static int hf_z3950_unsupportedCombination = -1;  /* AttributeList */
-static int hf_z3950_recommendedAlternatives = -1;  /* SEQUENCE_OF_AttributeList */
-static int hf_z3950_recommendedAlternatives_item = -1;  /* AttributeList */
-static int hf_z3950_diagFormat_term = -1;         /* T_diagFormat_term */
-static int hf_z3950_problem = -1;                 /* T_problem */
-static int hf_z3950_diagFormat_proximity = -1;    /* T_diagFormat_proximity */
-static int hf_z3950_resultSets = -1;              /* NULL */
-static int hf_z3950_badSet = -1;                  /* InternationalString */
-static int hf_z3950_relation = -1;                /* INTEGER */
-static int hf_z3950_diagFormat_proximity_unit = -1;  /* INTEGER */
-static int hf_z3950_diagFormat_proximity_ordered = -1;  /* NULL */
-static int hf_z3950_diagFormat_proximity_exclusion = -1;  /* NULL */
-static int hf_z3950_scan = -1;                    /* T_scan */
-static int hf_z3950_nonZeroStepSize = -1;         /* NULL */
-static int hf_z3950_specifiedStepSize = -1;       /* NULL */
-static int hf_z3950_termList1 = -1;               /* NULL */
-static int hf_z3950_termList2 = -1;               /* SEQUENCE_OF_AttributeList */
-static int hf_z3950_termList2_item = -1;          /* AttributeList */
-static int hf_z3950_posInResponse = -1;           /* T_posInResponse */
-static int hf_z3950_resources = -1;               /* NULL */
-static int hf_z3950_endOfList = -1;               /* NULL */
-static int hf_z3950_sort = -1;                    /* T_sort */
-static int hf_z3950_sequence = -1;                /* NULL */
-static int hf_z3950_noRsName = -1;                /* NULL */
-static int hf_z3950_diagFormat_sort_tooMany = -1;  /* INTEGER */
-static int hf_z3950_incompatible = -1;            /* NULL */
-static int hf_z3950_generic = -1;                 /* NULL */
-static int hf_z3950_diagFormat_sort_dbSpecific = -1;  /* NULL */
-static int hf_z3950_key = -1;                     /* T_key */
-static int hf_z3950_action = -1;                  /* NULL */
-static int hf_z3950_illegal = -1;                 /* T_illegal */
-static int hf_z3950_inputTooLarge = -1;           /* SEQUENCE_OF_InternationalString */
-static int hf_z3950_inputTooLarge_item = -1;      /* InternationalString */
-static int hf_z3950_aggregateTooLarge = -1;       /* NULL */
-static int hf_z3950_segmentation = -1;            /* T_segmentation */
-static int hf_z3950_segmentCount = -1;            /* NULL */
-static int hf_z3950_segmentSize = -1;             /* INTEGER */
-static int hf_z3950_extServices = -1;             /* T_extServices */
-static int hf_z3950_req = -1;                     /* T_req */
-static int hf_z3950_permission = -1;              /* T_permission */
-static int hf_z3950_immediate = -1;               /* T_immediate */
-static int hf_z3950_accessCtrl = -1;              /* T_accessCtrl */
-static int hf_z3950_noUser = -1;                  /* NULL */
-static int hf_z3950_refused = -1;                 /* NULL */
-static int hf_z3950_diagFormat_accessCtrl_simple = -1;  /* NULL */
-static int hf_z3950_diagFormat_accessCtrl_oid = -1;  /* T_diagFormat_accessCtrl_oid */
-static int hf_z3950_diagFormat_accessCtrl_oid_item = -1;  /* OBJECT_IDENTIFIER */
-static int hf_z3950_alternative = -1;             /* T_alternative */
-static int hf_z3950_alternative_item = -1;        /* OBJECT_IDENTIFIER */
-static int hf_z3950_pwdInv = -1;                  /* NULL */
-static int hf_z3950_pwdExp = -1;                  /* NULL */
-static int hf_z3950_diagFormat_recordSyntax = -1;  /* T_diagFormat_recordSyntax */
-static int hf_z3950_unsupportedSyntax = -1;       /* OBJECT_IDENTIFIER */
-static int hf_z3950_suggestedAlternatives = -1;   /* T_suggestedAlternatives */
-static int hf_z3950_suggestedAlternatives_item = -1;  /* OBJECT_IDENTIFIER */
-static int hf_z3950_targetInfo = -1;              /* TargetInfo */
-static int hf_z3950_databaseInfo = -1;            /* DatabaseInfo */
-static int hf_z3950_schemaInfo = -1;              /* SchemaInfo */
-static int hf_z3950_tagSetInfo = -1;              /* TagSetInfo */
-static int hf_z3950_recordSyntaxInfo = -1;        /* RecordSyntaxInfo */
-static int hf_z3950_attributeSetInfo = -1;        /* AttributeSetInfo */
-static int hf_z3950_termListInfo = -1;            /* TermListInfo */
-static int hf_z3950_extendedServicesInfo = -1;    /* ExtendedServicesInfo */
-static int hf_z3950_attributeDetails = -1;        /* AttributeDetails */
-static int hf_z3950_termListDetails = -1;         /* TermListDetails */
-static int hf_z3950_elementSetDetails = -1;       /* ElementSetDetails */
-static int hf_z3950_retrievalRecordDetails = -1;  /* RetrievalRecordDetails */
-static int hf_z3950_sortDetails = -1;             /* SortDetails */
-static int hf_z3950_processing = -1;              /* ProcessingInformation */
-static int hf_z3950_variants = -1;                /* VariantSetInfo */
-static int hf_z3950_units = -1;                   /* UnitInfo */
-static int hf_z3950_categoryList = -1;            /* CategoryList */
-static int hf_z3950_commonInfo = -1;              /* CommonInfo */
-static int hf_z3950_name = -1;                    /* InternationalString */
-static int hf_z3950_recent_news = -1;             /* HumanString */
-static int hf_z3950_icon = -1;                    /* IconObject */
-static int hf_z3950_namedResultSets = -1;         /* BOOLEAN */
-static int hf_z3950_multipleDBsearch = -1;        /* BOOLEAN */
-static int hf_z3950_maxResultSets = -1;           /* INTEGER */
-static int hf_z3950_maxResultSize = -1;           /* INTEGER */
-static int hf_z3950_maxTerms = -1;                /* INTEGER */
-static int hf_z3950_timeoutInterval = -1;         /* IntUnit */
-static int hf_z3950_welcomeMessage = -1;          /* HumanString */
-static int hf_z3950_contactInfo = -1;             /* ContactInfo */
-static int hf_z3950_description = -1;             /* HumanString */
-static int hf_z3950_nicknames = -1;               /* SEQUENCE_OF_InternationalString */
-static int hf_z3950_nicknames_item = -1;          /* InternationalString */
-static int hf_z3950_usage_restrictions = -1;      /* HumanString */
-static int hf_z3950_paymentAddr = -1;             /* HumanString */
-static int hf_z3950_hours = -1;                   /* HumanString */
-static int hf_z3950_dbCombinations = -1;          /* SEQUENCE_OF_DatabaseList */
-static int hf_z3950_dbCombinations_item = -1;     /* DatabaseList */
-static int hf_z3950_addresses = -1;               /* SEQUENCE_OF_NetworkAddress */
-static int hf_z3950_addresses_item = -1;          /* NetworkAddress */
-static int hf_z3950_languages = -1;               /* SEQUENCE_OF_InternationalString */
-static int hf_z3950_languages_item = -1;          /* InternationalString */
-static int hf_z3950_commonAccessInfo = -1;        /* AccessInfo */
-static int hf_z3950_databaseInfo_name = -1;       /* DatabaseName */
-static int hf_z3950_explainDatabase = -1;         /* NULL */
-static int hf_z3950_databaseInfo_nicknames = -1;  /* SEQUENCE_OF_DatabaseName */
-static int hf_z3950_databaseInfo_nicknames_item = -1;  /* DatabaseName */
-static int hf_z3950_user_fee = -1;                /* BOOLEAN */
-static int hf_z3950_available = -1;               /* BOOLEAN */
-static int hf_z3950_titleString = -1;             /* HumanString */
-static int hf_z3950_keywords = -1;                /* SEQUENCE_OF_HumanString */
-static int hf_z3950_keywords_item = -1;           /* HumanString */
-static int hf_z3950_associatedDbs = -1;           /* DatabaseList */
-static int hf_z3950_subDbs = -1;                  /* DatabaseList */
-static int hf_z3950_disclaimers = -1;             /* HumanString */
-static int hf_z3950_news = -1;                    /* HumanString */
-static int hf_z3950_recordCount = -1;             /* T_recordCount */
-static int hf_z3950_actualNumber = -1;            /* INTEGER */
-static int hf_z3950_approxNumber = -1;            /* INTEGER */
-static int hf_z3950_defaultOrder = -1;            /* HumanString */
-static int hf_z3950_avRecordSize = -1;            /* INTEGER */
-static int hf_z3950_bestTime = -1;                /* HumanString */
-static int hf_z3950_lastUpdate = -1;              /* GeneralizedTime */
-static int hf_z3950_updateInterval = -1;          /* IntUnit */
-static int hf_z3950_coverage = -1;                /* HumanString */
-static int hf_z3950_proprietary = -1;             /* BOOLEAN */
-static int hf_z3950_copyrightText = -1;           /* HumanString */
-static int hf_z3950_copyrightNotice = -1;         /* HumanString */
-static int hf_z3950_producerContactInfo = -1;     /* ContactInfo */
-static int hf_z3950_supplierContactInfo = -1;     /* ContactInfo */
-static int hf_z3950_submissionContactInfo = -1;   /* ContactInfo */
-static int hf_z3950_accessInfo = -1;              /* AccessInfo */
-static int hf_z3950_tagTypeMapping = -1;          /* T_tagTypeMapping */
-static int hf_z3950_tagTypeMapping_item = -1;     /* T_tagTypeMapping_item */
-static int hf_z3950_tagType = -1;                 /* INTEGER */
-static int hf_z3950_tagSet = -1;                  /* OBJECT_IDENTIFIER */
-static int hf_z3950_defaultTagType = -1;          /* NULL */
-static int hf_z3950_recordStructure = -1;         /* SEQUENCE_OF_ElementInfo */
-static int hf_z3950_recordStructure_item = -1;    /* ElementInfo */
-static int hf_z3950_elementName = -1;             /* InternationalString */
-static int hf_z3950_elementTagPath = -1;          /* Path */
-static int hf_z3950_elementInfo_dataType = -1;    /* ElementDataType */
-static int hf_z3950_required = -1;                /* BOOLEAN */
-static int hf_z3950_repeatable = -1;              /* BOOLEAN */
-static int hf_z3950_Path_item = -1;               /* Path_item */
-static int hf_z3950_tagValue = -1;                /* StringOrNumeric */
-static int hf_z3950_primitive = -1;               /* PrimitiveDataType */
-static int hf_z3950_structured = -1;              /* SEQUENCE_OF_ElementInfo */
-static int hf_z3950_structured_item = -1;         /* ElementInfo */
-static int hf_z3950_tagSetInfo_elements = -1;     /* T_tagSetInfo_elements */
-static int hf_z3950_tagSetInfo_elements_item = -1;  /* T_tagSetInfo_elements_item */
-static int hf_z3950_elementname = -1;             /* InternationalString */
-static int hf_z3950_elementTag = -1;              /* StringOrNumeric */
-static int hf_z3950_dataType = -1;                /* PrimitiveDataType */
-static int hf_z3950_otherTagInfo = -1;            /* OtherInformation */
-static int hf_z3950_recordSyntax = -1;            /* OBJECT_IDENTIFIER */
-static int hf_z3950_transferSyntaxes = -1;        /* T_transferSyntaxes */
-static int hf_z3950_transferSyntaxes_item = -1;   /* OBJECT_IDENTIFIER */
-static int hf_z3950_asn1Module = -1;              /* InternationalString */
-static int hf_z3950_abstractStructure = -1;       /* SEQUENCE_OF_ElementInfo */
-static int hf_z3950_abstractStructure_item = -1;  /* ElementInfo */
-static int hf_z3950_attributeSetInfo_attributes = -1;  /* SEQUENCE_OF_AttributeType */
-static int hf_z3950_attributeSetInfo_attributes_item = -1;  /* AttributeType */
-static int hf_z3950_attributeType = -1;           /* INTEGER */
-static int hf_z3950_attributeValues = -1;         /* SEQUENCE_OF_AttributeDescription */
-static int hf_z3950_attributeValues_item = -1;    /* AttributeDescription */
-static int hf_z3950_attributeDescription_attributeValue = -1;  /* StringOrNumeric */
-static int hf_z3950_equivalentAttributes = -1;    /* SEQUENCE_OF_StringOrNumeric */
-static int hf_z3950_equivalentAttributes_item = -1;  /* StringOrNumeric */
-static int hf_z3950_termLists = -1;               /* T_termLists */
-static int hf_z3950_termLists_item = -1;          /* T_termLists_item */
-static int hf_z3950_title = -1;                   /* HumanString */
-static int hf_z3950_searchCost = -1;              /* T_searchCost */
-static int hf_z3950_scanable = -1;                /* BOOLEAN */
-static int hf_z3950_broader = -1;                 /* SEQUENCE_OF_InternationalString */
-static int hf_z3950_broader_item = -1;            /* InternationalString */
-static int hf_z3950_narrower = -1;                /* SEQUENCE_OF_InternationalString */
-static int hf_z3950_narrower_item = -1;           /* InternationalString */
-static int hf_z3950_extendedServicesInfo_type = -1;  /* OBJECT_IDENTIFIER */
-static int hf_z3950_privateType = -1;             /* BOOLEAN */
-static int hf_z3950_restrictionsApply = -1;       /* BOOLEAN */
-static int hf_z3950_feeApply = -1;                /* BOOLEAN */
-static int hf_z3950_retentionSupported = -1;      /* BOOLEAN */
-static int hf_z3950_extendedServicesInfo_waitAction = -1;  /* T_extendedServicesInfo_waitAction */
-static int hf_z3950_specificExplain = -1;         /* EXTERNAL */
-static int hf_z3950_esASN = -1;                   /* InternationalString */
-static int hf_z3950_attributesBySet = -1;         /* SEQUENCE_OF_AttributeSetDetails */
-static int hf_z3950_attributesBySet_item = -1;    /* AttributeSetDetails */
-static int hf_z3950_attributeCombinations = -1;   /* AttributeCombinations */
-static int hf_z3950_attributesByType = -1;        /* SEQUENCE_OF_AttributeTypeDetails */
-static int hf_z3950_attributesByType_item = -1;   /* AttributeTypeDetails */
-static int hf_z3950_defaultIfOmitted = -1;        /* OmittedAttributeInterpretation */
-static int hf_z3950_attributeTypeDetails_attributeValues = -1;  /* SEQUENCE_OF_AttributeValue */
-static int hf_z3950_attributeTypeDetails_attributeValues_item = -1;  /* AttributeValue */
-static int hf_z3950_defaultValue = -1;            /* StringOrNumeric */
-static int hf_z3950_defaultDescription = -1;      /* HumanString */
-static int hf_z3950_attributeValue_value = -1;    /* StringOrNumeric */
-static int hf_z3950_subAttributes = -1;           /* SEQUENCE_OF_StringOrNumeric */
-static int hf_z3950_subAttributes_item = -1;      /* StringOrNumeric */
-static int hf_z3950_superAttributes = -1;         /* SEQUENCE_OF_StringOrNumeric */
-static int hf_z3950_superAttributes_item = -1;    /* StringOrNumeric */
-static int hf_z3950_partialSupport = -1;          /* NULL */
-static int hf_z3950_termListName = -1;            /* InternationalString */
-static int hf_z3950_termListDetails_attributes = -1;  /* AttributeCombinations */
-static int hf_z3950_scanInfo = -1;                /* T_scanInfo */
-static int hf_z3950_maxStepSize = -1;             /* INTEGER */
-static int hf_z3950_collatingSequence = -1;       /* HumanString */
-static int hf_z3950_increasing = -1;              /* BOOLEAN */
-static int hf_z3950_estNumberTerms = -1;          /* INTEGER */
-static int hf_z3950_sampleTerms = -1;             /* SEQUENCE_OF_Term */
-static int hf_z3950_sampleTerms_item = -1;        /* Term */
-static int hf_z3950_elementSetDetails_elementSetName = -1;  /* ElementSetName */
-static int hf_z3950_detailsPerElement = -1;       /* SEQUENCE_OF_PerElementDetails */
-static int hf_z3950_detailsPerElement_item = -1;  /* PerElementDetails */
-static int hf_z3950_recordTag = -1;               /* RecordTag */
-static int hf_z3950_schemaTags = -1;              /* SEQUENCE_OF_Path */
-static int hf_z3950_schemaTags_item = -1;         /* Path */
-static int hf_z3950_maxSize = -1;                 /* INTEGER */
-static int hf_z3950_minSize = -1;                 /* INTEGER */
-static int hf_z3950_avgSize = -1;                 /* INTEGER */
-static int hf_z3950_fixedSize = -1;               /* INTEGER */
-static int hf_z3950_contents = -1;                /* HumanString */
-static int hf_z3950_billingInfo = -1;             /* HumanString */
-static int hf_z3950_restrictions = -1;            /* HumanString */
-static int hf_z3950_alternateNames = -1;          /* SEQUENCE_OF_InternationalString */
-static int hf_z3950_alternateNames_item = -1;     /* InternationalString */
-static int hf_z3950_genericNames = -1;            /* SEQUENCE_OF_InternationalString */
-static int hf_z3950_genericNames_item = -1;       /* InternationalString */
-static int hf_z3950_searchAccess = -1;            /* AttributeCombinations */
-static int hf_z3950_qualifier = -1;               /* StringOrNumeric */
-static int hf_z3950_sortKeys = -1;                /* SEQUENCE_OF_SortKeyDetails */
-static int hf_z3950_sortKeys_item = -1;           /* SortKeyDetails */
-static int hf_z3950_elementSpecifications = -1;   /* SEQUENCE_OF_Specification */
-static int hf_z3950_elementSpecifications_item = -1;  /* Specification */
-static int hf_z3950_attributeSpecifications = -1;  /* AttributeCombinations */
-static int hf_z3950_sortType = -1;                /* T_sortType */
-static int hf_z3950_character = -1;               /* NULL */
-static int hf_z3950_sortKeyDetails_sortType_numeric = -1;  /* NULL */
-static int hf_z3950_sortKeyDetails_sortType_structured = -1;  /* HumanString */
-static int hf_z3950_sortKeyDetails_caseSensitivity = -1;  /* T_sortKeyDetails_caseSensitivity */
-static int hf_z3950_processingContext = -1;       /* T_processingContext */
-static int hf_z3950_instructions = -1;            /* EXTERNAL */
-static int hf_z3950_variantSet = -1;              /* OBJECT_IDENTIFIER */
-static int hf_z3950_variantSetInfo_variants = -1;  /* SEQUENCE_OF_VariantClass */
-static int hf_z3950_variantSetInfo_variants_item = -1;  /* VariantClass */
-static int hf_z3950_variantClass = -1;            /* INTEGER */
-static int hf_z3950_variantTypes = -1;            /* SEQUENCE_OF_VariantType */
-static int hf_z3950_variantTypes_item = -1;       /* VariantType */
-static int hf_z3950_variantType = -1;             /* INTEGER */
-static int hf_z3950_variantValue = -1;            /* VariantValue */
-static int hf_z3950_values = -1;                  /* ValueSet */
-static int hf_z3950_range = -1;                   /* ValueRange */
-static int hf_z3950_enumerated = -1;              /* SEQUENCE_OF_ValueDescription */
-static int hf_z3950_enumerated_item = -1;         /* ValueDescription */
-static int hf_z3950_lower = -1;                   /* ValueDescription */
-static int hf_z3950_upper = -1;                   /* ValueDescription */
-static int hf_z3950_integer = -1;                 /* INTEGER */
-static int hf_z3950_octets = -1;                  /* OCTET_STRING */
-static int hf_z3950_valueDescription_unit = -1;   /* Unit */
-static int hf_z3950_valueAndUnit = -1;            /* IntUnit */
-static int hf_z3950_unitInfo_units = -1;          /* SEQUENCE_OF_UnitType */
-static int hf_z3950_unitInfo_units_item = -1;     /* UnitType */
-static int hf_z3950_unitType_units = -1;          /* SEQUENCE_OF_Units */
-static int hf_z3950_unitType_units_item = -1;     /* Units */
-static int hf_z3950_categories = -1;              /* SEQUENCE_OF_CategoryInfo */
-static int hf_z3950_categories_item = -1;         /* CategoryInfo */
-static int hf_z3950_categoryInfo_category = -1;   /* InternationalString */
-static int hf_z3950_originalCategory = -1;        /* InternationalString */
-static int hf_z3950_dateAdded = -1;               /* GeneralizedTime */
-static int hf_z3950_dateChanged = -1;             /* GeneralizedTime */
-static int hf_z3950_expiry = -1;                  /* GeneralizedTime */
-static int hf_z3950_humanString_Language = -1;    /* LanguageCode */
-static int hf_z3950_HumanString_item = -1;        /* HumanString_item */
-static int hf_z3950_language = -1;                /* LanguageCode */
-static int hf_z3950_text = -1;                    /* InternationalString */
-static int hf_z3950_IconObject_item = -1;         /* IconObject_item */
-static int hf_z3950_bodyType = -1;                /* T_bodyType */
-static int hf_z3950_ianaType = -1;                /* InternationalString */
-static int hf_z3950_z3950type = -1;               /* InternationalString */
-static int hf_z3950_otherType = -1;               /* InternationalString */
-static int hf_z3950_content = -1;                 /* OCTET_STRING */
-static int hf_z3950_address = -1;                 /* HumanString */
-static int hf_z3950_email = -1;                   /* InternationalString */
-static int hf_z3950_phone = -1;                   /* InternationalString */
-static int hf_z3950_internetAddress = -1;         /* T_internetAddress */
-static int hf_z3950_hostAddress = -1;             /* InternationalString */
-static int hf_z3950_port = -1;                    /* INTEGER */
-static int hf_z3950_osiPresentationAddress = -1;  /* T_osiPresentationAddress */
-static int hf_z3950_pSel = -1;                    /* InternationalString */
-static int hf_z3950_sSel = -1;                    /* InternationalString */
-static int hf_z3950_tSel = -1;                    /* InternationalString */
-static int hf_z3950_nSap = -1;                    /* InternationalString */
-static int hf_z3950_networkAddress_other = -1;    /* T_networkAddress_other */
-static int hf_z3950_networkAddress_other_type = -1;  /* InternationalString */
-static int hf_z3950_networkAddress_other_address = -1;  /* InternationalString */
-static int hf_z3950_queryTypesSupported = -1;     /* SEQUENCE_OF_QueryTypeDetails */
-static int hf_z3950_queryTypesSupported_item = -1;  /* QueryTypeDetails */
-static int hf_z3950_diagnosticsSets = -1;         /* T_diagnosticsSets */
-static int hf_z3950_diagnosticsSets_item = -1;    /* OBJECT_IDENTIFIER */
-static int hf_z3950_attributeSetIds = -1;         /* SEQUENCE_OF_AttributeSetId */
-static int hf_z3950_attributeSetIds_item = -1;    /* AttributeSetId */
-static int hf_z3950_schemas = -1;                 /* T_schemas */
-static int hf_z3950_schemas_item = -1;            /* OBJECT_IDENTIFIER */
-static int hf_z3950_recordSyntaxes = -1;          /* T_recordSyntaxes */
-static int hf_z3950_recordSyntaxes_item = -1;     /* OBJECT_IDENTIFIER */
-static int hf_z3950_resourceChallenges = -1;      /* T_resourceChallenges */
-static int hf_z3950_resourceChallenges_item = -1;  /* OBJECT_IDENTIFIER */
-static int hf_z3950_restrictedAccess = -1;        /* AccessRestrictions */
-static int hf_z3950_costInfo = -1;                /* Costs */
-static int hf_z3950_variantSets = -1;             /* T_variantSets */
-static int hf_z3950_variantSets_item = -1;        /* OBJECT_IDENTIFIER */
-static int hf_z3950_elementSetNames = -1;         /* SEQUENCE_OF_ElementSetName */
-static int hf_z3950_elementSetNames_item = -1;    /* ElementSetName */
-static int hf_z3950_unitSystems = -1;             /* SEQUENCE_OF_InternationalString */
-static int hf_z3950_unitSystems_item = -1;        /* InternationalString */
-static int hf_z3950_queryTypeDetails_private = -1;  /* PrivateCapabilities */
-static int hf_z3950_queryTypeDetails_rpn = -1;    /* RpnCapabilities */
-static int hf_z3950_iso8777 = -1;                 /* Iso8777Capabilities */
-static int hf_z3950_z39_58 = -1;                  /* HumanString */
-static int hf_z3950_erpn = -1;                    /* RpnCapabilities */
-static int hf_z3950_rankedList = -1;              /* HumanString */
-static int hf_z3950_privateCapabilities_operators = -1;  /* T_privateCapabilities_operators */
-static int hf_z3950_privateCapabilities_operators_item = -1;  /* T_privateCapabilities_operators_item */
-static int hf_z3950_operator = -1;                /* InternationalString */
-static int hf_z3950_searchKeys = -1;              /* SEQUENCE_OF_SearchKey */
-static int hf_z3950_searchKeys_item = -1;         /* SearchKey */
-static int hf_z3950_privateCapabilities_description = -1;  /* SEQUENCE_OF_HumanString */
-static int hf_z3950_privateCapabilities_description_item = -1;  /* HumanString */
-static int hf_z3950_operators = -1;               /* T_operators */
-static int hf_z3950_operators_item = -1;          /* INTEGER */
-static int hf_z3950_resultSetAsOperandSupported = -1;  /* BOOLEAN */
-static int hf_z3950_restrictionOperandSupported = -1;  /* BOOLEAN */
-static int hf_z3950_proximity = -1;               /* ProximitySupport */
-static int hf_z3950_anySupport = -1;              /* BOOLEAN */
-static int hf_z3950_unitsSupported = -1;          /* T_unitsSupported */
-static int hf_z3950_unitsSupported_item = -1;     /* T_unitsSupported_item */
-static int hf_z3950_proximitySupport_unitsSupported_item_known = -1;  /* INTEGER */
-static int hf_z3950_proximitySupport_unitsSupported_item_private = -1;  /* T_proximitySupport_unitsSupported_item_private */
-static int hf_z3950_proximitySupport_unitsSupported_item_private_unit = -1;  /* INTEGER */
-static int hf_z3950_searchKey = -1;               /* InternationalString */
-static int hf_z3950_AccessRestrictions_item = -1;  /* AccessRestrictions_item */
-static int hf_z3950_accessType = -1;              /* T_accessType */
-static int hf_z3950_accessText = -1;              /* HumanString */
-static int hf_z3950_accessChallenges = -1;        /* T_accessChallenges */
-static int hf_z3950_accessChallenges_item = -1;   /* OBJECT_IDENTIFIER */
-static int hf_z3950_connectCharge = -1;           /* Charge */
-static int hf_z3950_connectTime = -1;             /* Charge */
-static int hf_z3950_displayCharge = -1;           /* Charge */
-static int hf_z3950_searchCharge = -1;            /* Charge */
-static int hf_z3950_subscriptCharge = -1;         /* Charge */
-static int hf_z3950_otherCharges = -1;            /* T_otherCharges */
-static int hf_z3950_otherCharges_item = -1;       /* T_otherCharges_item */
-static int hf_z3950_forWhat = -1;                 /* HumanString */
-static int hf_z3950_charge = -1;                  /* Charge */
-static int hf_z3950_cost = -1;                    /* IntUnit */
-static int hf_z3950_perWhat = -1;                 /* Unit */
-static int hf_z3950_charge_text = -1;             /* HumanString */
-static int hf_z3950_DatabaseList_item = -1;       /* DatabaseName */
-static int hf_z3950_defaultAttributeSet = -1;     /* AttributeSetId */
-static int hf_z3950_legalCombinations = -1;       /* SEQUENCE_OF_AttributeCombination */
-static int hf_z3950_legalCombinations_item = -1;  /* AttributeCombination */
-static int hf_z3950_AttributeCombination_item = -1;  /* AttributeOccurrence */
-static int hf_z3950_mustBeSupplied = -1;          /* NULL */
-static int hf_z3950_attributeOccurrence_attributeValues = -1;  /* T_attributeOccurrence_attributeValues */
-static int hf_z3950_any_or_none = -1;             /* NULL */
-static int hf_z3950_specific = -1;                /* SEQUENCE_OF_StringOrNumeric */
-static int hf_z3950_specific_item = -1;           /* StringOrNumeric */
-static int hf_z3950_briefBib_title = -1;          /* InternationalString */
-static int hf_z3950_author = -1;                  /* InternationalString */
-static int hf_z3950_recordType = -1;              /* InternationalString */
-static int hf_z3950_bibliographicLevel = -1;      /* InternationalString */
-static int hf_z3950_briefBib_format = -1;         /* SEQUENCE_OF_FormatSpec */
-static int hf_z3950_briefBib_format_item = -1;    /* FormatSpec */
-static int hf_z3950_publicationPlace = -1;        /* InternationalString */
-static int hf_z3950_publicationDate = -1;         /* InternationalString */
-static int hf_z3950_targetSystemKey = -1;         /* InternationalString */
-static int hf_z3950_satisfyingElement = -1;       /* InternationalString */
-static int hf_z3950_rank = -1;                    /* INTEGER */
-static int hf_z3950_documentId = -1;              /* InternationalString */
-static int hf_z3950_abstract = -1;                /* InternationalString */
-static int hf_z3950_formatSpec_type = -1;         /* InternationalString */
-static int hf_z3950_size = -1;                    /* INTEGER */
-static int hf_z3950_bestPosn = -1;                /* INTEGER */
-static int hf_z3950_GenericRecord_item = -1;      /* TaggedElement */
-static int hf_z3950_tagOccurrence = -1;           /* INTEGER */
-static int hf_z3950_taggedElement_content = -1;   /* ElementData */
-static int hf_z3950_metaData = -1;                /* ElementMetaData */
-static int hf_z3950_appliedVariant = -1;          /* Variant */
-static int hf_z3950_date = -1;                    /* GeneralizedTime */
-static int hf_z3950_ext = -1;                     /* EXTERNAL */
-static int hf_z3950_trueOrFalse = -1;             /* BOOLEAN */
-static int hf_z3950_intUnit = -1;                 /* IntUnit */
-static int hf_z3950_elementNotThere = -1;         /* NULL */
-static int hf_z3950_elementEmpty = -1;            /* NULL */
-static int hf_z3950_noDataRequested = -1;         /* NULL */
-static int hf_z3950_elementData_diagnostic = -1;  /* EXTERNAL */
-static int hf_z3950_subtree = -1;                 /* SEQUENCE_OF_TaggedElement */
-static int hf_z3950_subtree_item = -1;            /* TaggedElement */
-static int hf_z3950_seriesOrder = -1;             /* Order */
-static int hf_z3950_usageRight = -1;              /* Usage */
-static int hf_z3950_hits = -1;                    /* SEQUENCE_OF_HitVector */
-static int hf_z3950_hits_item = -1;               /* HitVector */
-static int hf_z3950_displayName = -1;             /* InternationalString */
-static int hf_z3950_supportedVariants = -1;       /* SEQUENCE_OF_Variant */
-static int hf_z3950_supportedVariants_item = -1;  /* Variant */
-static int hf_z3950_elementDescriptor = -1;       /* OCTET_STRING */
-static int hf_z3950_surrogateFor = -1;            /* TagPath */
-static int hf_z3950_surrogateElement = -1;        /* TagPath */
-static int hf_z3950_TagPath_item = -1;            /* TagPath_item */
-static int hf_z3950_ascending = -1;               /* BOOLEAN */
-static int hf_z3950_order = -1;                   /* INTEGER */
-static int hf_z3950_usage_type = -1;              /* T_usage_type */
-static int hf_z3950_restriction = -1;             /* InternationalString */
-static int hf_z3950_satisfier = -1;               /* Term */
-static int hf_z3950_offsetIntoElement = -1;       /* IntUnit */
-static int hf_z3950_length = -1;                  /* IntUnit */
-static int hf_z3950_hitRank = -1;                 /* INTEGER */
-static int hf_z3950_targetToken = -1;             /* OCTET_STRING */
-static int hf_z3950_globalVariantSetId = -1;      /* OBJECT_IDENTIFIER */
-static int hf_z3950_triples = -1;                 /* T_triples */
-static int hf_z3950_triples_item = -1;            /* T_triples_item */
-static int hf_z3950_variantSetId = -1;            /* OBJECT_IDENTIFIER */
-static int hf_z3950_class = -1;                   /* INTEGER */
-static int hf_z3950_variant_triples_item_value = -1;  /* T_variant_triples_item_value */
-static int hf_z3950_octetString = -1;             /* OCTET_STRING */
-static int hf_z3950_boolean = -1;                 /* BOOLEAN */
-static int hf_z3950_variant_triples_item_value_unit = -1;  /* Unit */
-static int hf_z3950_taskPackage_description = -1;  /* InternationalString */
-static int hf_z3950_targetReference = -1;         /* OCTET_STRING */
-static int hf_z3950_creationDateTime = -1;        /* GeneralizedTime */
-static int hf_z3950_taskStatus = -1;              /* T_taskStatus */
-static int hf_z3950_packageDiagnostics = -1;      /* SEQUENCE_OF_DiagRec */
-static int hf_z3950_packageDiagnostics_item = -1;  /* DiagRec */
-static int hf_z3950_challenge = -1;               /* Challenge */
-static int hf_z3950_response = -1;                /* Response */
-static int hf_z3950_Challenge_item = -1;          /* Challenge_item */
-static int hf_z3950_promptId = -1;                /* PromptId */
-static int hf_z3950_defaultResponse = -1;         /* InternationalString */
-static int hf_z3950_promptInfo = -1;              /* T_promptInfo */
-static int hf_z3950_challenge_item_promptInfo_character = -1;  /* InternationalString */
-static int hf_z3950_encrypted = -1;               /* Encryption */
-static int hf_z3950_regExpr = -1;                 /* InternationalString */
-static int hf_z3950_responseRequired = -1;        /* NULL */
-static int hf_z3950_allowedValues = -1;           /* SEQUENCE_OF_InternationalString */
-static int hf_z3950_allowedValues_item = -1;      /* InternationalString */
-static int hf_z3950_shouldSave = -1;              /* NULL */
-static int hf_z3950_challenge_item_dataType = -1;  /* T_challenge_item_dataType */
-static int hf_z3950_challenge_item_diagnostic = -1;  /* EXTERNAL */
-static int hf_z3950_Response_item = -1;           /* Response_item */
-static int hf_z3950_promptResponse = -1;          /* T_promptResponse */
-static int hf_z3950_accept = -1;                  /* BOOLEAN */
-static int hf_z3950_acknowledge = -1;             /* NULL */
-static int hf_z3950_enummeratedPrompt = -1;       /* T_enummeratedPrompt */
-static int hf_z3950_promptId_enummeratedPrompt_type = -1;  /* T_promptId_enummeratedPrompt_type */
-static int hf_z3950_suggestedString = -1;         /* InternationalString */
-static int hf_z3950_nonEnumeratedPrompt = -1;     /* InternationalString */
-static int hf_z3950_cryptType = -1;               /* OCTET_STRING */
-static int hf_z3950_credential = -1;              /* OCTET_STRING */
-static int hf_z3950_data = -1;                    /* OCTET_STRING */
-static int hf_z3950_dES_RN_Object_challenge = -1;  /* DRNType */
-static int hf_z3950_rES_RN_Object_response = -1;  /* DRNType */
-static int hf_z3950_dRNType_userId = -1;          /* OCTET_STRING */
-static int hf_z3950_salt = -1;                    /* OCTET_STRING */
-static int hf_z3950_randomNumber = -1;            /* OCTET_STRING */
-static int hf_z3950_kRBObject_challenge = -1;     /* KRBRequest */
-static int hf_z3950_kRBObject_response = -1;      /* KRBResponse */
-static int hf_z3950_service = -1;                 /* InternationalString */
-static int hf_z3950_instance = -1;                /* InternationalString */
-static int hf_z3950_realm = -1;                   /* InternationalString */
-static int hf_z3950_userid = -1;                  /* InternationalString */
-static int hf_z3950_ticket = -1;                  /* OCTET_STRING */
-static int hf_z3950_SearchInfoReport_item = -1;   /* SearchInfoReport_item */
-static int hf_z3950_subqueryId = -1;              /* InternationalString */
-static int hf_z3950_fullQuery = -1;               /* BOOLEAN */
-static int hf_z3950_subqueryExpression = -1;      /* QueryExpression */
-static int hf_z3950_subqueryInterpretation = -1;  /* QueryExpression */
-static int hf_z3950_subqueryRecommendation = -1;  /* QueryExpression */
-static int hf_z3950_subqueryCount = -1;           /* INTEGER */
-static int hf_z3950_subqueryWeight = -1;          /* IntUnit */
-static int hf_z3950_resultsByDB = -1;             /* ResultsByDB */
-static int hf_z3950_ResultsByDB_item = -1;        /* ResultsByDB_item */
-static int hf_z3950_databases = -1;               /* T_databases */
-static int hf_z3950_all = -1;                     /* NULL */
-static int hf_z3950_list = -1;                    /* SEQUENCE_OF_DatabaseName */
-static int hf_z3950_list_item = -1;               /* DatabaseName */
-static int hf_z3950_count = -1;                   /* INTEGER */
-static int hf_z3950_queryExpression_term = -1;    /* T_queryExpression_term */
-static int hf_z3950_queryTerm = -1;               /* Term */
-static int hf_z3950_termComment = -1;             /* InternationalString */
+static int hf_z3950_OCLC_UserInformation_PDU;     /* OCLC_UserInformation */
+static int hf_z3950_SutrsRecord_PDU;              /* SutrsRecord */
+static int hf_z3950_OPACRecord_PDU;               /* OPACRecord */
+static int hf_z3950_DiagnosticFormat_PDU;         /* DiagnosticFormat */
+static int hf_z3950_Explain_Record_PDU;           /* Explain_Record */
+static int hf_z3950_BriefBib_PDU;                 /* BriefBib */
+static int hf_z3950_GenericRecord_PDU;            /* GenericRecord */
+static int hf_z3950_TaskPackage_PDU;              /* TaskPackage */
+static int hf_z3950_PromptObject_PDU;             /* PromptObject */
+static int hf_z3950_DES_RN_Object_PDU;            /* DES_RN_Object */
+static int hf_z3950_KRBObject_PDU;                /* KRBObject */
+static int hf_z3950_SearchInfoReport_PDU;         /* SearchInfoReport */
+static int hf_z3950_initRequest;                  /* InitializeRequest */
+static int hf_z3950_initResponse;                 /* InitializeResponse */
+static int hf_z3950_searchRequest;                /* SearchRequest */
+static int hf_z3950_searchResponse;               /* SearchResponse */
+static int hf_z3950_presentRequest;               /* PresentRequest */
+static int hf_z3950_presentResponse;              /* PresentResponse */
+static int hf_z3950_deleteResultSetRequest;       /* DeleteResultSetRequest */
+static int hf_z3950_deleteResultSetResponse;      /* DeleteResultSetResponse */
+static int hf_z3950_accessControlRequest;         /* AccessControlRequest */
+static int hf_z3950_accessControlResponse;        /* AccessControlResponse */
+static int hf_z3950_resourceControlRequest;       /* ResourceControlRequest */
+static int hf_z3950_resourceControlResponse;      /* ResourceControlResponse */
+static int hf_z3950_triggerResourceControlRequest;  /* TriggerResourceControlRequest */
+static int hf_z3950_resourceReportRequest;        /* ResourceReportRequest */
+static int hf_z3950_resourceReportResponse;       /* ResourceReportResponse */
+static int hf_z3950_scanRequest;                  /* ScanRequest */
+static int hf_z3950_scanResponse;                 /* ScanResponse */
+static int hf_z3950_sortRequest;                  /* SortRequest */
+static int hf_z3950_sortResponse;                 /* SortResponse */
+static int hf_z3950_segmentRequest;               /* Segment */
+static int hf_z3950_extendedServicesRequest;      /* ExtendedServicesRequest */
+static int hf_z3950_extendedServicesResponse;     /* ExtendedServicesResponse */
+static int hf_z3950_close;                        /* Close */
+static int hf_z3950_referenceId;                  /* ReferenceId */
+static int hf_z3950_protocolVersion;              /* ProtocolVersion */
+static int hf_z3950_options;                      /* Options */
+static int hf_z3950_preferredMessageSize;         /* INTEGER */
+static int hf_z3950_exceptionalRecordSize;        /* INTEGER */
+static int hf_z3950_idAuthentication;             /* T_idAuthentication */
+static int hf_z3950_open;                         /* VisibleString */
+static int hf_z3950_idPass;                       /* T_idPass */
+static int hf_z3950_groupId;                      /* InternationalString */
+static int hf_z3950_userId;                       /* InternationalString */
+static int hf_z3950_password;                     /* InternationalString */
+static int hf_z3950_anonymous;                    /* NULL */
+static int hf_z3950_other;                        /* EXTERNAL */
+static int hf_z3950_implementationId;             /* InternationalString */
+static int hf_z3950_implementationName;           /* InternationalString */
+static int hf_z3950_implementationVersion;        /* InternationalString */
+static int hf_z3950_userInformationField;         /* EXTERNAL */
+static int hf_z3950_otherInfo;                    /* OtherInformation */
+static int hf_z3950_result;                       /* BOOLEAN */
+static int hf_z3950_smallSetUpperBound;           /* INTEGER */
+static int hf_z3950_largeSetLowerBound;           /* INTEGER */
+static int hf_z3950_mediumSetPresentNumber;       /* INTEGER */
+static int hf_z3950_replaceIndicator;             /* BOOLEAN */
+static int hf_z3950_resultSetName;                /* InternationalString */
+static int hf_z3950_databaseNames;                /* SEQUENCE_OF_DatabaseName */
+static int hf_z3950_databaseNames_item;           /* DatabaseName */
+static int hf_z3950_smallSetElementSetNames;      /* ElementSetNames */
+static int hf_z3950_mediumSetElementSetNames;     /* ElementSetNames */
+static int hf_z3950_preferredRecordSyntax;        /* OBJECT_IDENTIFIER */
+static int hf_z3950_query;                        /* Query */
+static int hf_z3950_additionalSearchInfo;         /* OtherInformation */
+static int hf_z3950_type_0;                       /* T_type_0 */
+static int hf_z3950_type_1;                       /* RPNQuery */
+static int hf_z3950_type_2;                       /* OCTET_STRING */
+static int hf_z3950_type_100;                     /* OCTET_STRING */
+static int hf_z3950_type_101;                     /* RPNQuery */
+static int hf_z3950_type_102;                     /* OCTET_STRING */
+static int hf_z3950_attributeSet;                 /* AttributeSetId */
+static int hf_z3950_rpn;                          /* RPNStructure */
+static int hf_z3950_operandRpnOp;                 /* Operand */
+static int hf_z3950_rpnRpnOp;                     /* T_rpnRpnOp */
+static int hf_z3950_rpn1;                         /* RPNStructure */
+static int hf_z3950_rpn2;                         /* RPNStructure */
+static int hf_z3950_operatorRpnOp;                /* Operator */
+static int hf_z3950_attrTerm;                     /* AttributesPlusTerm */
+static int hf_z3950_resultSet;                    /* ResultSetId */
+static int hf_z3950_resultAttr;                   /* ResultSetPlusAttributes */
+static int hf_z3950_attributes;                   /* AttributeList */
+static int hf_z3950_term;                         /* Term */
+static int hf_z3950_attributeList_item;           /* AttributeElement */
+static int hf_z3950_general;                      /* T_general */
+static int hf_z3950_numeric;                      /* INTEGER */
+static int hf_z3950_characterString;              /* InternationalString */
+static int hf_z3950_oid;                          /* OBJECT_IDENTIFIER */
+static int hf_z3950_dateTime;                     /* GeneralizedTime */
+static int hf_z3950_external;                     /* EXTERNAL */
+static int hf_z3950_integerAndUnit;               /* IntUnit */
+static int hf_z3950_null;                         /* NULL */
+static int hf_z3950_and;                          /* NULL */
+static int hf_z3950_or;                           /* NULL */
+static int hf_z3950_and_not;                      /* NULL */
+static int hf_z3950_prox;                         /* ProximityOperator */
+static int hf_z3950_attributeElement_attributeType;  /* T_attributeElement_attributeType */
+static int hf_z3950_attributeValue;               /* T_attributeValue */
+static int hf_z3950_attributeValue_numeric;       /* T_attributeValue_numeric */
+static int hf_z3950_attributeValue_complex;       /* T_attributeValue_complex */
+static int hf_z3950_attributeValue_complex_list;  /* SEQUENCE_OF_StringOrNumeric */
+static int hf_z3950_attributeValue_complex_list_item;  /* StringOrNumeric */
+static int hf_z3950_semanticAction;               /* T_semanticAction */
+static int hf_z3950_semanticAction_item;          /* INTEGER */
+static int hf_z3950_exclusion;                    /* BOOLEAN */
+static int hf_z3950_distance;                     /* INTEGER */
+static int hf_z3950_ordered;                      /* BOOLEAN */
+static int hf_z3950_relationType;                 /* T_relationType */
+static int hf_z3950_proximityUnitCode;            /* T_proximityUnitCode */
+static int hf_z3950_known;                        /* KnownProximityUnit */
+static int hf_z3950_private;                      /* INTEGER */
+static int hf_z3950_resultCount;                  /* INTEGER */
+static int hf_z3950_numberOfRecordsReturned;      /* INTEGER */
+static int hf_z3950_nextResultSetPosition;        /* INTEGER */
+static int hf_z3950_searchStatus;                 /* BOOLEAN */
+static int hf_z3950_search_resultSetStatus;       /* T_search_resultSetStatus */
+static int hf_z3950_presentStatus;                /* PresentStatus */
+static int hf_z3950_records;                      /* Records */
+static int hf_z3950_resultSetId;                  /* ResultSetId */
+static int hf_z3950_resultSetStartPoint;          /* INTEGER */
+static int hf_z3950_numberOfRecordsRequested;     /* INTEGER */
+static int hf_z3950_additionalRanges;             /* SEQUENCE_OF_Range */
+static int hf_z3950_additionalRanges_item;        /* Range */
+static int hf_z3950_recordComposition;            /* T_recordComposition */
+static int hf_z3950_simple;                       /* ElementSetNames */
+static int hf_z3950_recordComposition_complex;    /* CompSpec */
+static int hf_z3950_maxSegmentCount;              /* INTEGER */
+static int hf_z3950_maxRecordSize;                /* INTEGER */
+static int hf_z3950_maxSegmentSize;               /* INTEGER */
+static int hf_z3950_segmentRecords;               /* SEQUENCE_OF_NamePlusRecord */
+static int hf_z3950_segmentRecords_item;          /* NamePlusRecord */
+static int hf_z3950_responseRecords;              /* SEQUENCE_OF_NamePlusRecord */
+static int hf_z3950_responseRecords_item;         /* NamePlusRecord */
+static int hf_z3950_nonSurrogateDiagnostic;       /* DefaultDiagFormat */
+static int hf_z3950_multipleNonSurDiagnostics;    /* SEQUENCE_OF_DiagRec */
+static int hf_z3950_multipleNonSurDiagnostics_item;  /* DiagRec */
+static int hf_z3950_namePlusRecord_name;          /* DatabaseName */
+static int hf_z3950_record;                       /* T_record */
+static int hf_z3950_retrievalRecord;              /* EXTERNAL */
+static int hf_z3950_surrogateDiagnostic;          /* DiagRec */
+static int hf_z3950_startingFragment;             /* FragmentSyntax */
+static int hf_z3950_intermediateFragment;         /* FragmentSyntax */
+static int hf_z3950_finalFragment;                /* FragmentSyntax */
+static int hf_z3950_externallyTagged;             /* EXTERNAL */
+static int hf_z3950_notExternallyTagged;          /* OCTET_STRING */
+static int hf_z3950_defaultFormat;                /* DefaultDiagFormat */
+static int hf_z3950_externallyDefined;            /* EXTERNAL */
+static int hf_z3950_diagnosticSetId;              /* T_diagnosticSetId */
+static int hf_z3950_condition;                    /* T_condition */
+static int hf_z3950_addinfo;                      /* T_addinfo */
+static int hf_z3950_v2Addinfo;                    /* VisibleString */
+static int hf_z3950_v3Addinfo;                    /* InternationalString */
+static int hf_z3950_startingPosition;             /* INTEGER */
+static int hf_z3950_numberOfRecords;              /* INTEGER */
+static int hf_z3950_genericElementSetName;        /* InternationalString */
+static int hf_z3950_databaseSpecific;             /* T_databaseSpecific */
+static int hf_z3950_databaseSpecific_item;        /* T_databaseSpecific_item */
+static int hf_z3950_dbName;                       /* DatabaseName */
+static int hf_z3950_esn;                          /* ElementSetName */
+static int hf_z3950_selectAlternativeSyntax;      /* BOOLEAN */
+static int hf_z3950_compSpec_generic;             /* Specification */
+static int hf_z3950_dbSpecific;                   /* T_dbSpecific */
+static int hf_z3950_dbSpecific_item;              /* T_dbSpecific_item */
+static int hf_z3950_db;                           /* DatabaseName */
+static int hf_z3950_spec;                         /* Specification */
+static int hf_z3950_compSpec_recordSyntax;        /* T_compSpec_recordSyntax */
+static int hf_z3950_compSpec_recordSyntax_item;   /* OBJECT_IDENTIFIER */
+static int hf_z3950_schema;                       /* OBJECT_IDENTIFIER */
+static int hf_z3950_specification_elementSpec;    /* T_specification_elementSpec */
+static int hf_z3950_elementSetName;               /* InternationalString */
+static int hf_z3950_externalEspec;                /* EXTERNAL */
+static int hf_z3950_deleteFunction;               /* T_deleteFunction */
+static int hf_z3950_resultSetList;                /* SEQUENCE_OF_ResultSetId */
+static int hf_z3950_resultSetList_item;           /* ResultSetId */
+static int hf_z3950_deleteOperationStatus;        /* DeleteSetStatus */
+static int hf_z3950_deleteListStatuses;           /* ListStatuses */
+static int hf_z3950_numberNotDeleted;             /* INTEGER */
+static int hf_z3950_bulkStatuses;                 /* ListStatuses */
+static int hf_z3950_deleteMessage;                /* InternationalString */
+static int hf_z3950_ListStatuses_item;            /* ListStatuses_item */
+static int hf_z3950_listStatuses_id;              /* ResultSetId */
+static int hf_z3950_status;                       /* DeleteSetStatus */
+static int hf_z3950_securityChallenge;            /* T_securityChallenge */
+static int hf_z3950_simpleForm;                   /* OCTET_STRING */
+static int hf_z3950_securityChallengeResponse;    /* T_securityChallengeResponse */
+static int hf_z3950_diagnostic;                   /* DiagRec */
+static int hf_z3950_suspendedFlag;                /* BOOLEAN */
+static int hf_z3950_resourceReport;               /* ResourceReport */
+static int hf_z3950_partialResultsAvailable;      /* T_partialResultsAvailable */
+static int hf_z3950_resourceControlRequest_responseRequired;  /* BOOLEAN */
+static int hf_z3950_triggeredRequestFlag;         /* BOOLEAN */
+static int hf_z3950_continueFlag;                 /* BOOLEAN */
+static int hf_z3950_resultSetWanted;              /* BOOLEAN */
+static int hf_z3950_requestedAction;              /* T_requestedAction */
+static int hf_z3950_prefResourceReportFormat;     /* ResourceReportId */
+static int hf_z3950_opId;                         /* ReferenceId */
+static int hf_z3950_resourceReportStatus;         /* T_resourceReportStatus */
+static int hf_z3950_termListAndStartPoint;        /* AttributesPlusTerm */
+static int hf_z3950_stepSize;                     /* INTEGER */
+static int hf_z3950_numberOfTermsRequested;       /* INTEGER */
+static int hf_z3950_preferredPositionInResponse;  /* INTEGER */
+static int hf_z3950_scanStatus;                   /* T_scanStatus */
+static int hf_z3950_numberOfEntriesReturned;      /* INTEGER */
+static int hf_z3950_positionOfTerm;               /* INTEGER */
+static int hf_z3950_scanResponse_entries;         /* ListEntries */
+static int hf_z3950_listEntries_entries;          /* SEQUENCE_OF_Entry */
+static int hf_z3950_listEntries_entries_item;     /* Entry */
+static int hf_z3950_nonsurrogateDiagnostics;      /* SEQUENCE_OF_DiagRec */
+static int hf_z3950_nonsurrogateDiagnostics_item;  /* DiagRec */
+static int hf_z3950_termInfo;                     /* TermInfo */
+static int hf_z3950_displayTerm;                  /* InternationalString */
+static int hf_z3950_suggestedAttributes;          /* AttributeList */
+static int hf_z3950_alternativeTerm;              /* SEQUENCE_OF_AttributesPlusTerm */
+static int hf_z3950_alternativeTerm_item;         /* AttributesPlusTerm */
+static int hf_z3950_globalOccurrences;            /* INTEGER */
+static int hf_z3950_byAttributes;                 /* OccurrenceByAttributes */
+static int hf_z3950_otherTermInfo;                /* OtherInformation */
+static int hf_z3950_OccurrenceByAttributes_item;  /* OccurrenceByAttributes_item */
+static int hf_z3950_occurrences;                  /* T_occurrences */
+static int hf_z3950_global;                       /* INTEGER */
+static int hf_z3950_byDatabase;                   /* T_byDatabase */
+static int hf_z3950_byDatabase_item;              /* T_byDatabase_item */
+static int hf_z3950_num;                          /* INTEGER */
+static int hf_z3950_otherDbInfo;                  /* OtherInformation */
+static int hf_z3950_otherOccurInfo;               /* OtherInformation */
+static int hf_z3950_inputResultSetNames;          /* SEQUENCE_OF_InternationalString */
+static int hf_z3950_inputResultSetNames_item;     /* InternationalString */
+static int hf_z3950_sortedResultSetName;          /* InternationalString */
+static int hf_z3950_sortSequence;                 /* SEQUENCE_OF_SortKeySpec */
+static int hf_z3950_sortSequence_item;            /* SortKeySpec */
+static int hf_z3950_sortStatus;                   /* T_sortStatus */
+static int hf_z3950_sort_resultSetStatus;         /* T_sort_resultSetStatus */
+static int hf_z3950_diagnostics;                  /* SEQUENCE_OF_DiagRec */
+static int hf_z3950_diagnostics_item;             /* DiagRec */
+static int hf_z3950_sortElement;                  /* SortElement */
+static int hf_z3950_sortRelation;                 /* T_sortRelation */
+static int hf_z3950_caseSensitivity;              /* T_caseSensitivity */
+static int hf_z3950_missingValueAction;           /* T_missingValueAction */
+static int hf_z3950_abort;                        /* NULL */
+static int hf_z3950_missingValueData;             /* OCTET_STRING */
+static int hf_z3950_sortElement_generic;          /* SortKey */
+static int hf_z3950_datbaseSpecific;              /* T_datbaseSpecific */
+static int hf_z3950_datbaseSpecific_item;         /* T_datbaseSpecific_item */
+static int hf_z3950_databaseName;                 /* DatabaseName */
+static int hf_z3950_dbSort;                       /* SortKey */
+static int hf_z3950_sortfield;                    /* InternationalString */
+static int hf_z3950_sortKey_elementSpec;          /* Specification */
+static int hf_z3950_sortAttributes;               /* T_sortAttributes */
+static int hf_z3950_sortAttributes_id;            /* AttributeSetId */
+static int hf_z3950_sortAttributes_list;          /* AttributeList */
+static int hf_z3950_function;                     /* T_function */
+static int hf_z3950_packageType;                  /* OBJECT_IDENTIFIER */
+static int hf_z3950_packageName;                  /* InternationalString */
+static int hf_z3950_retentionTime;                /* IntUnit */
+static int hf_z3950_permissions;                  /* Permissions */
+static int hf_z3950_extendedServicesRequest_description;  /* InternationalString */
+static int hf_z3950_taskSpecificParameters;       /* EXTERNAL */
+static int hf_z3950_waitAction;                   /* T_waitAction */
+static int hf_z3950_elements;                     /* ElementSetName */
+static int hf_z3950_operationStatus;              /* T_operationStatus */
+static int hf_z3950_taskPackage;                  /* EXTERNAL */
+static int hf_z3950_Permissions_item;             /* Permissions_item */
+static int hf_z3950_allowableFunctions;           /* T_allowableFunctions */
+static int hf_z3950_allowableFunctions_item;      /* T_allowableFunctions_item */
+static int hf_z3950_closeReason;                  /* CloseReason */
+static int hf_z3950_diagnosticInformation;        /* InternationalString */
+static int hf_z3950_resourceReportFormat;         /* ResourceReportId */
+static int hf_z3950_otherInformation_item;        /* T__untag_item */
+static int hf_z3950_category;                     /* InfoCategory */
+static int hf_z3950_information;                  /* T_information */
+static int hf_z3950_characterInfo;                /* InternationalString */
+static int hf_z3950_binaryInfo;                   /* OCTET_STRING */
+static int hf_z3950_externallyDefinedInfo;        /* EXTERNAL */
+static int hf_z3950_categoryTypeId;               /* OBJECT_IDENTIFIER */
+static int hf_z3950_categoryValue;                /* INTEGER */
+static int hf_z3950_value;                        /* INTEGER */
+static int hf_z3950_unitUsed;                     /* Unit */
+static int hf_z3950_unitSystem;                   /* InternationalString */
+static int hf_z3950_unitType;                     /* StringOrNumeric */
+static int hf_z3950_unit;                         /* StringOrNumeric */
+static int hf_z3950_scaleFactor;                  /* INTEGER */
+static int hf_z3950_string;                       /* InternationalString */
+static int hf_z3950_motd;                         /* VisibleString */
+static int hf_z3950_dblist;                       /* SEQUENCE_OF_DBName */
+static int hf_z3950_dblist_item;                  /* DBName */
+static int hf_z3950_failReason;                   /* BOOLEAN */
+static int hf_z3950_oCLC_UserInformation_text;    /* VisibleString */
+static int hf_z3950_bibliographicRecord;          /* EXTERNAL */
+static int hf_z3950_holdingsData;                 /* SEQUENCE_OF_HoldingsRecord */
+static int hf_z3950_holdingsData_item;            /* HoldingsRecord */
+static int hf_z3950_marcHoldingsRecord;           /* EXTERNAL */
+static int hf_z3950_holdingsAndCirc;              /* HoldingsAndCircData */
+static int hf_z3950_typeOfRecord;                 /* InternationalString */
+static int hf_z3950_encodingLevel;                /* InternationalString */
+static int hf_z3950_format;                       /* InternationalString */
+static int hf_z3950_receiptAcqStatus;             /* InternationalString */
+static int hf_z3950_generalRetention;             /* InternationalString */
+static int hf_z3950_completeness;                 /* InternationalString */
+static int hf_z3950_dateOfReport;                 /* InternationalString */
+static int hf_z3950_nucCode;                      /* InternationalString */
+static int hf_z3950_localLocation;                /* InternationalString */
+static int hf_z3950_shelvingLocation;             /* InternationalString */
+static int hf_z3950_callNumber;                   /* InternationalString */
+static int hf_z3950_shelvingData;                 /* InternationalString */
+static int hf_z3950_copyNumber;                   /* InternationalString */
+static int hf_z3950_publicNote;                   /* InternationalString */
+static int hf_z3950_reproductionNote;             /* InternationalString */
+static int hf_z3950_termsUseRepro;                /* InternationalString */
+static int hf_z3950_enumAndChron;                 /* InternationalString */
+static int hf_z3950_volumes;                      /* SEQUENCE_OF_Volume */
+static int hf_z3950_volumes_item;                 /* Volume */
+static int hf_z3950_circulationData;              /* SEQUENCE_OF_CircRecord */
+static int hf_z3950_circulationData_item;         /* CircRecord */
+static int hf_z3950_enumeration;                  /* InternationalString */
+static int hf_z3950_chronology;                   /* InternationalString */
+static int hf_z3950_availableNow;                 /* BOOLEAN */
+static int hf_z3950_availablityDate;              /* InternationalString */
+static int hf_z3950_availableThru;                /* InternationalString */
+static int hf_z3950_circRecord_restrictions;      /* InternationalString */
+static int hf_z3950_itemId;                       /* InternationalString */
+static int hf_z3950_renewable;                    /* BOOLEAN */
+static int hf_z3950_onHold;                       /* BOOLEAN */
+static int hf_z3950_midspine;                     /* InternationalString */
+static int hf_z3950_temporaryLocation;            /* InternationalString */
+static int hf_z3950_DiagnosticFormat_item;        /* DiagnosticFormat_item */
+static int hf_z3950_diagnosticFormat_item_diagnostic;  /* T_diagnosticFormat_item_diagnostic */
+static int hf_z3950_defaultDiagRec;               /* DefaultDiagFormat */
+static int hf_z3950_explicitDiagnostic;           /* DiagFormat */
+static int hf_z3950_message;                      /* InternationalString */
+static int hf_z3950_tooMany;                      /* T_tooMany */
+static int hf_z3950_tooManyWhat;                  /* T_tooManyWhat */
+static int hf_z3950_max;                          /* INTEGER */
+static int hf_z3950_badSpec;                      /* T_badSpec */
+static int hf_z3950_goodOnes;                     /* SEQUENCE_OF_Specification */
+static int hf_z3950_goodOnes_item;                /* Specification */
+static int hf_z3950_dbUnavail;                    /* T_dbUnavail */
+static int hf_z3950_why;                          /* T_why */
+static int hf_z3950_reasonCode;                   /* T_reasonCode */
+static int hf_z3950_unSupOp;                      /* T_unSupOp */
+static int hf_z3950_attribute;                    /* T_attribute */
+static int hf_z3950_id;                           /* OBJECT_IDENTIFIER */
+static int hf_z3950_type;                         /* INTEGER */
+static int hf_z3950_attCombo;                     /* T_attCombo */
+static int hf_z3950_unsupportedCombination;       /* AttributeList */
+static int hf_z3950_recommendedAlternatives;      /* SEQUENCE_OF_AttributeList */
+static int hf_z3950_recommendedAlternatives_item;  /* AttributeList */
+static int hf_z3950_diagFormat_term;              /* T_diagFormat_term */
+static int hf_z3950_problem;                      /* T_problem */
+static int hf_z3950_diagFormat_proximity;         /* T_diagFormat_proximity */
+static int hf_z3950_resultSets;                   /* NULL */
+static int hf_z3950_badSet;                       /* InternationalString */
+static int hf_z3950_relation;                     /* INTEGER */
+static int hf_z3950_diagFormat_proximity_unit;    /* INTEGER */
+static int hf_z3950_diagFormat_proximity_ordered;  /* NULL */
+static int hf_z3950_diagFormat_proximity_exclusion;  /* NULL */
+static int hf_z3950_scan;                         /* T_scan */
+static int hf_z3950_nonZeroStepSize;              /* NULL */
+static int hf_z3950_specifiedStepSize;            /* NULL */
+static int hf_z3950_termList1;                    /* NULL */
+static int hf_z3950_termList2;                    /* SEQUENCE_OF_AttributeList */
+static int hf_z3950_termList2_item;               /* AttributeList */
+static int hf_z3950_posInResponse;                /* T_posInResponse */
+static int hf_z3950_resources;                    /* NULL */
+static int hf_z3950_endOfList;                    /* NULL */
+static int hf_z3950_sort;                         /* T_sort */
+static int hf_z3950_sequence;                     /* NULL */
+static int hf_z3950_noRsName;                     /* NULL */
+static int hf_z3950_diagFormat_sort_tooMany;      /* INTEGER */
+static int hf_z3950_incompatible;                 /* NULL */
+static int hf_z3950_generic;                      /* NULL */
+static int hf_z3950_diagFormat_sort_dbSpecific;   /* NULL */
+static int hf_z3950_key;                          /* T_key */
+static int hf_z3950_action;                       /* NULL */
+static int hf_z3950_illegal;                      /* T_illegal */
+static int hf_z3950_inputTooLarge;                /* SEQUENCE_OF_InternationalString */
+static int hf_z3950_inputTooLarge_item;           /* InternationalString */
+static int hf_z3950_aggregateTooLarge;            /* NULL */
+static int hf_z3950_segmentation;                 /* T_segmentation */
+static int hf_z3950_segmentCount;                 /* NULL */
+static int hf_z3950_segmentSize;                  /* INTEGER */
+static int hf_z3950_extServices;                  /* T_extServices */
+static int hf_z3950_req;                          /* T_req */
+static int hf_z3950_permission;                   /* T_permission */
+static int hf_z3950_immediate;                    /* T_immediate */
+static int hf_z3950_accessCtrl;                   /* T_accessCtrl */
+static int hf_z3950_noUser;                       /* NULL */
+static int hf_z3950_refused;                      /* NULL */
+static int hf_z3950_diagFormat_accessCtrl_simple;  /* NULL */
+static int hf_z3950_diagFormat_accessCtrl_oid;    /* T_diagFormat_accessCtrl_oid */
+static int hf_z3950_diagFormat_accessCtrl_oid_item;  /* OBJECT_IDENTIFIER */
+static int hf_z3950_alternative;                  /* T_alternative */
+static int hf_z3950_alternative_item;             /* OBJECT_IDENTIFIER */
+static int hf_z3950_pwdInv;                       /* NULL */
+static int hf_z3950_pwdExp;                       /* NULL */
+static int hf_z3950_diagFormat_recordSyntax;      /* T_diagFormat_recordSyntax */
+static int hf_z3950_unsupportedSyntax;            /* OBJECT_IDENTIFIER */
+static int hf_z3950_suggestedAlternatives;        /* T_suggestedAlternatives */
+static int hf_z3950_suggestedAlternatives_item;   /* OBJECT_IDENTIFIER */
+static int hf_z3950_targetInfo;                   /* TargetInfo */
+static int hf_z3950_databaseInfo;                 /* DatabaseInfo */
+static int hf_z3950_schemaInfo;                   /* SchemaInfo */
+static int hf_z3950_tagSetInfo;                   /* TagSetInfo */
+static int hf_z3950_recordSyntaxInfo;             /* RecordSyntaxInfo */
+static int hf_z3950_attributeSetInfo;             /* AttributeSetInfo */
+static int hf_z3950_termListInfo;                 /* TermListInfo */
+static int hf_z3950_extendedServicesInfo;         /* ExtendedServicesInfo */
+static int hf_z3950_attributeDetails;             /* AttributeDetails */
+static int hf_z3950_termListDetails;              /* TermListDetails */
+static int hf_z3950_elementSetDetails;            /* ElementSetDetails */
+static int hf_z3950_retrievalRecordDetails;       /* RetrievalRecordDetails */
+static int hf_z3950_sortDetails;                  /* SortDetails */
+static int hf_z3950_processing;                   /* ProcessingInformation */
+static int hf_z3950_variants;                     /* VariantSetInfo */
+static int hf_z3950_units;                        /* UnitInfo */
+static int hf_z3950_categoryList;                 /* CategoryList */
+static int hf_z3950_commonInfo;                   /* CommonInfo */
+static int hf_z3950_name;                         /* InternationalString */
+static int hf_z3950_recent_news;                  /* HumanString */
+static int hf_z3950_icon;                         /* IconObject */
+static int hf_z3950_namedResultSets;              /* BOOLEAN */
+static int hf_z3950_multipleDBsearch;             /* BOOLEAN */
+static int hf_z3950_maxResultSets;                /* INTEGER */
+static int hf_z3950_maxResultSize;                /* INTEGER */
+static int hf_z3950_maxTerms;                     /* INTEGER */
+static int hf_z3950_timeoutInterval;              /* IntUnit */
+static int hf_z3950_welcomeMessage;               /* HumanString */
+static int hf_z3950_contactInfo;                  /* ContactInfo */
+static int hf_z3950_description;                  /* HumanString */
+static int hf_z3950_nicknames;                    /* SEQUENCE_OF_InternationalString */
+static int hf_z3950_nicknames_item;               /* InternationalString */
+static int hf_z3950_usage_restrictions;           /* HumanString */
+static int hf_z3950_paymentAddr;                  /* HumanString */
+static int hf_z3950_hours;                        /* HumanString */
+static int hf_z3950_dbCombinations;               /* SEQUENCE_OF_DatabaseList */
+static int hf_z3950_dbCombinations_item;          /* DatabaseList */
+static int hf_z3950_addresses;                    /* SEQUENCE_OF_NetworkAddress */
+static int hf_z3950_addresses_item;               /* NetworkAddress */
+static int hf_z3950_languages;                    /* SEQUENCE_OF_InternationalString */
+static int hf_z3950_languages_item;               /* InternationalString */
+static int hf_z3950_commonAccessInfo;             /* AccessInfo */
+static int hf_z3950_databaseInfo_name;            /* DatabaseName */
+static int hf_z3950_explainDatabase;              /* NULL */
+static int hf_z3950_databaseInfo_nicknames;       /* SEQUENCE_OF_DatabaseName */
+static int hf_z3950_databaseInfo_nicknames_item;  /* DatabaseName */
+static int hf_z3950_user_fee;                     /* BOOLEAN */
+static int hf_z3950_available;                    /* BOOLEAN */
+static int hf_z3950_titleString;                  /* HumanString */
+static int hf_z3950_keywords;                     /* SEQUENCE_OF_HumanString */
+static int hf_z3950_keywords_item;                /* HumanString */
+static int hf_z3950_associatedDbs;                /* DatabaseList */
+static int hf_z3950_subDbs;                       /* DatabaseList */
+static int hf_z3950_disclaimers;                  /* HumanString */
+static int hf_z3950_news;                         /* HumanString */
+static int hf_z3950_recordCount;                  /* T_recordCount */
+static int hf_z3950_actualNumber;                 /* INTEGER */
+static int hf_z3950_approxNumber;                 /* INTEGER */
+static int hf_z3950_defaultOrder;                 /* HumanString */
+static int hf_z3950_avRecordSize;                 /* INTEGER */
+static int hf_z3950_bestTime;                     /* HumanString */
+static int hf_z3950_lastUpdate;                   /* GeneralizedTime */
+static int hf_z3950_updateInterval;               /* IntUnit */
+static int hf_z3950_coverage;                     /* HumanString */
+static int hf_z3950_proprietary;                  /* BOOLEAN */
+static int hf_z3950_copyrightText;                /* HumanString */
+static int hf_z3950_copyrightNotice;              /* HumanString */
+static int hf_z3950_producerContactInfo;          /* ContactInfo */
+static int hf_z3950_supplierContactInfo;          /* ContactInfo */
+static int hf_z3950_submissionContactInfo;        /* ContactInfo */
+static int hf_z3950_accessInfo;                   /* AccessInfo */
+static int hf_z3950_tagTypeMapping;               /* T_tagTypeMapping */
+static int hf_z3950_tagTypeMapping_item;          /* T_tagTypeMapping_item */
+static int hf_z3950_tagType;                      /* INTEGER */
+static int hf_z3950_tagSet;                       /* OBJECT_IDENTIFIER */
+static int hf_z3950_defaultTagType;               /* NULL */
+static int hf_z3950_recordStructure;              /* SEQUENCE_OF_ElementInfo */
+static int hf_z3950_recordStructure_item;         /* ElementInfo */
+static int hf_z3950_elementName;                  /* InternationalString */
+static int hf_z3950_elementTagPath;               /* Path */
+static int hf_z3950_elementInfo_dataType;         /* ElementDataType */
+static int hf_z3950_required;                     /* BOOLEAN */
+static int hf_z3950_repeatable;                   /* BOOLEAN */
+static int hf_z3950_Path_item;                    /* Path_item */
+static int hf_z3950_tagValue;                     /* StringOrNumeric */
+static int hf_z3950_primitive;                    /* PrimitiveDataType */
+static int hf_z3950_structured;                   /* SEQUENCE_OF_ElementInfo */
+static int hf_z3950_structured_item;              /* ElementInfo */
+static int hf_z3950_tagSetInfo_elements;          /* T_tagSetInfo_elements */
+static int hf_z3950_tagSetInfo_elements_item;     /* T_tagSetInfo_elements_item */
+static int hf_z3950_elementname;                  /* InternationalString */
+static int hf_z3950_elementTag;                   /* StringOrNumeric */
+static int hf_z3950_dataType;                     /* PrimitiveDataType */
+static int hf_z3950_otherTagInfo;                 /* OtherInformation */
+static int hf_z3950_recordSyntax;                 /* OBJECT_IDENTIFIER */
+static int hf_z3950_transferSyntaxes;             /* T_transferSyntaxes */
+static int hf_z3950_transferSyntaxes_item;        /* OBJECT_IDENTIFIER */
+static int hf_z3950_asn1Module;                   /* InternationalString */
+static int hf_z3950_abstractStructure;            /* SEQUENCE_OF_ElementInfo */
+static int hf_z3950_abstractStructure_item;       /* ElementInfo */
+static int hf_z3950_attributeSetInfo_attributes;  /* SEQUENCE_OF_AttributeType */
+static int hf_z3950_attributeSetInfo_attributes_item;  /* AttributeType */
+static int hf_z3950_attributeType;                /* INTEGER */
+static int hf_z3950_attributeValues;              /* SEQUENCE_OF_AttributeDescription */
+static int hf_z3950_attributeValues_item;         /* AttributeDescription */
+static int hf_z3950_attributeDescription_attributeValue;  /* StringOrNumeric */
+static int hf_z3950_equivalentAttributes;         /* SEQUENCE_OF_StringOrNumeric */
+static int hf_z3950_equivalentAttributes_item;    /* StringOrNumeric */
+static int hf_z3950_termLists;                    /* T_termLists */
+static int hf_z3950_termLists_item;               /* T_termLists_item */
+static int hf_z3950_title;                        /* HumanString */
+static int hf_z3950_searchCost;                   /* T_searchCost */
+static int hf_z3950_scanable;                     /* BOOLEAN */
+static int hf_z3950_broader;                      /* SEQUENCE_OF_InternationalString */
+static int hf_z3950_broader_item;                 /* InternationalString */
+static int hf_z3950_narrower;                     /* SEQUENCE_OF_InternationalString */
+static int hf_z3950_narrower_item;                /* InternationalString */
+static int hf_z3950_extendedServicesInfo_type;    /* OBJECT_IDENTIFIER */
+static int hf_z3950_privateType;                  /* BOOLEAN */
+static int hf_z3950_restrictionsApply;            /* BOOLEAN */
+static int hf_z3950_feeApply;                     /* BOOLEAN */
+static int hf_z3950_retentionSupported;           /* BOOLEAN */
+static int hf_z3950_extendedServicesInfo_waitAction;  /* T_extendedServicesInfo_waitAction */
+static int hf_z3950_specificExplain;              /* EXTERNAL */
+static int hf_z3950_esASN;                        /* InternationalString */
+static int hf_z3950_attributesBySet;              /* SEQUENCE_OF_AttributeSetDetails */
+static int hf_z3950_attributesBySet_item;         /* AttributeSetDetails */
+static int hf_z3950_attributeCombinations;        /* AttributeCombinations */
+static int hf_z3950_attributesByType;             /* SEQUENCE_OF_AttributeTypeDetails */
+static int hf_z3950_attributesByType_item;        /* AttributeTypeDetails */
+static int hf_z3950_defaultIfOmitted;             /* OmittedAttributeInterpretation */
+static int hf_z3950_attributeTypeDetails_attributeValues;  /* SEQUENCE_OF_AttributeValue */
+static int hf_z3950_attributeTypeDetails_attributeValues_item;  /* AttributeValue */
+static int hf_z3950_defaultValue;                 /* StringOrNumeric */
+static int hf_z3950_defaultDescription;           /* HumanString */
+static int hf_z3950_attributeValue_value;         /* StringOrNumeric */
+static int hf_z3950_subAttributes;                /* SEQUENCE_OF_StringOrNumeric */
+static int hf_z3950_subAttributes_item;           /* StringOrNumeric */
+static int hf_z3950_superAttributes;              /* SEQUENCE_OF_StringOrNumeric */
+static int hf_z3950_superAttributes_item;         /* StringOrNumeric */
+static int hf_z3950_partialSupport;               /* NULL */
+static int hf_z3950_termListName;                 /* InternationalString */
+static int hf_z3950_termListDetails_attributes;   /* AttributeCombinations */
+static int hf_z3950_scanInfo;                     /* T_scanInfo */
+static int hf_z3950_maxStepSize;                  /* INTEGER */
+static int hf_z3950_collatingSequence;            /* HumanString */
+static int hf_z3950_increasing;                   /* BOOLEAN */
+static int hf_z3950_estNumberTerms;               /* INTEGER */
+static int hf_z3950_sampleTerms;                  /* SEQUENCE_OF_Term */
+static int hf_z3950_sampleTerms_item;             /* Term */
+static int hf_z3950_elementSetDetails_elementSetName;  /* ElementSetName */
+static int hf_z3950_detailsPerElement;            /* SEQUENCE_OF_PerElementDetails */
+static int hf_z3950_detailsPerElement_item;       /* PerElementDetails */
+static int hf_z3950_recordTag;                    /* RecordTag */
+static int hf_z3950_schemaTags;                   /* SEQUENCE_OF_Path */
+static int hf_z3950_schemaTags_item;              /* Path */
+static int hf_z3950_maxSize;                      /* INTEGER */
+static int hf_z3950_minSize;                      /* INTEGER */
+static int hf_z3950_avgSize;                      /* INTEGER */
+static int hf_z3950_fixedSize;                    /* INTEGER */
+static int hf_z3950_contents;                     /* HumanString */
+static int hf_z3950_billingInfo;                  /* HumanString */
+static int hf_z3950_restrictions;                 /* HumanString */
+static int hf_z3950_alternateNames;               /* SEQUENCE_OF_InternationalString */
+static int hf_z3950_alternateNames_item;          /* InternationalString */
+static int hf_z3950_genericNames;                 /* SEQUENCE_OF_InternationalString */
+static int hf_z3950_genericNames_item;            /* InternationalString */
+static int hf_z3950_searchAccess;                 /* AttributeCombinations */
+static int hf_z3950_qualifier;                    /* StringOrNumeric */
+static int hf_z3950_sortKeys;                     /* SEQUENCE_OF_SortKeyDetails */
+static int hf_z3950_sortKeys_item;                /* SortKeyDetails */
+static int hf_z3950_elementSpecifications;        /* SEQUENCE_OF_Specification */
+static int hf_z3950_elementSpecifications_item;   /* Specification */
+static int hf_z3950_attributeSpecifications;      /* AttributeCombinations */
+static int hf_z3950_sortType;                     /* T_sortType */
+static int hf_z3950_character;                    /* NULL */
+static int hf_z3950_sortKeyDetails_sortType_numeric;  /* NULL */
+static int hf_z3950_sortKeyDetails_sortType_structured;  /* HumanString */
+static int hf_z3950_sortKeyDetails_caseSensitivity;  /* T_sortKeyDetails_caseSensitivity */
+static int hf_z3950_processingContext;            /* T_processingContext */
+static int hf_z3950_instructions;                 /* EXTERNAL */
+static int hf_z3950_variantSet;                   /* OBJECT_IDENTIFIER */
+static int hf_z3950_variantSetInfo_variants;      /* SEQUENCE_OF_VariantClass */
+static int hf_z3950_variantSetInfo_variants_item;  /* VariantClass */
+static int hf_z3950_variantClass;                 /* INTEGER */
+static int hf_z3950_variantTypes;                 /* SEQUENCE_OF_VariantType */
+static int hf_z3950_variantTypes_item;            /* VariantType */
+static int hf_z3950_variantType;                  /* INTEGER */
+static int hf_z3950_variantValue;                 /* VariantValue */
+static int hf_z3950_values;                       /* ValueSet */
+static int hf_z3950_range;                        /* ValueRange */
+static int hf_z3950_enumerated;                   /* SEQUENCE_OF_ValueDescription */
+static int hf_z3950_enumerated_item;              /* ValueDescription */
+static int hf_z3950_lower;                        /* ValueDescription */
+static int hf_z3950_upper;                        /* ValueDescription */
+static int hf_z3950_integer;                      /* INTEGER */
+static int hf_z3950_octets;                       /* OCTET_STRING */
+static int hf_z3950_valueDescription_unit;        /* Unit */
+static int hf_z3950_valueAndUnit;                 /* IntUnit */
+static int hf_z3950_unitInfo_units;               /* SEQUENCE_OF_UnitType */
+static int hf_z3950_unitInfo_units_item;          /* UnitType */
+static int hf_z3950_unitType_units;               /* SEQUENCE_OF_Units */
+static int hf_z3950_unitType_units_item;          /* Units */
+static int hf_z3950_categories;                   /* SEQUENCE_OF_CategoryInfo */
+static int hf_z3950_categories_item;              /* CategoryInfo */
+static int hf_z3950_categoryInfo_category;        /* InternationalString */
+static int hf_z3950_originalCategory;             /* InternationalString */
+static int hf_z3950_dateAdded;                    /* GeneralizedTime */
+static int hf_z3950_dateChanged;                  /* GeneralizedTime */
+static int hf_z3950_expiry;                       /* GeneralizedTime */
+static int hf_z3950_humanString_Language;         /* LanguageCode */
+static int hf_z3950_HumanString_item;             /* HumanString_item */
+static int hf_z3950_language;                     /* LanguageCode */
+static int hf_z3950_text;                         /* InternationalString */
+static int hf_z3950_IconObject_item;              /* IconObject_item */
+static int hf_z3950_bodyType;                     /* T_bodyType */
+static int hf_z3950_ianaType;                     /* InternationalString */
+static int hf_z3950_z3950type;                    /* InternationalString */
+static int hf_z3950_otherType;                    /* InternationalString */
+static int hf_z3950_content;                      /* OCTET_STRING */
+static int hf_z3950_address;                      /* HumanString */
+static int hf_z3950_email;                        /* InternationalString */
+static int hf_z3950_phone;                        /* InternationalString */
+static int hf_z3950_internetAddress;              /* T_internetAddress */
+static int hf_z3950_hostAddress;                  /* InternationalString */
+static int hf_z3950_port;                         /* INTEGER */
+static int hf_z3950_osiPresentationAddress;       /* T_osiPresentationAddress */
+static int hf_z3950_pSel;                         /* InternationalString */
+static int hf_z3950_sSel;                         /* InternationalString */
+static int hf_z3950_tSel;                         /* InternationalString */
+static int hf_z3950_nSap;                         /* InternationalString */
+static int hf_z3950_networkAddress_other;         /* T_networkAddress_other */
+static int hf_z3950_networkAddress_other_type;    /* InternationalString */
+static int hf_z3950_networkAddress_other_address;  /* InternationalString */
+static int hf_z3950_queryTypesSupported;          /* SEQUENCE_OF_QueryTypeDetails */
+static int hf_z3950_queryTypesSupported_item;     /* QueryTypeDetails */
+static int hf_z3950_diagnosticsSets;              /* T_diagnosticsSets */
+static int hf_z3950_diagnosticsSets_item;         /* OBJECT_IDENTIFIER */
+static int hf_z3950_attributeSetIds;              /* SEQUENCE_OF_AttributeSetId */
+static int hf_z3950_attributeSetIds_item;         /* AttributeSetId */
+static int hf_z3950_schemas;                      /* T_schemas */
+static int hf_z3950_schemas_item;                 /* OBJECT_IDENTIFIER */
+static int hf_z3950_recordSyntaxes;               /* T_recordSyntaxes */
+static int hf_z3950_recordSyntaxes_item;          /* OBJECT_IDENTIFIER */
+static int hf_z3950_resourceChallenges;           /* T_resourceChallenges */
+static int hf_z3950_resourceChallenges_item;      /* OBJECT_IDENTIFIER */
+static int hf_z3950_restrictedAccess;             /* AccessRestrictions */
+static int hf_z3950_costInfo;                     /* Costs */
+static int hf_z3950_variantSets;                  /* T_variantSets */
+static int hf_z3950_variantSets_item;             /* OBJECT_IDENTIFIER */
+static int hf_z3950_elementSetNames;              /* SEQUENCE_OF_ElementSetName */
+static int hf_z3950_elementSetNames_item;         /* ElementSetName */
+static int hf_z3950_unitSystems;                  /* SEQUENCE_OF_InternationalString */
+static int hf_z3950_unitSystems_item;             /* InternationalString */
+static int hf_z3950_queryTypeDetails_private;     /* PrivateCapabilities */
+static int hf_z3950_queryTypeDetails_rpn;         /* RpnCapabilities */
+static int hf_z3950_iso8777;                      /* Iso8777Capabilities */
+static int hf_z3950_z39_58;                       /* HumanString */
+static int hf_z3950_erpn;                         /* RpnCapabilities */
+static int hf_z3950_rankedList;                   /* HumanString */
+static int hf_z3950_privateCapabilities_operators;  /* T_privateCapabilities_operators */
+static int hf_z3950_privateCapabilities_operators_item;  /* T_privateCapabilities_operators_item */
+static int hf_z3950_operator;                     /* InternationalString */
+static int hf_z3950_searchKeys;                   /* SEQUENCE_OF_SearchKey */
+static int hf_z3950_searchKeys_item;              /* SearchKey */
+static int hf_z3950_privateCapabilities_description;  /* SEQUENCE_OF_HumanString */
+static int hf_z3950_privateCapabilities_description_item;  /* HumanString */
+static int hf_z3950_operators;                    /* T_operators */
+static int hf_z3950_operators_item;               /* INTEGER */
+static int hf_z3950_resultSetAsOperandSupported;  /* BOOLEAN */
+static int hf_z3950_restrictionOperandSupported;  /* BOOLEAN */
+static int hf_z3950_proximity;                    /* ProximitySupport */
+static int hf_z3950_anySupport;                   /* BOOLEAN */
+static int hf_z3950_unitsSupported;               /* T_unitsSupported */
+static int hf_z3950_unitsSupported_item;          /* T_unitsSupported_item */
+static int hf_z3950_proximitySupport_unitsSupported_item_known;  /* INTEGER */
+static int hf_z3950_proximitySupport_unitsSupported_item_private;  /* T_proximitySupport_unitsSupported_item_private */
+static int hf_z3950_proximitySupport_unitsSupported_item_private_unit;  /* INTEGER */
+static int hf_z3950_searchKey;                    /* InternationalString */
+static int hf_z3950_AccessRestrictions_item;      /* AccessRestrictions_item */
+static int hf_z3950_accessType;                   /* T_accessType */
+static int hf_z3950_accessText;                   /* HumanString */
+static int hf_z3950_accessChallenges;             /* T_accessChallenges */
+static int hf_z3950_accessChallenges_item;        /* OBJECT_IDENTIFIER */
+static int hf_z3950_connectCharge;                /* Charge */
+static int hf_z3950_connectTime;                  /* Charge */
+static int hf_z3950_displayCharge;                /* Charge */
+static int hf_z3950_searchCharge;                 /* Charge */
+static int hf_z3950_subscriptCharge;              /* Charge */
+static int hf_z3950_otherCharges;                 /* T_otherCharges */
+static int hf_z3950_otherCharges_item;            /* T_otherCharges_item */
+static int hf_z3950_forWhat;                      /* HumanString */
+static int hf_z3950_charge;                       /* Charge */
+static int hf_z3950_cost;                         /* IntUnit */
+static int hf_z3950_perWhat;                      /* Unit */
+static int hf_z3950_charge_text;                  /* HumanString */
+static int hf_z3950_DatabaseList_item;            /* DatabaseName */
+static int hf_z3950_defaultAttributeSet;          /* AttributeSetId */
+static int hf_z3950_legalCombinations;            /* SEQUENCE_OF_AttributeCombination */
+static int hf_z3950_legalCombinations_item;       /* AttributeCombination */
+static int hf_z3950_AttributeCombination_item;    /* AttributeOccurrence */
+static int hf_z3950_mustBeSupplied;               /* NULL */
+static int hf_z3950_attributeOccurrence_attributeValues;  /* T_attributeOccurrence_attributeValues */
+static int hf_z3950_any_or_none;                  /* NULL */
+static int hf_z3950_specific;                     /* SEQUENCE_OF_StringOrNumeric */
+static int hf_z3950_specific_item;                /* StringOrNumeric */
+static int hf_z3950_briefBib_title;               /* InternationalString */
+static int hf_z3950_author;                       /* InternationalString */
+static int hf_z3950_recordType;                   /* InternationalString */
+static int hf_z3950_bibliographicLevel;           /* InternationalString */
+static int hf_z3950_briefBib_format;              /* SEQUENCE_OF_FormatSpec */
+static int hf_z3950_briefBib_format_item;         /* FormatSpec */
+static int hf_z3950_publicationPlace;             /* InternationalString */
+static int hf_z3950_publicationDate;              /* InternationalString */
+static int hf_z3950_targetSystemKey;              /* InternationalString */
+static int hf_z3950_satisfyingElement;            /* InternationalString */
+static int hf_z3950_rank;                         /* INTEGER */
+static int hf_z3950_documentId;                   /* InternationalString */
+static int hf_z3950_abstract;                     /* InternationalString */
+static int hf_z3950_formatSpec_type;              /* InternationalString */
+static int hf_z3950_size;                         /* INTEGER */
+static int hf_z3950_bestPosn;                     /* INTEGER */
+static int hf_z3950_GenericRecord_item;           /* TaggedElement */
+static int hf_z3950_tagOccurrence;                /* INTEGER */
+static int hf_z3950_taggedElement_content;        /* ElementData */
+static int hf_z3950_metaData;                     /* ElementMetaData */
+static int hf_z3950_appliedVariant;               /* Variant */
+static int hf_z3950_date;                         /* GeneralizedTime */
+static int hf_z3950_ext;                          /* EXTERNAL */
+static int hf_z3950_trueOrFalse;                  /* BOOLEAN */
+static int hf_z3950_intUnit;                      /* IntUnit */
+static int hf_z3950_elementNotThere;              /* NULL */
+static int hf_z3950_elementEmpty;                 /* NULL */
+static int hf_z3950_noDataRequested;              /* NULL */
+static int hf_z3950_elementData_diagnostic;       /* EXTERNAL */
+static int hf_z3950_subtree;                      /* SEQUENCE_OF_TaggedElement */
+static int hf_z3950_subtree_item;                 /* TaggedElement */
+static int hf_z3950_seriesOrder;                  /* Order */
+static int hf_z3950_usageRight;                   /* Usage */
+static int hf_z3950_hits;                         /* SEQUENCE_OF_HitVector */
+static int hf_z3950_hits_item;                    /* HitVector */
+static int hf_z3950_displayName;                  /* InternationalString */
+static int hf_z3950_supportedVariants;            /* SEQUENCE_OF_Variant */
+static int hf_z3950_supportedVariants_item;       /* Variant */
+static int hf_z3950_elementDescriptor;            /* OCTET_STRING */
+static int hf_z3950_surrogateFor;                 /* TagPath */
+static int hf_z3950_surrogateElement;             /* TagPath */
+static int hf_z3950_TagPath_item;                 /* TagPath_item */
+static int hf_z3950_ascending;                    /* BOOLEAN */
+static int hf_z3950_order;                        /* INTEGER */
+static int hf_z3950_usage_type;                   /* T_usage_type */
+static int hf_z3950_restriction;                  /* InternationalString */
+static int hf_z3950_satisfier;                    /* Term */
+static int hf_z3950_offsetIntoElement;            /* IntUnit */
+static int hf_z3950_length;                       /* IntUnit */
+static int hf_z3950_hitRank;                      /* INTEGER */
+static int hf_z3950_targetToken;                  /* OCTET_STRING */
+static int hf_z3950_globalVariantSetId;           /* OBJECT_IDENTIFIER */
+static int hf_z3950_triples;                      /* T_triples */
+static int hf_z3950_triples_item;                 /* T_triples_item */
+static int hf_z3950_variantSetId;                 /* OBJECT_IDENTIFIER */
+static int hf_z3950_class;                        /* INTEGER */
+static int hf_z3950_variant_triples_item_value;   /* T_variant_triples_item_value */
+static int hf_z3950_octetString;                  /* OCTET_STRING */
+static int hf_z3950_boolean;                      /* BOOLEAN */
+static int hf_z3950_variant_triples_item_value_unit;  /* Unit */
+static int hf_z3950_taskPackage_description;      /* InternationalString */
+static int hf_z3950_targetReference;              /* OCTET_STRING */
+static int hf_z3950_creationDateTime;             /* GeneralizedTime */
+static int hf_z3950_taskStatus;                   /* T_taskStatus */
+static int hf_z3950_packageDiagnostics;           /* SEQUENCE_OF_DiagRec */
+static int hf_z3950_packageDiagnostics_item;      /* DiagRec */
+static int hf_z3950_challenge;                    /* Challenge */
+static int hf_z3950_response;                     /* Response */
+static int hf_z3950_Challenge_item;               /* Challenge_item */
+static int hf_z3950_promptId;                     /* PromptId */
+static int hf_z3950_defaultResponse;              /* InternationalString */
+static int hf_z3950_promptInfo;                   /* T_promptInfo */
+static int hf_z3950_challenge_item_promptInfo_character;  /* InternationalString */
+static int hf_z3950_encrypted;                    /* Encryption */
+static int hf_z3950_regExpr;                      /* InternationalString */
+static int hf_z3950_responseRequired;             /* NULL */
+static int hf_z3950_allowedValues;                /* SEQUENCE_OF_InternationalString */
+static int hf_z3950_allowedValues_item;           /* InternationalString */
+static int hf_z3950_shouldSave;                   /* NULL */
+static int hf_z3950_challenge_item_dataType;      /* T_challenge_item_dataType */
+static int hf_z3950_challenge_item_diagnostic;    /* EXTERNAL */
+static int hf_z3950_Response_item;                /* Response_item */
+static int hf_z3950_promptResponse;               /* T_promptResponse */
+static int hf_z3950_accept;                       /* BOOLEAN */
+static int hf_z3950_acknowledge;                  /* NULL */
+static int hf_z3950_enummeratedPrompt;            /* T_enummeratedPrompt */
+static int hf_z3950_promptId_enummeratedPrompt_type;  /* T_promptId_enummeratedPrompt_type */
+static int hf_z3950_suggestedString;              /* InternationalString */
+static int hf_z3950_nonEnumeratedPrompt;          /* InternationalString */
+static int hf_z3950_cryptType;                    /* OCTET_STRING */
+static int hf_z3950_credential;                   /* OCTET_STRING */
+static int hf_z3950_data;                         /* OCTET_STRING */
+static int hf_z3950_dES_RN_Object_challenge;      /* DRNType */
+static int hf_z3950_rES_RN_Object_response;       /* DRNType */
+static int hf_z3950_dRNType_userId;               /* OCTET_STRING */
+static int hf_z3950_salt;                         /* OCTET_STRING */
+static int hf_z3950_randomNumber;                 /* OCTET_STRING */
+static int hf_z3950_kRBObject_challenge;          /* KRBRequest */
+static int hf_z3950_kRBObject_response;           /* KRBResponse */
+static int hf_z3950_service;                      /* InternationalString */
+static int hf_z3950_instance;                     /* InternationalString */
+static int hf_z3950_realm;                        /* InternationalString */
+static int hf_z3950_userid;                       /* InternationalString */
+static int hf_z3950_ticket;                       /* OCTET_STRING */
+static int hf_z3950_SearchInfoReport_item;        /* SearchInfoReport_item */
+static int hf_z3950_subqueryId;                   /* InternationalString */
+static int hf_z3950_fullQuery;                    /* BOOLEAN */
+static int hf_z3950_subqueryExpression;           /* QueryExpression */
+static int hf_z3950_subqueryInterpretation;       /* QueryExpression */
+static int hf_z3950_subqueryRecommendation;       /* QueryExpression */
+static int hf_z3950_subqueryCount;                /* INTEGER */
+static int hf_z3950_subqueryWeight;               /* IntUnit */
+static int hf_z3950_resultsByDB;                  /* ResultsByDB */
+static int hf_z3950_ResultsByDB_item;             /* ResultsByDB_item */
+static int hf_z3950_databases;                    /* T_databases */
+static int hf_z3950_all;                          /* NULL */
+static int hf_z3950_list;                         /* SEQUENCE_OF_DatabaseName */
+static int hf_z3950_list_item;                    /* DatabaseName */
+static int hf_z3950_count;                        /* INTEGER */
+static int hf_z3950_queryExpression_term;         /* T_queryExpression_term */
+static int hf_z3950_queryTerm;                    /* Term */
+static int hf_z3950_termComment;                  /* InternationalString */
 /* named bits */
-static int hf_z3950_ProtocolVersion_U_version_1 = -1;
-static int hf_z3950_ProtocolVersion_U_version_2 = -1;
-static int hf_z3950_ProtocolVersion_U_version_3 = -1;
-static int hf_z3950_Options_U_search = -1;
-static int hf_z3950_Options_U_present = -1;
-static int hf_z3950_Options_U_delSet = -1;
-static int hf_z3950_Options_U_resourceReport = -1;
-static int hf_z3950_Options_U_triggerResourceCtrl = -1;
-static int hf_z3950_Options_U_resourceCtrl = -1;
-static int hf_z3950_Options_U_accessCtrl = -1;
-static int hf_z3950_Options_U_scan = -1;
-static int hf_z3950_Options_U_sort = -1;
-static int hf_z3950_Options_U_spare_bit9 = -1;
-static int hf_z3950_Options_U_extendedServices = -1;
-static int hf_z3950_Options_U_level_1Segmentation = -1;
-static int hf_z3950_Options_U_level_2Segmentation = -1;
-static int hf_z3950_Options_U_concurrentOperations = -1;
-static int hf_z3950_Options_U_namedResultSets = -1;
+static int hf_z3950_ProtocolVersion_U_version_1;
+static int hf_z3950_ProtocolVersion_U_version_2;
+static int hf_z3950_ProtocolVersion_U_version_3;
+static int hf_z3950_Options_U_search;
+static int hf_z3950_Options_U_present;
+static int hf_z3950_Options_U_delSet;
+static int hf_z3950_Options_U_resourceReport;
+static int hf_z3950_Options_U_triggerResourceCtrl;
+static int hf_z3950_Options_U_resourceCtrl;
+static int hf_z3950_Options_U_accessCtrl;
+static int hf_z3950_Options_U_scan;
+static int hf_z3950_Options_U_sort;
+static int hf_z3950_Options_U_spare_bit9;
+static int hf_z3950_Options_U_extendedServices;
+static int hf_z3950_Options_U_level_1Segmentation;
+static int hf_z3950_Options_U_level_2Segmentation;
+static int hf_z3950_Options_U_concurrentOperations;
+static int hf_z3950_Options_U_namedResultSets;
 
-static int hf_z3950_referenceId_printable = -1;
-static int hf_z3950_general_printable = -1;
+static int hf_z3950_referenceId_printable;
+static int hf_z3950_general_printable;
 
 /* Initialize the subtree pointers */
-static int ett_z3950 = -1;
+static int ett_z3950;
 
-static gint ett_z3950_PDU = -1;
-static gint ett_z3950_InitializeRequest = -1;
-static gint ett_z3950_T_idAuthentication = -1;
-static gint ett_z3950_T_idPass = -1;
-static gint ett_z3950_InitializeResponse = -1;
-static gint ett_z3950_ProtocolVersion_U = -1;
-static gint ett_z3950_Options_U = -1;
-static gint ett_z3950_SearchRequest = -1;
-static gint ett_z3950_SEQUENCE_OF_DatabaseName = -1;
-static gint ett_z3950_Query = -1;
-static gint ett_z3950_RPNQuery = -1;
-static gint ett_z3950_RPNStructure = -1;
-static gint ett_z3950_T_rpnRpnOp = -1;
-static gint ett_z3950_Operand = -1;
-static gint ett_z3950_AttributesPlusTerm_U = -1;
-static gint ett_z3950_ResultSetPlusAttributes_U = -1;
-static gint ett_z3950_SEQUENCE_OF_AttributeElement = -1;
-static gint ett_z3950_Term = -1;
-static gint ett_z3950_Operator_U = -1;
-static gint ett_z3950_AttributeElement = -1;
-static gint ett_z3950_T_attributeValue = -1;
-static gint ett_z3950_T_attributeValue_complex = -1;
-static gint ett_z3950_SEQUENCE_OF_StringOrNumeric = -1;
-static gint ett_z3950_T_semanticAction = -1;
-static gint ett_z3950_ProximityOperator = -1;
-static gint ett_z3950_T_proximityUnitCode = -1;
-static gint ett_z3950_SearchResponse = -1;
-static gint ett_z3950_PresentRequest = -1;
-static gint ett_z3950_SEQUENCE_OF_Range = -1;
-static gint ett_z3950_T_recordComposition = -1;
-static gint ett_z3950_Segment = -1;
-static gint ett_z3950_SEQUENCE_OF_NamePlusRecord = -1;
-static gint ett_z3950_PresentResponse = -1;
-static gint ett_z3950_Records = -1;
-static gint ett_z3950_SEQUENCE_OF_DiagRec = -1;
-static gint ett_z3950_NamePlusRecord = -1;
-static gint ett_z3950_T_record = -1;
-static gint ett_z3950_FragmentSyntax = -1;
-static gint ett_z3950_DiagRec = -1;
-static gint ett_z3950_DefaultDiagFormat = -1;
-static gint ett_z3950_T_addinfo = -1;
-static gint ett_z3950_Range = -1;
-static gint ett_z3950_ElementSetNames = -1;
-static gint ett_z3950_T_databaseSpecific = -1;
-static gint ett_z3950_T_databaseSpecific_item = -1;
-static gint ett_z3950_CompSpec = -1;
-static gint ett_z3950_T_dbSpecific = -1;
-static gint ett_z3950_T_dbSpecific_item = -1;
-static gint ett_z3950_T_compSpec_recordSyntax = -1;
-static gint ett_z3950_Specification = -1;
-static gint ett_z3950_T_specification_elementSpec = -1;
-static gint ett_z3950_DeleteResultSetRequest = -1;
-static gint ett_z3950_SEQUENCE_OF_ResultSetId = -1;
-static gint ett_z3950_DeleteResultSetResponse = -1;
-static gint ett_z3950_ListStatuses = -1;
-static gint ett_z3950_ListStatuses_item = -1;
-static gint ett_z3950_AccessControlRequest = -1;
-static gint ett_z3950_T_securityChallenge = -1;
-static gint ett_z3950_AccessControlResponse = -1;
-static gint ett_z3950_T_securityChallengeResponse = -1;
-static gint ett_z3950_ResourceControlRequest = -1;
-static gint ett_z3950_ResourceControlResponse = -1;
-static gint ett_z3950_TriggerResourceControlRequest = -1;
-static gint ett_z3950_ResourceReportRequest = -1;
-static gint ett_z3950_ResourceReportResponse = -1;
-static gint ett_z3950_ScanRequest = -1;
-static gint ett_z3950_ScanResponse = -1;
-static gint ett_z3950_ListEntries = -1;
-static gint ett_z3950_SEQUENCE_OF_Entry = -1;
-static gint ett_z3950_Entry = -1;
-static gint ett_z3950_TermInfo = -1;
-static gint ett_z3950_SEQUENCE_OF_AttributesPlusTerm = -1;
-static gint ett_z3950_OccurrenceByAttributes = -1;
-static gint ett_z3950_OccurrenceByAttributes_item = -1;
-static gint ett_z3950_T_occurrences = -1;
-static gint ett_z3950_T_byDatabase = -1;
-static gint ett_z3950_T_byDatabase_item = -1;
-static gint ett_z3950_SortRequest = -1;
-static gint ett_z3950_SEQUENCE_OF_InternationalString = -1;
-static gint ett_z3950_SEQUENCE_OF_SortKeySpec = -1;
-static gint ett_z3950_SortResponse = -1;
-static gint ett_z3950_SortKeySpec = -1;
-static gint ett_z3950_T_missingValueAction = -1;
-static gint ett_z3950_SortElement = -1;
-static gint ett_z3950_T_datbaseSpecific = -1;
-static gint ett_z3950_T_datbaseSpecific_item = -1;
-static gint ett_z3950_SortKey = -1;
-static gint ett_z3950_T_sortAttributes = -1;
-static gint ett_z3950_ExtendedServicesRequest = -1;
-static gint ett_z3950_ExtendedServicesResponse = -1;
-static gint ett_z3950_Permissions = -1;
-static gint ett_z3950_Permissions_item = -1;
-static gint ett_z3950_T_allowableFunctions = -1;
-static gint ett_z3950_Close = -1;
-static gint ett_z3950_OtherInformation_U = -1;
-static gint ett_z3950_T__untag_item = -1;
-static gint ett_z3950_T_information = -1;
-static gint ett_z3950_InfoCategory = -1;
-static gint ett_z3950_IntUnit = -1;
-static gint ett_z3950_Unit = -1;
-static gint ett_z3950_StringOrNumeric = -1;
-static gint ett_z3950_OCLC_UserInformation = -1;
-static gint ett_z3950_SEQUENCE_OF_DBName = -1;
-static gint ett_z3950_OPACRecord = -1;
-static gint ett_z3950_SEQUENCE_OF_HoldingsRecord = -1;
-static gint ett_z3950_HoldingsRecord = -1;
-static gint ett_z3950_HoldingsAndCircData = -1;
-static gint ett_z3950_SEQUENCE_OF_Volume = -1;
-static gint ett_z3950_SEQUENCE_OF_CircRecord = -1;
-static gint ett_z3950_Volume = -1;
-static gint ett_z3950_CircRecord = -1;
-static gint ett_z3950_DiagnosticFormat = -1;
-static gint ett_z3950_DiagnosticFormat_item = -1;
-static gint ett_z3950_T_diagnosticFormat_item_diagnostic = -1;
-static gint ett_z3950_DiagFormat = -1;
-static gint ett_z3950_T_tooMany = -1;
-static gint ett_z3950_T_badSpec = -1;
-static gint ett_z3950_SEQUENCE_OF_Specification = -1;
-static gint ett_z3950_T_dbUnavail = -1;
-static gint ett_z3950_T_why = -1;
-static gint ett_z3950_T_attribute = -1;
-static gint ett_z3950_T_attCombo = -1;
-static gint ett_z3950_SEQUENCE_OF_AttributeList = -1;
-static gint ett_z3950_T_diagFormat_term = -1;
-static gint ett_z3950_T_diagFormat_proximity = -1;
-static gint ett_z3950_T_scan = -1;
-static gint ett_z3950_T_sort = -1;
-static gint ett_z3950_T_segmentation = -1;
-static gint ett_z3950_T_extServices = -1;
-static gint ett_z3950_T_accessCtrl = -1;
-static gint ett_z3950_T_diagFormat_accessCtrl_oid = -1;
-static gint ett_z3950_T_alternative = -1;
-static gint ett_z3950_T_diagFormat_recordSyntax = -1;
-static gint ett_z3950_T_suggestedAlternatives = -1;
-static gint ett_z3950_Explain_Record = -1;
-static gint ett_z3950_TargetInfo = -1;
-static gint ett_z3950_SEQUENCE_OF_DatabaseList = -1;
-static gint ett_z3950_SEQUENCE_OF_NetworkAddress = -1;
-static gint ett_z3950_DatabaseInfo = -1;
-static gint ett_z3950_SEQUENCE_OF_HumanString = -1;
-static gint ett_z3950_T_recordCount = -1;
-static gint ett_z3950_SchemaInfo = -1;
-static gint ett_z3950_T_tagTypeMapping = -1;
-static gint ett_z3950_T_tagTypeMapping_item = -1;
-static gint ett_z3950_SEQUENCE_OF_ElementInfo = -1;
-static gint ett_z3950_ElementInfo = -1;
-static gint ett_z3950_Path = -1;
-static gint ett_z3950_Path_item = -1;
-static gint ett_z3950_ElementDataType = -1;
-static gint ett_z3950_TagSetInfo = -1;
-static gint ett_z3950_T_tagSetInfo_elements = -1;
-static gint ett_z3950_T_tagSetInfo_elements_item = -1;
-static gint ett_z3950_RecordSyntaxInfo = -1;
-static gint ett_z3950_T_transferSyntaxes = -1;
-static gint ett_z3950_AttributeSetInfo = -1;
-static gint ett_z3950_SEQUENCE_OF_AttributeType = -1;
-static gint ett_z3950_AttributeType = -1;
-static gint ett_z3950_SEQUENCE_OF_AttributeDescription = -1;
-static gint ett_z3950_AttributeDescription = -1;
-static gint ett_z3950_TermListInfo = -1;
-static gint ett_z3950_T_termLists = -1;
-static gint ett_z3950_T_termLists_item = -1;
-static gint ett_z3950_ExtendedServicesInfo = -1;
-static gint ett_z3950_AttributeDetails = -1;
-static gint ett_z3950_SEQUENCE_OF_AttributeSetDetails = -1;
-static gint ett_z3950_AttributeSetDetails = -1;
-static gint ett_z3950_SEQUENCE_OF_AttributeTypeDetails = -1;
-static gint ett_z3950_AttributeTypeDetails = -1;
-static gint ett_z3950_SEQUENCE_OF_AttributeValue = -1;
-static gint ett_z3950_OmittedAttributeInterpretation = -1;
-static gint ett_z3950_AttributeValue = -1;
-static gint ett_z3950_TermListDetails = -1;
-static gint ett_z3950_T_scanInfo = -1;
-static gint ett_z3950_SEQUENCE_OF_Term = -1;
-static gint ett_z3950_ElementSetDetails = -1;
-static gint ett_z3950_SEQUENCE_OF_PerElementDetails = -1;
-static gint ett_z3950_RetrievalRecordDetails = -1;
-static gint ett_z3950_PerElementDetails = -1;
-static gint ett_z3950_SEQUENCE_OF_Path = -1;
-static gint ett_z3950_RecordTag = -1;
-static gint ett_z3950_SortDetails = -1;
-static gint ett_z3950_SEQUENCE_OF_SortKeyDetails = -1;
-static gint ett_z3950_SortKeyDetails = -1;
-static gint ett_z3950_T_sortType = -1;
-static gint ett_z3950_ProcessingInformation = -1;
-static gint ett_z3950_VariantSetInfo = -1;
-static gint ett_z3950_SEQUENCE_OF_VariantClass = -1;
-static gint ett_z3950_VariantClass = -1;
-static gint ett_z3950_SEQUENCE_OF_VariantType = -1;
-static gint ett_z3950_VariantType = -1;
-static gint ett_z3950_VariantValue = -1;
-static gint ett_z3950_ValueSet = -1;
-static gint ett_z3950_SEQUENCE_OF_ValueDescription = -1;
-static gint ett_z3950_ValueRange = -1;
-static gint ett_z3950_ValueDescription = -1;
-static gint ett_z3950_UnitInfo = -1;
-static gint ett_z3950_SEQUENCE_OF_UnitType = -1;
-static gint ett_z3950_UnitType = -1;
-static gint ett_z3950_SEQUENCE_OF_Units = -1;
-static gint ett_z3950_Units = -1;
-static gint ett_z3950_CategoryList = -1;
-static gint ett_z3950_SEQUENCE_OF_CategoryInfo = -1;
-static gint ett_z3950_CategoryInfo = -1;
-static gint ett_z3950_CommonInfo = -1;
-static gint ett_z3950_HumanString = -1;
-static gint ett_z3950_HumanString_item = -1;
-static gint ett_z3950_IconObject = -1;
-static gint ett_z3950_IconObject_item = -1;
-static gint ett_z3950_T_bodyType = -1;
-static gint ett_z3950_ContactInfo = -1;
-static gint ett_z3950_NetworkAddress = -1;
-static gint ett_z3950_T_internetAddress = -1;
-static gint ett_z3950_T_osiPresentationAddress = -1;
-static gint ett_z3950_T_networkAddress_other = -1;
-static gint ett_z3950_AccessInfo = -1;
-static gint ett_z3950_SEQUENCE_OF_QueryTypeDetails = -1;
-static gint ett_z3950_T_diagnosticsSets = -1;
-static gint ett_z3950_SEQUENCE_OF_AttributeSetId = -1;
-static gint ett_z3950_T_schemas = -1;
-static gint ett_z3950_T_recordSyntaxes = -1;
-static gint ett_z3950_T_resourceChallenges = -1;
-static gint ett_z3950_T_variantSets = -1;
-static gint ett_z3950_SEQUENCE_OF_ElementSetName = -1;
-static gint ett_z3950_QueryTypeDetails = -1;
-static gint ett_z3950_PrivateCapabilities = -1;
-static gint ett_z3950_T_privateCapabilities_operators = -1;
-static gint ett_z3950_T_privateCapabilities_operators_item = -1;
-static gint ett_z3950_SEQUENCE_OF_SearchKey = -1;
-static gint ett_z3950_RpnCapabilities = -1;
-static gint ett_z3950_T_operators = -1;
-static gint ett_z3950_Iso8777Capabilities = -1;
-static gint ett_z3950_ProximitySupport = -1;
-static gint ett_z3950_T_unitsSupported = -1;
-static gint ett_z3950_T_unitsSupported_item = -1;
-static gint ett_z3950_T_proximitySupport_unitsSupported_item_private = -1;
-static gint ett_z3950_SearchKey = -1;
-static gint ett_z3950_AccessRestrictions = -1;
-static gint ett_z3950_AccessRestrictions_item = -1;
-static gint ett_z3950_T_accessChallenges = -1;
-static gint ett_z3950_Costs = -1;
-static gint ett_z3950_T_otherCharges = -1;
-static gint ett_z3950_T_otherCharges_item = -1;
-static gint ett_z3950_Charge = -1;
-static gint ett_z3950_DatabaseList = -1;
-static gint ett_z3950_AttributeCombinations = -1;
-static gint ett_z3950_SEQUENCE_OF_AttributeCombination = -1;
-static gint ett_z3950_AttributeCombination = -1;
-static gint ett_z3950_AttributeOccurrence = -1;
-static gint ett_z3950_T_attributeOccurrence_attributeValues = -1;
-static gint ett_z3950_BriefBib = -1;
-static gint ett_z3950_SEQUENCE_OF_FormatSpec = -1;
-static gint ett_z3950_FormatSpec = -1;
-static gint ett_z3950_GenericRecord = -1;
-static gint ett_z3950_TaggedElement = -1;
-static gint ett_z3950_ElementData = -1;
-static gint ett_z3950_SEQUENCE_OF_TaggedElement = -1;
-static gint ett_z3950_ElementMetaData = -1;
-static gint ett_z3950_SEQUENCE_OF_HitVector = -1;
-static gint ett_z3950_SEQUENCE_OF_Variant = -1;
-static gint ett_z3950_TagPath = -1;
-static gint ett_z3950_TagPath_item = -1;
-static gint ett_z3950_Order = -1;
-static gint ett_z3950_Usage = -1;
-static gint ett_z3950_HitVector = -1;
-static gint ett_z3950_Variant = -1;
-static gint ett_z3950_T_triples = -1;
-static gint ett_z3950_T_triples_item = -1;
-static gint ett_z3950_T_variant_triples_item_value = -1;
-static gint ett_z3950_TaskPackage = -1;
-static gint ett_z3950_PromptObject = -1;
-static gint ett_z3950_Challenge = -1;
-static gint ett_z3950_Challenge_item = -1;
-static gint ett_z3950_T_promptInfo = -1;
-static gint ett_z3950_Response = -1;
-static gint ett_z3950_Response_item = -1;
-static gint ett_z3950_T_promptResponse = -1;
-static gint ett_z3950_PromptId = -1;
-static gint ett_z3950_T_enummeratedPrompt = -1;
-static gint ett_z3950_Encryption = -1;
-static gint ett_z3950_DES_RN_Object = -1;
-static gint ett_z3950_DRNType = -1;
-static gint ett_z3950_KRBObject = -1;
-static gint ett_z3950_KRBRequest = -1;
-static gint ett_z3950_KRBResponse = -1;
-static gint ett_z3950_SearchInfoReport = -1;
-static gint ett_z3950_SearchInfoReport_item = -1;
-static gint ett_z3950_ResultsByDB = -1;
-static gint ett_z3950_ResultsByDB_item = -1;
-static gint ett_z3950_T_databases = -1;
-static gint ett_z3950_QueryExpression = -1;
-static gint ett_z3950_T_queryExpression_term = -1;
+static int ett_z3950_PDU;
+static int ett_z3950_InitializeRequest;
+static int ett_z3950_T_idAuthentication;
+static int ett_z3950_T_idPass;
+static int ett_z3950_InitializeResponse;
+static int ett_z3950_ProtocolVersion_U;
+static int ett_z3950_Options_U;
+static int ett_z3950_SearchRequest;
+static int ett_z3950_SEQUENCE_OF_DatabaseName;
+static int ett_z3950_Query;
+static int ett_z3950_RPNQuery;
+static int ett_z3950_RPNStructure;
+static int ett_z3950_T_rpnRpnOp;
+static int ett_z3950_Operand;
+static int ett_z3950_AttributesPlusTerm_U;
+static int ett_z3950_ResultSetPlusAttributes_U;
+static int ett_z3950_SEQUENCE_OF_AttributeElement;
+static int ett_z3950_Term;
+static int ett_z3950_Operator_U;
+static int ett_z3950_AttributeElement;
+static int ett_z3950_T_attributeValue;
+static int ett_z3950_T_attributeValue_complex;
+static int ett_z3950_SEQUENCE_OF_StringOrNumeric;
+static int ett_z3950_T_semanticAction;
+static int ett_z3950_ProximityOperator;
+static int ett_z3950_T_proximityUnitCode;
+static int ett_z3950_SearchResponse;
+static int ett_z3950_PresentRequest;
+static int ett_z3950_SEQUENCE_OF_Range;
+static int ett_z3950_T_recordComposition;
+static int ett_z3950_Segment;
+static int ett_z3950_SEQUENCE_OF_NamePlusRecord;
+static int ett_z3950_PresentResponse;
+static int ett_z3950_Records;
+static int ett_z3950_SEQUENCE_OF_DiagRec;
+static int ett_z3950_NamePlusRecord;
+static int ett_z3950_T_record;
+static int ett_z3950_FragmentSyntax;
+static int ett_z3950_DiagRec;
+static int ett_z3950_DefaultDiagFormat;
+static int ett_z3950_T_addinfo;
+static int ett_z3950_Range;
+static int ett_z3950_ElementSetNames;
+static int ett_z3950_T_databaseSpecific;
+static int ett_z3950_T_databaseSpecific_item;
+static int ett_z3950_CompSpec;
+static int ett_z3950_T_dbSpecific;
+static int ett_z3950_T_dbSpecific_item;
+static int ett_z3950_T_compSpec_recordSyntax;
+static int ett_z3950_Specification;
+static int ett_z3950_T_specification_elementSpec;
+static int ett_z3950_DeleteResultSetRequest;
+static int ett_z3950_SEQUENCE_OF_ResultSetId;
+static int ett_z3950_DeleteResultSetResponse;
+static int ett_z3950_ListStatuses;
+static int ett_z3950_ListStatuses_item;
+static int ett_z3950_AccessControlRequest;
+static int ett_z3950_T_securityChallenge;
+static int ett_z3950_AccessControlResponse;
+static int ett_z3950_T_securityChallengeResponse;
+static int ett_z3950_ResourceControlRequest;
+static int ett_z3950_ResourceControlResponse;
+static int ett_z3950_TriggerResourceControlRequest;
+static int ett_z3950_ResourceReportRequest;
+static int ett_z3950_ResourceReportResponse;
+static int ett_z3950_ScanRequest;
+static int ett_z3950_ScanResponse;
+static int ett_z3950_ListEntries;
+static int ett_z3950_SEQUENCE_OF_Entry;
+static int ett_z3950_Entry;
+static int ett_z3950_TermInfo;
+static int ett_z3950_SEQUENCE_OF_AttributesPlusTerm;
+static int ett_z3950_OccurrenceByAttributes;
+static int ett_z3950_OccurrenceByAttributes_item;
+static int ett_z3950_T_occurrences;
+static int ett_z3950_T_byDatabase;
+static int ett_z3950_T_byDatabase_item;
+static int ett_z3950_SortRequest;
+static int ett_z3950_SEQUENCE_OF_InternationalString;
+static int ett_z3950_SEQUENCE_OF_SortKeySpec;
+static int ett_z3950_SortResponse;
+static int ett_z3950_SortKeySpec;
+static int ett_z3950_T_missingValueAction;
+static int ett_z3950_SortElement;
+static int ett_z3950_T_datbaseSpecific;
+static int ett_z3950_T_datbaseSpecific_item;
+static int ett_z3950_SortKey;
+static int ett_z3950_T_sortAttributes;
+static int ett_z3950_ExtendedServicesRequest;
+static int ett_z3950_ExtendedServicesResponse;
+static int ett_z3950_Permissions;
+static int ett_z3950_Permissions_item;
+static int ett_z3950_T_allowableFunctions;
+static int ett_z3950_Close;
+static int ett_z3950_OtherInformation_U;
+static int ett_z3950_T__untag_item;
+static int ett_z3950_T_information;
+static int ett_z3950_InfoCategory;
+static int ett_z3950_IntUnit;
+static int ett_z3950_Unit;
+static int ett_z3950_StringOrNumeric;
+static int ett_z3950_OCLC_UserInformation;
+static int ett_z3950_SEQUENCE_OF_DBName;
+static int ett_z3950_OPACRecord;
+static int ett_z3950_SEQUENCE_OF_HoldingsRecord;
+static int ett_z3950_HoldingsRecord;
+static int ett_z3950_HoldingsAndCircData;
+static int ett_z3950_SEQUENCE_OF_Volume;
+static int ett_z3950_SEQUENCE_OF_CircRecord;
+static int ett_z3950_Volume;
+static int ett_z3950_CircRecord;
+static int ett_z3950_DiagnosticFormat;
+static int ett_z3950_DiagnosticFormat_item;
+static int ett_z3950_T_diagnosticFormat_item_diagnostic;
+static int ett_z3950_DiagFormat;
+static int ett_z3950_T_tooMany;
+static int ett_z3950_T_badSpec;
+static int ett_z3950_SEQUENCE_OF_Specification;
+static int ett_z3950_T_dbUnavail;
+static int ett_z3950_T_why;
+static int ett_z3950_T_attribute;
+static int ett_z3950_T_attCombo;
+static int ett_z3950_SEQUENCE_OF_AttributeList;
+static int ett_z3950_T_diagFormat_term;
+static int ett_z3950_T_diagFormat_proximity;
+static int ett_z3950_T_scan;
+static int ett_z3950_T_sort;
+static int ett_z3950_T_segmentation;
+static int ett_z3950_T_extServices;
+static int ett_z3950_T_accessCtrl;
+static int ett_z3950_T_diagFormat_accessCtrl_oid;
+static int ett_z3950_T_alternative;
+static int ett_z3950_T_diagFormat_recordSyntax;
+static int ett_z3950_T_suggestedAlternatives;
+static int ett_z3950_Explain_Record;
+static int ett_z3950_TargetInfo;
+static int ett_z3950_SEQUENCE_OF_DatabaseList;
+static int ett_z3950_SEQUENCE_OF_NetworkAddress;
+static int ett_z3950_DatabaseInfo;
+static int ett_z3950_SEQUENCE_OF_HumanString;
+static int ett_z3950_T_recordCount;
+static int ett_z3950_SchemaInfo;
+static int ett_z3950_T_tagTypeMapping;
+static int ett_z3950_T_tagTypeMapping_item;
+static int ett_z3950_SEQUENCE_OF_ElementInfo;
+static int ett_z3950_ElementInfo;
+static int ett_z3950_Path;
+static int ett_z3950_Path_item;
+static int ett_z3950_ElementDataType;
+static int ett_z3950_TagSetInfo;
+static int ett_z3950_T_tagSetInfo_elements;
+static int ett_z3950_T_tagSetInfo_elements_item;
+static int ett_z3950_RecordSyntaxInfo;
+static int ett_z3950_T_transferSyntaxes;
+static int ett_z3950_AttributeSetInfo;
+static int ett_z3950_SEQUENCE_OF_AttributeType;
+static int ett_z3950_AttributeType;
+static int ett_z3950_SEQUENCE_OF_AttributeDescription;
+static int ett_z3950_AttributeDescription;
+static int ett_z3950_TermListInfo;
+static int ett_z3950_T_termLists;
+static int ett_z3950_T_termLists_item;
+static int ett_z3950_ExtendedServicesInfo;
+static int ett_z3950_AttributeDetails;
+static int ett_z3950_SEQUENCE_OF_AttributeSetDetails;
+static int ett_z3950_AttributeSetDetails;
+static int ett_z3950_SEQUENCE_OF_AttributeTypeDetails;
+static int ett_z3950_AttributeTypeDetails;
+static int ett_z3950_SEQUENCE_OF_AttributeValue;
+static int ett_z3950_OmittedAttributeInterpretation;
+static int ett_z3950_AttributeValue;
+static int ett_z3950_TermListDetails;
+static int ett_z3950_T_scanInfo;
+static int ett_z3950_SEQUENCE_OF_Term;
+static int ett_z3950_ElementSetDetails;
+static int ett_z3950_SEQUENCE_OF_PerElementDetails;
+static int ett_z3950_RetrievalRecordDetails;
+static int ett_z3950_PerElementDetails;
+static int ett_z3950_SEQUENCE_OF_Path;
+static int ett_z3950_RecordTag;
+static int ett_z3950_SortDetails;
+static int ett_z3950_SEQUENCE_OF_SortKeyDetails;
+static int ett_z3950_SortKeyDetails;
+static int ett_z3950_T_sortType;
+static int ett_z3950_ProcessingInformation;
+static int ett_z3950_VariantSetInfo;
+static int ett_z3950_SEQUENCE_OF_VariantClass;
+static int ett_z3950_VariantClass;
+static int ett_z3950_SEQUENCE_OF_VariantType;
+static int ett_z3950_VariantType;
+static int ett_z3950_VariantValue;
+static int ett_z3950_ValueSet;
+static int ett_z3950_SEQUENCE_OF_ValueDescription;
+static int ett_z3950_ValueRange;
+static int ett_z3950_ValueDescription;
+static int ett_z3950_UnitInfo;
+static int ett_z3950_SEQUENCE_OF_UnitType;
+static int ett_z3950_UnitType;
+static int ett_z3950_SEQUENCE_OF_Units;
+static int ett_z3950_Units;
+static int ett_z3950_CategoryList;
+static int ett_z3950_SEQUENCE_OF_CategoryInfo;
+static int ett_z3950_CategoryInfo;
+static int ett_z3950_CommonInfo;
+static int ett_z3950_HumanString;
+static int ett_z3950_HumanString_item;
+static int ett_z3950_IconObject;
+static int ett_z3950_IconObject_item;
+static int ett_z3950_T_bodyType;
+static int ett_z3950_ContactInfo;
+static int ett_z3950_NetworkAddress;
+static int ett_z3950_T_internetAddress;
+static int ett_z3950_T_osiPresentationAddress;
+static int ett_z3950_T_networkAddress_other;
+static int ett_z3950_AccessInfo;
+static int ett_z3950_SEQUENCE_OF_QueryTypeDetails;
+static int ett_z3950_T_diagnosticsSets;
+static int ett_z3950_SEQUENCE_OF_AttributeSetId;
+static int ett_z3950_T_schemas;
+static int ett_z3950_T_recordSyntaxes;
+static int ett_z3950_T_resourceChallenges;
+static int ett_z3950_T_variantSets;
+static int ett_z3950_SEQUENCE_OF_ElementSetName;
+static int ett_z3950_QueryTypeDetails;
+static int ett_z3950_PrivateCapabilities;
+static int ett_z3950_T_privateCapabilities_operators;
+static int ett_z3950_T_privateCapabilities_operators_item;
+static int ett_z3950_SEQUENCE_OF_SearchKey;
+static int ett_z3950_RpnCapabilities;
+static int ett_z3950_T_operators;
+static int ett_z3950_Iso8777Capabilities;
+static int ett_z3950_ProximitySupport;
+static int ett_z3950_T_unitsSupported;
+static int ett_z3950_T_unitsSupported_item;
+static int ett_z3950_T_proximitySupport_unitsSupported_item_private;
+static int ett_z3950_SearchKey;
+static int ett_z3950_AccessRestrictions;
+static int ett_z3950_AccessRestrictions_item;
+static int ett_z3950_T_accessChallenges;
+static int ett_z3950_Costs;
+static int ett_z3950_T_otherCharges;
+static int ett_z3950_T_otherCharges_item;
+static int ett_z3950_Charge;
+static int ett_z3950_DatabaseList;
+static int ett_z3950_AttributeCombinations;
+static int ett_z3950_SEQUENCE_OF_AttributeCombination;
+static int ett_z3950_AttributeCombination;
+static int ett_z3950_AttributeOccurrence;
+static int ett_z3950_T_attributeOccurrence_attributeValues;
+static int ett_z3950_BriefBib;
+static int ett_z3950_SEQUENCE_OF_FormatSpec;
+static int ett_z3950_FormatSpec;
+static int ett_z3950_GenericRecord;
+static int ett_z3950_TaggedElement;
+static int ett_z3950_ElementData;
+static int ett_z3950_SEQUENCE_OF_TaggedElement;
+static int ett_z3950_ElementMetaData;
+static int ett_z3950_SEQUENCE_OF_HitVector;
+static int ett_z3950_SEQUENCE_OF_Variant;
+static int ett_z3950_TagPath;
+static int ett_z3950_TagPath_item;
+static int ett_z3950_Order;
+static int ett_z3950_Usage;
+static int ett_z3950_HitVector;
+static int ett_z3950_Variant;
+static int ett_z3950_T_triples;
+static int ett_z3950_T_triples_item;
+static int ett_z3950_T_variant_triples_item_value;
+static int ett_z3950_TaskPackage;
+static int ett_z3950_PromptObject;
+static int ett_z3950_Challenge;
+static int ett_z3950_Challenge_item;
+static int ett_z3950_T_promptInfo;
+static int ett_z3950_Response;
+static int ett_z3950_Response_item;
+static int ett_z3950_T_promptResponse;
+static int ett_z3950_PromptId;
+static int ett_z3950_T_enummeratedPrompt;
+static int ett_z3950_Encryption;
+static int ett_z3950_DES_RN_Object;
+static int ett_z3950_DRNType;
+static int ett_z3950_KRBObject;
+static int ett_z3950_KRBRequest;
+static int ett_z3950_KRBResponse;
+static int ett_z3950_SearchInfoReport;
+static int ett_z3950_SearchInfoReport_item;
+static int ett_z3950_ResultsByDB;
+static int ett_z3950_ResultsByDB_item;
+static int ett_z3950_T_databases;
+static int ett_z3950_QueryExpression;
+static int ett_z3950_T_queryExpression_term;
 
 /* MARC variables and forwards */
 
 static int dissect_marc_record(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, void * data _U_);
 
 /* MARC fields */
-static int hf_marc_record = -1;
-static int hf_marc_record_terminator = -1;
-static int hf_marc_leader = -1;
-static int hf_marc_leader_length = -1;
-static int hf_marc_leader_status = -1;
-static int hf_marc_leader_type = -1;
-static int hf_marc_leader_biblevel = -1;
-static int hf_marc_leader_control = -1;
-static int hf_marc_leader_encoding = -1;
-static int hf_marc_leader_indicator_count = -1;
-static int hf_marc_leader_subfield_count = -1;
-static int hf_marc_leader_data_offset = -1;
-static int hf_marc_leader_encoding_level = -1;
-static int hf_marc_leader_descriptive_cataloging = -1;
-static int hf_marc_leader_multipart_level = -1;
-static int hf_marc_leader_length_of_field_length = -1;
-static int hf_marc_leader_starting_character_position_length = -1;
-static int hf_marc_leader_implementation_defined_length = -1;
-static int hf_marc_directory = -1;
-static int hf_marc_directory_entry = -1;
-static int hf_marc_directory_entry_tag = -1;
-static int hf_marc_directory_entry_length = -1;
-static int hf_marc_directory_entry_starting_position = -1;
-static int hf_marc_directory_terminator = -1;
-static int hf_marc_fields = -1;
-static int hf_marc_field = -1;
-static int hf_marc_field_control = -1;
-static int hf_marc_field_terminator = -1;
-static int hf_marc_field_indicator1 = -1;
-static int hf_marc_field_indicator2 = -1;
-static int hf_marc_field_subfield_indicator = -1;
-static int hf_marc_field_subfield_tag = -1;
-static int hf_marc_field_subfield = -1;
+static int hf_marc_record;
+static int hf_marc_record_terminator;
+static int hf_marc_leader;
+static int hf_marc_leader_length;
+static int hf_marc_leader_status;
+static int hf_marc_leader_type;
+static int hf_marc_leader_biblevel;
+static int hf_marc_leader_control;
+static int hf_marc_leader_encoding;
+static int hf_marc_leader_indicator_count;
+static int hf_marc_leader_subfield_count;
+static int hf_marc_leader_data_offset;
+static int hf_marc_leader_encoding_level;
+static int hf_marc_leader_descriptive_cataloging;
+static int hf_marc_leader_multipart_level;
+static int hf_marc_leader_length_of_field_length;
+static int hf_marc_leader_starting_character_position_length;
+static int hf_marc_leader_implementation_defined_length;
+static int hf_marc_directory;
+static int hf_marc_directory_entry;
+static int hf_marc_directory_entry_tag;
+static int hf_marc_directory_entry_length;
+static int hf_marc_directory_entry_starting_position;
+static int hf_marc_directory_terminator;
+static int hf_marc_fields;
+static int hf_marc_field;
+static int hf_marc_field_control;
+static int hf_marc_field_terminator;
+static int hf_marc_field_indicator1;
+static int hf_marc_field_indicator2;
+static int hf_marc_field_subfield_indicator;
+static int hf_marc_field_subfield_tag;
+static int hf_marc_field_subfield;
 
 /* MARC subtree pointers */
-static int ett_marc_record = -1;
-static int ett_marc_leader = -1;
-static int ett_marc_directory = -1;
-static int ett_marc_directory_entry = -1;
-static int ett_marc_fields = -1;
-static int ett_marc_field = -1;
+static int ett_marc_record;
+static int ett_marc_leader;
+static int ett_marc_directory;
+static int ett_marc_directory_entry;
+static int ett_marc_fields;
+static int ett_marc_field;
 
 /* MARC expert fields */
-static expert_field ei_marc_invalid_length = EI_INIT;
-static expert_field ei_marc_invalid_value = EI_INIT;
-static expert_field ei_marc_invalid_record_length = EI_INIT;
+static expert_field ei_marc_invalid_length;
+static expert_field ei_marc_invalid_value;
+static expert_field ei_marc_invalid_record_length;
 
 /* MARC value strings */
 
@@ -2022,10 +2023,10 @@ static const value_string marc_tag_names[] = {
 };
 
 static int
-dissect_z3950_printable_OCTET_STRING(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_z3950_printable_OCTET_STRING(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
     tvbuff_t *next_tvb = NULL;
-    int hf_alternate = -1;
-    guint old_offset = offset;
+    int hf_alternate = 0;
+    unsigned old_offset = offset;
 
     if (hf_index == hf_z3950_referenceId) {
         hf_alternate = hf_z3950_referenceId_printable;
@@ -2061,19 +2062,19 @@ dissect_z3950_printable_OCTET_STRING(gboolean implicit_tag _U_, tvbuff_t *tvb _U
 
 /* RPNStructure -> RPNStructure/rpnRpnOp -> RPNStructure */
 /* RPNStructure -> RPNStructure/rpnRpnOp -> RPNStructure */
-static int dissect_z3950_RPNStructure(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_);
+static int dissect_z3950_RPNStructure(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_);
 
 /* ElementInfo -> ElementDataType -> ElementDataType/structured -> ElementInfo */
-static int dissect_z3950_ElementInfo(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_);
+static int dissect_z3950_ElementInfo(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_);
 
 /* TaggedElement -> ElementData -> ElementData/subtree -> TaggedElement */
-static int dissect_z3950_TaggedElement(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_);
+static int dissect_z3950_TaggedElement(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_);
 
 
 
 
 static int
-dissect_z3950_OCTET_STRING(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_z3950_OCTET_STRING(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_octet_string(implicit_tag, actx, tree, tvb, offset, hf_index,
                                        NULL);
 
@@ -2083,9 +2084,9 @@ dissect_z3950_OCTET_STRING(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int off
 
 
 static int
-dissect_z3950_ReferenceId(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_z3950_ReferenceId(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_tagged_type(implicit_tag, actx, tree, tvb, offset,
-              hf_index, BER_CLASS_CON, 2, TRUE,
+              hf_index, BER_CLASS_CON, 2, true,
               dissect_z3950_printable_OCTET_STRING);
 
 
@@ -2101,7 +2102,7 @@ static int * const ProtocolVersion_U_bits[] = {
 };
 
 static int
-dissect_z3950_ProtocolVersion_U(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_z3950_ProtocolVersion_U(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_bitstring(implicit_tag, actx, tree, tvb, offset,
                                     ProtocolVersion_U_bits, 3, hf_index, ett_z3950_ProtocolVersion_U,
                                     NULL);
@@ -2112,9 +2113,9 @@ dissect_z3950_ProtocolVersion_U(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, in
 
 
 static int
-dissect_z3950_ProtocolVersion(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_z3950_ProtocolVersion(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_tagged_type(implicit_tag, actx, tree, tvb, offset,
-                                      hf_index, BER_CLASS_CON, 3, TRUE, dissect_z3950_ProtocolVersion_U);
+                                      hf_index, BER_CLASS_CON, 3, true, dissect_z3950_ProtocolVersion_U);
 
   return offset;
 }
@@ -2140,7 +2141,7 @@ static int * const Options_U_bits[] = {
 };
 
 static int
-dissect_z3950_Options_U(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_z3950_Options_U(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_bitstring(implicit_tag, actx, tree, tvb, offset,
                                     Options_U_bits, 15, hf_index, ett_z3950_Options_U,
                                     NULL);
@@ -2151,9 +2152,9 @@ dissect_z3950_Options_U(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset
 
 
 static int
-dissect_z3950_Options(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_z3950_Options(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_tagged_type(implicit_tag, actx, tree, tvb, offset,
-                                      hf_index, BER_CLASS_CON, 4, TRUE, dissect_z3950_Options_U);
+                                      hf_index, BER_CLASS_CON, 4, true, dissect_z3950_Options_U);
 
   return offset;
 }
@@ -2161,7 +2162,7 @@ dissect_z3950_Options(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _
 
 
 static int
-dissect_z3950_INTEGER(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_z3950_INTEGER(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_integer(implicit_tag, actx, tree, tvb, offset, hf_index,
                                                 NULL);
 
@@ -2171,7 +2172,7 @@ dissect_z3950_INTEGER(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _
 
 
 static int
-dissect_z3950_VisibleString(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_z3950_VisibleString(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_restricted_string(implicit_tag, BER_UNI_TAG_VisibleString,
                                             actx, tree, tvb, offset, hf_index,
                                             NULL);
@@ -2182,7 +2183,7 @@ dissect_z3950_VisibleString(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int of
 
 
 static int
-dissect_z3950_InternationalString(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_z3950_InternationalString(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_restricted_string(implicit_tag, BER_UNI_TAG_GeneralString,
                                             actx, tree, tvb, offset, hf_index,
                                             NULL);
@@ -2199,7 +2200,7 @@ static const ber_sequence_t T_idPass_sequence[] = {
 };
 
 static int
-dissect_z3950_T_idPass(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_z3950_T_idPass(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence(implicit_tag, actx, tree, tvb, offset,
                                    T_idPass_sequence, hf_index, ett_z3950_T_idPass);
 
@@ -2209,7 +2210,7 @@ dissect_z3950_T_idPass(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset 
 
 
 static int
-dissect_z3950_NULL(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_z3950_NULL(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_null(implicit_tag, actx, tree, tvb, offset, hf_index);
 
   return offset;
@@ -2218,7 +2219,7 @@ dissect_z3950_NULL(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_,
 
 
 static int
-dissect_z3950_EXTERNAL(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_z3950_EXTERNAL(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_external_type(implicit_tag, tree, tvb, offset, actx, hf_index, NULL);
 
   return offset;
@@ -2242,7 +2243,7 @@ static const ber_choice_t T_idAuthentication_choice[] = {
 };
 
 static int
-dissect_z3950_T_idAuthentication(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_z3950_T_idAuthentication(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_choice(actx, tree, tvb, offset,
                                  T_idAuthentication_choice, hf_index, ett_z3950_T_idAuthentication,
                                  NULL);
@@ -2253,7 +2254,7 @@ dissect_z3950_T_idAuthentication(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, i
 
 
 static int
-dissect_z3950_OBJECT_IDENTIFIER(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_z3950_OBJECT_IDENTIFIER(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_object_identifier(implicit_tag, actx, tree, tvb, offset, hf_index, NULL);
 
   return offset;
@@ -2267,7 +2268,7 @@ static const ber_sequence_t InfoCategory_sequence[] = {
 };
 
 static int
-dissect_z3950_InfoCategory(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_z3950_InfoCategory(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence(implicit_tag, actx, tree, tvb, offset,
                                    InfoCategory_sequence, hf_index, ett_z3950_InfoCategory);
 
@@ -2292,7 +2293,7 @@ static const ber_choice_t T_information_choice[] = {
 };
 
 static int
-dissect_z3950_T_information(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_z3950_T_information(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_choice(actx, tree, tvb, offset,
                                  T_information_choice, hf_index, ett_z3950_T_information,
                                  NULL);
@@ -2308,7 +2309,7 @@ static const ber_sequence_t T__untag_item_sequence[] = {
 };
 
 static int
-dissect_z3950_T__untag_item(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_z3950_T__untag_item(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence(implicit_tag, actx, tree, tvb, offset,
                                    T__untag_item_sequence, hf_index, ett_z3950_T__untag_item);
 
@@ -2321,7 +2322,7 @@ static const ber_sequence_t OtherInformation_U_sequence_of[1] = {
 };
 
 static int
-dissect_z3950_OtherInformation_U(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_z3950_OtherInformation_U(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence_of(implicit_tag, actx, tree, tvb, offset,
                                       OtherInformation_U_sequence_of, hf_index, ett_z3950_OtherInformation_U);
 
@@ -2331,9 +2332,9 @@ dissect_z3950_OtherInformation_U(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, i
 
 
 static int
-dissect_z3950_OtherInformation(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_z3950_OtherInformation(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_tagged_type(implicit_tag, actx, tree, tvb, offset,
-                                      hf_index, BER_CLASS_CON, 201, TRUE, dissect_z3950_OtherInformation_U);
+                                      hf_index, BER_CLASS_CON, 201, true, dissect_z3950_OtherInformation_U);
 
   return offset;
 }
@@ -2355,7 +2356,7 @@ static const ber_sequence_t InitializeRequest_sequence[] = {
 };
 
 static int
-dissect_z3950_InitializeRequest(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_z3950_InitializeRequest(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence(implicit_tag, actx, tree, tvb, offset,
                                    InitializeRequest_sequence, hf_index, ett_z3950_InitializeRequest);
 
@@ -2365,7 +2366,7 @@ dissect_z3950_InitializeRequest(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, in
 
 
 static int
-dissect_z3950_BOOLEAN(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_z3950_BOOLEAN(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_boolean(implicit_tag, actx, tree, tvb, offset, hf_index, NULL);
 
   return offset;
@@ -2388,7 +2389,7 @@ static const ber_sequence_t InitializeResponse_sequence[] = {
 };
 
 static int
-dissect_z3950_InitializeResponse(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_z3950_InitializeResponse(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence(implicit_tag, actx, tree, tvb, offset,
                                    InitializeResponse_sequence, hf_index, ett_z3950_InitializeResponse);
 
@@ -2398,9 +2399,9 @@ dissect_z3950_InitializeResponse(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, i
 
 
 static int
-dissect_z3950_DatabaseName(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_z3950_DatabaseName(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_tagged_type(implicit_tag, actx, tree, tvb, offset,
-                                      hf_index, BER_CLASS_CON, 105, TRUE, dissect_z3950_InternationalString);
+                                      hf_index, BER_CLASS_CON, 105, true, dissect_z3950_InternationalString);
 
   return offset;
 }
@@ -2411,7 +2412,7 @@ static const ber_sequence_t SEQUENCE_OF_DatabaseName_sequence_of[1] = {
 };
 
 static int
-dissect_z3950_SEQUENCE_OF_DatabaseName(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_z3950_SEQUENCE_OF_DatabaseName(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence_of(implicit_tag, actx, tree, tvb, offset,
                                       SEQUENCE_OF_DatabaseName_sequence_of, hf_index, ett_z3950_SEQUENCE_OF_DatabaseName);
 
@@ -2421,9 +2422,9 @@ dissect_z3950_SEQUENCE_OF_DatabaseName(gboolean implicit_tag _U_, tvbuff_t *tvb 
 
 
 static int
-dissect_z3950_ElementSetName(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_z3950_ElementSetName(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_tagged_type(implicit_tag, actx, tree, tvb, offset,
-                                      hf_index, BER_CLASS_CON, 103, TRUE, dissect_z3950_InternationalString);
+                                      hf_index, BER_CLASS_CON, 103, true, dissect_z3950_InternationalString);
 
   return offset;
 }
@@ -2436,7 +2437,7 @@ static const ber_sequence_t T_databaseSpecific_item_sequence[] = {
 };
 
 static int
-dissect_z3950_T_databaseSpecific_item(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_z3950_T_databaseSpecific_item(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence(implicit_tag, actx, tree, tvb, offset,
                                    T_databaseSpecific_item_sequence, hf_index, ett_z3950_T_databaseSpecific_item);
 
@@ -2449,7 +2450,7 @@ static const ber_sequence_t T_databaseSpecific_sequence_of[1] = {
 };
 
 static int
-dissect_z3950_T_databaseSpecific(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_z3950_T_databaseSpecific(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence_of(implicit_tag, actx, tree, tvb, offset,
                                       T_databaseSpecific_sequence_of, hf_index, ett_z3950_T_databaseSpecific);
 
@@ -2470,7 +2471,7 @@ static const ber_choice_t ElementSetNames_choice[] = {
 };
 
 static int
-dissect_z3950_ElementSetNames(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_z3950_ElementSetNames(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_choice(actx, tree, tvb, offset,
                                  ElementSetNames_choice, hf_index, ett_z3950_ElementSetNames,
                                  NULL);
@@ -2481,7 +2482,7 @@ dissect_z3950_ElementSetNames(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int 
 
 
 static int
-dissect_z3950_T_type_0(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_z3950_T_type_0(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
 /*XXX Not implemented yet */
 
 
@@ -2491,17 +2492,17 @@ dissect_z3950_T_type_0(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset 
 
 
 static int
-dissect_z3950_AttributeSetId(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_z3950_AttributeSetId(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   tvbuff_t *oid_tvb=NULL;
 
   offset = dissect_ber_object_identifier(implicit_tag, actx, tree, tvb, offset, hf_index, &oid_tvb);
 
   if (oid_tvb) {
     packet_info *pinfo = actx->pinfo;
-    guint len = tvb_reported_length_remaining(oid_tvb, 0);
-    gchar *oid_str = oid_encoded2string(pinfo->pool,
+    unsigned len = tvb_reported_length_remaining(oid_tvb, 0);
+    char *oid_str = oid_encoded2string(pinfo->pool,
                                         tvb_get_ptr(oid_tvb, 0, len), len);
-    gint attribute_set_idx = Z3950_ATSET_UNKNOWN;
+    int attribute_set_idx = Z3950_ATSET_UNKNOWN;
     z3950_atinfo_t *atinfo_data;
 
     if (g_strcmp0(oid_str, Z3950_ATSET_BIB1_OID) == 0) {
@@ -2525,8 +2526,8 @@ dissect_z3950_AttributeSetId(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int o
 
 
 static int
-dissect_z3950_T_attributeElement_attributeType(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
-  gint att_type=0;
+dissect_z3950_T_attributeElement_attributeType(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+  int att_type=0;
   packet_info *pinfo = actx->pinfo;
   z3950_atinfo_t *atinfo_data;
   offset = dissect_ber_integer(implicit_tag, actx, tree, tvb, offset, hf_index,
@@ -2544,8 +2545,8 @@ dissect_z3950_T_attributeElement_attributeType(gboolean implicit_tag _U_, tvbuff
 
 
 static int
-dissect_z3950_T_attributeValue_numeric(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
-  gint att_value=0;
+dissect_z3950_T_attributeValue_numeric(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+  int att_value=0;
   packet_info *pinfo = actx->pinfo;
   z3950_atinfo_t *atinfo_data;
   const value_string *att_value_string = NULL;
@@ -2598,7 +2599,7 @@ static const ber_choice_t StringOrNumeric_choice[] = {
 };
 
 static int
-dissect_z3950_StringOrNumeric(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_z3950_StringOrNumeric(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_choice(actx, tree, tvb, offset,
                                  StringOrNumeric_choice, hf_index, ett_z3950_StringOrNumeric,
                                  NULL);
@@ -2612,7 +2613,7 @@ static const ber_sequence_t SEQUENCE_OF_StringOrNumeric_sequence_of[1] = {
 };
 
 static int
-dissect_z3950_SEQUENCE_OF_StringOrNumeric(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_z3950_SEQUENCE_OF_StringOrNumeric(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence_of(implicit_tag, actx, tree, tvb, offset,
                                       SEQUENCE_OF_StringOrNumeric_sequence_of, hf_index, ett_z3950_SEQUENCE_OF_StringOrNumeric);
 
@@ -2625,7 +2626,7 @@ static const ber_sequence_t T_semanticAction_sequence_of[1] = {
 };
 
 static int
-dissect_z3950_T_semanticAction(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_z3950_T_semanticAction(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence_of(implicit_tag, actx, tree, tvb, offset,
                                       T_semanticAction_sequence_of, hf_index, ett_z3950_T_semanticAction);
 
@@ -2640,7 +2641,7 @@ static const ber_sequence_t T_attributeValue_complex_sequence[] = {
 };
 
 static int
-dissect_z3950_T_attributeValue_complex(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_z3950_T_attributeValue_complex(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence(implicit_tag, actx, tree, tvb, offset,
                                    T_attributeValue_complex_sequence, hf_index, ett_z3950_T_attributeValue_complex);
 
@@ -2661,7 +2662,7 @@ static const ber_choice_t T_attributeValue_choice[] = {
 };
 
 static int
-dissect_z3950_T_attributeValue(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_z3950_T_attributeValue(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_choice(actx, tree, tvb, offset,
                                  T_attributeValue_choice, hf_index, ett_z3950_T_attributeValue,
                                  NULL);
@@ -2678,7 +2679,7 @@ static const ber_sequence_t AttributeElement_sequence[] = {
 };
 
 static int
-dissect_z3950_AttributeElement(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_z3950_AttributeElement(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence(implicit_tag, actx, tree, tvb, offset,
                                    AttributeElement_sequence, hf_index, ett_z3950_AttributeElement);
 
@@ -2691,7 +2692,7 @@ static const ber_sequence_t SEQUENCE_OF_AttributeElement_sequence_of[1] = {
 };
 
 static int
-dissect_z3950_SEQUENCE_OF_AttributeElement(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_z3950_SEQUENCE_OF_AttributeElement(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence_of(implicit_tag, actx, tree, tvb, offset,
                                       SEQUENCE_OF_AttributeElement_sequence_of, hf_index, ett_z3950_SEQUENCE_OF_AttributeElement);
 
@@ -2701,9 +2702,9 @@ dissect_z3950_SEQUENCE_OF_AttributeElement(gboolean implicit_tag _U_, tvbuff_t *
 
 
 static int
-dissect_z3950_AttributeList(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_z3950_AttributeList(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_tagged_type(implicit_tag, actx, tree, tvb, offset,
-                                      hf_index, BER_CLASS_CON, 44, TRUE, dissect_z3950_SEQUENCE_OF_AttributeElement);
+                                      hf_index, BER_CLASS_CON, 44, true, dissect_z3950_SEQUENCE_OF_AttributeElement);
 
   return offset;
 }
@@ -2711,9 +2712,9 @@ dissect_z3950_AttributeList(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int of
 
 
 static int
-dissect_z3950_T_general(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_z3950_T_general(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_tagged_type(implicit_tag, actx, tree, tvb, offset,
-              hf_index, BER_CLASS_CON, 2, TRUE,
+              hf_index, BER_CLASS_CON, 2, true,
               dissect_z3950_printable_OCTET_STRING);
 
 
@@ -2723,7 +2724,7 @@ dissect_z3950_T_general(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset
 
 
 static int
-dissect_z3950_GeneralizedTime(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_z3950_GeneralizedTime(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_GeneralizedTime(implicit_tag, actx, tree, tvb, offset, hf_index);
 
   return offset;
@@ -2739,7 +2740,7 @@ static const ber_sequence_t Unit_sequence[] = {
 };
 
 static int
-dissect_z3950_Unit(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_z3950_Unit(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence(implicit_tag, actx, tree, tvb, offset,
                                    Unit_sequence, hf_index, ett_z3950_Unit);
 
@@ -2754,7 +2755,7 @@ static const ber_sequence_t IntUnit_sequence[] = {
 };
 
 static int
-dissect_z3950_IntUnit(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_z3950_IntUnit(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence(implicit_tag, actx, tree, tvb, offset,
                                    IntUnit_sequence, hf_index, ett_z3950_IntUnit);
 
@@ -2787,7 +2788,7 @@ static const ber_choice_t Term_choice[] = {
 };
 
 static int
-dissect_z3950_Term(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_z3950_Term(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_choice(actx, tree, tvb, offset,
                                  Term_choice, hf_index, ett_z3950_Term,
                                  NULL);
@@ -2803,7 +2804,7 @@ static const ber_sequence_t AttributesPlusTerm_U_sequence[] = {
 };
 
 static int
-dissect_z3950_AttributesPlusTerm_U(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_z3950_AttributesPlusTerm_U(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence(implicit_tag, actx, tree, tvb, offset,
                                    AttributesPlusTerm_U_sequence, hf_index, ett_z3950_AttributesPlusTerm_U);
 
@@ -2813,9 +2814,9 @@ dissect_z3950_AttributesPlusTerm_U(gboolean implicit_tag _U_, tvbuff_t *tvb _U_,
 
 
 static int
-dissect_z3950_AttributesPlusTerm(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_z3950_AttributesPlusTerm(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_tagged_type(implicit_tag, actx, tree, tvb, offset,
-                                      hf_index, BER_CLASS_CON, 102, TRUE, dissect_z3950_AttributesPlusTerm_U);
+                                      hf_index, BER_CLASS_CON, 102, true, dissect_z3950_AttributesPlusTerm_U);
 
   return offset;
 }
@@ -2823,9 +2824,9 @@ dissect_z3950_AttributesPlusTerm(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, i
 
 
 static int
-dissect_z3950_ResultSetId(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_z3950_ResultSetId(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_tagged_type(implicit_tag, actx, tree, tvb, offset,
-                                      hf_index, BER_CLASS_CON, 31, TRUE, dissect_z3950_InternationalString);
+                                      hf_index, BER_CLASS_CON, 31, true, dissect_z3950_InternationalString);
 
   return offset;
 }
@@ -2838,7 +2839,7 @@ static const ber_sequence_t ResultSetPlusAttributes_U_sequence[] = {
 };
 
 static int
-dissect_z3950_ResultSetPlusAttributes_U(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_z3950_ResultSetPlusAttributes_U(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence(implicit_tag, actx, tree, tvb, offset,
                                    ResultSetPlusAttributes_U_sequence, hf_index, ett_z3950_ResultSetPlusAttributes_U);
 
@@ -2848,9 +2849,9 @@ dissect_z3950_ResultSetPlusAttributes_U(gboolean implicit_tag _U_, tvbuff_t *tvb
 
 
 static int
-dissect_z3950_ResultSetPlusAttributes(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_z3950_ResultSetPlusAttributes(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_tagged_type(implicit_tag, actx, tree, tvb, offset,
-                                      hf_index, BER_CLASS_CON, 214, TRUE, dissect_z3950_ResultSetPlusAttributes_U);
+                                      hf_index, BER_CLASS_CON, 214, true, dissect_z3950_ResultSetPlusAttributes_U);
 
   return offset;
 }
@@ -2871,7 +2872,7 @@ static const ber_choice_t Operand_choice[] = {
 };
 
 static int
-dissect_z3950_Operand(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_z3950_Operand(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_choice(actx, tree, tvb, offset,
                                  Operand_choice, hf_index, ett_z3950_Operand,
                                  NULL);
@@ -2892,7 +2893,7 @@ static const value_string z3950_T_relationType_vals[] = {
 
 
 static int
-dissect_z3950_T_relationType(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_z3950_T_relationType(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_integer(implicit_tag, actx, tree, tvb, offset, hf_index,
                                                 NULL);
 
@@ -2917,7 +2918,7 @@ static const value_string z3950_KnownProximityUnit_vals[] = {
 
 
 static int
-dissect_z3950_KnownProximityUnit(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_z3950_KnownProximityUnit(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_integer(implicit_tag, actx, tree, tvb, offset, hf_index,
                                                 NULL);
 
@@ -2938,7 +2939,7 @@ static const ber_choice_t T_proximityUnitCode_choice[] = {
 };
 
 static int
-dissect_z3950_T_proximityUnitCode(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_z3950_T_proximityUnitCode(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_choice(actx, tree, tvb, offset,
                                  T_proximityUnitCode_choice, hf_index, ett_z3950_T_proximityUnitCode,
                                  NULL);
@@ -2957,7 +2958,7 @@ static const ber_sequence_t ProximityOperator_sequence[] = {
 };
 
 static int
-dissect_z3950_ProximityOperator(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_z3950_ProximityOperator(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence(implicit_tag, actx, tree, tvb, offset,
                                    ProximityOperator_sequence, hf_index, ett_z3950_ProximityOperator);
 
@@ -2982,7 +2983,7 @@ static const ber_choice_t Operator_U_choice[] = {
 };
 
 static int
-dissect_z3950_Operator_U(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_z3950_Operator_U(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_choice(actx, tree, tvb, offset,
                                  Operator_U_choice, hf_index, ett_z3950_Operator_U,
                                  NULL);
@@ -2993,9 +2994,9 @@ dissect_z3950_Operator_U(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offse
 
 
 static int
-dissect_z3950_Operator(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_z3950_Operator(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_tagged_type(implicit_tag, actx, tree, tvb, offset,
-                                      hf_index, BER_CLASS_CON, 46, FALSE, dissect_z3950_Operator_U);
+                                      hf_index, BER_CLASS_CON, 46, false, dissect_z3950_Operator_U);
 
   return offset;
 }
@@ -3009,7 +3010,7 @@ static const ber_sequence_t T_rpnRpnOp_sequence[] = {
 };
 
 static int
-dissect_z3950_T_rpnRpnOp(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_z3950_T_rpnRpnOp(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence(implicit_tag, actx, tree, tvb, offset,
                                    T_rpnRpnOp_sequence, hf_index, ett_z3950_T_rpnRpnOp);
 
@@ -3030,11 +3031,16 @@ static const ber_choice_t RPNStructure_choice[] = {
 };
 
 static int
-dissect_z3950_RPNStructure(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_z3950_RPNStructure(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+  // RPNStructure -> RPNStructure/rpnRpnOp -> RPNStructure
+  actx->pinfo->dissection_depth += 2;
+  increment_dissection_depth(actx->pinfo);
   offset = dissect_ber_choice(actx, tree, tvb, offset,
                                  RPNStructure_choice, hf_index, ett_z3950_RPNStructure,
                                  NULL);
 
+  actx->pinfo->dissection_depth -= 2;
+  decrement_dissection_depth(actx->pinfo);
   return offset;
 }
 
@@ -3046,7 +3052,7 @@ static const ber_sequence_t RPNQuery_sequence[] = {
 };
 
 static int
-dissect_z3950_RPNQuery(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_z3950_RPNQuery(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence(implicit_tag, actx, tree, tvb, offset,
                                    RPNQuery_sequence, hf_index, ett_z3950_RPNQuery);
 
@@ -3075,7 +3081,7 @@ static const ber_choice_t Query_choice[] = {
 };
 
 static int
-dissect_z3950_Query(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_z3950_Query(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_choice(actx, tree, tvb, offset,
                                  Query_choice, hf_index, ett_z3950_Query,
                                  NULL);
@@ -3102,7 +3108,7 @@ static const ber_sequence_t SearchRequest_sequence[] = {
 };
 
 static int
-dissect_z3950_SearchRequest(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_z3950_SearchRequest(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence(implicit_tag, actx, tree, tvb, offset,
                                    SearchRequest_sequence, hf_index, ett_z3950_SearchRequest);
 
@@ -3119,7 +3125,7 @@ static const value_string z3950_T_search_resultSetStatus_vals[] = {
 
 
 static int
-dissect_z3950_T_search_resultSetStatus(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_z3950_T_search_resultSetStatus(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_integer(implicit_tag, actx, tree, tvb, offset, hf_index,
                                                 NULL);
 
@@ -3139,7 +3145,7 @@ static const value_string z3950_PresentStatus_U_vals[] = {
 
 
 static int
-dissect_z3950_PresentStatus_U(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_z3950_PresentStatus_U(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_integer(implicit_tag, actx, tree, tvb, offset, hf_index,
                                                 NULL);
 
@@ -3149,9 +3155,9 @@ dissect_z3950_PresentStatus_U(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int 
 
 
 static int
-dissect_z3950_PresentStatus(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_z3950_PresentStatus(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_tagged_type(implicit_tag, actx, tree, tvb, offset,
-                                      hf_index, BER_CLASS_CON, 27, TRUE, dissect_z3950_PresentStatus_U);
+                                      hf_index, BER_CLASS_CON, 27, true, dissect_z3950_PresentStatus_U);
 
   return offset;
 }
@@ -3159,17 +3165,17 @@ dissect_z3950_PresentStatus(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int of
 
 
 static int
-dissect_z3950_T_diagnosticSetId(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_z3950_T_diagnosticSetId(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   tvbuff_t *oid_tvb=NULL;
 
   offset = dissect_ber_object_identifier(implicit_tag, actx, tree, tvb, offset, hf_index, &oid_tvb);
 
   if (oid_tvb) {
     packet_info *pinfo = actx->pinfo;
-    guint len = tvb_reported_length_remaining(oid_tvb, 0);
-    gchar *oid_str = oid_encoded2string(pinfo->pool,
+    unsigned len = tvb_reported_length_remaining(oid_tvb, 0);
+    char *oid_str = oid_encoded2string(pinfo->pool,
                                         tvb_get_ptr(oid_tvb, 0, len), len);
-    gint diagset_idx = Z3950_DIAGSET_UNKNOWN;
+    int diagset_idx = Z3950_DIAGSET_UNKNOWN;
     z3950_diaginfo_t *diaginfo_data;
 
     if (g_strcmp0(oid_str, Z3950_DIAGSET_BIB1_OID) == 0) {
@@ -3193,8 +3199,8 @@ dissect_z3950_T_diagnosticSetId(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, in
 
 
 static int
-dissect_z3950_T_condition(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
-  gint diag_condition=0;
+dissect_z3950_T_condition(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+  int diag_condition=0;
   packet_info *pinfo = actx->pinfo;
   z3950_diaginfo_t *diaginfo_data;
   offset = dissect_ber_integer(implicit_tag, actx, tree, tvb, offset, hf_index,
@@ -3223,7 +3229,7 @@ static const ber_choice_t T_addinfo_choice[] = {
 };
 
 static int
-dissect_z3950_T_addinfo(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_z3950_T_addinfo(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_choice(actx, tree, tvb, offset,
                                  T_addinfo_choice, hf_index, ett_z3950_T_addinfo,
                                  NULL);
@@ -3240,7 +3246,7 @@ static const ber_sequence_t DefaultDiagFormat_sequence[] = {
 };
 
 static int
-dissect_z3950_DefaultDiagFormat(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_z3950_DefaultDiagFormat(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence(implicit_tag, actx, tree, tvb, offset,
                                    DefaultDiagFormat_sequence, hf_index, ett_z3950_DefaultDiagFormat);
 
@@ -3261,7 +3267,7 @@ static const ber_choice_t DiagRec_choice[] = {
 };
 
 static int
-dissect_z3950_DiagRec(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_z3950_DiagRec(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_choice(actx, tree, tvb, offset,
                                  DiagRec_choice, hf_index, ett_z3950_DiagRec,
                                  NULL);
@@ -3283,7 +3289,7 @@ static const ber_choice_t FragmentSyntax_choice[] = {
 };
 
 static int
-dissect_z3950_FragmentSyntax(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_z3950_FragmentSyntax(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_choice(actx, tree, tvb, offset,
                                  FragmentSyntax_choice, hf_index, ett_z3950_FragmentSyntax,
                                  NULL);
@@ -3311,7 +3317,7 @@ static const ber_choice_t T_record_choice[] = {
 };
 
 static int
-dissect_z3950_T_record(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_z3950_T_record(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_choice(actx, tree, tvb, offset,
                                  T_record_choice, hf_index, ett_z3950_T_record,
                                  NULL);
@@ -3327,7 +3333,7 @@ static const ber_sequence_t NamePlusRecord_sequence[] = {
 };
 
 static int
-dissect_z3950_NamePlusRecord(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_z3950_NamePlusRecord(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence(implicit_tag, actx, tree, tvb, offset,
                                    NamePlusRecord_sequence, hf_index, ett_z3950_NamePlusRecord);
 
@@ -3340,7 +3346,7 @@ static const ber_sequence_t SEQUENCE_OF_NamePlusRecord_sequence_of[1] = {
 };
 
 static int
-dissect_z3950_SEQUENCE_OF_NamePlusRecord(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_z3950_SEQUENCE_OF_NamePlusRecord(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence_of(implicit_tag, actx, tree, tvb, offset,
                                       SEQUENCE_OF_NamePlusRecord_sequence_of, hf_index, ett_z3950_SEQUENCE_OF_NamePlusRecord);
 
@@ -3353,7 +3359,7 @@ static const ber_sequence_t SEQUENCE_OF_DiagRec_sequence_of[1] = {
 };
 
 static int
-dissect_z3950_SEQUENCE_OF_DiagRec(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_z3950_SEQUENCE_OF_DiagRec(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence_of(implicit_tag, actx, tree, tvb, offset,
                                       SEQUENCE_OF_DiagRec_sequence_of, hf_index, ett_z3950_SEQUENCE_OF_DiagRec);
 
@@ -3376,7 +3382,7 @@ static const ber_choice_t Records_choice[] = {
 };
 
 static int
-dissect_z3950_Records(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_z3950_Records(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_choice(actx, tree, tvb, offset,
                                  Records_choice, hf_index, ett_z3950_Records,
                                  NULL);
@@ -3400,7 +3406,7 @@ static const ber_sequence_t SearchResponse_sequence[] = {
 };
 
 static int
-dissect_z3950_SearchResponse(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_z3950_SearchResponse(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence(implicit_tag, actx, tree, tvb, offset,
                                    SearchResponse_sequence, hf_index, ett_z3950_SearchResponse);
 
@@ -3415,7 +3421,7 @@ static const ber_sequence_t Range_sequence[] = {
 };
 
 static int
-dissect_z3950_Range(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_z3950_Range(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence(implicit_tag, actx, tree, tvb, offset,
                                    Range_sequence, hf_index, ett_z3950_Range);
 
@@ -3428,7 +3434,7 @@ static const ber_sequence_t SEQUENCE_OF_Range_sequence_of[1] = {
 };
 
 static int
-dissect_z3950_SEQUENCE_OF_Range(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_z3950_SEQUENCE_OF_Range(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence_of(implicit_tag, actx, tree, tvb, offset,
                                       SEQUENCE_OF_Range_sequence_of, hf_index, ett_z3950_SEQUENCE_OF_Range);
 
@@ -3449,7 +3455,7 @@ static const ber_choice_t T_specification_elementSpec_choice[] = {
 };
 
 static int
-dissect_z3950_T_specification_elementSpec(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_z3950_T_specification_elementSpec(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_choice(actx, tree, tvb, offset,
                                  T_specification_elementSpec_choice, hf_index, ett_z3950_T_specification_elementSpec,
                                  NULL);
@@ -3465,7 +3471,7 @@ static const ber_sequence_t Specification_sequence[] = {
 };
 
 static int
-dissect_z3950_Specification(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_z3950_Specification(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence(implicit_tag, actx, tree, tvb, offset,
                                    Specification_sequence, hf_index, ett_z3950_Specification);
 
@@ -3480,7 +3486,7 @@ static const ber_sequence_t T_dbSpecific_item_sequence[] = {
 };
 
 static int
-dissect_z3950_T_dbSpecific_item(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_z3950_T_dbSpecific_item(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence(implicit_tag, actx, tree, tvb, offset,
                                    T_dbSpecific_item_sequence, hf_index, ett_z3950_T_dbSpecific_item);
 
@@ -3493,7 +3499,7 @@ static const ber_sequence_t T_dbSpecific_sequence_of[1] = {
 };
 
 static int
-dissect_z3950_T_dbSpecific(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_z3950_T_dbSpecific(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence_of(implicit_tag, actx, tree, tvb, offset,
                                       T_dbSpecific_sequence_of, hf_index, ett_z3950_T_dbSpecific);
 
@@ -3506,7 +3512,7 @@ static const ber_sequence_t T_compSpec_recordSyntax_sequence_of[1] = {
 };
 
 static int
-dissect_z3950_T_compSpec_recordSyntax(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_z3950_T_compSpec_recordSyntax(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence_of(implicit_tag, actx, tree, tvb, offset,
                                       T_compSpec_recordSyntax_sequence_of, hf_index, ett_z3950_T_compSpec_recordSyntax);
 
@@ -3523,7 +3529,7 @@ static const ber_sequence_t CompSpec_sequence[] = {
 };
 
 static int
-dissect_z3950_CompSpec(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_z3950_CompSpec(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence(implicit_tag, actx, tree, tvb, offset,
                                    CompSpec_sequence, hf_index, ett_z3950_CompSpec);
 
@@ -3544,7 +3550,7 @@ static const ber_choice_t T_recordComposition_choice[] = {
 };
 
 static int
-dissect_z3950_T_recordComposition(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_z3950_T_recordComposition(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_choice(actx, tree, tvb, offset,
                                  T_recordComposition_choice, hf_index, ett_z3950_T_recordComposition,
                                  NULL);
@@ -3569,7 +3575,7 @@ static const ber_sequence_t PresentRequest_sequence[] = {
 };
 
 static int
-dissect_z3950_PresentRequest(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_z3950_PresentRequest(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence(implicit_tag, actx, tree, tvb, offset,
                                    PresentRequest_sequence, hf_index, ett_z3950_PresentRequest);
 
@@ -3588,7 +3594,7 @@ static const ber_sequence_t PresentResponse_sequence[] = {
 };
 
 static int
-dissect_z3950_PresentResponse(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_z3950_PresentResponse(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence(implicit_tag, actx, tree, tvb, offset,
                                    PresentResponse_sequence, hf_index, ett_z3950_PresentResponse);
 
@@ -3604,7 +3610,7 @@ static const value_string z3950_T_deleteFunction_vals[] = {
 
 
 static int
-dissect_z3950_T_deleteFunction(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_z3950_T_deleteFunction(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_integer(implicit_tag, actx, tree, tvb, offset, hf_index,
                                                 NULL);
 
@@ -3617,7 +3623,7 @@ static const ber_sequence_t SEQUENCE_OF_ResultSetId_sequence_of[1] = {
 };
 
 static int
-dissect_z3950_SEQUENCE_OF_ResultSetId(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_z3950_SEQUENCE_OF_ResultSetId(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence_of(implicit_tag, actx, tree, tvb, offset,
                                       SEQUENCE_OF_ResultSetId_sequence_of, hf_index, ett_z3950_SEQUENCE_OF_ResultSetId);
 
@@ -3634,7 +3640,7 @@ static const ber_sequence_t DeleteResultSetRequest_sequence[] = {
 };
 
 static int
-dissect_z3950_DeleteResultSetRequest(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_z3950_DeleteResultSetRequest(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence(implicit_tag, actx, tree, tvb, offset,
                                    DeleteResultSetRequest_sequence, hf_index, ett_z3950_DeleteResultSetRequest);
 
@@ -3659,7 +3665,7 @@ static const value_string z3950_DeleteSetStatus_U_vals[] = {
 
 
 static int
-dissect_z3950_DeleteSetStatus_U(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_z3950_DeleteSetStatus_U(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_integer(implicit_tag, actx, tree, tvb, offset, hf_index,
                                                 NULL);
 
@@ -3669,9 +3675,9 @@ dissect_z3950_DeleteSetStatus_U(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, in
 
 
 static int
-dissect_z3950_DeleteSetStatus(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_z3950_DeleteSetStatus(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_tagged_type(implicit_tag, actx, tree, tvb, offset,
-                                      hf_index, BER_CLASS_CON, 33, TRUE, dissect_z3950_DeleteSetStatus_U);
+                                      hf_index, BER_CLASS_CON, 33, true, dissect_z3950_DeleteSetStatus_U);
 
   return offset;
 }
@@ -3684,7 +3690,7 @@ static const ber_sequence_t ListStatuses_item_sequence[] = {
 };
 
 static int
-dissect_z3950_ListStatuses_item(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_z3950_ListStatuses_item(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence(implicit_tag, actx, tree, tvb, offset,
                                    ListStatuses_item_sequence, hf_index, ett_z3950_ListStatuses_item);
 
@@ -3697,7 +3703,7 @@ static const ber_sequence_t ListStatuses_sequence_of[1] = {
 };
 
 static int
-dissect_z3950_ListStatuses(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_z3950_ListStatuses(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence_of(implicit_tag, actx, tree, tvb, offset,
                                       ListStatuses_sequence_of, hf_index, ett_z3950_ListStatuses);
 
@@ -3717,7 +3723,7 @@ static const ber_sequence_t DeleteResultSetResponse_sequence[] = {
 };
 
 static int
-dissect_z3950_DeleteResultSetResponse(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_z3950_DeleteResultSetResponse(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence(implicit_tag, actx, tree, tvb, offset,
                                    DeleteResultSetResponse_sequence, hf_index, ett_z3950_DeleteResultSetResponse);
 
@@ -3738,7 +3744,7 @@ static const ber_choice_t T_securityChallenge_choice[] = {
 };
 
 static int
-dissect_z3950_T_securityChallenge(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_z3950_T_securityChallenge(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_choice(actx, tree, tvb, offset,
                                  T_securityChallenge_choice, hf_index, ett_z3950_T_securityChallenge,
                                  NULL);
@@ -3755,7 +3761,7 @@ static const ber_sequence_t AccessControlRequest_sequence[] = {
 };
 
 static int
-dissect_z3950_AccessControlRequest(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_z3950_AccessControlRequest(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence(implicit_tag, actx, tree, tvb, offset,
                                    AccessControlRequest_sequence, hf_index, ett_z3950_AccessControlRequest);
 
@@ -3776,7 +3782,7 @@ static const ber_choice_t T_securityChallengeResponse_choice[] = {
 };
 
 static int
-dissect_z3950_T_securityChallengeResponse(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_z3950_T_securityChallengeResponse(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_choice(actx, tree, tvb, offset,
                                  T_securityChallengeResponse_choice, hf_index, ett_z3950_T_securityChallengeResponse,
                                  NULL);
@@ -3794,7 +3800,7 @@ static const ber_sequence_t AccessControlResponse_sequence[] = {
 };
 
 static int
-dissect_z3950_AccessControlResponse(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_z3950_AccessControlResponse(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence(implicit_tag, actx, tree, tvb, offset,
                                    AccessControlResponse_sequence, hf_index, ett_z3950_AccessControlResponse);
 
@@ -3804,7 +3810,7 @@ dissect_z3950_AccessControlResponse(gboolean implicit_tag _U_, tvbuff_t *tvb _U_
 
 
 static int
-dissect_z3950_ResourceReport(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_z3950_ResourceReport(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_external_type(implicit_tag, tree, tvb, offset, actx, hf_index, NULL);
 
   return offset;
@@ -3820,7 +3826,7 @@ static const value_string z3950_T_partialResultsAvailable_vals[] = {
 
 
 static int
-dissect_z3950_T_partialResultsAvailable(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_z3950_T_partialResultsAvailable(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_integer(implicit_tag, actx, tree, tvb, offset, hf_index,
                                                 NULL);
 
@@ -3840,7 +3846,7 @@ static const ber_sequence_t ResourceControlRequest_sequence[] = {
 };
 
 static int
-dissect_z3950_ResourceControlRequest(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_z3950_ResourceControlRequest(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence(implicit_tag, actx, tree, tvb, offset,
                                    ResourceControlRequest_sequence, hf_index, ett_z3950_ResourceControlRequest);
 
@@ -3857,7 +3863,7 @@ static const ber_sequence_t ResourceControlResponse_sequence[] = {
 };
 
 static int
-dissect_z3950_ResourceControlResponse(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_z3950_ResourceControlResponse(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence(implicit_tag, actx, tree, tvb, offset,
                                    ResourceControlResponse_sequence, hf_index, ett_z3950_ResourceControlResponse);
 
@@ -3874,7 +3880,7 @@ static const value_string z3950_T_requestedAction_vals[] = {
 
 
 static int
-dissect_z3950_T_requestedAction(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_z3950_T_requestedAction(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_integer(implicit_tag, actx, tree, tvb, offset, hf_index,
                                                 NULL);
 
@@ -3884,7 +3890,7 @@ dissect_z3950_T_requestedAction(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, in
 
 
 static int
-dissect_z3950_ResourceReportId(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_z3950_ResourceReportId(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_object_identifier(implicit_tag, actx, tree, tvb, offset, hf_index, NULL);
 
   return offset;
@@ -3901,7 +3907,7 @@ static const ber_sequence_t TriggerResourceControlRequest_sequence[] = {
 };
 
 static int
-dissect_z3950_TriggerResourceControlRequest(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_z3950_TriggerResourceControlRequest(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence(implicit_tag, actx, tree, tvb, offset,
                                    TriggerResourceControlRequest_sequence, hf_index, ett_z3950_TriggerResourceControlRequest);
 
@@ -3918,7 +3924,7 @@ static const ber_sequence_t ResourceReportRequest_sequence[] = {
 };
 
 static int
-dissect_z3950_ResourceReportRequest(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_z3950_ResourceReportRequest(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence(implicit_tag, actx, tree, tvb, offset,
                                    ResourceReportRequest_sequence, hf_index, ett_z3950_ResourceReportRequest);
 
@@ -3940,7 +3946,7 @@ static const value_string z3950_T_resourceReportStatus_vals[] = {
 
 
 static int
-dissect_z3950_T_resourceReportStatus(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_z3950_T_resourceReportStatus(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_integer(implicit_tag, actx, tree, tvb, offset, hf_index,
                                                 NULL);
 
@@ -3957,7 +3963,7 @@ static const ber_sequence_t ResourceReportResponse_sequence[] = {
 };
 
 static int
-dissect_z3950_ResourceReportResponse(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_z3950_ResourceReportResponse(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence(implicit_tag, actx, tree, tvb, offset,
                                    ResourceReportResponse_sequence, hf_index, ett_z3950_ResourceReportResponse);
 
@@ -3978,7 +3984,7 @@ static const ber_sequence_t ScanRequest_sequence[] = {
 };
 
 static int
-dissect_z3950_ScanRequest(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_z3950_ScanRequest(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence(implicit_tag, actx, tree, tvb, offset,
                                    ScanRequest_sequence, hf_index, ett_z3950_ScanRequest);
 
@@ -3999,7 +4005,7 @@ static const value_string z3950_T_scanStatus_vals[] = {
 
 
 static int
-dissect_z3950_T_scanStatus(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_z3950_T_scanStatus(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_integer(implicit_tag, actx, tree, tvb, offset, hf_index,
                                                 NULL);
 
@@ -4012,7 +4018,7 @@ static const ber_sequence_t SEQUENCE_OF_AttributesPlusTerm_sequence_of[1] = {
 };
 
 static int
-dissect_z3950_SEQUENCE_OF_AttributesPlusTerm(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_z3950_SEQUENCE_OF_AttributesPlusTerm(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence_of(implicit_tag, actx, tree, tvb, offset,
                                       SEQUENCE_OF_AttributesPlusTerm_sequence_of, hf_index, ett_z3950_SEQUENCE_OF_AttributesPlusTerm);
 
@@ -4028,7 +4034,7 @@ static const ber_sequence_t T_byDatabase_item_sequence[] = {
 };
 
 static int
-dissect_z3950_T_byDatabase_item(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_z3950_T_byDatabase_item(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence(implicit_tag, actx, tree, tvb, offset,
                                    T_byDatabase_item_sequence, hf_index, ett_z3950_T_byDatabase_item);
 
@@ -4041,7 +4047,7 @@ static const ber_sequence_t T_byDatabase_sequence_of[1] = {
 };
 
 static int
-dissect_z3950_T_byDatabase(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_z3950_T_byDatabase(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence_of(implicit_tag, actx, tree, tvb, offset,
                                       T_byDatabase_sequence_of, hf_index, ett_z3950_T_byDatabase);
 
@@ -4062,7 +4068,7 @@ static const ber_choice_t T_occurrences_choice[] = {
 };
 
 static int
-dissect_z3950_T_occurrences(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_z3950_T_occurrences(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_choice(actx, tree, tvb, offset,
                                  T_occurrences_choice, hf_index, ett_z3950_T_occurrences,
                                  NULL);
@@ -4079,7 +4085,7 @@ static const ber_sequence_t OccurrenceByAttributes_item_sequence[] = {
 };
 
 static int
-dissect_z3950_OccurrenceByAttributes_item(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_z3950_OccurrenceByAttributes_item(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence(implicit_tag, actx, tree, tvb, offset,
                                    OccurrenceByAttributes_item_sequence, hf_index, ett_z3950_OccurrenceByAttributes_item);
 
@@ -4092,7 +4098,7 @@ static const ber_sequence_t OccurrenceByAttributes_sequence_of[1] = {
 };
 
 static int
-dissect_z3950_OccurrenceByAttributes(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_z3950_OccurrenceByAttributes(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence_of(implicit_tag, actx, tree, tvb, offset,
                                       OccurrenceByAttributes_sequence_of, hf_index, ett_z3950_OccurrenceByAttributes);
 
@@ -4112,7 +4118,7 @@ static const ber_sequence_t TermInfo_sequence[] = {
 };
 
 static int
-dissect_z3950_TermInfo(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_z3950_TermInfo(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence(implicit_tag, actx, tree, tvb, offset,
                                    TermInfo_sequence, hf_index, ett_z3950_TermInfo);
 
@@ -4133,7 +4139,7 @@ static const ber_choice_t Entry_choice[] = {
 };
 
 static int
-dissect_z3950_Entry(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_z3950_Entry(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_choice(actx, tree, tvb, offset,
                                  Entry_choice, hf_index, ett_z3950_Entry,
                                  NULL);
@@ -4147,7 +4153,7 @@ static const ber_sequence_t SEQUENCE_OF_Entry_sequence_of[1] = {
 };
 
 static int
-dissect_z3950_SEQUENCE_OF_Entry(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_z3950_SEQUENCE_OF_Entry(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence_of(implicit_tag, actx, tree, tvb, offset,
                                       SEQUENCE_OF_Entry_sequence_of, hf_index, ett_z3950_SEQUENCE_OF_Entry);
 
@@ -4162,7 +4168,7 @@ static const ber_sequence_t ListEntries_sequence[] = {
 };
 
 static int
-dissect_z3950_ListEntries(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_z3950_ListEntries(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence(implicit_tag, actx, tree, tvb, offset,
                                    ListEntries_sequence, hf_index, ett_z3950_ListEntries);
 
@@ -4183,7 +4189,7 @@ static const ber_sequence_t ScanResponse_sequence[] = {
 };
 
 static int
-dissect_z3950_ScanResponse(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_z3950_ScanResponse(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence(implicit_tag, actx, tree, tvb, offset,
                                    ScanResponse_sequence, hf_index, ett_z3950_ScanResponse);
 
@@ -4196,7 +4202,7 @@ static const ber_sequence_t SEQUENCE_OF_InternationalString_sequence_of[1] = {
 };
 
 static int
-dissect_z3950_SEQUENCE_OF_InternationalString(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_z3950_SEQUENCE_OF_InternationalString(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence_of(implicit_tag, actx, tree, tvb, offset,
                                       SEQUENCE_OF_InternationalString_sequence_of, hf_index, ett_z3950_SEQUENCE_OF_InternationalString);
 
@@ -4211,7 +4217,7 @@ static const ber_sequence_t T_sortAttributes_sequence[] = {
 };
 
 static int
-dissect_z3950_T_sortAttributes(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_z3950_T_sortAttributes(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence(implicit_tag, actx, tree, tvb, offset,
                                    T_sortAttributes_sequence, hf_index, ett_z3950_T_sortAttributes);
 
@@ -4234,7 +4240,7 @@ static const ber_choice_t SortKey_choice[] = {
 };
 
 static int
-dissect_z3950_SortKey(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_z3950_SortKey(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_choice(actx, tree, tvb, offset,
                                  SortKey_choice, hf_index, ett_z3950_SortKey,
                                  NULL);
@@ -4250,7 +4256,7 @@ static const ber_sequence_t T_datbaseSpecific_item_sequence[] = {
 };
 
 static int
-dissect_z3950_T_datbaseSpecific_item(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_z3950_T_datbaseSpecific_item(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence(implicit_tag, actx, tree, tvb, offset,
                                    T_datbaseSpecific_item_sequence, hf_index, ett_z3950_T_datbaseSpecific_item);
 
@@ -4263,7 +4269,7 @@ static const ber_sequence_t T_datbaseSpecific_sequence_of[1] = {
 };
 
 static int
-dissect_z3950_T_datbaseSpecific(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_z3950_T_datbaseSpecific(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence_of(implicit_tag, actx, tree, tvb, offset,
                                       T_datbaseSpecific_sequence_of, hf_index, ett_z3950_T_datbaseSpecific);
 
@@ -4284,7 +4290,7 @@ static const ber_choice_t SortElement_choice[] = {
 };
 
 static int
-dissect_z3950_SortElement(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_z3950_SortElement(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_choice(actx, tree, tvb, offset,
                                  SortElement_choice, hf_index, ett_z3950_SortElement,
                                  NULL);
@@ -4303,7 +4309,7 @@ static const value_string z3950_T_sortRelation_vals[] = {
 
 
 static int
-dissect_z3950_T_sortRelation(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_z3950_T_sortRelation(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_integer(implicit_tag, actx, tree, tvb, offset, hf_index,
                                                 NULL);
 
@@ -4319,7 +4325,7 @@ static const value_string z3950_T_caseSensitivity_vals[] = {
 
 
 static int
-dissect_z3950_T_caseSensitivity(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_z3950_T_caseSensitivity(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_integer(implicit_tag, actx, tree, tvb, offset, hf_index,
                                                 NULL);
 
@@ -4342,7 +4348,7 @@ static const ber_choice_t T_missingValueAction_choice[] = {
 };
 
 static int
-dissect_z3950_T_missingValueAction(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_z3950_T_missingValueAction(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_choice(actx, tree, tvb, offset,
                                  T_missingValueAction_choice, hf_index, ett_z3950_T_missingValueAction,
                                  NULL);
@@ -4360,7 +4366,7 @@ static const ber_sequence_t SortKeySpec_sequence[] = {
 };
 
 static int
-dissect_z3950_SortKeySpec(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_z3950_SortKeySpec(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence(implicit_tag, actx, tree, tvb, offset,
                                    SortKeySpec_sequence, hf_index, ett_z3950_SortKeySpec);
 
@@ -4373,7 +4379,7 @@ static const ber_sequence_t SEQUENCE_OF_SortKeySpec_sequence_of[1] = {
 };
 
 static int
-dissect_z3950_SEQUENCE_OF_SortKeySpec(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_z3950_SEQUENCE_OF_SortKeySpec(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence_of(implicit_tag, actx, tree, tvb, offset,
                                       SEQUENCE_OF_SortKeySpec_sequence_of, hf_index, ett_z3950_SEQUENCE_OF_SortKeySpec);
 
@@ -4391,7 +4397,7 @@ static const ber_sequence_t SortRequest_sequence[] = {
 };
 
 static int
-dissect_z3950_SortRequest(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_z3950_SortRequest(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence(implicit_tag, actx, tree, tvb, offset,
                                    SortRequest_sequence, hf_index, ett_z3950_SortRequest);
 
@@ -4408,7 +4414,7 @@ static const value_string z3950_T_sortStatus_vals[] = {
 
 
 static int
-dissect_z3950_T_sortStatus(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_z3950_T_sortStatus(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_integer(implicit_tag, actx, tree, tvb, offset, hf_index,
                                                 NULL);
 
@@ -4426,7 +4432,7 @@ static const value_string z3950_T_sort_resultSetStatus_vals[] = {
 
 
 static int
-dissect_z3950_T_sort_resultSetStatus(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_z3950_T_sort_resultSetStatus(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_integer(implicit_tag, actx, tree, tvb, offset, hf_index,
                                                 NULL);
 
@@ -4444,7 +4450,7 @@ static const ber_sequence_t SortResponse_sequence[] = {
 };
 
 static int
-dissect_z3950_SortResponse(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_z3950_SortResponse(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence(implicit_tag, actx, tree, tvb, offset,
                                    SortResponse_sequence, hf_index, ett_z3950_SortResponse);
 
@@ -4461,7 +4467,7 @@ static const ber_sequence_t Segment_sequence[] = {
 };
 
 static int
-dissect_z3950_Segment(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_z3950_Segment(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence(implicit_tag, actx, tree, tvb, offset,
                                    Segment_sequence, hf_index, ett_z3950_Segment);
 
@@ -4478,7 +4484,7 @@ static const value_string z3950_T_function_vals[] = {
 
 
 static int
-dissect_z3950_T_function(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_z3950_T_function(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_integer(implicit_tag, actx, tree, tvb, offset, hf_index,
                                                 NULL);
 
@@ -4497,7 +4503,7 @@ static const value_string z3950_T_allowableFunctions_item_vals[] = {
 
 
 static int
-dissect_z3950_T_allowableFunctions_item(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_z3950_T_allowableFunctions_item(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_integer(implicit_tag, actx, tree, tvb, offset, hf_index,
                                                 NULL);
 
@@ -4510,7 +4516,7 @@ static const ber_sequence_t T_allowableFunctions_sequence_of[1] = {
 };
 
 static int
-dissect_z3950_T_allowableFunctions(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_z3950_T_allowableFunctions(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence_of(implicit_tag, actx, tree, tvb, offset,
                                       T_allowableFunctions_sequence_of, hf_index, ett_z3950_T_allowableFunctions);
 
@@ -4525,7 +4531,7 @@ static const ber_sequence_t Permissions_item_sequence[] = {
 };
 
 static int
-dissect_z3950_Permissions_item(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_z3950_Permissions_item(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence(implicit_tag, actx, tree, tvb, offset,
                                    Permissions_item_sequence, hf_index, ett_z3950_Permissions_item);
 
@@ -4538,7 +4544,7 @@ static const ber_sequence_t Permissions_sequence_of[1] = {
 };
 
 static int
-dissect_z3950_Permissions(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_z3950_Permissions(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence_of(implicit_tag, actx, tree, tvb, offset,
                                       Permissions_sequence_of, hf_index, ett_z3950_Permissions);
 
@@ -4556,7 +4562,7 @@ static const value_string z3950_T_waitAction_vals[] = {
 
 
 static int
-dissect_z3950_T_waitAction(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_z3950_T_waitAction(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_integer(implicit_tag, actx, tree, tvb, offset, hf_index,
                                                 NULL);
 
@@ -4581,7 +4587,7 @@ static const ber_sequence_t ExtendedServicesRequest_sequence[] = {
 };
 
 static int
-dissect_z3950_ExtendedServicesRequest(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_z3950_ExtendedServicesRequest(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence(implicit_tag, actx, tree, tvb, offset,
                                    ExtendedServicesRequest_sequence, hf_index, ett_z3950_ExtendedServicesRequest);
 
@@ -4598,7 +4604,7 @@ static const value_string z3950_T_operationStatus_vals[] = {
 
 
 static int
-dissect_z3950_T_operationStatus(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_z3950_T_operationStatus(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_integer(implicit_tag, actx, tree, tvb, offset, hf_index,
                                                 NULL);
 
@@ -4616,7 +4622,7 @@ static const ber_sequence_t ExtendedServicesResponse_sequence[] = {
 };
 
 static int
-dissect_z3950_ExtendedServicesResponse(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_z3950_ExtendedServicesResponse(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence(implicit_tag, actx, tree, tvb, offset,
                                    ExtendedServicesResponse_sequence, hf_index, ett_z3950_ExtendedServicesResponse);
 
@@ -4640,7 +4646,7 @@ static const value_string z3950_CloseReason_U_vals[] = {
 
 
 static int
-dissect_z3950_CloseReason_U(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_z3950_CloseReason_U(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_integer(implicit_tag, actx, tree, tvb, offset, hf_index,
                                                 NULL);
 
@@ -4650,9 +4656,9 @@ dissect_z3950_CloseReason_U(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int of
 
 
 static int
-dissect_z3950_CloseReason(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_z3950_CloseReason(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_tagged_type(implicit_tag, actx, tree, tvb, offset,
-                                      hf_index, BER_CLASS_CON, 211, TRUE, dissect_z3950_CloseReason_U);
+                                      hf_index, BER_CLASS_CON, 211, true, dissect_z3950_CloseReason_U);
 
   return offset;
 }
@@ -4669,7 +4675,7 @@ static const ber_sequence_t Close_sequence[] = {
 };
 
 static int
-dissect_z3950_Close(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_z3950_Close(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence(implicit_tag, actx, tree, tvb, offset,
                                    Close_sequence, hf_index, ett_z3950_Close);
 
@@ -4732,15 +4738,15 @@ static const ber_choice_t PDU_choice[] = {
 };
 
 static int
-dissect_z3950_PDU(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
-  gint choice;
+dissect_z3950_PDU(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+  int choice;
   offset = dissect_ber_choice(actx, tree, tvb, offset,
                                  PDU_choice, hf_index, ett_z3950_PDU,
                                  &choice);
 
   if (choice >= 0) {
     packet_info *pinfo = actx->pinfo;
-    gint32 tag = PDU_choice[choice].tag;
+    int32_t tag = PDU_choice[choice].tag;
 
     col_set_str(pinfo->cinfo, COL_INFO,
       val_to_str_const(tag, z3950_PDU_vals, "Unknown Z39.50 PDU"));
@@ -4752,9 +4758,9 @@ dissect_z3950_PDU(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, 
 
 
 static int
-dissect_z3950_DBName(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_z3950_DBName(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_tagged_type(implicit_tag, actx, tree, tvb, offset,
-                                      hf_index, BER_CLASS_CON, 2, TRUE, dissect_z3950_VisibleString);
+                                      hf_index, BER_CLASS_CON, 2, true, dissect_z3950_VisibleString);
 
   return offset;
 }
@@ -4765,7 +4771,7 @@ static const ber_sequence_t SEQUENCE_OF_DBName_sequence_of[1] = {
 };
 
 static int
-dissect_z3950_SEQUENCE_OF_DBName(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_z3950_SEQUENCE_OF_DBName(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence_of(implicit_tag, actx, tree, tvb, offset,
                                       SEQUENCE_OF_DBName_sequence_of, hf_index, ett_z3950_SEQUENCE_OF_DBName);
 
@@ -4782,7 +4788,7 @@ static const ber_sequence_t OCLC_UserInformation_sequence[] = {
 };
 
 static int
-dissect_z3950_OCLC_UserInformation(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_z3950_OCLC_UserInformation(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence(implicit_tag, actx, tree, tvb, offset,
                                    OCLC_UserInformation_sequence, hf_index, ett_z3950_OCLC_UserInformation);
 
@@ -4792,7 +4798,7 @@ dissect_z3950_OCLC_UserInformation(gboolean implicit_tag _U_, tvbuff_t *tvb _U_,
 
 
 static int
-dissect_z3950_SutrsRecord(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_z3950_SutrsRecord(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_z3950_InternationalString(implicit_tag, tvb, offset, actx, tree, hf_index);
 
   return offset;
@@ -4807,7 +4813,7 @@ static const ber_sequence_t Volume_sequence[] = {
 };
 
 static int
-dissect_z3950_Volume(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_z3950_Volume(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence(implicit_tag, actx, tree, tvb, offset,
                                    Volume_sequence, hf_index, ett_z3950_Volume);
 
@@ -4820,7 +4826,7 @@ static const ber_sequence_t SEQUENCE_OF_Volume_sequence_of[1] = {
 };
 
 static int
-dissect_z3950_SEQUENCE_OF_Volume(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_z3950_SEQUENCE_OF_Volume(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence_of(implicit_tag, actx, tree, tvb, offset,
                                       SEQUENCE_OF_Volume_sequence_of, hf_index, ett_z3950_SEQUENCE_OF_Volume);
 
@@ -4843,7 +4849,7 @@ static const ber_sequence_t CircRecord_sequence[] = {
 };
 
 static int
-dissect_z3950_CircRecord(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_z3950_CircRecord(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence(implicit_tag, actx, tree, tvb, offset,
                                    CircRecord_sequence, hf_index, ett_z3950_CircRecord);
 
@@ -4856,7 +4862,7 @@ static const ber_sequence_t SEQUENCE_OF_CircRecord_sequence_of[1] = {
 };
 
 static int
-dissect_z3950_SEQUENCE_OF_CircRecord(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_z3950_SEQUENCE_OF_CircRecord(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence_of(implicit_tag, actx, tree, tvb, offset,
                                       SEQUENCE_OF_CircRecord_sequence_of, hf_index, ett_z3950_SEQUENCE_OF_CircRecord);
 
@@ -4888,7 +4894,7 @@ static const ber_sequence_t HoldingsAndCircData_sequence[] = {
 };
 
 static int
-dissect_z3950_HoldingsAndCircData(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_z3950_HoldingsAndCircData(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence(implicit_tag, actx, tree, tvb, offset,
                                    HoldingsAndCircData_sequence, hf_index, ett_z3950_HoldingsAndCircData);
 
@@ -4909,7 +4915,7 @@ static const ber_choice_t HoldingsRecord_choice[] = {
 };
 
 static int
-dissect_z3950_HoldingsRecord(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_z3950_HoldingsRecord(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_choice(actx, tree, tvb, offset,
                                  HoldingsRecord_choice, hf_index, ett_z3950_HoldingsRecord,
                                  NULL);
@@ -4923,7 +4929,7 @@ static const ber_sequence_t SEQUENCE_OF_HoldingsRecord_sequence_of[1] = {
 };
 
 static int
-dissect_z3950_SEQUENCE_OF_HoldingsRecord(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_z3950_SEQUENCE_OF_HoldingsRecord(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence_of(implicit_tag, actx, tree, tvb, offset,
                                       SEQUENCE_OF_HoldingsRecord_sequence_of, hf_index, ett_z3950_SEQUENCE_OF_HoldingsRecord);
 
@@ -4938,7 +4944,7 @@ static const ber_sequence_t OPACRecord_sequence[] = {
 };
 
 static int
-dissect_z3950_OPACRecord(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_z3950_OPACRecord(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence(implicit_tag, actx, tree, tvb, offset,
                                    OPACRecord_sequence, hf_index, ett_z3950_OPACRecord);
 
@@ -4961,7 +4967,7 @@ static const value_string z3950_T_tooManyWhat_vals[] = {
 
 
 static int
-dissect_z3950_T_tooManyWhat(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_z3950_T_tooManyWhat(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_integer(implicit_tag, actx, tree, tvb, offset, hf_index,
                                                 NULL);
 
@@ -4976,7 +4982,7 @@ static const ber_sequence_t T_tooMany_sequence[] = {
 };
 
 static int
-dissect_z3950_T_tooMany(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_z3950_T_tooMany(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence(implicit_tag, actx, tree, tvb, offset,
                                    T_tooMany_sequence, hf_index, ett_z3950_T_tooMany);
 
@@ -4989,7 +4995,7 @@ static const ber_sequence_t SEQUENCE_OF_Specification_sequence_of[1] = {
 };
 
 static int
-dissect_z3950_SEQUENCE_OF_Specification(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_z3950_SEQUENCE_OF_Specification(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence_of(implicit_tag, actx, tree, tvb, offset,
                                       SEQUENCE_OF_Specification_sequence_of, hf_index, ett_z3950_SEQUENCE_OF_Specification);
 
@@ -5005,7 +5011,7 @@ static const ber_sequence_t T_badSpec_sequence[] = {
 };
 
 static int
-dissect_z3950_T_badSpec(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_z3950_T_badSpec(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence(implicit_tag, actx, tree, tvb, offset,
                                    T_badSpec_sequence, hf_index, ett_z3950_T_badSpec);
 
@@ -5023,7 +5029,7 @@ static const value_string z3950_T_reasonCode_vals[] = {
 
 
 static int
-dissect_z3950_T_reasonCode(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_z3950_T_reasonCode(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_integer(implicit_tag, actx, tree, tvb, offset, hf_index,
                                                 NULL);
 
@@ -5038,7 +5044,7 @@ static const ber_sequence_t T_why_sequence[] = {
 };
 
 static int
-dissect_z3950_T_why(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_z3950_T_why(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence(implicit_tag, actx, tree, tvb, offset,
                                    T_why_sequence, hf_index, ett_z3950_T_why);
 
@@ -5053,7 +5059,7 @@ static const ber_sequence_t T_dbUnavail_sequence[] = {
 };
 
 static int
-dissect_z3950_T_dbUnavail(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_z3950_T_dbUnavail(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence(implicit_tag, actx, tree, tvb, offset,
                                    T_dbUnavail_sequence, hf_index, ett_z3950_T_dbUnavail);
 
@@ -5071,7 +5077,7 @@ static const value_string z3950_T_unSupOp_vals[] = {
 
 
 static int
-dissect_z3950_T_unSupOp(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_z3950_T_unSupOp(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_integer(implicit_tag, actx, tree, tvb, offset, hf_index,
                                                 NULL);
 
@@ -5088,7 +5094,7 @@ static const ber_sequence_t T_attribute_sequence[] = {
 };
 
 static int
-dissect_z3950_T_attribute(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_z3950_T_attribute(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence(implicit_tag, actx, tree, tvb, offset,
                                    T_attribute_sequence, hf_index, ett_z3950_T_attribute);
 
@@ -5101,7 +5107,7 @@ static const ber_sequence_t SEQUENCE_OF_AttributeList_sequence_of[1] = {
 };
 
 static int
-dissect_z3950_SEQUENCE_OF_AttributeList(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_z3950_SEQUENCE_OF_AttributeList(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence_of(implicit_tag, actx, tree, tvb, offset,
                                       SEQUENCE_OF_AttributeList_sequence_of, hf_index, ett_z3950_SEQUENCE_OF_AttributeList);
 
@@ -5116,7 +5122,7 @@ static const ber_sequence_t T_attCombo_sequence[] = {
 };
 
 static int
-dissect_z3950_T_attCombo(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_z3950_T_attCombo(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence(implicit_tag, actx, tree, tvb, offset,
                                    T_attCombo_sequence, hf_index, ett_z3950_T_attCombo);
 
@@ -5134,7 +5140,7 @@ static const value_string z3950_T_problem_vals[] = {
 
 
 static int
-dissect_z3950_T_problem(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_z3950_T_problem(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_integer(implicit_tag, actx, tree, tvb, offset, hf_index,
                                                 NULL);
 
@@ -5149,7 +5155,7 @@ static const ber_sequence_t T_diagFormat_term_sequence[] = {
 };
 
 static int
-dissect_z3950_T_diagFormat_term(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_z3950_T_diagFormat_term(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence(implicit_tag, actx, tree, tvb, offset,
                                    T_diagFormat_term_sequence, hf_index, ett_z3950_T_diagFormat_term);
 
@@ -5182,7 +5188,7 @@ static const ber_choice_t T_diagFormat_proximity_choice[] = {
 };
 
 static int
-dissect_z3950_T_diagFormat_proximity(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_z3950_T_diagFormat_proximity(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_choice(actx, tree, tvb, offset,
                                  T_diagFormat_proximity_choice, hf_index, ett_z3950_T_diagFormat_proximity,
                                  NULL);
@@ -5201,7 +5207,7 @@ static const value_string z3950_T_posInResponse_vals[] = {
 
 
 static int
-dissect_z3950_T_posInResponse(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_z3950_T_posInResponse(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_integer(implicit_tag, actx, tree, tvb, offset, hf_index,
                                                 NULL);
 
@@ -5232,7 +5238,7 @@ static const ber_choice_t T_scan_choice[] = {
 };
 
 static int
-dissect_z3950_T_scan(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_z3950_T_scan(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_choice(actx, tree, tvb, offset,
                                  T_scan_choice, hf_index, ett_z3950_T_scan,
                                  NULL);
@@ -5249,7 +5255,7 @@ static const value_string z3950_T_key_vals[] = {
 
 
 static int
-dissect_z3950_T_key(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_z3950_T_key(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_integer(implicit_tag, actx, tree, tvb, offset, hf_index,
                                                 NULL);
 
@@ -5267,7 +5273,7 @@ static const value_string z3950_T_illegal_vals[] = {
 
 
 static int
-dissect_z3950_T_illegal(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_z3950_T_illegal(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_integer(implicit_tag, actx, tree, tvb, offset, hf_index,
                                                 NULL);
 
@@ -5308,7 +5314,7 @@ static const ber_choice_t T_sort_choice[] = {
 };
 
 static int
-dissect_z3950_T_sort(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_z3950_T_sort(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_choice(actx, tree, tvb, offset,
                                  T_sort_choice, hf_index, ett_z3950_T_sort,
                                  NULL);
@@ -5330,7 +5336,7 @@ static const ber_choice_t T_segmentation_choice[] = {
 };
 
 static int
-dissect_z3950_T_segmentation(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_z3950_T_segmentation(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_choice(actx, tree, tvb, offset,
                                  T_segmentation_choice, hf_index, ett_z3950_T_segmentation,
                                  NULL);
@@ -5349,7 +5355,7 @@ static const value_string z3950_T_req_vals[] = {
 
 
 static int
-dissect_z3950_T_req(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_z3950_T_req(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_integer(implicit_tag, actx, tree, tvb, offset, hf_index,
                                                 NULL);
 
@@ -5365,7 +5371,7 @@ static const value_string z3950_T_permission_vals[] = {
 
 
 static int
-dissect_z3950_T_permission(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_z3950_T_permission(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_integer(implicit_tag, actx, tree, tvb, offset, hf_index,
                                                 NULL);
 
@@ -5382,7 +5388,7 @@ static const value_string z3950_T_immediate_vals[] = {
 
 
 static int
-dissect_z3950_T_immediate(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_z3950_T_immediate(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_integer(implicit_tag, actx, tree, tvb, offset, hf_index,
                                                 NULL);
 
@@ -5405,7 +5411,7 @@ static const ber_choice_t T_extServices_choice[] = {
 };
 
 static int
-dissect_z3950_T_extServices(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_z3950_T_extServices(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_choice(actx, tree, tvb, offset,
                                  T_extServices_choice, hf_index, ett_z3950_T_extServices,
                                  NULL);
@@ -5419,7 +5425,7 @@ static const ber_sequence_t T_diagFormat_accessCtrl_oid_sequence_of[1] = {
 };
 
 static int
-dissect_z3950_T_diagFormat_accessCtrl_oid(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_z3950_T_diagFormat_accessCtrl_oid(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence_of(implicit_tag, actx, tree, tvb, offset,
                                       T_diagFormat_accessCtrl_oid_sequence_of, hf_index, ett_z3950_T_diagFormat_accessCtrl_oid);
 
@@ -5432,7 +5438,7 @@ static const ber_sequence_t T_alternative_sequence_of[1] = {
 };
 
 static int
-dissect_z3950_T_alternative(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_z3950_T_alternative(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence_of(implicit_tag, actx, tree, tvb, offset,
                                       T_alternative_sequence_of, hf_index, ett_z3950_T_alternative);
 
@@ -5463,7 +5469,7 @@ static const ber_choice_t T_accessCtrl_choice[] = {
 };
 
 static int
-dissect_z3950_T_accessCtrl(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_z3950_T_accessCtrl(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_choice(actx, tree, tvb, offset,
                                  T_accessCtrl_choice, hf_index, ett_z3950_T_accessCtrl,
                                  NULL);
@@ -5477,7 +5483,7 @@ static const ber_sequence_t T_suggestedAlternatives_sequence_of[1] = {
 };
 
 static int
-dissect_z3950_T_suggestedAlternatives(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_z3950_T_suggestedAlternatives(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence_of(implicit_tag, actx, tree, tvb, offset,
                                       T_suggestedAlternatives_sequence_of, hf_index, ett_z3950_T_suggestedAlternatives);
 
@@ -5492,7 +5498,7 @@ static const ber_sequence_t T_diagFormat_recordSyntax_sequence[] = {
 };
 
 static int
-dissect_z3950_T_diagFormat_recordSyntax(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_z3950_T_diagFormat_recordSyntax(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence(implicit_tag, actx, tree, tvb, offset,
                                    T_diagFormat_recordSyntax_sequence, hf_index, ett_z3950_T_diagFormat_recordSyntax);
 
@@ -5537,7 +5543,7 @@ static const ber_choice_t DiagFormat_choice[] = {
 };
 
 static int
-dissect_z3950_DiagFormat(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_z3950_DiagFormat(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_choice(actx, tree, tvb, offset,
                                  DiagFormat_choice, hf_index, ett_z3950_DiagFormat,
                                  NULL);
@@ -5559,7 +5565,7 @@ static const ber_choice_t T_diagnosticFormat_item_diagnostic_choice[] = {
 };
 
 static int
-dissect_z3950_T_diagnosticFormat_item_diagnostic(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_z3950_T_diagnosticFormat_item_diagnostic(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_choice(actx, tree, tvb, offset,
                                  T_diagnosticFormat_item_diagnostic_choice, hf_index, ett_z3950_T_diagnosticFormat_item_diagnostic,
                                  NULL);
@@ -5575,7 +5581,7 @@ static const ber_sequence_t DiagnosticFormat_item_sequence[] = {
 };
 
 static int
-dissect_z3950_DiagnosticFormat_item(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_z3950_DiagnosticFormat_item(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence(implicit_tag, actx, tree, tvb, offset,
                                    DiagnosticFormat_item_sequence, hf_index, ett_z3950_DiagnosticFormat_item);
 
@@ -5588,7 +5594,7 @@ static const ber_sequence_t DiagnosticFormat_sequence_of[1] = {
 };
 
 static int
-dissect_z3950_DiagnosticFormat(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_z3950_DiagnosticFormat(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence_of(implicit_tag, actx, tree, tvb, offset,
                                       DiagnosticFormat_sequence_of, hf_index, ett_z3950_DiagnosticFormat);
 
@@ -5598,7 +5604,7 @@ dissect_z3950_DiagnosticFormat(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int
 
 
 static int
-dissect_z3950_LanguageCode(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_z3950_LanguageCode(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_z3950_InternationalString(implicit_tag, tvb, offset, actx, tree, hf_index);
 
   return offset;
@@ -5615,7 +5621,7 @@ static const ber_sequence_t CommonInfo_sequence[] = {
 };
 
 static int
-dissect_z3950_CommonInfo(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_z3950_CommonInfo(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence(implicit_tag, actx, tree, tvb, offset,
                                    CommonInfo_sequence, hf_index, ett_z3950_CommonInfo);
 
@@ -5630,7 +5636,7 @@ static const ber_sequence_t HumanString_item_sequence[] = {
 };
 
 static int
-dissect_z3950_HumanString_item(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_z3950_HumanString_item(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence(implicit_tag, actx, tree, tvb, offset,
                                    HumanString_item_sequence, hf_index, ett_z3950_HumanString_item);
 
@@ -5643,7 +5649,7 @@ static const ber_sequence_t HumanString_sequence_of[1] = {
 };
 
 static int
-dissect_z3950_HumanString(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_z3950_HumanString(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence_of(implicit_tag, actx, tree, tvb, offset,
                                       HumanString_sequence_of, hf_index, ett_z3950_HumanString);
 
@@ -5666,7 +5672,7 @@ static const ber_choice_t T_bodyType_choice[] = {
 };
 
 static int
-dissect_z3950_T_bodyType(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_z3950_T_bodyType(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_choice(actx, tree, tvb, offset,
                                  T_bodyType_choice, hf_index, ett_z3950_T_bodyType,
                                  NULL);
@@ -5682,7 +5688,7 @@ static const ber_sequence_t IconObject_item_sequence[] = {
 };
 
 static int
-dissect_z3950_IconObject_item(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_z3950_IconObject_item(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence(implicit_tag, actx, tree, tvb, offset,
                                    IconObject_item_sequence, hf_index, ett_z3950_IconObject_item);
 
@@ -5695,7 +5701,7 @@ static const ber_sequence_t IconObject_sequence_of[1] = {
 };
 
 static int
-dissect_z3950_IconObject(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_z3950_IconObject(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence_of(implicit_tag, actx, tree, tvb, offset,
                                       IconObject_sequence_of, hf_index, ett_z3950_IconObject);
 
@@ -5713,7 +5719,7 @@ static const ber_sequence_t ContactInfo_sequence[] = {
 };
 
 static int
-dissect_z3950_ContactInfo(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_z3950_ContactInfo(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence(implicit_tag, actx, tree, tvb, offset,
                                    ContactInfo_sequence, hf_index, ett_z3950_ContactInfo);
 
@@ -5726,7 +5732,7 @@ static const ber_sequence_t DatabaseList_sequence_of[1] = {
 };
 
 static int
-dissect_z3950_DatabaseList(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_z3950_DatabaseList(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence_of(implicit_tag, actx, tree, tvb, offset,
                                       DatabaseList_sequence_of, hf_index, ett_z3950_DatabaseList);
 
@@ -5739,7 +5745,7 @@ static const ber_sequence_t SEQUENCE_OF_DatabaseList_sequence_of[1] = {
 };
 
 static int
-dissect_z3950_SEQUENCE_OF_DatabaseList(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_z3950_SEQUENCE_OF_DatabaseList(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence_of(implicit_tag, actx, tree, tvb, offset,
                                       SEQUENCE_OF_DatabaseList_sequence_of, hf_index, ett_z3950_SEQUENCE_OF_DatabaseList);
 
@@ -5754,7 +5760,7 @@ static const ber_sequence_t T_internetAddress_sequence[] = {
 };
 
 static int
-dissect_z3950_T_internetAddress(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_z3950_T_internetAddress(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence(implicit_tag, actx, tree, tvb, offset,
                                    T_internetAddress_sequence, hf_index, ett_z3950_T_internetAddress);
 
@@ -5771,7 +5777,7 @@ static const ber_sequence_t T_osiPresentationAddress_sequence[] = {
 };
 
 static int
-dissect_z3950_T_osiPresentationAddress(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_z3950_T_osiPresentationAddress(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence(implicit_tag, actx, tree, tvb, offset,
                                    T_osiPresentationAddress_sequence, hf_index, ett_z3950_T_osiPresentationAddress);
 
@@ -5786,7 +5792,7 @@ static const ber_sequence_t T_networkAddress_other_sequence[] = {
 };
 
 static int
-dissect_z3950_T_networkAddress_other(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_z3950_T_networkAddress_other(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence(implicit_tag, actx, tree, tvb, offset,
                                    T_networkAddress_other_sequence, hf_index, ett_z3950_T_networkAddress_other);
 
@@ -5809,7 +5815,7 @@ static const ber_choice_t NetworkAddress_choice[] = {
 };
 
 static int
-dissect_z3950_NetworkAddress(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_z3950_NetworkAddress(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_choice(actx, tree, tvb, offset,
                                  NetworkAddress_choice, hf_index, ett_z3950_NetworkAddress,
                                  NULL);
@@ -5823,7 +5829,7 @@ static const ber_sequence_t SEQUENCE_OF_NetworkAddress_sequence_of[1] = {
 };
 
 static int
-dissect_z3950_SEQUENCE_OF_NetworkAddress(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_z3950_SEQUENCE_OF_NetworkAddress(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence_of(implicit_tag, actx, tree, tvb, offset,
                                       SEQUENCE_OF_NetworkAddress_sequence_of, hf_index, ett_z3950_SEQUENCE_OF_NetworkAddress);
 
@@ -5838,7 +5844,7 @@ static const ber_sequence_t T_privateCapabilities_operators_item_sequence[] = {
 };
 
 static int
-dissect_z3950_T_privateCapabilities_operators_item(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_z3950_T_privateCapabilities_operators_item(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence(implicit_tag, actx, tree, tvb, offset,
                                    T_privateCapabilities_operators_item_sequence, hf_index, ett_z3950_T_privateCapabilities_operators_item);
 
@@ -5851,7 +5857,7 @@ static const ber_sequence_t T_privateCapabilities_operators_sequence_of[1] = {
 };
 
 static int
-dissect_z3950_T_privateCapabilities_operators(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_z3950_T_privateCapabilities_operators(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence_of(implicit_tag, actx, tree, tvb, offset,
                                       T_privateCapabilities_operators_sequence_of, hf_index, ett_z3950_T_privateCapabilities_operators);
 
@@ -5866,7 +5872,7 @@ static const ber_sequence_t SearchKey_sequence[] = {
 };
 
 static int
-dissect_z3950_SearchKey(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_z3950_SearchKey(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence(implicit_tag, actx, tree, tvb, offset,
                                    SearchKey_sequence, hf_index, ett_z3950_SearchKey);
 
@@ -5879,7 +5885,7 @@ static const ber_sequence_t SEQUENCE_OF_SearchKey_sequence_of[1] = {
 };
 
 static int
-dissect_z3950_SEQUENCE_OF_SearchKey(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_z3950_SEQUENCE_OF_SearchKey(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence_of(implicit_tag, actx, tree, tvb, offset,
                                       SEQUENCE_OF_SearchKey_sequence_of, hf_index, ett_z3950_SEQUENCE_OF_SearchKey);
 
@@ -5892,7 +5898,7 @@ static const ber_sequence_t SEQUENCE_OF_HumanString_sequence_of[1] = {
 };
 
 static int
-dissect_z3950_SEQUENCE_OF_HumanString(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_z3950_SEQUENCE_OF_HumanString(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence_of(implicit_tag, actx, tree, tvb, offset,
                                       SEQUENCE_OF_HumanString_sequence_of, hf_index, ett_z3950_SEQUENCE_OF_HumanString);
 
@@ -5908,7 +5914,7 @@ static const ber_sequence_t PrivateCapabilities_sequence[] = {
 };
 
 static int
-dissect_z3950_PrivateCapabilities(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_z3950_PrivateCapabilities(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence(implicit_tag, actx, tree, tvb, offset,
                                    PrivateCapabilities_sequence, hf_index, ett_z3950_PrivateCapabilities);
 
@@ -5921,7 +5927,7 @@ static const ber_sequence_t T_operators_sequence_of[1] = {
 };
 
 static int
-dissect_z3950_T_operators(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_z3950_T_operators(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence_of(implicit_tag, actx, tree, tvb, offset,
                                       T_operators_sequence_of, hf_index, ett_z3950_T_operators);
 
@@ -5936,7 +5942,7 @@ static const ber_sequence_t T_proximitySupport_unitsSupported_item_private_seque
 };
 
 static int
-dissect_z3950_T_proximitySupport_unitsSupported_item_private(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_z3950_T_proximitySupport_unitsSupported_item_private(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence(implicit_tag, actx, tree, tvb, offset,
                                    T_proximitySupport_unitsSupported_item_private_sequence, hf_index, ett_z3950_T_proximitySupport_unitsSupported_item_private);
 
@@ -5957,7 +5963,7 @@ static const ber_choice_t T_unitsSupported_item_choice[] = {
 };
 
 static int
-dissect_z3950_T_unitsSupported_item(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_z3950_T_unitsSupported_item(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_choice(actx, tree, tvb, offset,
                                  T_unitsSupported_item_choice, hf_index, ett_z3950_T_unitsSupported_item,
                                  NULL);
@@ -5971,7 +5977,7 @@ static const ber_sequence_t T_unitsSupported_sequence_of[1] = {
 };
 
 static int
-dissect_z3950_T_unitsSupported(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_z3950_T_unitsSupported(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence_of(implicit_tag, actx, tree, tvb, offset,
                                       T_unitsSupported_sequence_of, hf_index, ett_z3950_T_unitsSupported);
 
@@ -5986,7 +5992,7 @@ static const ber_sequence_t ProximitySupport_sequence[] = {
 };
 
 static int
-dissect_z3950_ProximitySupport(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_z3950_ProximitySupport(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence(implicit_tag, actx, tree, tvb, offset,
                                    ProximitySupport_sequence, hf_index, ett_z3950_ProximitySupport);
 
@@ -6003,7 +6009,7 @@ static const ber_sequence_t RpnCapabilities_sequence[] = {
 };
 
 static int
-dissect_z3950_RpnCapabilities(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_z3950_RpnCapabilities(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence(implicit_tag, actx, tree, tvb, offset,
                                    RpnCapabilities_sequence, hf_index, ett_z3950_RpnCapabilities);
 
@@ -6018,7 +6024,7 @@ static const ber_sequence_t Iso8777Capabilities_sequence[] = {
 };
 
 static int
-dissect_z3950_Iso8777Capabilities(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_z3950_Iso8777Capabilities(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence(implicit_tag, actx, tree, tvb, offset,
                                    Iso8777Capabilities_sequence, hf_index, ett_z3950_Iso8777Capabilities);
 
@@ -6047,7 +6053,7 @@ static const ber_choice_t QueryTypeDetails_choice[] = {
 };
 
 static int
-dissect_z3950_QueryTypeDetails(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_z3950_QueryTypeDetails(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_choice(actx, tree, tvb, offset,
                                  QueryTypeDetails_choice, hf_index, ett_z3950_QueryTypeDetails,
                                  NULL);
@@ -6061,7 +6067,7 @@ static const ber_sequence_t SEQUENCE_OF_QueryTypeDetails_sequence_of[1] = {
 };
 
 static int
-dissect_z3950_SEQUENCE_OF_QueryTypeDetails(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_z3950_SEQUENCE_OF_QueryTypeDetails(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence_of(implicit_tag, actx, tree, tvb, offset,
                                       SEQUENCE_OF_QueryTypeDetails_sequence_of, hf_index, ett_z3950_SEQUENCE_OF_QueryTypeDetails);
 
@@ -6074,7 +6080,7 @@ static const ber_sequence_t T_diagnosticsSets_sequence_of[1] = {
 };
 
 static int
-dissect_z3950_T_diagnosticsSets(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_z3950_T_diagnosticsSets(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence_of(implicit_tag, actx, tree, tvb, offset,
                                       T_diagnosticsSets_sequence_of, hf_index, ett_z3950_T_diagnosticsSets);
 
@@ -6087,7 +6093,7 @@ static const ber_sequence_t SEQUENCE_OF_AttributeSetId_sequence_of[1] = {
 };
 
 static int
-dissect_z3950_SEQUENCE_OF_AttributeSetId(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_z3950_SEQUENCE_OF_AttributeSetId(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence_of(implicit_tag, actx, tree, tvb, offset,
                                       SEQUENCE_OF_AttributeSetId_sequence_of, hf_index, ett_z3950_SEQUENCE_OF_AttributeSetId);
 
@@ -6100,7 +6106,7 @@ static const ber_sequence_t T_schemas_sequence_of[1] = {
 };
 
 static int
-dissect_z3950_T_schemas(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_z3950_T_schemas(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence_of(implicit_tag, actx, tree, tvb, offset,
                                       T_schemas_sequence_of, hf_index, ett_z3950_T_schemas);
 
@@ -6113,7 +6119,7 @@ static const ber_sequence_t T_recordSyntaxes_sequence_of[1] = {
 };
 
 static int
-dissect_z3950_T_recordSyntaxes(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_z3950_T_recordSyntaxes(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence_of(implicit_tag, actx, tree, tvb, offset,
                                       T_recordSyntaxes_sequence_of, hf_index, ett_z3950_T_recordSyntaxes);
 
@@ -6126,7 +6132,7 @@ static const ber_sequence_t T_resourceChallenges_sequence_of[1] = {
 };
 
 static int
-dissect_z3950_T_resourceChallenges(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_z3950_T_resourceChallenges(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence_of(implicit_tag, actx, tree, tvb, offset,
                                       T_resourceChallenges_sequence_of, hf_index, ett_z3950_T_resourceChallenges);
 
@@ -6146,7 +6152,7 @@ static const value_string z3950_T_accessType_vals[] = {
 
 
 static int
-dissect_z3950_T_accessType(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_z3950_T_accessType(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_integer(implicit_tag, actx, tree, tvb, offset, hf_index,
                                                 NULL);
 
@@ -6159,7 +6165,7 @@ static const ber_sequence_t T_accessChallenges_sequence_of[1] = {
 };
 
 static int
-dissect_z3950_T_accessChallenges(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_z3950_T_accessChallenges(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence_of(implicit_tag, actx, tree, tvb, offset,
                                       T_accessChallenges_sequence_of, hf_index, ett_z3950_T_accessChallenges);
 
@@ -6175,7 +6181,7 @@ static const ber_sequence_t AccessRestrictions_item_sequence[] = {
 };
 
 static int
-dissect_z3950_AccessRestrictions_item(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_z3950_AccessRestrictions_item(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence(implicit_tag, actx, tree, tvb, offset,
                                    AccessRestrictions_item_sequence, hf_index, ett_z3950_AccessRestrictions_item);
 
@@ -6188,7 +6194,7 @@ static const ber_sequence_t AccessRestrictions_sequence_of[1] = {
 };
 
 static int
-dissect_z3950_AccessRestrictions(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_z3950_AccessRestrictions(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence_of(implicit_tag, actx, tree, tvb, offset,
                                       AccessRestrictions_sequence_of, hf_index, ett_z3950_AccessRestrictions);
 
@@ -6204,7 +6210,7 @@ static const ber_sequence_t Charge_sequence[] = {
 };
 
 static int
-dissect_z3950_Charge(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_z3950_Charge(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence(implicit_tag, actx, tree, tvb, offset,
                                    Charge_sequence, hf_index, ett_z3950_Charge);
 
@@ -6219,7 +6225,7 @@ static const ber_sequence_t T_otherCharges_item_sequence[] = {
 };
 
 static int
-dissect_z3950_T_otherCharges_item(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_z3950_T_otherCharges_item(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence(implicit_tag, actx, tree, tvb, offset,
                                    T_otherCharges_item_sequence, hf_index, ett_z3950_T_otherCharges_item);
 
@@ -6232,7 +6238,7 @@ static const ber_sequence_t T_otherCharges_sequence_of[1] = {
 };
 
 static int
-dissect_z3950_T_otherCharges(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_z3950_T_otherCharges(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence_of(implicit_tag, actx, tree, tvb, offset,
                                       T_otherCharges_sequence_of, hf_index, ett_z3950_T_otherCharges);
 
@@ -6251,7 +6257,7 @@ static const ber_sequence_t Costs_sequence[] = {
 };
 
 static int
-dissect_z3950_Costs(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_z3950_Costs(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence(implicit_tag, actx, tree, tvb, offset,
                                    Costs_sequence, hf_index, ett_z3950_Costs);
 
@@ -6264,7 +6270,7 @@ static const ber_sequence_t T_variantSets_sequence_of[1] = {
 };
 
 static int
-dissect_z3950_T_variantSets(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_z3950_T_variantSets(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence_of(implicit_tag, actx, tree, tvb, offset,
                                       T_variantSets_sequence_of, hf_index, ett_z3950_T_variantSets);
 
@@ -6277,7 +6283,7 @@ static const ber_sequence_t SEQUENCE_OF_ElementSetName_sequence_of[1] = {
 };
 
 static int
-dissect_z3950_SEQUENCE_OF_ElementSetName(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_z3950_SEQUENCE_OF_ElementSetName(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence_of(implicit_tag, actx, tree, tvb, offset,
                                       SEQUENCE_OF_ElementSetName_sequence_of, hf_index, ett_z3950_SEQUENCE_OF_ElementSetName);
 
@@ -6301,7 +6307,7 @@ static const ber_sequence_t AccessInfo_sequence[] = {
 };
 
 static int
-dissect_z3950_AccessInfo(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_z3950_AccessInfo(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence(implicit_tag, actx, tree, tvb, offset,
                                    AccessInfo_sequence, hf_index, ett_z3950_AccessInfo);
 
@@ -6335,7 +6341,7 @@ static const ber_sequence_t TargetInfo_sequence[] = {
 };
 
 static int
-dissect_z3950_TargetInfo(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_z3950_TargetInfo(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence(implicit_tag, actx, tree, tvb, offset,
                                    TargetInfo_sequence, hf_index, ett_z3950_TargetInfo);
 
@@ -6356,7 +6362,7 @@ static const ber_choice_t T_recordCount_choice[] = {
 };
 
 static int
-dissect_z3950_T_recordCount(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_z3950_T_recordCount(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_choice(actx, tree, tvb, offset,
                                  T_recordCount_choice, hf_index, ett_z3950_T_recordCount,
                                  NULL);
@@ -6400,7 +6406,7 @@ static const ber_sequence_t DatabaseInfo_sequence[] = {
 };
 
 static int
-dissect_z3950_DatabaseInfo(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_z3950_DatabaseInfo(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence(implicit_tag, actx, tree, tvb, offset,
                                    DatabaseInfo_sequence, hf_index, ett_z3950_DatabaseInfo);
 
@@ -6416,7 +6422,7 @@ static const ber_sequence_t T_tagTypeMapping_item_sequence[] = {
 };
 
 static int
-dissect_z3950_T_tagTypeMapping_item(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_z3950_T_tagTypeMapping_item(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence(implicit_tag, actx, tree, tvb, offset,
                                    T_tagTypeMapping_item_sequence, hf_index, ett_z3950_T_tagTypeMapping_item);
 
@@ -6429,7 +6435,7 @@ static const ber_sequence_t T_tagTypeMapping_sequence_of[1] = {
 };
 
 static int
-dissect_z3950_T_tagTypeMapping(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_z3950_T_tagTypeMapping(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence_of(implicit_tag, actx, tree, tvb, offset,
                                       T_tagTypeMapping_sequence_of, hf_index, ett_z3950_T_tagTypeMapping);
 
@@ -6444,7 +6450,7 @@ static const ber_sequence_t Path_item_sequence[] = {
 };
 
 static int
-dissect_z3950_Path_item(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_z3950_Path_item(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence(implicit_tag, actx, tree, tvb, offset,
                                    Path_item_sequence, hf_index, ett_z3950_Path_item);
 
@@ -6457,7 +6463,7 @@ static const ber_sequence_t Path_sequence_of[1] = {
 };
 
 static int
-dissect_z3950_Path(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_z3950_Path(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence_of(implicit_tag, actx, tree, tvb, offset,
                                       Path_sequence_of, hf_index, ett_z3950_Path);
 
@@ -6481,7 +6487,7 @@ static const value_string z3950_PrimitiveDataType_vals[] = {
 
 
 static int
-dissect_z3950_PrimitiveDataType(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_z3950_PrimitiveDataType(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_integer(implicit_tag, actx, tree, tvb, offset, hf_index,
                                                 NULL);
 
@@ -6494,7 +6500,7 @@ static const ber_sequence_t SEQUENCE_OF_ElementInfo_sequence_of[1] = {
 };
 
 static int
-dissect_z3950_SEQUENCE_OF_ElementInfo(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_z3950_SEQUENCE_OF_ElementInfo(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence_of(implicit_tag, actx, tree, tvb, offset,
                                       SEQUENCE_OF_ElementInfo_sequence_of, hf_index, ett_z3950_SEQUENCE_OF_ElementInfo);
 
@@ -6515,7 +6521,7 @@ static const ber_choice_t ElementDataType_choice[] = {
 };
 
 static int
-dissect_z3950_ElementDataType(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_z3950_ElementDataType(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_choice(actx, tree, tvb, offset,
                                  ElementDataType_choice, hf_index, ett_z3950_ElementDataType,
                                  NULL);
@@ -6535,10 +6541,15 @@ static const ber_sequence_t ElementInfo_sequence[] = {
 };
 
 static int
-dissect_z3950_ElementInfo(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_z3950_ElementInfo(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+  // ElementInfo -> ElementDataType -> ElementDataType/structured -> ElementInfo
+  actx->pinfo->dissection_depth += 3;
+  increment_dissection_depth(actx->pinfo);
   offset = dissect_ber_sequence(implicit_tag, actx, tree, tvb, offset,
                                    ElementInfo_sequence, hf_index, ett_z3950_ElementInfo);
 
+  actx->pinfo->dissection_depth -= 3;
+  decrement_dissection_depth(actx->pinfo);
   return offset;
 }
 
@@ -6554,7 +6565,7 @@ static const ber_sequence_t SchemaInfo_sequence[] = {
 };
 
 static int
-dissect_z3950_SchemaInfo(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_z3950_SchemaInfo(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence(implicit_tag, actx, tree, tvb, offset,
                                    SchemaInfo_sequence, hf_index, ett_z3950_SchemaInfo);
 
@@ -6573,7 +6584,7 @@ static const ber_sequence_t T_tagSetInfo_elements_item_sequence[] = {
 };
 
 static int
-dissect_z3950_T_tagSetInfo_elements_item(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_z3950_T_tagSetInfo_elements_item(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence(implicit_tag, actx, tree, tvb, offset,
                                    T_tagSetInfo_elements_item_sequence, hf_index, ett_z3950_T_tagSetInfo_elements_item);
 
@@ -6586,7 +6597,7 @@ static const ber_sequence_t T_tagSetInfo_elements_sequence_of[1] = {
 };
 
 static int
-dissect_z3950_T_tagSetInfo_elements(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_z3950_T_tagSetInfo_elements(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence_of(implicit_tag, actx, tree, tvb, offset,
                                       T_tagSetInfo_elements_sequence_of, hf_index, ett_z3950_T_tagSetInfo_elements);
 
@@ -6604,7 +6615,7 @@ static const ber_sequence_t TagSetInfo_sequence[] = {
 };
 
 static int
-dissect_z3950_TagSetInfo(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_z3950_TagSetInfo(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence(implicit_tag, actx, tree, tvb, offset,
                                    TagSetInfo_sequence, hf_index, ett_z3950_TagSetInfo);
 
@@ -6617,7 +6628,7 @@ static const ber_sequence_t T_transferSyntaxes_sequence_of[1] = {
 };
 
 static int
-dissect_z3950_T_transferSyntaxes(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_z3950_T_transferSyntaxes(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence_of(implicit_tag, actx, tree, tvb, offset,
                                       T_transferSyntaxes_sequence_of, hf_index, ett_z3950_T_transferSyntaxes);
 
@@ -6637,7 +6648,7 @@ static const ber_sequence_t RecordSyntaxInfo_sequence[] = {
 };
 
 static int
-dissect_z3950_RecordSyntaxInfo(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_z3950_RecordSyntaxInfo(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence(implicit_tag, actx, tree, tvb, offset,
                                    RecordSyntaxInfo_sequence, hf_index, ett_z3950_RecordSyntaxInfo);
 
@@ -6654,7 +6665,7 @@ static const ber_sequence_t AttributeDescription_sequence[] = {
 };
 
 static int
-dissect_z3950_AttributeDescription(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_z3950_AttributeDescription(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence(implicit_tag, actx, tree, tvb, offset,
                                    AttributeDescription_sequence, hf_index, ett_z3950_AttributeDescription);
 
@@ -6667,7 +6678,7 @@ static const ber_sequence_t SEQUENCE_OF_AttributeDescription_sequence_of[1] = {
 };
 
 static int
-dissect_z3950_SEQUENCE_OF_AttributeDescription(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_z3950_SEQUENCE_OF_AttributeDescription(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence_of(implicit_tag, actx, tree, tvb, offset,
                                       SEQUENCE_OF_AttributeDescription_sequence_of, hf_index, ett_z3950_SEQUENCE_OF_AttributeDescription);
 
@@ -6684,7 +6695,7 @@ static const ber_sequence_t AttributeType_sequence[] = {
 };
 
 static int
-dissect_z3950_AttributeType(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_z3950_AttributeType(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence(implicit_tag, actx, tree, tvb, offset,
                                    AttributeType_sequence, hf_index, ett_z3950_AttributeType);
 
@@ -6697,7 +6708,7 @@ static const ber_sequence_t SEQUENCE_OF_AttributeType_sequence_of[1] = {
 };
 
 static int
-dissect_z3950_SEQUENCE_OF_AttributeType(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_z3950_SEQUENCE_OF_AttributeType(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence_of(implicit_tag, actx, tree, tvb, offset,
                                       SEQUENCE_OF_AttributeType_sequence_of, hf_index, ett_z3950_SEQUENCE_OF_AttributeType);
 
@@ -6715,7 +6726,7 @@ static const ber_sequence_t AttributeSetInfo_sequence[] = {
 };
 
 static int
-dissect_z3950_AttributeSetInfo(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_z3950_AttributeSetInfo(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence(implicit_tag, actx, tree, tvb, offset,
                                    AttributeSetInfo_sequence, hf_index, ett_z3950_AttributeSetInfo);
 
@@ -6733,7 +6744,7 @@ static const value_string z3950_T_searchCost_vals[] = {
 
 
 static int
-dissect_z3950_T_searchCost(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_z3950_T_searchCost(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_integer(implicit_tag, actx, tree, tvb, offset, hf_index,
                                                 NULL);
 
@@ -6752,7 +6763,7 @@ static const ber_sequence_t T_termLists_item_sequence[] = {
 };
 
 static int
-dissect_z3950_T_termLists_item(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_z3950_T_termLists_item(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence(implicit_tag, actx, tree, tvb, offset,
                                    T_termLists_item_sequence, hf_index, ett_z3950_T_termLists_item);
 
@@ -6765,7 +6776,7 @@ static const ber_sequence_t T_termLists_sequence_of[1] = {
 };
 
 static int
-dissect_z3950_T_termLists(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_z3950_T_termLists(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence_of(implicit_tag, actx, tree, tvb, offset,
                                       T_termLists_sequence_of, hf_index, ett_z3950_T_termLists);
 
@@ -6781,7 +6792,7 @@ static const ber_sequence_t TermListInfo_sequence[] = {
 };
 
 static int
-dissect_z3950_TermListInfo(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_z3950_TermListInfo(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence(implicit_tag, actx, tree, tvb, offset,
                                    TermListInfo_sequence, hf_index, ett_z3950_TermListInfo);
 
@@ -6800,7 +6811,7 @@ static const value_string z3950_T_extendedServicesInfo_waitAction_vals[] = {
 
 
 static int
-dissect_z3950_T_extendedServicesInfo_waitAction(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_z3950_T_extendedServicesInfo_waitAction(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_integer(implicit_tag, actx, tree, tvb, offset, hf_index,
                                                 NULL);
 
@@ -6825,7 +6836,7 @@ static const ber_sequence_t ExtendedServicesInfo_sequence[] = {
 };
 
 static int
-dissect_z3950_ExtendedServicesInfo(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_z3950_ExtendedServicesInfo(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence(implicit_tag, actx, tree, tvb, offset,
                                    ExtendedServicesInfo_sequence, hf_index, ett_z3950_ExtendedServicesInfo);
 
@@ -6840,7 +6851,7 @@ static const ber_sequence_t OmittedAttributeInterpretation_sequence[] = {
 };
 
 static int
-dissect_z3950_OmittedAttributeInterpretation(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_z3950_OmittedAttributeInterpretation(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence(implicit_tag, actx, tree, tvb, offset,
                                    OmittedAttributeInterpretation_sequence, hf_index, ett_z3950_OmittedAttributeInterpretation);
 
@@ -6858,7 +6869,7 @@ static const ber_sequence_t AttributeValue_sequence[] = {
 };
 
 static int
-dissect_z3950_AttributeValue(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_z3950_AttributeValue(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence(implicit_tag, actx, tree, tvb, offset,
                                    AttributeValue_sequence, hf_index, ett_z3950_AttributeValue);
 
@@ -6871,7 +6882,7 @@ static const ber_sequence_t SEQUENCE_OF_AttributeValue_sequence_of[1] = {
 };
 
 static int
-dissect_z3950_SEQUENCE_OF_AttributeValue(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_z3950_SEQUENCE_OF_AttributeValue(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence_of(implicit_tag, actx, tree, tvb, offset,
                                       SEQUENCE_OF_AttributeValue_sequence_of, hf_index, ett_z3950_SEQUENCE_OF_AttributeValue);
 
@@ -6887,7 +6898,7 @@ static const ber_sequence_t AttributeTypeDetails_sequence[] = {
 };
 
 static int
-dissect_z3950_AttributeTypeDetails(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_z3950_AttributeTypeDetails(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence(implicit_tag, actx, tree, tvb, offset,
                                    AttributeTypeDetails_sequence, hf_index, ett_z3950_AttributeTypeDetails);
 
@@ -6900,7 +6911,7 @@ static const ber_sequence_t SEQUENCE_OF_AttributeTypeDetails_sequence_of[1] = {
 };
 
 static int
-dissect_z3950_SEQUENCE_OF_AttributeTypeDetails(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_z3950_SEQUENCE_OF_AttributeTypeDetails(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence_of(implicit_tag, actx, tree, tvb, offset,
                                       SEQUENCE_OF_AttributeTypeDetails_sequence_of, hf_index, ett_z3950_SEQUENCE_OF_AttributeTypeDetails);
 
@@ -6915,7 +6926,7 @@ static const ber_sequence_t AttributeSetDetails_sequence[] = {
 };
 
 static int
-dissect_z3950_AttributeSetDetails(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_z3950_AttributeSetDetails(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence(implicit_tag, actx, tree, tvb, offset,
                                    AttributeSetDetails_sequence, hf_index, ett_z3950_AttributeSetDetails);
 
@@ -6928,7 +6939,7 @@ static const ber_sequence_t SEQUENCE_OF_AttributeSetDetails_sequence_of[1] = {
 };
 
 static int
-dissect_z3950_SEQUENCE_OF_AttributeSetDetails(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_z3950_SEQUENCE_OF_AttributeSetDetails(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence_of(implicit_tag, actx, tree, tvb, offset,
                                       SEQUENCE_OF_AttributeSetDetails_sequence_of, hf_index, ett_z3950_SEQUENCE_OF_AttributeSetDetails);
 
@@ -6949,7 +6960,7 @@ static const ber_choice_t T_attributeOccurrence_attributeValues_choice[] = {
 };
 
 static int
-dissect_z3950_T_attributeOccurrence_attributeValues(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_z3950_T_attributeOccurrence_attributeValues(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_choice(actx, tree, tvb, offset,
                                  T_attributeOccurrence_attributeValues_choice, hf_index, ett_z3950_T_attributeOccurrence_attributeValues,
                                  NULL);
@@ -6967,7 +6978,7 @@ static const ber_sequence_t AttributeOccurrence_sequence[] = {
 };
 
 static int
-dissect_z3950_AttributeOccurrence(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_z3950_AttributeOccurrence(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence(implicit_tag, actx, tree, tvb, offset,
                                    AttributeOccurrence_sequence, hf_index, ett_z3950_AttributeOccurrence);
 
@@ -6980,7 +6991,7 @@ static const ber_sequence_t AttributeCombination_sequence_of[1] = {
 };
 
 static int
-dissect_z3950_AttributeCombination(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_z3950_AttributeCombination(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence_of(implicit_tag, actx, tree, tvb, offset,
                                       AttributeCombination_sequence_of, hf_index, ett_z3950_AttributeCombination);
 
@@ -6993,7 +7004,7 @@ static const ber_sequence_t SEQUENCE_OF_AttributeCombination_sequence_of[1] = {
 };
 
 static int
-dissect_z3950_SEQUENCE_OF_AttributeCombination(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_z3950_SEQUENCE_OF_AttributeCombination(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence_of(implicit_tag, actx, tree, tvb, offset,
                                       SEQUENCE_OF_AttributeCombination_sequence_of, hf_index, ett_z3950_SEQUENCE_OF_AttributeCombination);
 
@@ -7008,7 +7019,7 @@ static const ber_sequence_t AttributeCombinations_sequence[] = {
 };
 
 static int
-dissect_z3950_AttributeCombinations(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_z3950_AttributeCombinations(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence(implicit_tag, actx, tree, tvb, offset,
                                    AttributeCombinations_sequence, hf_index, ett_z3950_AttributeCombinations);
 
@@ -7025,7 +7036,7 @@ static const ber_sequence_t AttributeDetails_sequence[] = {
 };
 
 static int
-dissect_z3950_AttributeDetails(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_z3950_AttributeDetails(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence(implicit_tag, actx, tree, tvb, offset,
                                    AttributeDetails_sequence, hf_index, ett_z3950_AttributeDetails);
 
@@ -7041,7 +7052,7 @@ static const ber_sequence_t T_scanInfo_sequence[] = {
 };
 
 static int
-dissect_z3950_T_scanInfo(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_z3950_T_scanInfo(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence(implicit_tag, actx, tree, tvb, offset,
                                    T_scanInfo_sequence, hf_index, ett_z3950_T_scanInfo);
 
@@ -7054,7 +7065,7 @@ static const ber_sequence_t SEQUENCE_OF_Term_sequence_of[1] = {
 };
 
 static int
-dissect_z3950_SEQUENCE_OF_Term(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_z3950_SEQUENCE_OF_Term(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence_of(implicit_tag, actx, tree, tvb, offset,
                                       SEQUENCE_OF_Term_sequence_of, hf_index, ett_z3950_SEQUENCE_OF_Term);
 
@@ -7074,7 +7085,7 @@ static const ber_sequence_t TermListDetails_sequence[] = {
 };
 
 static int
-dissect_z3950_TermListDetails(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_z3950_TermListDetails(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence(implicit_tag, actx, tree, tvb, offset,
                                    TermListDetails_sequence, hf_index, ett_z3950_TermListDetails);
 
@@ -7089,7 +7100,7 @@ static const ber_sequence_t RecordTag_sequence[] = {
 };
 
 static int
-dissect_z3950_RecordTag(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_z3950_RecordTag(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence(implicit_tag, actx, tree, tvb, offset,
                                    RecordTag_sequence, hf_index, ett_z3950_RecordTag);
 
@@ -7102,7 +7113,7 @@ static const ber_sequence_t SEQUENCE_OF_Path_sequence_of[1] = {
 };
 
 static int
-dissect_z3950_SEQUENCE_OF_Path(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_z3950_SEQUENCE_OF_Path(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence_of(implicit_tag, actx, tree, tvb, offset,
                                       SEQUENCE_OF_Path_sequence_of, hf_index, ett_z3950_SEQUENCE_OF_Path);
 
@@ -7131,7 +7142,7 @@ static const ber_sequence_t PerElementDetails_sequence[] = {
 };
 
 static int
-dissect_z3950_PerElementDetails(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_z3950_PerElementDetails(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence(implicit_tag, actx, tree, tvb, offset,
                                    PerElementDetails_sequence, hf_index, ett_z3950_PerElementDetails);
 
@@ -7144,7 +7155,7 @@ static const ber_sequence_t SEQUENCE_OF_PerElementDetails_sequence_of[1] = {
 };
 
 static int
-dissect_z3950_SEQUENCE_OF_PerElementDetails(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_z3950_SEQUENCE_OF_PerElementDetails(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence_of(implicit_tag, actx, tree, tvb, offset,
                                       SEQUENCE_OF_PerElementDetails_sequence_of, hf_index, ett_z3950_SEQUENCE_OF_PerElementDetails);
 
@@ -7164,7 +7175,7 @@ static const ber_sequence_t ElementSetDetails_sequence[] = {
 };
 
 static int
-dissect_z3950_ElementSetDetails(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_z3950_ElementSetDetails(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence(implicit_tag, actx, tree, tvb, offset,
                                    ElementSetDetails_sequence, hf_index, ett_z3950_ElementSetDetails);
 
@@ -7183,7 +7194,7 @@ static const ber_sequence_t RetrievalRecordDetails_sequence[] = {
 };
 
 static int
-dissect_z3950_RetrievalRecordDetails(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_z3950_RetrievalRecordDetails(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence(implicit_tag, actx, tree, tvb, offset,
                                    RetrievalRecordDetails_sequence, hf_index, ett_z3950_RetrievalRecordDetails);
 
@@ -7206,7 +7217,7 @@ static const ber_choice_t T_sortType_choice[] = {
 };
 
 static int
-dissect_z3950_T_sortType(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_z3950_T_sortType(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_choice(actx, tree, tvb, offset,
                                  T_sortType_choice, hf_index, ett_z3950_T_sortType,
                                  NULL);
@@ -7225,7 +7236,7 @@ static const value_string z3950_T_sortKeyDetails_caseSensitivity_vals[] = {
 
 
 static int
-dissect_z3950_T_sortKeyDetails_caseSensitivity(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_z3950_T_sortKeyDetails_caseSensitivity(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_integer(implicit_tag, actx, tree, tvb, offset, hf_index,
                                                 NULL);
 
@@ -7243,7 +7254,7 @@ static const ber_sequence_t SortKeyDetails_sequence[] = {
 };
 
 static int
-dissect_z3950_SortKeyDetails(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_z3950_SortKeyDetails(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence(implicit_tag, actx, tree, tvb, offset,
                                    SortKeyDetails_sequence, hf_index, ett_z3950_SortKeyDetails);
 
@@ -7256,7 +7267,7 @@ static const ber_sequence_t SEQUENCE_OF_SortKeyDetails_sequence_of[1] = {
 };
 
 static int
-dissect_z3950_SEQUENCE_OF_SortKeyDetails(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_z3950_SEQUENCE_OF_SortKeyDetails(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence_of(implicit_tag, actx, tree, tvb, offset,
                                       SEQUENCE_OF_SortKeyDetails_sequence_of, hf_index, ett_z3950_SEQUENCE_OF_SortKeyDetails);
 
@@ -7272,7 +7283,7 @@ static const ber_sequence_t SortDetails_sequence[] = {
 };
 
 static int
-dissect_z3950_SortDetails(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_z3950_SortDetails(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence(implicit_tag, actx, tree, tvb, offset,
                                    SortDetails_sequence, hf_index, ett_z3950_SortDetails);
 
@@ -7291,7 +7302,7 @@ static const value_string z3950_T_processingContext_vals[] = {
 
 
 static int
-dissect_z3950_T_processingContext(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_z3950_T_processingContext(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_integer(implicit_tag, actx, tree, tvb, offset, hf_index,
                                                 NULL);
 
@@ -7311,7 +7322,7 @@ static const ber_sequence_t ProcessingInformation_sequence[] = {
 };
 
 static int
-dissect_z3950_ProcessingInformation(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_z3950_ProcessingInformation(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence(implicit_tag, actx, tree, tvb, offset,
                                    ProcessingInformation_sequence, hf_index, ett_z3950_ProcessingInformation);
 
@@ -7340,7 +7351,7 @@ static const ber_choice_t ValueDescription_choice[] = {
 };
 
 static int
-dissect_z3950_ValueDescription(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_z3950_ValueDescription(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_choice(actx, tree, tvb, offset,
                                  ValueDescription_choice, hf_index, ett_z3950_ValueDescription,
                                  NULL);
@@ -7356,7 +7367,7 @@ static const ber_sequence_t ValueRange_sequence[] = {
 };
 
 static int
-dissect_z3950_ValueRange(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_z3950_ValueRange(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence(implicit_tag, actx, tree, tvb, offset,
                                    ValueRange_sequence, hf_index, ett_z3950_ValueRange);
 
@@ -7369,7 +7380,7 @@ static const ber_sequence_t SEQUENCE_OF_ValueDescription_sequence_of[1] = {
 };
 
 static int
-dissect_z3950_SEQUENCE_OF_ValueDescription(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_z3950_SEQUENCE_OF_ValueDescription(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence_of(implicit_tag, actx, tree, tvb, offset,
                                       SEQUENCE_OF_ValueDescription_sequence_of, hf_index, ett_z3950_SEQUENCE_OF_ValueDescription);
 
@@ -7390,7 +7401,7 @@ static const ber_choice_t ValueSet_choice[] = {
 };
 
 static int
-dissect_z3950_ValueSet(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_z3950_ValueSet(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_choice(actx, tree, tvb, offset,
                                  ValueSet_choice, hf_index, ett_z3950_ValueSet,
                                  NULL);
@@ -7406,7 +7417,7 @@ static const ber_sequence_t VariantValue_sequence[] = {
 };
 
 static int
-dissect_z3950_VariantValue(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_z3950_VariantValue(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence(implicit_tag, actx, tree, tvb, offset,
                                    VariantValue_sequence, hf_index, ett_z3950_VariantValue);
 
@@ -7423,7 +7434,7 @@ static const ber_sequence_t VariantType_sequence[] = {
 };
 
 static int
-dissect_z3950_VariantType(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_z3950_VariantType(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence(implicit_tag, actx, tree, tvb, offset,
                                    VariantType_sequence, hf_index, ett_z3950_VariantType);
 
@@ -7436,7 +7447,7 @@ static const ber_sequence_t SEQUENCE_OF_VariantType_sequence_of[1] = {
 };
 
 static int
-dissect_z3950_SEQUENCE_OF_VariantType(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_z3950_SEQUENCE_OF_VariantType(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence_of(implicit_tag, actx, tree, tvb, offset,
                                       SEQUENCE_OF_VariantType_sequence_of, hf_index, ett_z3950_SEQUENCE_OF_VariantType);
 
@@ -7453,7 +7464,7 @@ static const ber_sequence_t VariantClass_sequence[] = {
 };
 
 static int
-dissect_z3950_VariantClass(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_z3950_VariantClass(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence(implicit_tag, actx, tree, tvb, offset,
                                    VariantClass_sequence, hf_index, ett_z3950_VariantClass);
 
@@ -7466,7 +7477,7 @@ static const ber_sequence_t SEQUENCE_OF_VariantClass_sequence_of[1] = {
 };
 
 static int
-dissect_z3950_SEQUENCE_OF_VariantClass(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_z3950_SEQUENCE_OF_VariantClass(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence_of(implicit_tag, actx, tree, tvb, offset,
                                       SEQUENCE_OF_VariantClass_sequence_of, hf_index, ett_z3950_SEQUENCE_OF_VariantClass);
 
@@ -7483,7 +7494,7 @@ static const ber_sequence_t VariantSetInfo_sequence[] = {
 };
 
 static int
-dissect_z3950_VariantSetInfo(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_z3950_VariantSetInfo(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence(implicit_tag, actx, tree, tvb, offset,
                                    VariantSetInfo_sequence, hf_index, ett_z3950_VariantSetInfo);
 
@@ -7499,7 +7510,7 @@ static const ber_sequence_t Units_sequence[] = {
 };
 
 static int
-dissect_z3950_Units(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_z3950_Units(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence(implicit_tag, actx, tree, tvb, offset,
                                    Units_sequence, hf_index, ett_z3950_Units);
 
@@ -7512,7 +7523,7 @@ static const ber_sequence_t SEQUENCE_OF_Units_sequence_of[1] = {
 };
 
 static int
-dissect_z3950_SEQUENCE_OF_Units(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_z3950_SEQUENCE_OF_Units(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence_of(implicit_tag, actx, tree, tvb, offset,
                                       SEQUENCE_OF_Units_sequence_of, hf_index, ett_z3950_SEQUENCE_OF_Units);
 
@@ -7529,7 +7540,7 @@ static const ber_sequence_t UnitType_sequence[] = {
 };
 
 static int
-dissect_z3950_UnitType(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_z3950_UnitType(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence(implicit_tag, actx, tree, tvb, offset,
                                    UnitType_sequence, hf_index, ett_z3950_UnitType);
 
@@ -7542,7 +7553,7 @@ static const ber_sequence_t SEQUENCE_OF_UnitType_sequence_of[1] = {
 };
 
 static int
-dissect_z3950_SEQUENCE_OF_UnitType(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_z3950_SEQUENCE_OF_UnitType(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence_of(implicit_tag, actx, tree, tvb, offset,
                                       SEQUENCE_OF_UnitType_sequence_of, hf_index, ett_z3950_SEQUENCE_OF_UnitType);
 
@@ -7559,7 +7570,7 @@ static const ber_sequence_t UnitInfo_sequence[] = {
 };
 
 static int
-dissect_z3950_UnitInfo(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_z3950_UnitInfo(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence(implicit_tag, actx, tree, tvb, offset,
                                    UnitInfo_sequence, hf_index, ett_z3950_UnitInfo);
 
@@ -7576,7 +7587,7 @@ static const ber_sequence_t CategoryInfo_sequence[] = {
 };
 
 static int
-dissect_z3950_CategoryInfo(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_z3950_CategoryInfo(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence(implicit_tag, actx, tree, tvb, offset,
                                    CategoryInfo_sequence, hf_index, ett_z3950_CategoryInfo);
 
@@ -7589,7 +7600,7 @@ static const ber_sequence_t SEQUENCE_OF_CategoryInfo_sequence_of[1] = {
 };
 
 static int
-dissect_z3950_SEQUENCE_OF_CategoryInfo(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_z3950_SEQUENCE_OF_CategoryInfo(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence_of(implicit_tag, actx, tree, tvb, offset,
                                       SEQUENCE_OF_CategoryInfo_sequence_of, hf_index, ett_z3950_SEQUENCE_OF_CategoryInfo);
 
@@ -7604,7 +7615,7 @@ static const ber_sequence_t CategoryList_sequence[] = {
 };
 
 static int
-dissect_z3950_CategoryList(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_z3950_CategoryList(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence(implicit_tag, actx, tree, tvb, offset,
                                    CategoryList_sequence, hf_index, ett_z3950_CategoryList);
 
@@ -7655,7 +7666,7 @@ static const ber_choice_t Explain_Record_choice[] = {
 };
 
 static int
-dissect_z3950_Explain_Record(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_z3950_Explain_Record(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_choice(actx, tree, tvb, offset,
                                  Explain_Record_choice, hf_index, ett_z3950_Explain_Record,
                                  NULL);
@@ -7672,7 +7683,7 @@ static const ber_sequence_t FormatSpec_sequence[] = {
 };
 
 static int
-dissect_z3950_FormatSpec(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_z3950_FormatSpec(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence(implicit_tag, actx, tree, tvb, offset,
                                    FormatSpec_sequence, hf_index, ett_z3950_FormatSpec);
 
@@ -7685,7 +7696,7 @@ static const ber_sequence_t SEQUENCE_OF_FormatSpec_sequence_of[1] = {
 };
 
 static int
-dissect_z3950_SEQUENCE_OF_FormatSpec(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_z3950_SEQUENCE_OF_FormatSpec(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence_of(implicit_tag, actx, tree, tvb, offset,
                                       SEQUENCE_OF_FormatSpec_sequence_of, hf_index, ett_z3950_SEQUENCE_OF_FormatSpec);
 
@@ -7712,7 +7723,7 @@ static const ber_sequence_t BriefBib_sequence[] = {
 };
 
 static int
-dissect_z3950_BriefBib(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_z3950_BriefBib(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence(implicit_tag, actx, tree, tvb, offset,
                                    BriefBib_sequence, hf_index, ett_z3950_BriefBib);
 
@@ -7725,7 +7736,7 @@ static const ber_sequence_t SEQUENCE_OF_TaggedElement_sequence_of[1] = {
 };
 
 static int
-dissect_z3950_SEQUENCE_OF_TaggedElement(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_z3950_SEQUENCE_OF_TaggedElement(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence_of(implicit_tag, actx, tree, tvb, offset,
                                       SEQUENCE_OF_TaggedElement_sequence_of, hf_index, ett_z3950_SEQUENCE_OF_TaggedElement);
 
@@ -7768,7 +7779,7 @@ static const ber_choice_t ElementData_choice[] = {
 };
 
 static int
-dissect_z3950_ElementData(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_z3950_ElementData(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_choice(actx, tree, tvb, offset,
                                  ElementData_choice, hf_index, ett_z3950_ElementData,
                                  NULL);
@@ -7784,7 +7795,7 @@ static const ber_sequence_t Order_sequence[] = {
 };
 
 static int
-dissect_z3950_Order(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_z3950_Order(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence(implicit_tag, actx, tree, tvb, offset,
                                    Order_sequence, hf_index, ett_z3950_Order);
 
@@ -7801,7 +7812,7 @@ static const value_string z3950_T_usage_type_vals[] = {
 
 
 static int
-dissect_z3950_T_usage_type(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_z3950_T_usage_type(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_integer(implicit_tag, actx, tree, tvb, offset, hf_index,
                                                 NULL);
 
@@ -7816,7 +7827,7 @@ static const ber_sequence_t Usage_sequence[] = {
 };
 
 static int
-dissect_z3950_Usage(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_z3950_Usage(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence(implicit_tag, actx, tree, tvb, offset,
                                    Usage_sequence, hf_index, ett_z3950_Usage);
 
@@ -7834,7 +7845,7 @@ static const ber_sequence_t HitVector_sequence[] = {
 };
 
 static int
-dissect_z3950_HitVector(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_z3950_HitVector(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence(implicit_tag, actx, tree, tvb, offset,
                                    HitVector_sequence, hf_index, ett_z3950_HitVector);
 
@@ -7847,7 +7858,7 @@ static const ber_sequence_t SEQUENCE_OF_HitVector_sequence_of[1] = {
 };
 
 static int
-dissect_z3950_SEQUENCE_OF_HitVector(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_z3950_SEQUENCE_OF_HitVector(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence_of(implicit_tag, actx, tree, tvb, offset,
                                       SEQUENCE_OF_HitVector_sequence_of, hf_index, ett_z3950_SEQUENCE_OF_HitVector);
 
@@ -7880,7 +7891,7 @@ static const ber_choice_t T_variant_triples_item_value_choice[] = {
 };
 
 static int
-dissect_z3950_T_variant_triples_item_value(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_z3950_T_variant_triples_item_value(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_choice(actx, tree, tvb, offset,
                                  T_variant_triples_item_value_choice, hf_index, ett_z3950_T_variant_triples_item_value,
                                  NULL);
@@ -7898,7 +7909,7 @@ static const ber_sequence_t T_triples_item_sequence[] = {
 };
 
 static int
-dissect_z3950_T_triples_item(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_z3950_T_triples_item(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence(implicit_tag, actx, tree, tvb, offset,
                                    T_triples_item_sequence, hf_index, ett_z3950_T_triples_item);
 
@@ -7911,7 +7922,7 @@ static const ber_sequence_t T_triples_sequence_of[1] = {
 };
 
 static int
-dissect_z3950_T_triples(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_z3950_T_triples(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence_of(implicit_tag, actx, tree, tvb, offset,
                                       T_triples_sequence_of, hf_index, ett_z3950_T_triples);
 
@@ -7926,7 +7937,7 @@ static const ber_sequence_t Variant_sequence[] = {
 };
 
 static int
-dissect_z3950_Variant(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_z3950_Variant(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence(implicit_tag, actx, tree, tvb, offset,
                                    Variant_sequence, hf_index, ett_z3950_Variant);
 
@@ -7939,7 +7950,7 @@ static const ber_sequence_t SEQUENCE_OF_Variant_sequence_of[1] = {
 };
 
 static int
-dissect_z3950_SEQUENCE_OF_Variant(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_z3950_SEQUENCE_OF_Variant(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence_of(implicit_tag, actx, tree, tvb, offset,
                                       SEQUENCE_OF_Variant_sequence_of, hf_index, ett_z3950_SEQUENCE_OF_Variant);
 
@@ -7955,7 +7966,7 @@ static const ber_sequence_t TagPath_item_sequence[] = {
 };
 
 static int
-dissect_z3950_TagPath_item(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_z3950_TagPath_item(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence(implicit_tag, actx, tree, tvb, offset,
                                    TagPath_item_sequence, hf_index, ett_z3950_TagPath_item);
 
@@ -7968,7 +7979,7 @@ static const ber_sequence_t TagPath_sequence_of[1] = {
 };
 
 static int
-dissect_z3950_TagPath(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_z3950_TagPath(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence_of(implicit_tag, actx, tree, tvb, offset,
                                       TagPath_sequence_of, hf_index, ett_z3950_TagPath);
 
@@ -7991,7 +8002,7 @@ static const ber_sequence_t ElementMetaData_sequence[] = {
 };
 
 static int
-dissect_z3950_ElementMetaData(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_z3950_ElementMetaData(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence(implicit_tag, actx, tree, tvb, offset,
                                    ElementMetaData_sequence, hf_index, ett_z3950_ElementMetaData);
 
@@ -8010,10 +8021,15 @@ static const ber_sequence_t TaggedElement_sequence[] = {
 };
 
 static int
-dissect_z3950_TaggedElement(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_z3950_TaggedElement(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+  // TaggedElement -> ElementData -> ElementData/subtree -> TaggedElement
+  actx->pinfo->dissection_depth += 3;
+  increment_dissection_depth(actx->pinfo);
   offset = dissect_ber_sequence(implicit_tag, actx, tree, tvb, offset,
                                    TaggedElement_sequence, hf_index, ett_z3950_TaggedElement);
 
+  actx->pinfo->dissection_depth -= 3;
+  decrement_dissection_depth(actx->pinfo);
   return offset;
 }
 
@@ -8023,7 +8039,7 @@ static const ber_sequence_t GenericRecord_sequence_of[1] = {
 };
 
 static int
-dissect_z3950_GenericRecord(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_z3950_GenericRecord(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence_of(implicit_tag, actx, tree, tvb, offset,
                                       GenericRecord_sequence_of, hf_index, ett_z3950_GenericRecord);
 
@@ -8041,7 +8057,7 @@ static const value_string z3950_T_taskStatus_vals[] = {
 
 
 static int
-dissect_z3950_T_taskStatus(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_z3950_T_taskStatus(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_integer(implicit_tag, actx, tree, tvb, offset, hf_index,
                                                 NULL);
 
@@ -8065,7 +8081,7 @@ static const ber_sequence_t TaskPackage_sequence[] = {
 };
 
 static int
-dissect_z3950_TaskPackage(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_z3950_TaskPackage(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence(implicit_tag, actx, tree, tvb, offset,
                                    TaskPackage_sequence, hf_index, ett_z3950_TaskPackage);
 
@@ -8085,7 +8101,7 @@ static const value_string z3950_T_promptId_enummeratedPrompt_type_vals[] = {
 
 
 static int
-dissect_z3950_T_promptId_enummeratedPrompt_type(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_z3950_T_promptId_enummeratedPrompt_type(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_integer(implicit_tag, actx, tree, tvb, offset, hf_index,
                                                 NULL);
 
@@ -8100,7 +8116,7 @@ static const ber_sequence_t T_enummeratedPrompt_sequence[] = {
 };
 
 static int
-dissect_z3950_T_enummeratedPrompt(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_z3950_T_enummeratedPrompt(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence(implicit_tag, actx, tree, tvb, offset,
                                    T_enummeratedPrompt_sequence, hf_index, ett_z3950_T_enummeratedPrompt);
 
@@ -8121,7 +8137,7 @@ static const ber_choice_t PromptId_choice[] = {
 };
 
 static int
-dissect_z3950_PromptId(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_z3950_PromptId(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_choice(actx, tree, tvb, offset,
                                  PromptId_choice, hf_index, ett_z3950_PromptId,
                                  NULL);
@@ -8138,7 +8154,7 @@ static const ber_sequence_t Encryption_sequence[] = {
 };
 
 static int
-dissect_z3950_Encryption(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_z3950_Encryption(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence(implicit_tag, actx, tree, tvb, offset,
                                    Encryption_sequence, hf_index, ett_z3950_Encryption);
 
@@ -8159,7 +8175,7 @@ static const ber_choice_t T_promptInfo_choice[] = {
 };
 
 static int
-dissect_z3950_T_promptInfo(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_z3950_T_promptInfo(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_choice(actx, tree, tvb, offset,
                                  T_promptInfo_choice, hf_index, ett_z3950_T_promptInfo,
                                  NULL);
@@ -8180,7 +8196,7 @@ static const value_string z3950_T_challenge_item_dataType_vals[] = {
 
 
 static int
-dissect_z3950_T_challenge_item_dataType(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_z3950_T_challenge_item_dataType(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_integer(implicit_tag, actx, tree, tvb, offset, hf_index,
                                                 NULL);
 
@@ -8202,7 +8218,7 @@ static const ber_sequence_t Challenge_item_sequence[] = {
 };
 
 static int
-dissect_z3950_Challenge_item(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_z3950_Challenge_item(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence(implicit_tag, actx, tree, tvb, offset,
                                    Challenge_item_sequence, hf_index, ett_z3950_Challenge_item);
 
@@ -8215,7 +8231,7 @@ static const ber_sequence_t Challenge_sequence_of[1] = {
 };
 
 static int
-dissect_z3950_Challenge(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_z3950_Challenge(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence_of(implicit_tag, actx, tree, tvb, offset,
                                       Challenge_sequence_of, hf_index, ett_z3950_Challenge);
 
@@ -8242,7 +8258,7 @@ static const ber_choice_t T_promptResponse_choice[] = {
 };
 
 static int
-dissect_z3950_T_promptResponse(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_z3950_T_promptResponse(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_choice(actx, tree, tvb, offset,
                                  T_promptResponse_choice, hf_index, ett_z3950_T_promptResponse,
                                  NULL);
@@ -8258,7 +8274,7 @@ static const ber_sequence_t Response_item_sequence[] = {
 };
 
 static int
-dissect_z3950_Response_item(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_z3950_Response_item(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence(implicit_tag, actx, tree, tvb, offset,
                                    Response_item_sequence, hf_index, ett_z3950_Response_item);
 
@@ -8271,7 +8287,7 @@ static const ber_sequence_t Response_sequence_of[1] = {
 };
 
 static int
-dissect_z3950_Response(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_z3950_Response(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence_of(implicit_tag, actx, tree, tvb, offset,
                                       Response_sequence_of, hf_index, ett_z3950_Response);
 
@@ -8292,7 +8308,7 @@ static const ber_choice_t PromptObject_choice[] = {
 };
 
 static int
-dissect_z3950_PromptObject(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_z3950_PromptObject(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_choice(actx, tree, tvb, offset,
                                  PromptObject_choice, hf_index, ett_z3950_PromptObject,
                                  NULL);
@@ -8309,7 +8325,7 @@ static const ber_sequence_t DRNType_sequence[] = {
 };
 
 static int
-dissect_z3950_DRNType(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_z3950_DRNType(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence(implicit_tag, actx, tree, tvb, offset,
                                    DRNType_sequence, hf_index, ett_z3950_DRNType);
 
@@ -8330,7 +8346,7 @@ static const ber_choice_t DES_RN_Object_choice[] = {
 };
 
 static int
-dissect_z3950_DES_RN_Object(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_z3950_DES_RN_Object(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_choice(actx, tree, tvb, offset,
                                  DES_RN_Object_choice, hf_index, ett_z3950_DES_RN_Object,
                                  NULL);
@@ -8347,7 +8363,7 @@ static const ber_sequence_t KRBRequest_sequence[] = {
 };
 
 static int
-dissect_z3950_KRBRequest(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_z3950_KRBRequest(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence(implicit_tag, actx, tree, tvb, offset,
                                    KRBRequest_sequence, hf_index, ett_z3950_KRBRequest);
 
@@ -8362,7 +8378,7 @@ static const ber_sequence_t KRBResponse_sequence[] = {
 };
 
 static int
-dissect_z3950_KRBResponse(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_z3950_KRBResponse(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence(implicit_tag, actx, tree, tvb, offset,
                                    KRBResponse_sequence, hf_index, ett_z3950_KRBResponse);
 
@@ -8383,7 +8399,7 @@ static const ber_choice_t KRBObject_choice[] = {
 };
 
 static int
-dissect_z3950_KRBObject(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_z3950_KRBObject(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_choice(actx, tree, tvb, offset,
                                  KRBObject_choice, hf_index, ett_z3950_KRBObject,
                                  NULL);
@@ -8399,7 +8415,7 @@ static const ber_sequence_t T_queryExpression_term_sequence[] = {
 };
 
 static int
-dissect_z3950_T_queryExpression_term(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_z3950_T_queryExpression_term(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence(implicit_tag, actx, tree, tvb, offset,
                                    T_queryExpression_term_sequence, hf_index, ett_z3950_T_queryExpression_term);
 
@@ -8420,7 +8436,7 @@ static const ber_choice_t QueryExpression_choice[] = {
 };
 
 static int
-dissect_z3950_QueryExpression(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_z3950_QueryExpression(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_choice(actx, tree, tvb, offset,
                                  QueryExpression_choice, hf_index, ett_z3950_QueryExpression,
                                  NULL);
@@ -8442,7 +8458,7 @@ static const ber_choice_t T_databases_choice[] = {
 };
 
 static int
-dissect_z3950_T_databases(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_z3950_T_databases(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_choice(actx, tree, tvb, offset,
                                  T_databases_choice, hf_index, ett_z3950_T_databases,
                                  NULL);
@@ -8459,7 +8475,7 @@ static const ber_sequence_t ResultsByDB_item_sequence[] = {
 };
 
 static int
-dissect_z3950_ResultsByDB_item(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_z3950_ResultsByDB_item(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence(implicit_tag, actx, tree, tvb, offset,
                                    ResultsByDB_item_sequence, hf_index, ett_z3950_ResultsByDB_item);
 
@@ -8472,7 +8488,7 @@ static const ber_sequence_t ResultsByDB_sequence_of[1] = {
 };
 
 static int
-dissect_z3950_ResultsByDB(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_z3950_ResultsByDB(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence_of(implicit_tag, actx, tree, tvb, offset,
                                       ResultsByDB_sequence_of, hf_index, ett_z3950_ResultsByDB);
 
@@ -8493,7 +8509,7 @@ static const ber_sequence_t SearchInfoReport_item_sequence[] = {
 };
 
 static int
-dissect_z3950_SearchInfoReport_item(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_z3950_SearchInfoReport_item(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence(implicit_tag, actx, tree, tvb, offset,
                                    SearchInfoReport_item_sequence, hf_index, ett_z3950_SearchInfoReport_item);
 
@@ -8506,7 +8522,7 @@ static const ber_sequence_t SearchInfoReport_sequence_of[1] = {
 };
 
 static int
-dissect_z3950_SearchInfoReport(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
+dissect_z3950_SearchInfoReport(bool implicit_tag _U_, tvbuff_t *tvb _U_, int offset _U_, asn1_ctx_t *actx _U_, proto_tree *tree _U_, int hf_index _U_) {
   offset = dissect_ber_sequence_of(implicit_tag, actx, tree, tvb, offset,
                                       SearchInfoReport_sequence_of, hf_index, ett_z3950_SearchInfoReport);
 
@@ -8518,85 +8534,85 @@ dissect_z3950_SearchInfoReport(gboolean implicit_tag _U_, tvbuff_t *tvb _U_, int
 static int dissect_OCLC_UserInformation_PDU(tvbuff_t *tvb _U_, packet_info *pinfo _U_, proto_tree *tree _U_, void *data _U_) {
   int offset = 0;
   asn1_ctx_t asn1_ctx;
-  asn1_ctx_init(&asn1_ctx, ASN1_ENC_BER, TRUE, pinfo);
-  offset = dissect_z3950_OCLC_UserInformation(FALSE, tvb, offset, &asn1_ctx, tree, hf_z3950_OCLC_UserInformation_PDU);
+  asn1_ctx_init(&asn1_ctx, ASN1_ENC_BER, true, pinfo);
+  offset = dissect_z3950_OCLC_UserInformation(false, tvb, offset, &asn1_ctx, tree, hf_z3950_OCLC_UserInformation_PDU);
   return offset;
 }
 static int dissect_SutrsRecord_PDU(tvbuff_t *tvb _U_, packet_info *pinfo _U_, proto_tree *tree _U_, void *data _U_) {
   int offset = 0;
   asn1_ctx_t asn1_ctx;
-  asn1_ctx_init(&asn1_ctx, ASN1_ENC_BER, TRUE, pinfo);
-  offset = dissect_z3950_SutrsRecord(FALSE, tvb, offset, &asn1_ctx, tree, hf_z3950_SutrsRecord_PDU);
+  asn1_ctx_init(&asn1_ctx, ASN1_ENC_BER, true, pinfo);
+  offset = dissect_z3950_SutrsRecord(false, tvb, offset, &asn1_ctx, tree, hf_z3950_SutrsRecord_PDU);
   return offset;
 }
 static int dissect_OPACRecord_PDU(tvbuff_t *tvb _U_, packet_info *pinfo _U_, proto_tree *tree _U_, void *data _U_) {
   int offset = 0;
   asn1_ctx_t asn1_ctx;
-  asn1_ctx_init(&asn1_ctx, ASN1_ENC_BER, TRUE, pinfo);
-  offset = dissect_z3950_OPACRecord(FALSE, tvb, offset, &asn1_ctx, tree, hf_z3950_OPACRecord_PDU);
+  asn1_ctx_init(&asn1_ctx, ASN1_ENC_BER, true, pinfo);
+  offset = dissect_z3950_OPACRecord(false, tvb, offset, &asn1_ctx, tree, hf_z3950_OPACRecord_PDU);
   return offset;
 }
 static int dissect_DiagnosticFormat_PDU(tvbuff_t *tvb _U_, packet_info *pinfo _U_, proto_tree *tree _U_, void *data _U_) {
   int offset = 0;
   asn1_ctx_t asn1_ctx;
-  asn1_ctx_init(&asn1_ctx, ASN1_ENC_BER, TRUE, pinfo);
-  offset = dissect_z3950_DiagnosticFormat(FALSE, tvb, offset, &asn1_ctx, tree, hf_z3950_DiagnosticFormat_PDU);
+  asn1_ctx_init(&asn1_ctx, ASN1_ENC_BER, true, pinfo);
+  offset = dissect_z3950_DiagnosticFormat(false, tvb, offset, &asn1_ctx, tree, hf_z3950_DiagnosticFormat_PDU);
   return offset;
 }
 static int dissect_Explain_Record_PDU(tvbuff_t *tvb _U_, packet_info *pinfo _U_, proto_tree *tree _U_, void *data _U_) {
   int offset = 0;
   asn1_ctx_t asn1_ctx;
-  asn1_ctx_init(&asn1_ctx, ASN1_ENC_BER, TRUE, pinfo);
-  offset = dissect_z3950_Explain_Record(FALSE, tvb, offset, &asn1_ctx, tree, hf_z3950_Explain_Record_PDU);
+  asn1_ctx_init(&asn1_ctx, ASN1_ENC_BER, true, pinfo);
+  offset = dissect_z3950_Explain_Record(false, tvb, offset, &asn1_ctx, tree, hf_z3950_Explain_Record_PDU);
   return offset;
 }
 static int dissect_BriefBib_PDU(tvbuff_t *tvb _U_, packet_info *pinfo _U_, proto_tree *tree _U_, void *data _U_) {
   int offset = 0;
   asn1_ctx_t asn1_ctx;
-  asn1_ctx_init(&asn1_ctx, ASN1_ENC_BER, TRUE, pinfo);
-  offset = dissect_z3950_BriefBib(FALSE, tvb, offset, &asn1_ctx, tree, hf_z3950_BriefBib_PDU);
+  asn1_ctx_init(&asn1_ctx, ASN1_ENC_BER, true, pinfo);
+  offset = dissect_z3950_BriefBib(false, tvb, offset, &asn1_ctx, tree, hf_z3950_BriefBib_PDU);
   return offset;
 }
 static int dissect_GenericRecord_PDU(tvbuff_t *tvb _U_, packet_info *pinfo _U_, proto_tree *tree _U_, void *data _U_) {
   int offset = 0;
   asn1_ctx_t asn1_ctx;
-  asn1_ctx_init(&asn1_ctx, ASN1_ENC_BER, TRUE, pinfo);
-  offset = dissect_z3950_GenericRecord(FALSE, tvb, offset, &asn1_ctx, tree, hf_z3950_GenericRecord_PDU);
+  asn1_ctx_init(&asn1_ctx, ASN1_ENC_BER, true, pinfo);
+  offset = dissect_z3950_GenericRecord(false, tvb, offset, &asn1_ctx, tree, hf_z3950_GenericRecord_PDU);
   return offset;
 }
 static int dissect_TaskPackage_PDU(tvbuff_t *tvb _U_, packet_info *pinfo _U_, proto_tree *tree _U_, void *data _U_) {
   int offset = 0;
   asn1_ctx_t asn1_ctx;
-  asn1_ctx_init(&asn1_ctx, ASN1_ENC_BER, TRUE, pinfo);
-  offset = dissect_z3950_TaskPackage(FALSE, tvb, offset, &asn1_ctx, tree, hf_z3950_TaskPackage_PDU);
+  asn1_ctx_init(&asn1_ctx, ASN1_ENC_BER, true, pinfo);
+  offset = dissect_z3950_TaskPackage(false, tvb, offset, &asn1_ctx, tree, hf_z3950_TaskPackage_PDU);
   return offset;
 }
 static int dissect_PromptObject_PDU(tvbuff_t *tvb _U_, packet_info *pinfo _U_, proto_tree *tree _U_, void *data _U_) {
   int offset = 0;
   asn1_ctx_t asn1_ctx;
-  asn1_ctx_init(&asn1_ctx, ASN1_ENC_BER, TRUE, pinfo);
-  offset = dissect_z3950_PromptObject(FALSE, tvb, offset, &asn1_ctx, tree, hf_z3950_PromptObject_PDU);
+  asn1_ctx_init(&asn1_ctx, ASN1_ENC_BER, true, pinfo);
+  offset = dissect_z3950_PromptObject(false, tvb, offset, &asn1_ctx, tree, hf_z3950_PromptObject_PDU);
   return offset;
 }
 static int dissect_DES_RN_Object_PDU(tvbuff_t *tvb _U_, packet_info *pinfo _U_, proto_tree *tree _U_, void *data _U_) {
   int offset = 0;
   asn1_ctx_t asn1_ctx;
-  asn1_ctx_init(&asn1_ctx, ASN1_ENC_BER, TRUE, pinfo);
-  offset = dissect_z3950_DES_RN_Object(FALSE, tvb, offset, &asn1_ctx, tree, hf_z3950_DES_RN_Object_PDU);
+  asn1_ctx_init(&asn1_ctx, ASN1_ENC_BER, true, pinfo);
+  offset = dissect_z3950_DES_RN_Object(false, tvb, offset, &asn1_ctx, tree, hf_z3950_DES_RN_Object_PDU);
   return offset;
 }
 static int dissect_KRBObject_PDU(tvbuff_t *tvb _U_, packet_info *pinfo _U_, proto_tree *tree _U_, void *data _U_) {
   int offset = 0;
   asn1_ctx_t asn1_ctx;
-  asn1_ctx_init(&asn1_ctx, ASN1_ENC_BER, TRUE, pinfo);
-  offset = dissect_z3950_KRBObject(FALSE, tvb, offset, &asn1_ctx, tree, hf_z3950_KRBObject_PDU);
+  asn1_ctx_init(&asn1_ctx, ASN1_ENC_BER, true, pinfo);
+  offset = dissect_z3950_KRBObject(false, tvb, offset, &asn1_ctx, tree, hf_z3950_KRBObject_PDU);
   return offset;
 }
 static int dissect_SearchInfoReport_PDU(tvbuff_t *tvb _U_, packet_info *pinfo _U_, proto_tree *tree _U_, void *data _U_) {
   int offset = 0;
   asn1_ctx_t asn1_ctx;
-  asn1_ctx_init(&asn1_ctx, ASN1_ENC_BER, TRUE, pinfo);
-  offset = dissect_z3950_SearchInfoReport(FALSE, tvb, offset, &asn1_ctx, tree, hf_z3950_SearchInfoReport_PDU);
+  asn1_ctx_init(&asn1_ctx, ASN1_ENC_BER, true, pinfo);
+  offset = dissect_z3950_SearchInfoReport(false, tvb, offset, &asn1_ctx, tree, hf_z3950_SearchInfoReport_PDU);
   return offset;
 }
 
@@ -8608,24 +8624,24 @@ dissect_z3950(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, void *data _U
     proto_tree      *z3950_tree = NULL;
     int                     offset = 0;
     asn1_ctx_t asn1_ctx;
-    asn1_ctx_init(&asn1_ctx, ASN1_ENC_BER, TRUE, pinfo);
+    asn1_ctx_init(&asn1_ctx, ASN1_ENC_BER, true, pinfo);
 
 
     /* make entry in the Protocol column on summary display */
     col_set_str(pinfo->cinfo, COL_PROTOCOL, PSNAME);
 
     /* create the z3950 protocol tree */
-    z3950_item = proto_tree_add_item(tree, proto_z3950, tvb, 0, -1, FALSE);
+    z3950_item = proto_tree_add_item(tree, proto_z3950, tvb, 0, -1, ENC_NA);
     z3950_tree = proto_item_add_subtree(z3950_item, ett_z3950);
 
-    return dissect_z3950_PDU(FALSE, tvb, offset, &asn1_ctx, z3950_tree, -1);
+    return dissect_z3950_PDU(false, tvb, offset, &asn1_ctx, z3950_tree, -1);
 }
 
-static guint
+static unsigned
 get_z3950_pdu_len(packet_info *pinfo _U_, tvbuff_t *tvb, int offset, void *data _U_)
 {
-    guint plen;
-    guint ber_offset;
+    unsigned plen;
+    unsigned ber_offset;
     TRY {
         /* Skip past identifier */
         ber_offset = get_ber_identifier(tvb, offset, NULL, NULL, NULL);
@@ -8644,7 +8660,7 @@ static int
 dissect_z3950_segment(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, void * data _U_)
 {
 
-    /* Min length of 8 assumes 3 for identifer and 5 for length. */
+    /* Min length of 8 assumes 3 for identifier and 5 for length. */
     tcp_dissect_pdus(tvb, pinfo, tree, z3950_desegment, 8, get_z3950_pdu_len, dissect_z3950, data);
     return tvb_captured_length(tvb);
 }
@@ -12182,7 +12198,7 @@ void proto_register_z3950(void) {
     };
 
     /* List of subtrees */
-    static gint *ett[] = {
+    static int *ett[] = {
 		  &ett_z3950,
 /* MARC etts */
                   &ett_marc_record,
@@ -12639,9 +12655,9 @@ dissect_marc_record(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, void * 
                *directory_tree,
                *fields_tree;
     marc_directory_entry *marc_directory;
-    guint len = tvb_reported_length(tvb);
-    const guint8 *marc_value_str;
-    guint record_length = 0,
+    unsigned len = tvb_reported_length(tvb);
+    const uint8_t *marc_value_str;
+    unsigned record_length = 0,
           data_offset = 0,
           length_of_field_size,
           starting_character_position_size,
@@ -12649,7 +12665,7 @@ dissect_marc_record(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, void * 
           directory_entry_count,
           dir_index,
           offset = 0;
-    guint32 marc_value_char;
+    uint32_t marc_value_char;
 
     record_item = proto_tree_add_item(tree, hf_marc_record,
                            tvb, 0, len, ENC_NA);
@@ -12671,7 +12687,7 @@ dissect_marc_record(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, void * 
 
     if (marc_value_str) {
         if (isdigit_string(marc_value_str)) {
-            record_length = (guint)strtoul(marc_value_str, NULL, 10);
+            record_length = (unsigned)strtoul(marc_value_str, NULL, 10);
         }
         else {
             expert_add_info_format(pinfo, item,
@@ -12739,7 +12755,7 @@ dissect_marc_record(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, void * 
     offset += 5;
     if (marc_value_str) {
         if (isdigit_string(marc_value_str)) {
-            data_offset = (guint)strtoul(marc_value_str, NULL, 10);
+            data_offset = (unsigned)strtoul(marc_value_str, NULL, 10);
         }
         else {
             expert_add_info_format(pinfo, item,
@@ -12822,7 +12838,7 @@ dissect_marc_record(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, void * 
     dir_index = 0;
     /* Minus one for the terminator character */
     while (offset < (data_offset - 1)) {
-        guint32 tag_value = 0,
+        uint32_t tag_value = 0,
                 length_value = 0,
                 starting_char_value = 0;
         proto_item *length_item;
@@ -12840,7 +12856,7 @@ dissect_marc_record(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, void * 
         offset += 3;
         if (marc_value_str) {
             if (isdigit_string(marc_value_str)) {
-                tag_value = (guint)strtoul(marc_value_str, NULL, 10);
+                tag_value = (unsigned)strtoul(marc_value_str, NULL, 10);
             }
             else {
                 expert_add_info_format(pinfo, item,
@@ -12857,7 +12873,7 @@ dissect_marc_record(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, void * 
         offset += length_of_field_size;
         if (marc_value_str) {
             if (isdigit_string(marc_value_str)) {
-                length_value = (guint)strtoul(marc_value_str, NULL, 10);
+                length_value = (unsigned)strtoul(marc_value_str, NULL, 10);
             }
             else {
                 expert_add_info_format(pinfo, length_item,
@@ -12873,7 +12889,7 @@ dissect_marc_record(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, void * 
         offset += starting_character_position_size;
         if (marc_value_str) {
             if (isdigit_string(marc_value_str)) {
-                starting_char_value = (guint)strtoul(marc_value_str, NULL, 10);
+                starting_char_value = (unsigned)strtoul(marc_value_str, NULL, 10);
             }
             else {
                 expert_add_info_format(pinfo, item,
@@ -12909,7 +12925,7 @@ dissect_marc_record(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, void * 
     fields_tree = proto_item_add_subtree(fields_item, ett_marc_fields);
 
     for (dir_index = 0; dir_index < directory_entry_count; dir_index++) {
-        const gchar *tag_str;
+        const char *tag_str;
         proto_item *field_item;
         proto_tree *field_tree;
 
@@ -12936,7 +12952,7 @@ dissect_marc_record(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, void * 
             offset += 1;
         }
         else {
-            guint next_offset = offset + marc_directory[dir_index].length - 1;
+            unsigned next_offset = offset + marc_directory[dir_index].length - 1;
             proto_tree_add_item(field_tree, hf_marc_field_indicator1,
                     tvb, offset, 1, ENC_ASCII);
             offset += 1;
@@ -12944,14 +12960,14 @@ dissect_marc_record(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, void * 
                     tvb, offset, 1, ENC_ASCII);
             offset += 1;
             do {
-                gint next_subfield;
+                int next_subfield;
                 proto_tree_add_item(field_tree, hf_marc_field_subfield_indicator,
                         tvb, offset, 1, ENC_ASCII);
                 offset += 1;
                 proto_tree_add_item(field_tree, hf_marc_field_subfield_tag,
                         tvb, offset, 1, ENC_ASCII);
                 offset += 1;
-                next_subfield = tvb_find_guint8(tvb, offset, next_offset - offset,
+                next_subfield = tvb_find_uint8(tvb, offset, next_offset - offset,
                                                 MARC_SUBFIELD_INDICATOR);
                 if (next_subfield >= 0) {
                     proto_tree_add_item(field_tree, hf_marc_field_subfield,

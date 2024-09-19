@@ -19,6 +19,8 @@
 void proto_register_msnms(void);
 void proto_reg_handoff_msnms(void);
 
+static dissector_handle_t msnms_handle;
+
 /*
  * The now-expired Internet-Draft for the MSN Messenger 1.0 protocol
  * can, as of the time of the writing of this comment, be found at:
@@ -40,10 +42,10 @@ void proto_reg_handoff_msnms(void);
  * this should be done.
  */
 
-static int proto_msnms = -1;
-/* static int hf_msnms_command = -1; */
+static int proto_msnms;
+/* static int hf_msnms_command; */
 
-static gint ett_msnms = -1;
+static int ett_msnms;
 
 #define TCP_PORT_MSNMS    1863
 
@@ -52,12 +54,12 @@ dissect_msnms(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, void* data _U
 {
     proto_tree   *msnms_tree;
     proto_item   *ti;
-    gint          offset = 0;
-    const guchar *line;
-    gint          next_offset;
+    int           offset = 0;
+    const unsigned char *line;
+    int           next_offset;
     int           linelen;
     /* int              tokenlen; */
-    /* const guchar     *next_token; */
+    /* const unsigned char     *next_token; */
 
     col_set_str(pinfo->cinfo, COL_PROTOCOL, "MSNMS");
 
@@ -68,7 +70,7 @@ dissect_msnms(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, void* data _U
      * not longer than what's in the buffer, so the "tvb_get_ptr()"
      * call won't throw an exception.
      */
-    linelen = tvb_find_line_end(tvb, offset, -1, &next_offset, FALSE);
+    linelen = tvb_find_line_end(tvb, offset, -1, &next_offset, false);
     line = tvb_get_ptr(tvb, offset, linelen);
 
 
@@ -92,7 +94,7 @@ dissect_msnms(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, void* data _U
              * Find the end of the line.
              */
             tvb_find_line_end(tvb, offset, -1,
-                              &next_offset, FALSE);
+                              &next_offset, false);
 
             /*
              * Put this line.
@@ -107,20 +109,19 @@ dissect_msnms(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, void* data _U
 void
 proto_register_msnms(void)
 {
-    static gint *ett[] = {
+    static int *ett[] = {
         &ett_msnms,
     };
 
     proto_msnms = proto_register_protocol("MSN Messenger Service", "MSNMS", "msnms");
     proto_register_subtree_array(ett, array_length(ett));
+
+    msnms_handle = register_dissector("msnms", dissect_msnms, proto_msnms);
 }
 
 void
 proto_reg_handoff_msnms(void)
 {
-    dissector_handle_t msnms_handle;
-
-    msnms_handle = create_dissector_handle(dissect_msnms, proto_msnms);
     dissector_add_uint_with_preference("tcp.port", TCP_PORT_MSNMS, msnms_handle);
     /*
      * For MSN Messenger Protocol over HTTP

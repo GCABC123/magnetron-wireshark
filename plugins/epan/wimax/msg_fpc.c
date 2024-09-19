@@ -23,29 +23,31 @@
 void proto_register_mac_mgmt_msg_fpc(void);
 void proto_reg_handoff_mac_mgmt_msg_fpc(void);
 
-static gint proto_mac_mgmt_msg_fpc_decoder = -1;
+static dissector_handle_t fpc_handle;
 
-static gint ett_mac_mgmt_msg_fpc_decoder = -1;
+static int proto_mac_mgmt_msg_fpc_decoder;
+
+static int ett_mac_mgmt_msg_fpc_decoder;
 
 /* FPC fields */
-static gint hf_fpc_number_of_stations = -1;
-static gint hf_fpc_basic_cid = -1;
-static gint hf_fpc_power_adjust = -1;
-static gint hf_fpc_power_measurement_frame = -1;
-/* static gint hf_fpc_invalid_tlv = -1; */
+static int hf_fpc_number_of_stations;
+static int hf_fpc_basic_cid;
+static int hf_fpc_power_adjust;
+static int hf_fpc_power_measurement_frame;
+/* static int hf_fpc_invalid_tlv; */
 
 
 /* Decode FPC messages. */
 static int dissect_mac_mgmt_msg_fpc_decoder(tvbuff_t *tvb, packet_info *pinfo _U_, proto_tree *tree, void* data _U_)
 {
-	guint offset = 0;
-	guint i;
-	guint number_stations;
-	guint tvb_len;
+	unsigned offset = 0;
+	unsigned i;
+	unsigned number_stations;
+	unsigned tvb_len;
 	proto_item *fpc_item;
 	proto_tree *fpc_tree;
-	gint8 value;
-	gfloat power_change;
+	int8_t value;
+	float power_change;
 
 	{	/* we are being asked for details */
 
@@ -59,7 +61,7 @@ static int dissect_mac_mgmt_msg_fpc_decoder(tvbuff_t *tvb, packet_info *pinfo _U
 		/* display the Number of stations */
 		proto_tree_add_item(fpc_tree, hf_fpc_number_of_stations, tvb, offset, 1, ENC_BIG_ENDIAN);
 
-		number_stations = tvb_get_guint8(tvb, offset);
+		number_stations = tvb_get_uint8(tvb, offset);
 		offset++;
 		for (i = 0; ((i < number_stations) && (offset >= tvb_len)); i++ ) {
 			/* display the Basic CID*/
@@ -67,7 +69,7 @@ static int dissect_mac_mgmt_msg_fpc_decoder(tvbuff_t *tvb, packet_info *pinfo _U
 			offset += 2;
 
 			/* display the Power adjust value */
-			value = tvb_get_gint8(tvb, offset);
+			value = tvb_get_int8(tvb, offset);
 			power_change = (float)0.25 * value;  /* 0.25dB incr */
 
 			/* display the Power adjust value in dB */
@@ -128,7 +130,7 @@ void proto_register_mac_mgmt_msg_fpc(void)
 	};
 
 	/* Setup protocol subtree array */
-	static gint *ett[] =
+	static int *ett[] =
 		{
 			&ett_mac_mgmt_msg_fpc_decoder,
 		};
@@ -141,14 +143,12 @@ void proto_register_mac_mgmt_msg_fpc(void)
 
 	proto_register_field_array(proto_mac_mgmt_msg_fpc_decoder, hf, array_length(hf));
 	proto_register_subtree_array(ett, array_length(ett));
+	fpc_handle = register_dissector("mac_mgmt_msg_fpc_handler", dissect_mac_mgmt_msg_fpc_decoder, proto_mac_mgmt_msg_fpc_decoder);
 }
 
 void
 proto_reg_handoff_mac_mgmt_msg_fpc(void)
 {
-	dissector_handle_t fpc_handle;
-
-	fpc_handle = create_dissector_handle(dissect_mac_mgmt_msg_fpc_decoder, proto_mac_mgmt_msg_fpc_decoder);
 	dissector_add_uint("wmx.mgmtmsg", MAC_MGMT_MSG_FPC, fpc_handle);
 }
 

@@ -16,7 +16,7 @@
  *
  * Added new functions to packet-pn-dcp.c. The profinet plug-in will now save
  * the information (Stationname, -type, -id)  of "Ident OK" frames. Those
- * informations will later be used for detailled dissection of cyclic PNIO RTC1
+ * informations will later be used for detailed dissection of cyclic PNIO RTC1
  * dataframes.
  *
  * The declaration of the new added structures are within packet-pn.h to
@@ -29,16 +29,15 @@
 
 #include "config.h"
 
-#include <string.h>
-
 #include <glib.h>
 
 #include <epan/packet.h>
-#include <epan/exceptions.h>
 #include <epan/to_str.h>
 #include <epan/wmem_scopes.h>
 #include <epan/expert.h>
 #include <epan/conversation.h>
+#include <epan/tfs.h>
+#include <wsutil/array.h>
 
 #include "packet-pn.h"
 
@@ -46,94 +45,94 @@
 void proto_register_pn_dcp(void);
 void proto_reg_handoff_pn_dcp(void);
 
-int proto_pn_dcp = -1;
+int proto_pn_dcp;
 
-static int hf_pn_dcp_service_id = -1;
-static int hf_pn_dcp_service_type = -1;
-static int hf_pn_dcp_xid = -1;
-static int hf_pn_dcp_reserved8 = -1;
-static int hf_pn_dcp_reserved16 = -1;
-static int hf_pn_dcp_response_delay = -1;
-static int hf_pn_dcp_data_length = -1;
-static int hf_pn_dcp_block_length = -1;
+static int hf_pn_dcp_service_id;
+static int hf_pn_dcp_service_type;
+static int hf_pn_dcp_xid;
+static int hf_pn_dcp_reserved8;
+static int hf_pn_dcp_reserved16;
+static int hf_pn_dcp_response_delay;
+static int hf_pn_dcp_data_length;
+static int hf_pn_dcp_block_length;
 
-static int hf_pn_dcp_block = -1;
+static int hf_pn_dcp_block;
 
-static int hf_pn_dcp_block_error = -1;
+static int hf_pn_dcp_block_error;
 
-static int hf_pn_dcp_option = -1;
-static int hf_pn_dcp_block_info = -1;
-static int hf_pn_dcp_block_qualifier = -1;
-static int hf_pn_dcp_blockqualifier = -1;
-static int hf_pn_dcp_blockqualifier_r2f = -1;
+static int hf_pn_dcp_option;
+static int hf_pn_dcp_block_info;
+static int hf_pn_dcp_block_qualifier;
+static int hf_pn_dcp_blockqualifier;
+static int hf_pn_dcp_blockqualifier_r2f;
 
-static int hf_pn_dcp_suboption_ip = -1;
-static int hf_pn_dcp_suboption_ip_block_info = -1;
-static int hf_pn_dcp_suboption_ip_ip = -1;
-static int hf_pn_dcp_suboption_ip_subnetmask = -1;
-static int hf_pn_dcp_suboption_ip_standard_gateway = -1;
-static int hf_pn_dcp_suboption_ip_mac_address = -1;
+static int hf_pn_dcp_suboption_ip;
+static int hf_pn_dcp_suboption_ip_block_info;
+static int hf_pn_dcp_suboption_ip_ip;
+static int hf_pn_dcp_suboption_ip_subnetmask;
+static int hf_pn_dcp_suboption_ip_standard_gateway;
+static int hf_pn_dcp_suboption_ip_mac_address;
 
-static int hf_pn_dcp_suboption_device = -1;
-static int hf_pn_dcp_suboption_device_typeofstation = -1;
-static int hf_pn_dcp_suboption_device_nameofstation = -1;
-static int hf_pn_dcp_suboption_vendor_id = -1;
-static int hf_pn_dcp_suboption_device_id = -1;
-static int hf_pn_dcp_suboption_device_role = -1;
-static int hf_pn_dcp_suboption_device_aliasname = -1;
-static int hf_pn_dcp_suboption_device_instance_high = -1;
-static int hf_pn_dcp_suboption_device_instance_low = -1;
-static int hf_pn_dcp_suboption_device_oem_ven_id = -1;
-static int hf_pn_dcp_suboption_device_oem_dev_id = -1;
+static int hf_pn_dcp_suboption_device;
+static int hf_pn_dcp_suboption_device_typeofstation;
+static int hf_pn_dcp_suboption_device_nameofstation;
+static int hf_pn_dcp_suboption_vendor_id;
+static int hf_pn_dcp_suboption_device_id;
+static int hf_pn_dcp_suboption_device_role;
+static int hf_pn_dcp_suboption_device_aliasname;
+static int hf_pn_dcp_suboption_device_instance_high;
+static int hf_pn_dcp_suboption_device_instance_low;
+static int hf_pn_dcp_suboption_device_oem_ven_id;
+static int hf_pn_dcp_suboption_device_oem_dev_id;
 
-static int hf_pn_dcp_rsi_properties_value = -1;
-static int hf_pn_dcp_rsi_properties_value_bit0 = -1;
-static int hf_pn_dcp_rsi_properties_value_bit1 = -1;
-static int hf_pn_dcp_rsi_properties_value_bit2 = -1;
-static int hf_pn_dcp_rsi_properties_value_bit3 = -1;
-static int hf_pn_dcp_rsi_properties_value_bit4 = -1;
-static int hf_pn_dcp_rsi_properties_value_bit5 = -1;
-static int hf_pn_dcp_rsi_properties_value_otherbits = -1;
+static int hf_pn_dcp_rsi_properties_value;
+static int hf_pn_dcp_rsi_properties_value_bit0;
+static int hf_pn_dcp_rsi_properties_value_bit1;
+static int hf_pn_dcp_rsi_properties_value_bit2;
+static int hf_pn_dcp_rsi_properties_value_bit3;
+static int hf_pn_dcp_rsi_properties_value_bit4;
+static int hf_pn_dcp_rsi_properties_value_bit5;
+static int hf_pn_dcp_rsi_properties_value_otherbits;
 
-static int hf_pn_dcp_suboption_tsn = -1;
-static int hf_pn_dcp_suboption_tsn_domain_name = -1;
-static int hf_pn_dcp_suboption_tsn_domain_uuid = -1;
-static int hf_pn_dcp_suboption_tsn_nme_prio = -1;
-static int hf_pn_dcp_suboption_tsn_nme_parameter_uuid = -1;
-static int hf_pn_dcp_suboption_tsn_nme_agent = -1;
+static int hf_pn_dcp_suboption_tsn;
+static int hf_pn_dcp_suboption_tsn_domain_name;
+static int hf_pn_dcp_suboption_tsn_domain_uuid;
+static int hf_pn_dcp_suboption_tsn_nme_prio;
+static int hf_pn_dcp_suboption_tsn_nme_parameter_uuid;
+static int hf_pn_dcp_suboption_tsn_nme_agent;
 
-static int hf_pn_dcp_suboption_dhcp = -1;
-static int hf_pn_dcp_suboption_dhcp_option_code = -1;
-static int hf_pn_dcp_suboption_dhcp_parameter_length = -1;
-static int hf_pn_dcp_suboption_dhcp_parameter_data = -1;
-static int hf_pn_dcp_suboption_dhcp_arbitrary_client_id = -1;
-static int hf_pn_dcp_suboption_dhcp_control_parameter_data = -1;
+static int hf_pn_dcp_suboption_dhcp;
+static int hf_pn_dcp_suboption_dhcp_option_code;
+static int hf_pn_dcp_suboption_dhcp_parameter_length;
+static int hf_pn_dcp_suboption_dhcp_parameter_data;
+static int hf_pn_dcp_suboption_dhcp_arbitrary_client_id;
+static int hf_pn_dcp_suboption_dhcp_control_parameter_data;
 
-static int hf_pn_dcp_suboption_control = -1;
-static int hf_pn_dcp_suboption_control_option = -1;
-static int hf_pn_dcp_suboption_control_signal_value = -1;
+static int hf_pn_dcp_suboption_control;
+static int hf_pn_dcp_suboption_control_option;
+static int hf_pn_dcp_suboption_control_signal_value;
 
-static int hf_pn_dcp_suboption_deviceinitiative = -1;
-static int hf_pn_dcp_deviceinitiative_value = -1;
+static int hf_pn_dcp_suboption_deviceinitiative;
+static int hf_pn_dcp_deviceinitiative_value;
 
-static int hf_pn_dcp_suboption_all = -1;
+static int hf_pn_dcp_suboption_all;
 
-static int hf_pn_dcp_suboption_manuf = -1;
+static int hf_pn_dcp_suboption_manuf;
 
-static int hf_pn_dcp_vendor_id_high = -1;
-static int hf_pn_dcp_vendor_id_low = -1;
-static int hf_pn_dcp_device_id_high = -1;
-static int hf_pn_dcp_device_id_low = -1;
-static int hf_pn_dcp_instance_id_high = -1;
-static int hf_pn_dcp_instance_id_low = -1;
-static gint ett_pn_dcp = -1;
-static gint ett_pn_dcp_block = -1;
+static int hf_pn_dcp_vendor_id_high;
+static int hf_pn_dcp_vendor_id_low;
+static int hf_pn_dcp_device_id_high;
+static int hf_pn_dcp_device_id_low;
+static int hf_pn_dcp_instance_id_high;
+static int hf_pn_dcp_instance_id_low;
+static int ett_pn_dcp;
+static int ett_pn_dcp_block;
 
-static gint ett_pn_dcp_rsi_properties_value = -1;
+static int ett_pn_dcp_rsi_properties_value;
 
-static expert_field ei_pn_dcp_block_parse_error = EI_INIT;
-static expert_field ei_pn_dcp_block_error_unknown = EI_INIT;
-static expert_field ei_pn_dcp_ip_conflict = EI_INIT;
+static expert_field ei_pn_dcp_block_parse_error;
+static expert_field ei_pn_dcp_block_error_unknown;
+static expert_field ei_pn_dcp_ip_conflict;
 
 #define PNDCP_SERVICE_ID_GET        0x03
 #define PNDCP_SERVICE_ID_SET        0x04
@@ -405,10 +404,10 @@ static const value_string pn_dcp_suboption_manuf[] = {
 /* dissect the option field */
 static int
 dissect_PNDCP_Option(tvbuff_t *tvb, int offset, packet_info *pinfo,
-                             proto_tree *tree, proto_item *block_item, int hfindex, gboolean append_col)
+                             proto_tree *tree, proto_item *block_item, int hfindex, bool append_col)
 {
-    guint8 option;
-    guint8 suboption;
+    uint8_t option;
+    uint8_t suboption;
     const value_string *val_str;
 
     offset = dissect_pn_uint8 (tvb, offset, pinfo, tree, hfindex, &option);
@@ -447,10 +446,11 @@ dissect_PNDCP_Option(tvbuff_t *tvb, int offset, packet_info *pinfo,
     }
 
     proto_item_append_text(block_item, ", Status from %s - %s",
-        rval_to_str(option, pn_dcp_option, "Unknown"), val_to_str(suboption, val_str, "Unknown"));
+        rval_to_str_const(option, pn_dcp_option, "Unknown"),
+        val_to_str_const(suboption, val_str, "Unknown"));
 
     if (append_col) {
-        col_append_fstr(pinfo->cinfo, COL_INFO, ", %s", val_to_str(suboption, val_str, "Unknown"));
+        col_append_fstr(pinfo->cinfo, COL_INFO, ", %s", val_to_str_const(suboption, val_str, "Unknown"));
     }
 
     return offset;
@@ -461,16 +461,16 @@ dissect_PNDCP_Option(tvbuff_t *tvb, int offset, packet_info *pinfo,
 static int
 dissect_PNDCP_Suboption_IP(tvbuff_t *tvb, int offset, packet_info *pinfo,
                             proto_tree *tree, proto_item *block_item, proto_item *dcp_item,
-                            guint8 service_id, gboolean is_response)
+                            uint8_t service_id, bool is_response)
 {
-    guint8      suboption;
-    guint16     block_length;
-    guint16     block_info;
-    guint16     block_qualifier;
-    gboolean    have_block_info = FALSE;
-    gboolean    have_block_qualifier = FALSE;
-    guint8      mac[6];
-    guint32     ip;
+    uint8_t     suboption;
+    uint16_t    block_length;
+    uint16_t    block_info;
+    uint16_t    block_qualifier;
+    bool        have_block_info = false;
+    bool        have_block_qualifier = false;
+    uint8_t     mac[6];
+    uint32_t    ip;
     proto_item *item = NULL;
     address     addr;
 
@@ -491,24 +491,24 @@ dissect_PNDCP_Suboption_IP(tvbuff_t *tvb, int offset, packet_info *pinfo,
             ((service_id == PNDCP_SERVICE_ID_HELLO) && !is_response) ||
             ((service_id == PNDCP_SERVICE_ID_GET) && is_response)) {
             offset = dissect_pn_uint16(tvb, offset, pinfo, tree, hf_pn_dcp_block_info, &block_info);
-            have_block_info = TRUE;
+            have_block_info = true;
             block_length -= 2;
         }
 
         /* BlockQualifier? */
         if ((service_id == PNDCP_SERVICE_ID_SET) && !is_response) {
             offset = dissect_pn_uint16(tvb, offset, pinfo, tree, hf_pn_dcp_block_qualifier, &block_qualifier);
-            have_block_qualifier = TRUE;
+            have_block_qualifier = true;
             block_length -= 2;
         }
 
         if (have_block_qualifier) {
             proto_item_append_text(block_item, ", BlockQualifier: %s",
-                val_to_str(block_qualifier, pn_dcp_block_qualifier, "Unknown"));
+                val_to_str_const(block_qualifier, pn_dcp_block_qualifier, "Unknown"));
         }
         if (have_block_info) {
             proto_item_append_text(block_item, ", BlockInfo: %s",
-                rval_to_str(block_info, pn_dcp_block_info, "Unknown"));
+                rval_to_str_const(block_info, pn_dcp_block_info, "Unknown"));
         }
 
         offset = dissect_pn_mac(tvb, offset, pinfo, tree, hf_pn_dcp_suboption_ip_mac_address, mac);
@@ -529,7 +529,7 @@ dissect_PNDCP_Suboption_IP(tvbuff_t *tvb, int offset, packet_info *pinfo,
             }
             offset += 2;
             proto_item_append_text(block_item, ", BlockInfo: %s",
-                val_to_str(block_info, pn_dcp_suboption_ip_block_info, "Undecoded"));
+                val_to_str_const(block_info, pn_dcp_suboption_ip_block_info, "Undecoded"));
             block_length -= 2;
             if (block_info & 0x80) {
                 expert_add_info(pinfo, item, &ei_pn_dcp_ip_conflict);
@@ -540,7 +540,7 @@ dissect_PNDCP_Suboption_IP(tvbuff_t *tvb, int offset, packet_info *pinfo,
         if ( (service_id == PNDCP_SERVICE_ID_SET) && !is_response) {
             offset = dissect_pn_uint16(tvb, offset, pinfo, tree, hf_pn_dcp_block_qualifier, &block_qualifier);
             proto_item_append_text(block_item, ", BlockQualifier: %s",
-                                   val_to_str(block_qualifier, pn_dcp_block_qualifier, "Unknown"));
+                                   val_to_str_const(block_qualifier, pn_dcp_block_qualifier, "Unknown"));
             block_length -= 2;
         }
 
@@ -570,24 +570,24 @@ dissect_PNDCP_Suboption_IP(tvbuff_t *tvb, int offset, packet_info *pinfo,
             ((service_id == PNDCP_SERVICE_ID_HELLO) && !is_response) ||
             ((service_id == PNDCP_SERVICE_ID_GET) && is_response)) {
             offset = dissect_pn_uint16(tvb, offset, pinfo, tree, hf_pn_dcp_block_info, &block_info);
-            have_block_info = TRUE;
+            have_block_info = true;
             block_length -= 2;
         }
 
         /* BlockQualifier? */
         if ((service_id == PNDCP_SERVICE_ID_SET) && !is_response) {
             offset = dissect_pn_uint16(tvb, offset, pinfo, tree, hf_pn_dcp_block_qualifier, &block_qualifier);
-            have_block_qualifier = TRUE;
+            have_block_qualifier = true;
             block_length -= 2;
         }
 
         if (have_block_qualifier) {
             proto_item_append_text(block_item, ", BlockQualifier: %s",
-               val_to_str(block_qualifier, pn_dcp_block_qualifier, "Unknown"));
+               val_to_str_const(block_qualifier, pn_dcp_block_qualifier, "Unknown"));
         }
         if (have_block_info) {
             proto_item_append_text(block_item, ", BlockInfo: %s",
-                rval_to_str(block_info, pn_dcp_block_info, "Unknown"));
+                rval_to_str_const(block_info, pn_dcp_block_info, "Unknown"));
         }
 
         /* IPAddress */
@@ -638,25 +638,25 @@ dissect_PNDCP_Suboption_IP(tvbuff_t *tvb, int offset, packet_info *pinfo,
 static int
 dissect_PNDCP_Suboption_Device(tvbuff_t *tvb, int offset, packet_info *pinfo,
                                proto_tree *tree, proto_item *block_item, proto_item *dcp_item,
-                               guint8 service_id, gboolean is_response)
+                               uint8_t service_id, bool is_response)
 {
-    guint8    suboption;
-    guint16   block_length;
-    gchar    *info_str;
-    guint8    device_role;
-    guint16   vendor_id;
-    guint16   device_id;
+    uint8_t   suboption;
+    uint16_t  block_length;
+    char     *info_str;
+    uint8_t   device_role;
+    uint16_t  vendor_id;
+    uint16_t  device_id;
     char     *typeofstation;
     char     *nameofstation;
     char     *aliasname;
-    guint16   block_info = 0;
-    guint16   block_qualifier = 0;
-    gboolean  have_block_info      = FALSE;
-    gboolean  have_block_qualifier = FALSE;
-    guint8    device_instance_high;
-    guint8    device_instance_low;
-    guint16   oem_vendor_id;
-    guint16   oem_device_id;
+    uint16_t  block_info = 0;
+    uint16_t  block_qualifier = 0;
+    bool      have_block_info      = false;
+    bool      have_block_qualifier = false;
+    uint8_t   device_instance_high;
+    uint8_t   device_instance_low;
+    uint16_t  oem_vendor_id;
+    uint16_t  oem_device_id;
     proto_item *sub_item;
     proto_tree *sub_tree;
     conversation_t    *conversation;
@@ -672,14 +672,14 @@ dissect_PNDCP_Suboption_Device(tvbuff_t *tvb, int offset, packet_info *pinfo,
          ((service_id == PNDCP_SERVICE_ID_HELLO)    && !is_response) ||
          ((service_id == PNDCP_SERVICE_ID_GET)      &&  is_response)) {
         offset = dissect_pn_uint16(tvb, offset, pinfo, tree, hf_pn_dcp_block_info, &block_info);
-        have_block_info = TRUE;
+        have_block_info = true;
         block_length -= 2;
     }
 
     /* BlockQualifier? */
     if ( (service_id == PNDCP_SERVICE_ID_SET) && !is_response) {
         offset = dissect_pn_uint16(tvb, offset, pinfo, tree, hf_pn_dcp_block_qualifier, &block_qualifier);
-        have_block_qualifier = TRUE;
+        have_block_qualifier = true;
         block_length -= 2;
     }
 
@@ -703,16 +703,16 @@ dissect_PNDCP_Suboption_Device(tvbuff_t *tvb, int offset, packet_info *pinfo,
         proto_item_append_text(block_item, "Device/Manufacturer specific");
         if (have_block_qualifier) {
             proto_item_append_text(block_item, ", BlockQualifier: %s",
-                                   val_to_str(block_qualifier, pn_dcp_block_qualifier, "Unknown"));
+                                   val_to_str_const(block_qualifier, pn_dcp_block_qualifier, "Unknown"));
         }
         if (have_block_info){
             proto_item_append_text(block_item, ", BlockInfo: %s",
-                                   rval_to_str(block_info, pn_dcp_block_info, "Unknown"));
+                                   rval_to_str_const(block_info, pn_dcp_block_info, "Unknown"));
         }
         proto_item_append_text(block_item, ", DeviceVendorValue: \"%s\"", typeofstation);
 
 
-        if (PINFO_FD_VISITED(pinfo) == FALSE) {
+        if (PINFO_FD_VISITED(pinfo) == false) {
             /* Create a conversation between the MAC addresses */
             conversation = find_conversation(pinfo->num, &pinfo->dl_src, &pinfo->dl_dst, CONVERSATION_NONE, 0, 0, 0);
             if (conversation == NULL) {
@@ -760,16 +760,16 @@ dissect_PNDCP_Suboption_Device(tvbuff_t *tvb, int offset, packet_info *pinfo,
         proto_item_append_text(block_item, "Device/NameOfStation");
         if (have_block_qualifier) {
             proto_item_append_text(block_item, ", BlockQualifier: %s",
-                                   val_to_str(block_qualifier, pn_dcp_block_qualifier, "Unknown"));
+                                   val_to_str_const(block_qualifier, pn_dcp_block_qualifier, "Unknown"));
         }
         if (have_block_info) {
             proto_item_append_text(block_item, ", BlockInfo: %s",
-                                   rval_to_str(block_info, pn_dcp_block_info, "Unknown"));
+                                   rval_to_str_const(block_info, pn_dcp_block_info, "Unknown"));
         }
         proto_item_append_text(block_item, ", \"%s\"", nameofstation);
 
 
-        if (PINFO_FD_VISITED(pinfo) == FALSE) {
+        if (PINFO_FD_VISITED(pinfo) == false) {
             /* Create a conversation between the MAC addresses */
             conversation = find_conversation(pinfo->num, &pinfo->dl_src, &pinfo->dl_dst, CONVERSATION_NONE, 0, 0, 0);
             if (conversation == NULL) {
@@ -800,7 +800,7 @@ dissect_PNDCP_Suboption_Device(tvbuff_t *tvb, int offset, packet_info *pinfo,
         offset = dissect_pn_uint16(tvb, offset, pinfo, tree, hf_pn_dcp_suboption_vendor_id, &vendor_id);
         offset = dissect_pn_uint16(tvb, offset, pinfo, tree, hf_pn_dcp_suboption_device_id, &device_id);
 
-        if (PINFO_FD_VISITED(pinfo) == FALSE) {
+        if (PINFO_FD_VISITED(pinfo) == false) {
             /* Create a conversation between the MAC addresses */
             conversation = find_conversation(pinfo->num, &pinfo->dl_src, &pinfo->dl_dst, CONVERSATION_NONE, 0, 0, 0);
             if (conversation == NULL) {
@@ -830,11 +830,11 @@ dissect_PNDCP_Suboption_Device(tvbuff_t *tvb, int offset, packet_info *pinfo,
         proto_item_append_text(block_item, "Device/Device ID");
         if (have_block_qualifier) {
             proto_item_append_text(block_item, ", BlockQualifier: %s",
-                                   val_to_str(block_qualifier, pn_dcp_block_qualifier, "Unknown"));
+                                   val_to_str_const(block_qualifier, pn_dcp_block_qualifier, "Unknown"));
         }
         if (have_block_info) {
             proto_item_append_text(block_item, ", BlockInfo: %s",
-                                   rval_to_str(block_info, pn_dcp_block_info, "Unknown"));
+                                   rval_to_str_const(block_info, pn_dcp_block_info, "Unknown"));
         }
         proto_item_append_text(block_item, ", VendorID: 0x%04x / DeviceID: 0x%04x", vendor_id, device_id);
         break;
@@ -845,10 +845,10 @@ dissect_PNDCP_Suboption_Device(tvbuff_t *tvb, int offset, packet_info *pinfo,
         proto_item_append_text(block_item, "Device/Device Role");
         if (have_block_qualifier) {
             proto_item_append_text(block_item, ", BlockQualifier: %s",
-                                   val_to_str(block_qualifier, pn_dcp_block_qualifier, "Unknown"));
+                                   val_to_str_const(block_qualifier, pn_dcp_block_qualifier, "Unknown"));
         }
         if (have_block_info)
-            proto_item_append_text(block_item, ", BlockInfo: %s", rval_to_str(block_info, pn_dcp_block_info, "Unknown"));
+            proto_item_append_text(block_item, ", BlockInfo: %s", rval_to_str_const(block_info, pn_dcp_block_info, "Unknown"));
         if (device_role & 0x01)
             proto_item_append_text(block_item, ", IO-Device");
         if (device_role & 0x02)
@@ -864,16 +864,16 @@ dissect_PNDCP_Suboption_Device(tvbuff_t *tvb, int offset, packet_info *pinfo,
         proto_item_append_text(block_item, "Device/Device Options");
         if (have_block_qualifier) {
             proto_item_append_text(block_item, ", BlockQualifier: %s",
-                                   val_to_str(block_qualifier, pn_dcp_block_qualifier, "Unknown"));
+                                   val_to_str_const(block_qualifier, pn_dcp_block_qualifier, "Unknown"));
         }
         if (have_block_info) {
             proto_item_append_text(block_item, ", BlockInfo: %s",
-                                   rval_to_str(block_info, pn_dcp_block_info, "Unknown"));
+                                   rval_to_str_const(block_info, pn_dcp_block_info, "Unknown"));
         }
         proto_item_append_text(block_item, ", %u options", block_length/2);
         for( ; block_length != 0; block_length -= 2) {
             offset = dissect_PNDCP_Option(tvb, offset, pinfo, tree, NULL /*block_item*/, hf_pn_dcp_option,
-                FALSE /* append_col */);
+                false /* append_col */);
         }
         break;
     case PNDCP_SUBOPTION_DEVICE_ALIAS_NAME:
@@ -908,11 +908,11 @@ dissect_PNDCP_Suboption_Device(tvbuff_t *tvb, int offset, packet_info *pinfo,
         proto_item_append_text(block_item, "Device/AliasName");
         if (have_block_qualifier) {
             proto_item_append_text(block_item, ", BlockQualifier: %s",
-                                   val_to_str(block_qualifier, pn_dcp_block_qualifier, "Unknown"));
+                                   val_to_str_const(block_qualifier, pn_dcp_block_qualifier, "Unknown"));
         }
         if (have_block_info) {
             proto_item_append_text(block_item, ", BlockInfo: %s",
-                                   rval_to_str(block_info, pn_dcp_block_info, "Unknown"));
+                                   rval_to_str_const(block_info, pn_dcp_block_info, "Unknown"));
         }
         proto_item_append_text(block_item, ", \"%s\"", aliasname);
         offset += block_length;
@@ -924,11 +924,11 @@ dissect_PNDCP_Suboption_Device(tvbuff_t *tvb, int offset, packet_info *pinfo,
         proto_item_append_text(block_item, "Device/Device Instance");
         if (have_block_qualifier) {
             proto_item_append_text(block_item, ", BlockQualifier: %s",
-                                   val_to_str(block_qualifier, pn_dcp_block_qualifier, "Unknown"));
+                                   val_to_str_const(block_qualifier, pn_dcp_block_qualifier, "Unknown"));
         }
         if (have_block_info) {
             proto_item_append_text(block_item, ", BlockInfo: %s",
-                                   rval_to_str(block_info, pn_dcp_block_info, "Unknown"));
+                                   rval_to_str_const(block_info, pn_dcp_block_info, "Unknown"));
         }
         proto_item_append_text(block_item, ", InstanceHigh: %d, Instance Low: %d",
                                device_instance_high, device_instance_low);
@@ -940,11 +940,11 @@ dissect_PNDCP_Suboption_Device(tvbuff_t *tvb, int offset, packet_info *pinfo,
         proto_item_append_text(block_item, "Device/OEM Device ID");
         if(have_block_qualifier) {
             proto_item_append_text(block_item, ", BlockQualifier: %s",
-                                   val_to_str(block_qualifier, pn_dcp_block_qualifier, "Unknown"));
+                                   val_to_str_const(block_qualifier, pn_dcp_block_qualifier, "Unknown"));
         }
         if(have_block_info) {
             proto_item_append_text(block_item, ", BlockInfo: %s",
-                                   rval_to_str(block_info, pn_dcp_block_info, "Unknown"));
+                                   rval_to_str_const(block_info, pn_dcp_block_info, "Unknown"));
         }
         proto_item_append_text(block_item, ", OEMVendorID: 0x%04x / OEMDeviceID: 0x%04x", oem_vendor_id, oem_device_id);
         break;
@@ -967,7 +967,7 @@ dissect_PNDCP_Suboption_Device(tvbuff_t *tvb, int offset, packet_info *pinfo,
 
         offset = offset + 2;
 
-        if (pinfo->fd->visited == FALSE) {
+        if (pinfo->fd->visited == false) {
             /* Create a conversation between the MAC addresses */
             conversation = find_conversation(pinfo->num, &pinfo->dl_src, &pinfo->dl_dst, CONVERSATION_NONE, 0, 0, 0);
             if (conversation == NULL) {
@@ -986,11 +986,11 @@ dissect_PNDCP_Suboption_Device(tvbuff_t *tvb, int offset, packet_info *pinfo,
         proto_item_append_text(block_item, "Device/RSI Properties");
         if (have_block_qualifier) {
             proto_item_append_text(block_item, ", BlockQualifier: %s",
-                val_to_str(block_qualifier, pn_dcp_block_qualifier, "Unknown"));
+                val_to_str_const(block_qualifier, pn_dcp_block_qualifier, "Unknown"));
         }
         if (have_block_info) {
             proto_item_append_text(block_item, ", BlockInfo: %s",
-                rval_to_str(block_info, pn_dcp_block_info, "Unknown"));
+                rval_to_str_const(block_info, pn_dcp_block_info, "Unknown"));
         }
         break;
     default:
@@ -1004,26 +1004,26 @@ dissect_PNDCP_Suboption_Device(tvbuff_t *tvb, int offset, packet_info *pinfo,
 static int
 dissect_PNDCP_Suboption_TSN(tvbuff_t* tvb, int offset, packet_info* pinfo,
     proto_tree* tree, proto_item* block_item, proto_item* dcp_item,
-    guint8 service_id, gboolean is_response)
+    uint8_t service_id, bool is_response)
 {
-    guint8    suboption;
-    guint16   block_length;
+    uint8_t   suboption;
+    uint16_t  block_length;
     char     *domain_name;
-    guint16   nme_prio;
+    uint16_t  nme_prio;
     e_guid_t  tsn_domain_uuid;
     e_guid_t  nme_parameter_uuid;
     e_guid_t  nme_name_uuid;
-    guint16   vendor_id;
-    guint16   device_id;
-    guint16   block_info = 0;
-    guint16   block_qualifier = 0;
-    gboolean  have_block_info = FALSE;
-    gboolean  have_block_qualifier = FALSE;
-    guint8    instance_id_high;
-    guint8    instance_id_low;
+    uint16_t  vendor_id;
+    uint16_t  device_id;
+    uint16_t  block_info = 0;
+    uint16_t  block_qualifier = 0;
+    bool      have_block_info = false;
+    bool      have_block_qualifier = false;
+    uint8_t   instance_id_high;
+    uint8_t   instance_id_low;
     conversation_t* conversation;
     stationInfo* station_info;
-    gboolean is_zeros = TRUE;
+    bool is_zeros = true;
 
     /* SuboptionTSN... */
     offset = dissect_pn_uint8(tvb, offset, pinfo, tree, hf_pn_dcp_suboption_tsn, &suboption);
@@ -1036,14 +1036,14 @@ dissect_PNDCP_Suboption_TSN(tvbuff_t* tvb, int offset, packet_info* pinfo,
         ((service_id == PNDCP_SERVICE_ID_HELLO) && !is_response) ||
         ((service_id == PNDCP_SERVICE_ID_GET) && is_response)) {
         offset = dissect_pn_uint16(tvb, offset, pinfo, tree, hf_pn_dcp_block_info, &block_info);
-        have_block_info = TRUE;
+        have_block_info = true;
         block_length -= 2;
     }
 
     /* BlockQualifier? */
     if ((service_id == PNDCP_SERVICE_ID_SET) && !is_response) {
         offset = dissect_pn_uint16(tvb, offset, pinfo, tree, hf_pn_dcp_block_qualifier, &block_qualifier);
-        have_block_qualifier = TRUE;
+        have_block_qualifier = true;
         block_length -= 2;
     }
 
@@ -1057,21 +1057,21 @@ dissect_PNDCP_Suboption_TSN(tvbuff_t* tvb, int offset, packet_info* pinfo,
         proto_item_append_text(block_item, "TSN/TSN-Domain Name");
         if (have_block_qualifier) {
             proto_item_append_text(block_item, ", BlockQualifier: %s",
-                val_to_str(block_qualifier, pn_dcp_block_qualifier, "Unknown"));
+                val_to_str_const(block_qualifier, pn_dcp_block_qualifier, "Unknown"));
         }
         if (have_block_info)
-            proto_item_append_text(block_item, ", BlockInfo: %s", rval_to_str(block_info, pn_dcp_block_info, "Unknown"));
+            proto_item_append_text(block_item, ", BlockInfo: %s", rval_to_str_const(block_info, pn_dcp_block_info, "Unknown"));
 
         pn_append_info(pinfo, dcp_item, wmem_strdup_printf(pinfo->pool, ", DomainName:\"%s\"", domain_name));
         proto_item_append_text(block_item, ", \"%s\"", domain_name);
         offset += (block_length-16);
-        is_zeros = TRUE;
+        is_zeros = true;
 
         for (int i = 0; i < 8; i++)
         {
             if (tsn_domain_uuid.data4[i] != 0)
             {
-                is_zeros = FALSE;
+                is_zeros = false;
                 break;
             }
         }
@@ -1091,13 +1091,13 @@ dissect_PNDCP_Suboption_TSN(tvbuff_t* tvb, int offset, packet_info* pinfo,
         if (have_block_qualifier)
         {
             proto_item_append_text(block_item, ", BlockQualifier: %s",
-                val_to_str(block_qualifier, pn_dcp_block_qualifier, "Unknown"));
+                val_to_str_const(block_qualifier, pn_dcp_block_qualifier, "Unknown"));
         }
 
         if (have_block_info)
         {
             offset = dissect_pn_uint16(tvb, offset, pinfo, tree, hf_pn_dcp_suboption_tsn_nme_prio, &nme_prio);
-            proto_item_append_text(block_item, ", BlockInfo: %s", rval_to_str(block_info, pn_dcp_block_info, "Unknown"));
+            proto_item_append_text(block_item, ", BlockInfo: %s", rval_to_str_const(block_info, pn_dcp_block_info, "Unknown"));
 
             if (nme_prio == 0x0000)
                 proto_item_append_text(block_item, ", Highest priority NME manager");
@@ -1125,18 +1125,18 @@ dissect_PNDCP_Suboption_TSN(tvbuff_t* tvb, int offset, packet_info* pinfo,
             if (have_block_qualifier)
             {
                 proto_item_append_text(block_item, ", BlockQualifier: %s",
-                    val_to_str(block_qualifier, pn_dcp_block_qualifier, "Unknown"));
+                    val_to_str_const(block_qualifier, pn_dcp_block_qualifier, "Unknown"));
             }
             if (have_block_info)
-                proto_item_append_text(block_item, ", BlockInfo: %s", rval_to_str(block_info, pn_dcp_block_info, "Unknown"));
+                proto_item_append_text(block_item, ", BlockInfo: %s", rval_to_str_const(block_info, pn_dcp_block_info, "Unknown"));
 
-            is_zeros = TRUE;
+            is_zeros = true;
 
             for (int i = 0; i < 8; i++)
             {
                 if (nme_parameter_uuid.data4[i] != 0)
                 {
-                    is_zeros = FALSE;
+                    is_zeros = false;
                     break;
                 }
             }
@@ -1155,20 +1155,20 @@ dissect_PNDCP_Suboption_TSN(tvbuff_t* tvb, int offset, packet_info* pinfo,
         if (have_block_qualifier)
         {
             proto_item_append_text(block_item, ", BlockQualifier: %s",
-                val_to_str(block_qualifier, pn_dcp_block_qualifier, "Unknown"));
+                val_to_str_const(block_qualifier, pn_dcp_block_qualifier, "Unknown"));
         }
 
         if (have_block_info)
         {
             offset = dissect_pn_uuid(tvb, offset, pinfo, tree, hf_pn_dcp_suboption_tsn_nme_agent, &nme_name_uuid);
-            proto_item_append_text(block_item, ", BlockInfo: %s", rval_to_str(block_info, pn_dcp_block_info, "Unknown"));
+            proto_item_append_text(block_item, ", BlockInfo: %s", rval_to_str_const(block_info, pn_dcp_block_info, "Unknown"));
 
-            is_zeros = TRUE;
+            is_zeros = true;
             for (int i = 0; i < 8; i++)
             {
                 if (nme_name_uuid.data4[i] != 0)
                 {
-                    is_zeros = FALSE;
+                    is_zeros = false;
                     break;
                 }
             }
@@ -1188,7 +1188,7 @@ dissect_PNDCP_Suboption_TSN(tvbuff_t* tvb, int offset, packet_info* pinfo,
         if (have_block_qualifier)
         {
             proto_item_append_text(block_item, ", BlockQualifier: %s",
-                val_to_str(block_qualifier, pn_dcp_block_qualifier, "Unknown"));
+                val_to_str_const(block_qualifier, pn_dcp_block_qualifier, "Unknown"));
         }
         if (have_block_info)
         {
@@ -1202,7 +1202,7 @@ dissect_PNDCP_Suboption_TSN(tvbuff_t* tvb, int offset, packet_info* pinfo,
             offset = dissect_pn_uint8(tvb, offset, pinfo, tree, hf_pn_dcp_instance_id_high, &instance_id_high);
             offset = dissect_pn_uint8(tvb, offset, pinfo, tree, hf_pn_dcp_instance_id_low, &instance_id_low);
 
-            if (pinfo->fd->visited == FALSE) {
+            if (pinfo->fd->visited == false) {
                 /* Create a conversation between the MAC addresses */
                 conversation = find_conversation(pinfo->num, &pinfo->dl_src, &pinfo->dl_dst, CONVERSATION_NONE, 0, 0, 0);
                 if (conversation == NULL) {
@@ -1220,7 +1220,7 @@ dissect_PNDCP_Suboption_TSN(tvbuff_t* tvb, int offset, packet_info* pinfo,
                 station_info->u16Device_id = device_id;
             }
 
-            proto_item_append_text(block_item, ", BlockInfo: %s", rval_to_str(block_info, pn_dcp_block_info, "Unknown"));
+            proto_item_append_text(block_item, ", BlockInfo: %s", rval_to_str_const(block_info, pn_dcp_block_info, "Unknown"));
 
             proto_item_append_text(block_item, ", VendorID: 0x%04x / DeviceID: 0x%04x / InstanceIDHigh: 0x%04x / InstanceIDLow: 0x%04x", vendor_id, device_id, instance_id_high, instance_id_low);
         }
@@ -1238,18 +1238,18 @@ dissect_PNDCP_Suboption_TSN(tvbuff_t* tvb, int offset, packet_info* pinfo,
 static int
 dissect_PNDCP_Suboption_DHCP(tvbuff_t *tvb, int offset, packet_info *pinfo,
                                 proto_tree *tree, proto_item *block_item, proto_item *dcp_item,
-                                guint8 service_id _U_, gboolean is_response _U_)
+                                uint8_t service_id _U_, bool is_response _U_)
 {
-    guint8   suboption;
-    guint8   option_code = 0;
-    guint16  block_length;
-    guint16  block_info = 0;
-    guint16  block_qualifier = 0;
-    guint8   dhcpparameterlength = 0;
-    guint8   dhcpparameterdata = 0;
-    guint8   dhcpcontrolparameterdata = 0;
-    gboolean have_block_info      = FALSE;
-    gboolean have_block_qualifier = FALSE;
+    uint8_t  suboption;
+    uint8_t  option_code = 0;
+    uint16_t block_length;
+    uint16_t block_info = 0;
+    uint16_t block_qualifier = 0;
+    uint8_t  dhcpparameterlength = 0;
+    uint8_t  dhcpparameterdata = 0;
+    uint8_t  dhcpcontrolparameterdata = 0;
+    bool have_block_info      = false;
+    bool have_block_qualifier = false;
     int      expected_offset;
 
 
@@ -1263,13 +1263,13 @@ dissect_PNDCP_Suboption_DHCP(tvbuff_t *tvb, int offset, packet_info *pinfo,
          ((service_id == PNDCP_SERVICE_ID_HELLO)    && !is_response) ||
          ((service_id == PNDCP_SERVICE_ID_GET)      &&  is_response)) {
         offset = dissect_pn_uint16(tvb, offset, pinfo, tree, hf_pn_dcp_block_info, &block_info);
-        have_block_info=TRUE;
+        have_block_info=true;
         block_length -= 2;
     }
     /* BlockQualifier? */
     if ( (service_id == PNDCP_SERVICE_ID_SET) && !is_response) {
         offset = dissect_pn_uint16(tvb, offset, pinfo, tree, hf_pn_dcp_block_qualifier, &block_qualifier);
-        have_block_qualifier=TRUE;
+        have_block_qualifier=true;
         block_length -= 2;
     }
 
@@ -1279,11 +1279,11 @@ dissect_PNDCP_Suboption_DHCP(tvbuff_t *tvb, int offset, packet_info *pinfo,
         proto_item_append_text(block_item, "DHCP/Client-ID");
         if (have_block_qualifier) {
             proto_item_append_text(block_item, ", BlockQualifier: %s",
-                                   val_to_str(block_qualifier, pn_dcp_block_qualifier, "Unknown"));
+                                   val_to_str_const(block_qualifier, pn_dcp_block_qualifier, "Unknown"));
         }
         if (have_block_info) {
             proto_item_append_text(block_item, ", BlockInfo: %s",
-                                   rval_to_str(block_info, pn_dcp_block_info, "Unknown"));
+                                   rval_to_str_const(block_info, pn_dcp_block_info, "Unknown"));
         }
         offset = dissect_pn_uint8(tvb, offset, pinfo, tree, hf_pn_dcp_suboption_dhcp_option_code, &option_code);
         offset = dissect_pn_uint8(tvb, offset, pinfo, tree, hf_pn_dcp_suboption_dhcp_parameter_length, &dhcpparameterlength);
@@ -1320,11 +1320,11 @@ dissect_PNDCP_Suboption_DHCP(tvbuff_t *tvb, int offset, packet_info *pinfo,
         proto_item_append_text(block_item, "DHCP/Control DHCP for address resolution");
         if (have_block_qualifier) {
             proto_item_append_text(block_item, ", BlockQualifier: %s",
-                val_to_str(block_qualifier, pn_dcp_block_qualifier, "Unknown"));
+                val_to_str_const(block_qualifier, pn_dcp_block_qualifier, "Unknown"));
         }
         if (have_block_info) {
             proto_item_append_text(block_item, ", BlockInfo: %s",
-                rval_to_str(block_info, pn_dcp_block_info, "Unknown"));
+                rval_to_str_const(block_info, pn_dcp_block_info, "Unknown"));
         }
         offset = dissect_pn_uint8(tvb, offset, pinfo, tree, hf_pn_dcp_suboption_dhcp_option_code, &option_code);
         offset = dissect_pn_uint8(tvb, offset, pinfo, tree, hf_pn_dcp_suboption_dhcp_parameter_length, &dhcpparameterlength);
@@ -1346,15 +1346,15 @@ dissect_PNDCP_Suboption_DHCP(tvbuff_t *tvb, int offset, packet_info *pinfo,
 static int
 dissect_PNDCP_Suboption_Control(tvbuff_t *tvb, int offset, packet_info *pinfo,
                                 proto_tree *tree, proto_item *block_item, proto_item *dcp_item,
-                                guint8 service_id _U_, gboolean is_response _U_)
+                                uint8_t service_id _U_, bool is_response _U_)
 {
-    guint8      suboption;
-    guint16     block_length;
-    guint16     block_qualifier;
-    guint16     BlockQualifier;
-    guint16     u16SignalValue;
-    gchar      *info_str;
-    guint8      block_error;
+    uint8_t     suboption;
+    uint16_t    block_length;
+    uint16_t    block_qualifier;
+    uint16_t    BlockQualifier;
+    uint16_t    u16SignalValue;
+    char       *info_str;
+    uint8_t     block_error;
     proto_item *item = NULL;
 
 
@@ -1388,21 +1388,21 @@ dissect_PNDCP_Suboption_Control(tvbuff_t *tvb, int offset, packet_info *pinfo,
         case PNDCP_SUBOPTION_CONTROL_RESPONSE:
             proto_item_append_text(block_item, "Control/Response");
             offset = dissect_PNDCP_Option(tvb, offset, pinfo, tree, block_item, hf_pn_dcp_suboption_control_option,
-                FALSE /* append_col */);
-            block_error = tvb_get_guint8(tvb, offset);
+                false /* append_col */);
+            block_error = tvb_get_uint8(tvb, offset);
             if (tree) {
                 item = proto_tree_add_uint(tree, hf_pn_dcp_block_error, tvb, offset, 1, block_error);
             }
             offset += 1;
             if (block_error != 0) {
                 expert_add_info_format(pinfo, item, &ei_pn_dcp_block_error_unknown, "%s",
-                    val_to_str(block_error, pn_dcp_block_error, "Unknown"));
+                    val_to_str_const(block_error, pn_dcp_block_error, "Unknown"));
             }
             info_str = wmem_strdup_printf(pinfo->pool, ", Response(%s)",
-                val_to_str(block_error, pn_dcp_block_error, "Unknown"));
+                val_to_str_const(block_error, pn_dcp_block_error, "Unknown"));
             pn_append_info(pinfo, dcp_item, info_str);
             proto_item_append_text(block_item, ", BlockError: %s",
-                val_to_str(block_error, pn_dcp_block_error, "Unknown"));
+                val_to_str_const(block_error, pn_dcp_block_error, "Unknown"));
 
             break;
         case PNDCP_SUBOPTION_CONTROL_FACT_RESET:
@@ -1411,7 +1411,7 @@ dissect_PNDCP_Suboption_Control(tvbuff_t *tvb, int offset, packet_info *pinfo,
             block_length -= 2;
             offset = dissect_pn_uint16(tvb, offset, pinfo, tree, hf_pn_dcp_blockqualifier, &BlockQualifier);
             proto_item_append_text(block_item, ", BlockQualifier: %s",
-                val_to_str(BlockQualifier, pn_dcp_suboption_other, "reserved"));
+                val_to_str_const(BlockQualifier, pn_dcp_suboption_other, "reserved"));
             block_length -= 2;
             break;
 
@@ -1421,7 +1421,7 @@ dissect_PNDCP_Suboption_Control(tvbuff_t *tvb, int offset, packet_info *pinfo,
 
             offset = dissect_pn_uint16(tvb, offset, pinfo, tree, hf_pn_dcp_blockqualifier_r2f, &BlockQualifier);
             proto_item_append_text(block_item, ", BlockQualifier: %s",
-                val_to_str(BlockQualifier, pn_dcp_BlockQualifier, "reserved"));
+                val_to_str_const(BlockQualifier, pn_dcp_BlockQualifier, "reserved"));
             block_length -= 2;
 
             break;
@@ -1434,17 +1434,17 @@ dissect_PNDCP_Suboption_Control(tvbuff_t *tvb, int offset, packet_info *pinfo,
 }
 
 
-/* dissect the "deviceinitaitve" suboption */
+/* dissect the "deviceinitiative" suboption */
 static int
 dissect_PNDCP_Suboption_DeviceInitiative(tvbuff_t *tvb, int offset, packet_info *pinfo,
                             proto_tree *tree, proto_item *block_item, proto_item *dcp_item,
-                            guint8 service_id, gboolean is_response)
+                            uint8_t service_id, bool is_response)
 {
-    guint8  suboption;
-    guint16 block_length;
-    guint16 block_info;
-    guint16 block_qualifier;
-    guint16 value;
+    uint8_t suboption;
+    uint16_t block_length;
+    uint16_t block_info;
+    uint16_t block_qualifier;
+    uint16_t value;
 
 
     offset = dissect_pn_uint8(tvb, offset, pinfo, tree, hf_pn_dcp_suboption_deviceinitiative, &suboption);
@@ -1459,7 +1459,7 @@ dissect_PNDCP_Suboption_DeviceInitiative(tvbuff_t *tvb, int offset, packet_info 
         ((service_id == PNDCP_SERVICE_ID_GET)      &&  is_response)) {
         offset = dissect_pn_uint16(tvb, offset, pinfo, tree, hf_pn_dcp_block_info, &block_info);
         proto_item_append_text(block_item, ", BlockInfo: %s",
-                               rval_to_str(block_info, pn_dcp_block_info, "Unknown"));
+                               rval_to_str_const(block_info, pn_dcp_block_info, "Unknown"));
         block_length -= 2;
     }
 
@@ -1467,7 +1467,7 @@ dissect_PNDCP_Suboption_DeviceInitiative(tvbuff_t *tvb, int offset, packet_info 
     if ( (service_id == PNDCP_SERVICE_ID_SET) && !is_response) {
         offset = dissect_pn_uint16(tvb, offset, pinfo, tree, hf_pn_dcp_block_qualifier, &block_qualifier);
         proto_item_append_text(block_item, ", BlockQualifier: %s",
-                               val_to_str(block_qualifier, pn_dcp_block_qualifier, "Unknown"));
+                               val_to_str_const(block_qualifier, pn_dcp_block_qualifier, "Unknown"));
         block_length -= 2;
     }
 
@@ -1482,10 +1482,10 @@ dissect_PNDCP_Suboption_DeviceInitiative(tvbuff_t *tvb, int offset, packet_info 
 static int
 dissect_PNDCP_Suboption_All(tvbuff_t *tvb, int offset, packet_info *pinfo,
                             proto_tree *tree, proto_item *block_item, proto_item *dcp_item,
-                            guint8 service_id _U_, gboolean is_response _U_)
+                            uint8_t service_id _U_, bool is_response _U_)
 {
-    guint8  suboption;
-    guint16 block_length;
+    uint8_t suboption;
+    uint16_t block_length;
 
 
     offset = dissect_pn_uint8(tvb, offset, pinfo, tree, hf_pn_dcp_suboption_all, &suboption);
@@ -1508,9 +1508,9 @@ dissect_PNDCP_Suboption_All(tvbuff_t *tvb, int offset, packet_info *pinfo,
 static int
 dissect_PNDCP_Suboption_Manuf(tvbuff_t *tvb, int offset, packet_info *pinfo,
                             proto_tree *tree, proto_item *block_item, proto_item *dcp_item,
-                            guint8 service_id _U_, gboolean is_response _U_)
+                            uint8_t service_id _U_, bool is_response _U_)
 {
-    guint16 block_length;
+    uint16_t block_length;
 
     offset = dissect_pn_uint8( tvb, offset, pinfo, tree, hf_pn_dcp_suboption_manuf, NULL);
 
@@ -1530,9 +1530,9 @@ dissect_PNDCP_Suboption_Manuf(tvbuff_t *tvb, int offset, packet_info *pinfo,
 static int
 dissect_PNDCP_Block(tvbuff_t *tvb, int offset, packet_info *pinfo,
                     proto_tree *tree, proto_item *dcp_item,
-                    guint8 service_id, gboolean is_response)
+                    uint8_t service_id, bool is_response)
 {
-    guint8      option;
+    uint8_t     option;
     proto_item *block_item;
     proto_tree *block_tree;
     int         ori_offset = offset;
@@ -1600,14 +1600,14 @@ static void
 dissect_PNDCP_PDU(tvbuff_t *tvb,
     packet_info *pinfo, proto_tree *tree, proto_item *dcp_item)
 {
-    guint8    service_id;
-    guint8    service_type;
-    guint32   xid;
-    guint16   response_delay;
-    guint16   data_length;
+    uint8_t   service_id;
+    uint8_t   service_type;
+    uint32_t  xid;
+    uint16_t  response_delay;
+    uint16_t  data_length;
     int       offset      = 0;
-    gchar    *xid_str;
-    gboolean  is_response = FALSE;
+    char     *xid_str;
+    bool      is_response = false;
 
 
     offset = dissect_pn_uint8 (tvb, offset, pinfo, tree, hf_pn_dcp_service_id, &service_id);
@@ -1647,11 +1647,11 @@ dissect_PNDCP_PDU(tvbuff_t *tvb,
         break;
     case PNDCP_SERVICE_TYPE_RESPONSE_SUCCESS:
         pn_append_info(pinfo, dcp_item, " Ok ");
-        is_response = TRUE;
+        is_response = true;
         break;
     case PNDCP_SERVICE_TYPE_RESPONSE_UNSUPPORTED:
         pn_append_info(pinfo, dcp_item, " unsupported");
-        is_response = TRUE;
+        is_response = true;
         break;
     default:
         dissect_pn_undecoded(tvb, offset, pinfo, tree, tvb_captured_length_remaining(tvb, offset));
@@ -1668,7 +1668,7 @@ dissect_PNDCP_PDU(tvbuff_t *tvb,
         if (service_id == PNDCP_SERVICE_ID_GET && service_type == PNDCP_SERVICE_TYPE_REQUEST) {
             /* Selectors */
             offset = dissect_PNDCP_Option(tvb, offset, pinfo,
-                                 tree, dcp_item, hf_pn_dcp_option, TRUE /* append_col */);
+                                 tree, dcp_item, hf_pn_dcp_option, true /* append_col */);
         } else {
             offset = dissect_PNDCP_Block(tvb, offset, pinfo, tree, dcp_item, service_id, is_response);
         }
@@ -1684,12 +1684,12 @@ dissect_PNDCP_PDU(tvbuff_t *tvb,
 
 
 /* possibly dissect a PN-RT packet (frame ID must be in the appropriate range) */
-static gboolean
+static bool
 dissect_PNDCP_Data_heur(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree,
     void *data)
 {
     /* the tvb will NOT contain the frame_id here, so get it from dissection data! */
-    guint16     u16FrameID = GPOINTER_TO_UINT(data);
+    uint16_t    u16FrameID = GPOINTER_TO_UINT(data);
     proto_item *item;
     proto_tree *dcp_tree;
 
@@ -1697,7 +1697,7 @@ dissect_PNDCP_Data_heur(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree,
     /* frame id must be in valid range (acyclic Real-Time, DCP) */
     if (u16FrameID < FRAME_ID_DCP_HELLO || u16FrameID > FRAME_ID_DCP_IDENT_RES) {
         /* we are not interested in this packet */
-        return FALSE;
+        return false;
     }
 
     col_set_str(pinfo->cinfo, COL_PROTOCOL, "PN-DCP");
@@ -1711,7 +1711,7 @@ dissect_PNDCP_Data_heur(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree,
     /* dissect this PDU */
     dissect_PNDCP_PDU(tvb, pinfo, dcp_tree, item);
 
-    return TRUE;
+    return true;
 }
 
 
@@ -2053,7 +2053,7 @@ proto_register_pn_dcp (void)
 
     };
 
-    static gint *ett[] = {
+    static int *ett[] = {
         &ett_pn_dcp,
         &ett_pn_dcp_block,
         &ett_pn_dcp_rsi_properties_value

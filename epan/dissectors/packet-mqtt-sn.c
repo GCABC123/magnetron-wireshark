@@ -14,6 +14,8 @@
 
 #include "config.h"
 #include <epan/packet.h>
+#include <epan/tfs.h>
+#include <wsutil/array.h>
 
 /* MQTT-SN message types. */
 #define MQTTSN_ADVERTISE              0x00
@@ -148,51 +150,52 @@ static const value_string mqttsn_return_vals[] = {
 static dissector_handle_t mqttsn_handle;
 
 /* Initialize the protocol and registered fields. */
-static int proto_mqttsn = -1;
+static int proto_mqttsn;
 
-static int hf_mqttsn_msg = -1;
-static int hf_mqttsn_msg_len = -1;
-static int hf_mqttsn_msg_type = -1;
-static int hf_mqttsn_dup = -1;
-static int hf_mqttsn_qos = -1;
-static int hf_mqttsn_retain = -1;
-static int hf_mqttsn_will = -1;
-static int hf_mqttsn_clean_session = -1;
-static int hf_mqttsn_topic_id_type = -1;
-static int hf_mqttsn_return_code = -1;
-static int hf_mqttsn_gw_id = -1;
-static int hf_mqttsn_gw_addr = -1;
-static int hf_mqttsn_adv_interv = -1;
-static int hf_mqttsn_radius = -1;
-static int hf_mqttsn_protocol_id = -1;
-static int hf_mqttsn_topic_id = -1;
-static int hf_mqttsn_msg_id = -1;
-static int hf_mqttsn_topic = -1;
-static int hf_mqttsn_topic_name_or_id = -1;
-static int hf_mqttsn_sleep_timer = -1;
-static int hf_mqttsn_will_topic = -1;
-static int hf_mqttsn_will_msg = -1;
-static int hf_mqttsn_pub_msg = -1;
-static int hf_mqttsn_client_id = -1;
-static int hf_mqttsn_keep_alive = -1;
-static int hf_mqttsn_control_info = -1;
-static int hf_mqttsn_wireless_node_id = -1;
+static int hf_mqttsn_msg;
+static int hf_mqttsn_msg_len;
+static int hf_mqttsn_msg_type;
+static int hf_mqttsn_dup;
+static int hf_mqttsn_qos;
+static int hf_mqttsn_retain;
+static int hf_mqttsn_will;
+static int hf_mqttsn_clean_session;
+static int hf_mqttsn_topic_id_type;
+static int hf_mqttsn_return_code;
+static int hf_mqttsn_gw_id;
+static int hf_mqttsn_gw_addr;
+static int hf_mqttsn_adv_interv;
+static int hf_mqttsn_radius;
+static int hf_mqttsn_protocol_id;
+static int hf_mqttsn_topic_id;
+static int hf_mqttsn_msg_id;
+static int hf_mqttsn_topic;
+static int hf_mqttsn_topic_name_or_id;
+static int hf_mqttsn_sleep_timer;
+static int hf_mqttsn_will_topic;
+static int hf_mqttsn_will_msg;
+static int hf_mqttsn_pub_msg;
+static int hf_mqttsn_client_id;
+static int hf_mqttsn_keep_alive;
+static int hf_mqttsn_control_info;
+static int hf_mqttsn_wireless_node_id;
 
 /* Initialize subtree pointers. */
-static gint ett_mqttsn_hdr = -1;
-static gint ett_mqttsn_msg = -1;
-static gint ett_mqttsn_flags = -1;
+static int ett_mqttsn_hdr;
+static int ett_mqttsn_msg;
+static int ett_mqttsn_flags;
 
 /* Dissect a single MQTT-SN packet. */
+// NOLINTNEXTLINE(misc-no-recursion)
 static void dissect_mqttsn_packet(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, int offset)
 {
     /* Various variables. */
     int long_hdr_len = 0;
-    guint8 mqttsn_msg_type_id;
-    guint16 mqttsn_msg_len;
+    uint8_t mqttsn_msg_type_id;
+    uint16_t mqttsn_msg_len;
 
     /* Get the message length. */
-    mqttsn_msg_len = tvb_get_guint8(tvb, offset);
+    mqttsn_msg_len = tvb_get_uint8(tvb, offset);
 
     /* If the message length is equal to 1 then the next two bytes define the real message length. */
     if (mqttsn_msg_len == 1)
@@ -205,7 +208,7 @@ static void dissect_mqttsn_packet(tvbuff_t *tvb, packet_info *pinfo, proto_tree 
     mqttsn_msg_len += offset;
 
     /* Get the message type id (in byte 1 or 3 - depending on the message length). */
-    mqttsn_msg_type_id = tvb_get_guint8(tvb, offset + (long_hdr_len ? 3 : 1));
+    mqttsn_msg_type_id = tvb_get_uint8(tvb, offset + (long_hdr_len ? 3 : 1));
 
     if (tree)
     {
@@ -477,7 +480,9 @@ static void dissect_mqttsn_packet(tvbuff_t *tvb, packet_info *pinfo, proto_tree 
                 /* Dissect encapsulated message (if present). */
                 if (tvb_reported_length_remaining(tvb, offset) > 0)
                 {
+                    increment_dissection_depth(pinfo);
                     dissect_mqttsn_packet(tvb, pinfo, mqttsn_msg_tree, offset);
+                    decrement_dissection_depth(pinfo);
                 }
 
             /* Default Case */
@@ -492,15 +497,15 @@ static int dissect_mqttsn(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, v
 {
     /* Various variables. */
     int offset = 0;
-    guint8 mqttsn_msg_type_id;
+    uint8_t mqttsn_msg_type_id;
 
     /*
      * If the value in byte 0 is unequal to 1 then the value defines the
      * message length and the message type id is contained in byte 1.
      */
-    if (tvb_get_guint8(tvb, 0) != 1)
+    if (tvb_get_uint8(tvb, 0) != 1)
     {
-        mqttsn_msg_type_id = tvb_get_guint8(tvb, 1);
+        mqttsn_msg_type_id = tvb_get_uint8(tvb, 1);
     }
     /*
      * If the value in byte 0 is equal to 1 then the next two bytes define
@@ -508,7 +513,7 @@ static int dissect_mqttsn(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, v
      */
     else
     {
-        mqttsn_msg_type_id = tvb_get_guint8(tvb, 3);
+        mqttsn_msg_type_id = tvb_get_uint8(tvb, 3);
     }
 
     /* Add the protcol name to the protocol column. */
@@ -665,7 +670,7 @@ void proto_register_mqttsn(void)
     };
 
     /* Setup protocol subtree arrays. */
-    static gint* ett_mqttsn[] = {
+    static int* ett_mqttsn[] = {
         &ett_mqttsn_hdr,
         &ett_mqttsn_msg,
         &ett_mqttsn_flags
@@ -675,7 +680,7 @@ void proto_register_mqttsn(void)
     proto_mqttsn = proto_register_protocol("MQ Telemetry Transport Protocol for Sensor Networks", "MQTT-SN", "mqttsn");
 
     /* Create the dissector handle. */
-    mqttsn_handle = create_dissector_handle(dissect_mqttsn, proto_mqttsn);
+    mqttsn_handle = register_dissector("mqttsn", dissect_mqttsn, proto_mqttsn);
 
     /* Register fields and subtrees. */
     proto_register_field_array(proto_mqttsn, hf_mqttsn, array_length(hf_mqttsn));

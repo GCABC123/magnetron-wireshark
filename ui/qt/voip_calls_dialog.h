@@ -12,7 +12,6 @@
 
 #include <config.h>
 
-#include <glib.h>
 #include <mutex>
 
 #include "cfile.h"
@@ -110,7 +109,7 @@ private:
     static void tapReset(void *tapinfo_ptr);
     static tap_packet_status tapPacket(void *tapinfo_ptr, packet_info *pinfo, epan_dissect_t *, const void *data, tap_flags_t flags);
     static void tapDraw(void *tapinfo_ptr);
-    static gint compareCallNums(gconstpointer a, gconstpointer b);
+    static int compareCallNums(const void *a, const void *b);
 
     void updateCalls();
     void prepareFilter();
@@ -133,7 +132,7 @@ private slots:
     void on_buttonBox_helpRequested();
     void updateWidgets();
     void captureEvent(CaptureEvent e);
-    void on_displayFilterCheckBox_toggled(bool checked);
+    void displayFilterCheckBoxToggled(bool checked);
     void on_actionSelectAll_triggered();
     void on_actionSelectInvert_triggered();
     void on_actionSelectNone_triggered();

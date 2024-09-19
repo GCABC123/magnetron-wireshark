@@ -12,6 +12,8 @@
 #ifndef __HELP_URL_H__
 #define __HELP_URL_H__
 
+#include <ws_attributes.h>
+
 #ifdef __cplusplus
 extern "C" {
 #endif /* __cplusplus */
@@ -35,7 +37,6 @@ typedef enum {
     ONLINEPAGE_NETWORK_MEDIA,
     ONLINEPAGE_SAMPLE_CAPTURES,
     ONLINEPAGE_SECURITY,
-    ONLINEPAGE_CHIMNEY,
     ONLINEPAGE_ASK,
 
     /* local manual pages */
@@ -50,13 +51,17 @@ typedef enum {
     LOCALPAGE_MAN_TEXT2PCAP,
     LOCALPAGE_MAN_TSHARK,
 
-    /* help pages (textfiles or local HTML User's Guide) */
+    /* Release Notes */
+    LOCALPAGE_RELEASE_NOTES,
+
+    /* help pages (textfiles or HTML User's Guide) */
     HELP_CONTENT = 200,
     HELP_GETTING_STARTED,           /* currently unused */
     HELP_CAPTURE_OPTIONS,           /* currently unused */
     HELP_CAPTURE_FILTERS_DIALOG,
     HELP_DISPLAY_FILTERS_DIALOG,
     HELP_FILTER_EXPRESSION_DIALOG,
+    HELP_DISPLAY_MACRO_DIALOG,
     HELP_COLORING_RULES_DIALOG,
     HELP_CONFIG_PROFILES_DIALOG,
     HELP_PRINT_DIALOG,
@@ -88,6 +93,8 @@ typedef enum {
     HELP_CAPTURE_INFO_DIALOG,
     HELP_EXPORT_FILE_DIALOG,
     HELP_EXPORT_BYTES_DIALOG,
+    HELP_EXPORT_PDUS_DIALOG,
+    HELP_STRIP_HEADERS_DIALOG,
     HELP_EXPORT_OBJECT_LIST,
     HELP_OPEN_DIALOG,
     HELP_MERGE_DIALOG,
@@ -107,23 +114,22 @@ typedef enum {
     HELP_STAT_FLOW_GRAPH
 } topic_action_e;
 
-/** Given a page in the Wireshark User's Guide return its URL. If the
- *  attempt succeeds NULL will be returned.
+/** Given a page in the Wireshark User's Guide return its URL. Returns a
+ *  URL to a local file if present, or to the online guide if the local
+ *  file is unavailable.
  *
  * @param page A page in the User's Guide.
- * @return A static URL or NULL. A non-NULL return value must be freed
- * with g_free().
+ * @return A static URL. The return value must be freed with g_free().
  */
-gchar *user_guide_url(const gchar *page);
+WS_RETNONNULL char *user_guide_url(const char *page);
 
-/** Given a topic action return its URL. If the attempt succeeds NULL
+/** Given a topic action return its URL. If the attempt fails NULL
  *  will be returned.
  *
  * @param action Topic action.
- * @return A static URL or NULL. A non-NULL return value must be freed
- * with g_free().
+ * @return A static URL. The return value must be freed with g_free().
  */
-gchar *topic_action_url(topic_action_e action);
+WS_RETNONNULL char *topic_action_url(topic_action_e action);
 
 /** Open a specific topic (create a "Help" dialog box or open a webpage).
  *

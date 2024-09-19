@@ -11,6 +11,7 @@
 #ifndef __UNIT_STRINGS_H__
 #define __UNIT_STRINGS_H__
 
+#include <stdint.h>
 #include "ws_symbol_export.h"
 
 #ifdef __cplusplus
@@ -34,7 +35,7 @@ typedef struct unit_name_string {
  * @param[in] units The unit_name_string containing the relevant strings
  * @return          Pointer to the appropriate string
  */
-WS_DLL_PUBLIC const char* unit_name_string_get_value(guint32 value, const unit_name_string* units);
+WS_DLL_PUBLIC const char* unit_name_string_get_value(uint32_t value, const unit_name_string* units);
 
 /** Returns the unit string appropriate for the 64 bit value.
  *
@@ -43,7 +44,7 @@ WS_DLL_PUBLIC const char* unit_name_string_get_value(guint32 value, const unit_n
  * @param[in] units The unit_name_string containing the relevant strings
  * @return          Pointer to the appropriate string
  */
-WS_DLL_PUBLIC const char* unit_name_string_get_value64(guint64 value, const unit_name_string* units);
+WS_DLL_PUBLIC const char* unit_name_string_get_value64(uint64_t value, const unit_name_string* units);
 
 /** Returns the unit string appropriate for the double value.
  *
@@ -67,6 +68,10 @@ WS_DLL_PUBLIC const unit_name_string units_word_words;
 WS_DLL_PUBLIC const unit_name_string units_tick_ticks;
 WS_DLL_PUBLIC const unit_name_string units_meters;
 WS_DLL_PUBLIC const unit_name_string units_meter_meters;
+WS_DLL_PUBLIC const unit_name_string units_centimeters;
+WS_DLL_PUBLIC const unit_name_string units_centimeter_centimeters;
+WS_DLL_PUBLIC const unit_name_string units_millimeters;
+WS_DLL_PUBLIC const unit_name_string units_millimeter_millimeters;
 WS_DLL_PUBLIC const unit_name_string units_week_weeks;
 WS_DLL_PUBLIC const unit_name_string units_day_days;
 WS_DLL_PUBLIC const unit_name_string units_hour_hours;
@@ -89,6 +94,7 @@ WS_DLL_PUBLIC const unit_name_string units_centibels;
 WS_DLL_PUBLIC const unit_name_string units_decibels;
 WS_DLL_PUBLIC const unit_name_string units_dbm;
 WS_DLL_PUBLIC const unit_name_string units_dbi;
+WS_DLL_PUBLIC const unit_name_string units_dbhz;
 WS_DLL_PUBLIC const unit_name_string units_mbm;
 WS_DLL_PUBLIC const unit_name_string units_percent;
 WS_DLL_PUBLIC const unit_name_string units_khz;
@@ -103,6 +109,9 @@ WS_DLL_PUBLIC const unit_name_string units_pkts;
 WS_DLL_PUBLIC const unit_name_string units_pkts_per_sec;
 WS_DLL_PUBLIC const unit_name_string units_km;
 WS_DLL_PUBLIC const unit_name_string units_kmh;
+WS_DLL_PUBLIC const unit_name_string units_m_s;
+WS_DLL_PUBLIC const unit_name_string units_cm_s;
+WS_DLL_PUBLIC const unit_name_string units_mm_s;
 WS_DLL_PUBLIC const unit_name_string units_milliamps;
 WS_DLL_PUBLIC const unit_name_string units_microwatts;
 WS_DLL_PUBLIC const unit_name_string units_volt;
@@ -121,6 +130,7 @@ WS_DLL_PUBLIC const unit_name_string units_watthour;
 WS_DLL_PUBLIC const unit_name_string units_watt;
 WS_DLL_PUBLIC const unit_name_string units_bpm;
 WS_DLL_PUBLIC const unit_name_string units_calorie;
+WS_DLL_PUBLIC const unit_name_string units_cycle_cycles;
 
 #ifdef __cplusplus
 }

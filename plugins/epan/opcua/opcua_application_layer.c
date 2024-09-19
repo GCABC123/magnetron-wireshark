@@ -33,9 +33,9 @@ static const value_string g_nodeidmasks[] = {
 /** Service type table */
 extern const value_string g_requesttypes[];
 
-static int hf_opcua_nodeid_encodingmask = -1;
-static int hf_opcua_app_nsid = -1;
-static int hf_opcua_app_numeric = -1;
+static int hf_opcua_nodeid_encodingmask;
+static int hf_opcua_app_nsid;
+static int hf_opcua_app_numeric;
 
 /** Register application layer types. */
 void registerApplicationLayerTypes(int proto)
@@ -52,23 +52,57 @@ void registerApplicationLayerTypes(int proto)
     proto_register_field_array(proto, hf, array_length(hf));
 }
 
+/** Decodes the service nodeid without modifying the tree or offset.
+ * Service NodeIds are alsways numeric.
+ */
+int getServiceNodeId(tvbuff_t *tvb, int offset)
+{
+    uint8_t EncodingMask;
+    uint32_t Numeric = 0;
+
+    EncodingMask = tvb_get_uint8(tvb, offset);
+    offset++;
+
+    switch(EncodingMask)
+    {
+    case 0x00: /* two byte node id */
+        Numeric = tvb_get_uint8(tvb, offset);
+        break;
+    case 0x01: /* four byte node id */
+        offset+=1;
+        Numeric = tvb_get_letohs(tvb, offset);
+        break;
+    case 0x02: /* numeric, that does not fit into four bytes */
+        offset+=2;
+        Numeric = tvb_get_letohl(tvb, offset);
+        break;
+    case 0x03: /* string */
+    case 0x04: /* guid */
+    case 0x05: /* opaque*/
+        /* NOT USED */
+        break;
+    };
+
+    return Numeric;
+}
+
 /** Parses an OpcUa Service NodeId and returns the service type.
  * In this cases the NodeId is always from type numeric and NSId = 0.
  */
-int parseServiceNodeId(proto_tree *tree, tvbuff_t *tvb, gint *pOffset)
+int parseServiceNodeId(proto_tree *tree, tvbuff_t *tvb, int *pOffset)
 {
-    gint    iOffset = *pOffset;
-    guint8  EncodingMask;
-    guint32 Numeric = 0;
+    int     iOffset = *pOffset;
+    uint8_t EncodingMask;
+    uint32_t Numeric = 0;
 
-    EncodingMask = tvb_get_guint8(tvb, iOffset);
+    EncodingMask = tvb_get_uint8(tvb, iOffset);
     proto_tree_add_item(tree, hf_opcua_nodeid_encodingmask, tvb, iOffset, 1, ENC_LITTLE_ENDIAN);
     iOffset++;
 
     switch(EncodingMask)
     {
     case 0x00: /* two byte node id */
-        Numeric = tvb_get_guint8(tvb, iOffset);
+        Numeric = tvb_get_uint8(tvb, iOffset);
         proto_tree_add_item(tree, hf_opcua_app_numeric, tvb, iOffset, 1, ENC_LITTLE_ENDIAN);
         iOffset+=1;
         break;

@@ -21,12 +21,12 @@
 #include <epan/packet.h>
 #include "wimax-int.h"
 
-extern gint proto_wimax;
+extern int proto_wimax;
 
 extern address bs_address;	/* declared in packet-wmx.c */
 
-static int proto_wimax_fch_decoder = -1;
-static gint ett_wimax_fch_decoder = -1;
+static int proto_wimax_fch_decoder;
+static int ett_wimax_fch_decoder;
 
 #define FCH_BURST_LENGTH 3
 /* FCH Burst bits */
@@ -42,17 +42,17 @@ static gint ett_wimax_fch_decoder = -1;
 #define DL_MAP_LENGTH                0x000FF0
 #define FCH_RESERVED_2		     0x00000F
 
-static int hf_fch_used_subchannel_group0 = -1;
-static int hf_fch_used_subchannel_group1 = -1;
-static int hf_fch_used_subchannel_group2 = -1;
-static int hf_fch_used_subchannel_group3 = -1;
-static int hf_fch_used_subchannel_group4 = -1;
-static int hf_fch_used_subchannel_group5 = -1;
-static int hf_fch_reserved_1 = -1;
-static int hf_fch_repetition_coding_indication = -1;
-static int hf_fch_coding_indication = -1;
-static int hf_fch_dlmap_length = -1;
-static int hf_fch_reserved_2 = -1;
+static int hf_fch_used_subchannel_group0;
+static int hf_fch_used_subchannel_group1;
+static int hf_fch_used_subchannel_group2;
+static int hf_fch_used_subchannel_group3;
+static int hf_fch_used_subchannel_group4;
+static int hf_fch_used_subchannel_group5;
+static int hf_fch_reserved_1;
+static int hf_fch_repetition_coding_indication;
+static int hf_fch_coding_indication;
+static int hf_fch_dlmap_length;
+static int hf_fch_reserved_2;
 
 static const value_string used_or_not_used[] =
 {
@@ -87,7 +87,7 @@ static const value_string coding_indications[] =
 
 static int dissect_wimax_fch_decoder(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, void* data _U_)
 {
-	gint offset = 0;
+	int offset = 0;
 	proto_item *fch_item = NULL;
 	proto_tree *fch_tree = NULL;
 
@@ -218,7 +218,7 @@ void wimax_proto_register_wimax_fch(void)
 	};
 
 	/* Setup protocol subtree array */
-	static gint *ett[] =
+	static int *ett[] =
 		{
 			&ett_wimax_fch_decoder,
 		};
@@ -229,7 +229,7 @@ void wimax_proto_register_wimax_fch(void)
 	proto_register_field_array(proto_wimax_fch_decoder, hf, array_length(hf));
 	proto_register_subtree_array(ett, array_length(ett));
 
-	register_dissector("wimax_fch_burst_handler", dissect_wimax_fch_decoder, -1);
+	register_dissector("wimax_fch_burst_handler", dissect_wimax_fch_decoder, proto_wimax_fch_decoder);
 }
 
 /*

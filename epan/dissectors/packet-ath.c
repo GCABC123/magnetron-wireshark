@@ -18,6 +18,8 @@
 void proto_register_ath(void);
 void proto_reg_handoff_ath(void);
 
+static dissector_handle_t ath_handle;
+
 /* IMPORTANT IMPLEMENTATION NOTES
  *
  * You need to be looking at:
@@ -28,7 +30,7 @@ void proto_reg_handoff_ath(void);
  *
  *     - UDP heartbeats to maintain a status of all the members of the cluster
  *
- *     - TCP RMI to send data accross members
+ *     - TCP RMI to send data across members
  *
  * This dissector is about UDP heartbeats, that we will call ATH, standing for
  *   Apache Tribes Heartbeat. Tribes is the name of the clustering libraries
@@ -38,43 +40,43 @@ void proto_reg_handoff_ath(void);
 
 #define ATH_PORT 45564 /* Not IANA registered */
 
-static int proto_ath = -1;
+static int proto_ath;
 
-static int hf_ath_begin   = -1;
-static int hf_ath_padding = -1;
-static int hf_ath_length  = -1;
-static int hf_ath_alive   = -1;
-static int hf_ath_port    = -1;
-static int hf_ath_sport   = -1;
-static int hf_ath_uport   = -1;
-static int hf_ath_hlen    = -1;
-static int hf_ath_ipv4    = -1;
-static int hf_ath_ipv6    = -1;
-static int hf_ath_clen    = -1;
-static int hf_ath_comm    = -1;
-static int hf_ath_dlen    = -1;
-static int hf_ath_domain  = -1;
-static int hf_ath_unique  = -1;
-static int hf_ath_plen    = -1;
-static int hf_ath_payload = -1;
-static int hf_ath_end     = -1;
+static int hf_ath_begin;
+static int hf_ath_padding;
+static int hf_ath_length;
+static int hf_ath_alive;
+static int hf_ath_port;
+static int hf_ath_sport;
+static int hf_ath_uport;
+static int hf_ath_hlen;
+static int hf_ath_ipv4;
+static int hf_ath_ipv6;
+static int hf_ath_clen;
+static int hf_ath_comm;
+static int hf_ath_dlen;
+static int hf_ath_domain;
+static int hf_ath_unique;
+static int hf_ath_plen;
+static int hf_ath_payload;
+static int hf_ath_end;
 
-static gint ett_ath = -1;
+static int ett_ath;
 
-static expert_field ei_ath_hlen_invalid  = EI_INIT;
-static expert_field ei_ath_hmark_invalid = EI_INIT;
+static expert_field ei_ath_hlen_invalid;
+static expert_field ei_ath_hmark_invalid;
 
-static gboolean
+static bool
 test_ath(tvbuff_t *tvb)
 {
   /* Apache Tribes packets start with "TRIBES-B" in ASCII.
    * tvb_strneql returns -1 if there aren't enough bytes.
    */
   if (tvb_strneql(tvb, 0, "TRIBES-B", 8) != 0) {
-    return FALSE;
+    return false;
   }
 
-  return TRUE;
+  return true;
 }
 
 static int
@@ -83,18 +85,18 @@ dissect_ath(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, void* data _U_)
   int offset = 0;
 
   /* various lengths as reported in the packet itself */
-  guint8 hlen = 0;
-  gint32 clen = 0;
-  gint32 dlen = 0;
-  gint32 plen = 0;
+  uint8_t hlen = 0;
+  int32_t clen = 0;
+  int32_t dlen = 0;
+  int32_t plen = 0;
 
   /* detect the Tribes (Tomcat) version */
-  gint   tribes_version_mark;
+  int    tribes_version_mark;
 
   /* store the info */
-  const gchar *info_srcaddr = "";
-  const gchar *info_domain  = "";
-  const gchar *info_command = "";
+  const char *info_srcaddr = "";
+  const char *info_domain  = "";
+  const char *info_command = "";
 
   proto_item *ti, *hlen_item;
   proto_tree *ath_tree;
@@ -151,7 +153,7 @@ dissect_ath(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, void* data _U_)
       /* HOST LENGTH
        */
       hlen_item = proto_tree_add_item(ath_tree, hf_ath_hlen, tvb, offset, 1, ENC_BIG_ENDIAN);
-      hlen = tvb_get_guint8(tvb, offset);
+      hlen = tvb_get_uint8(tvb, offset);
       offset += 1;
 
       /* HOST
@@ -251,7 +253,7 @@ dissect_ath(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, void* data _U_)
       /* HOST LENGTH
        */
       hlen_item = proto_tree_add_item(ath_tree, hf_ath_hlen, tvb, offset, 1, ENC_BIG_ENDIAN);
-      hlen = tvb_get_guint8(tvb, offset);
+      hlen = tvb_get_uint8(tvb, offset);
       offset += 1;
 
       /* HOST
@@ -428,7 +430,7 @@ proto_register_ath(void)
     { &ei_ath_hmark_invalid, { "ath.hmark.invalid", PI_MALFORMED, PI_ERROR, "Decode aborted: not an ATH packet", EXPFILL }},
   };
 
-  static gint *ett[] = {
+  static int *ett[] = {
     &ett_ath,
   };
 
@@ -438,14 +440,12 @@ proto_register_ath(void)
   expert_ath = expert_register_protocol(proto_ath);
   expert_register_field_array(expert_ath, ei, array_length(ei));
 
+  ath_handle = register_dissector("ath", dissect_ath, proto_ath);
 }
 
 void
 proto_reg_handoff_ath(void)
 {
-  dissector_handle_t ath_handle;
-
-  ath_handle = create_dissector_handle(dissect_ath, proto_ath);
   dissector_add_uint_with_preference("udp.port", ATH_PORT, ath_handle);
 }
 

@@ -18,11 +18,11 @@
 void proto_register_tuxedo(void);
 void proto_reg_handoff_tuxedo(void);
 
-static int proto_tuxedo = -1;
-static int hf_tuxedo_magic = -1;
-static int hf_tuxedo_opcode = -1;
+static int proto_tuxedo;
+static int hf_tuxedo_magic;
+static int hf_tuxedo_opcode;
 
-static gint ett_tuxedo = -1;
+static int ett_tuxedo;
 
 static dissector_handle_t tuxedo_handle;
 
@@ -91,8 +91,8 @@ dissect_tuxedo(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, void* data _
 {
 	proto_tree	*tuxedoroot_tree = NULL;
 	proto_item	*ti;
-	guint32 magic;
-	guint32 opcode;
+	uint32_t magic;
+	uint32_t opcode;
 
 	col_set_str(pinfo->cinfo, COL_PROTOCOL, "TUXEDO");
 
@@ -127,12 +127,12 @@ dissect_tuxedo(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, void* data _
 	return tvb_captured_length(tvb);
 }
 
-static gboolean
-dissect_tuxedo_heur(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, void *data _U_)
+static bool
+dissect_tuxedo_heur(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, void *data)
 {
 	if (tvb_captured_length(tvb) >= 8)
 	{
-		guint32 magic;
+		uint32_t magic;
 		magic = tvb_get_ntohl(tvb, 0);
 		if (magic == TUXEDO_MAGIC || magic == TUXEDO_SMAGIC)
 		{
@@ -142,10 +142,10 @@ dissect_tuxedo_heur(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, void *d
 			conversation_set_dissector(conversation, tuxedo_handle);
 
 			dissect_tuxedo(tvb, pinfo, tree, data);
-			return TRUE;
+			return true;
 		}
 	}
-	return FALSE;
+	return false;
 }
 
 void
@@ -159,7 +159,7 @@ proto_register_tuxedo(void)
 		  { "Opcode", "tuxedo.opcode", FT_UINT32, BASE_HEX, VALS(tuxedo_opcode_vals), 0x0, "TUXEDO opcode", HFILL }}
 
 	};
-	static gint *ett[] = {
+	static int *ett[] = {
 		&ett_tuxedo,
 	};
 
@@ -167,13 +167,12 @@ proto_register_tuxedo(void)
 	proto_register_field_array(proto_tuxedo, hf, array_length(hf));
 	proto_register_subtree_array(ett, array_length(ett));
 
-
+	tuxedo_handle = register_dissector("tuxedo", dissect_tuxedo, proto_tuxedo);
 }
 
 void
 proto_reg_handoff_tuxedo(void)
 {
-	tuxedo_handle = create_dissector_handle(dissect_tuxedo, proto_tuxedo);
 	dissector_add_for_decode_as_with_preference("tcp.port", tuxedo_handle);
 	heur_dissector_add("tcp", dissect_tuxedo_heur, "Tuxedo over TCP", "tuxedo_tcp", proto_tuxedo, HEURISTIC_ENABLE);
 }

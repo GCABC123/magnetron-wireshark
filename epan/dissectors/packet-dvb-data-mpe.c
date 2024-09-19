@@ -14,27 +14,30 @@
 #include <epan/packet.h>
 #include <epan/expert.h>
 #include <epan/to_str.h>
+#include <epan/tfs.h>
 #include "packet-mpeg-sect.h"
 
 void proto_register_dvb_data_mpe(void);
 void proto_reg_handoff_dvb_data_mpe(void);
 
-static int proto_dvb_data_mpe = -1;
-static int hf_dvb_data_mpe_reserved = -1;
-static int hf_dvb_data_mpe_payload_scrambling_control = -1;
-static int hf_dvb_data_mpe_address_scrambling_control = -1;
-static int hf_dvb_data_mpe_llc_snap_flag = -1;
-static int hf_dvb_data_mpe_current_next_indicator = -1;
-static int hf_dvb_data_mpe_section_number = -1;
-static int hf_dvb_data_mpe_last_section_number = -1;
-static int hf_dvb_data_mpe_dst_mac = -1;
-static int hf_dvb_data_mpe_dst_mac_scrambled = -1;
+static int proto_dvb_data_mpe;
+static int hf_dvb_data_mpe_reserved;
+static int hf_dvb_data_mpe_payload_scrambling_control;
+static int hf_dvb_data_mpe_address_scrambling_control;
+static int hf_dvb_data_mpe_llc_snap_flag;
+static int hf_dvb_data_mpe_current_next_indicator;
+static int hf_dvb_data_mpe_section_number;
+static int hf_dvb_data_mpe_last_section_number;
+static int hf_dvb_data_mpe_dst_mac;
+static int hf_dvb_data_mpe_dst_mac_scrambled;
 
-static gint ett_dvb_data_mpe = -1;
+static int ett_dvb_data_mpe;
 
-static expert_field ei_dvb_data_mpe_reserved_not_one = EI_INIT;
-static expert_field ei_dvb_data_mpe_payload_scrambled = EI_INIT;
-static expert_field ei_dvb_data_mpe_address_scrambled = EI_INIT;
+static expert_field ei_dvb_data_mpe_reserved_not_one;
+static expert_field ei_dvb_data_mpe_payload_scrambled;
+static expert_field ei_dvb_data_mpe_address_scrambled;
+
+static dissector_handle_t dvb_data_mpe_handle;
 
 static dissector_handle_t ip_handle;
 static dissector_handle_t llc_handle;
@@ -59,26 +62,17 @@ static const value_string dvb_data_mpe_scrambling_vals[] = {
     { 0, NULL }
 };
 
-static const value_string dvb_rcs_cur_next_vals[] = {
-
-    { 0x0, "Not yet applicable" },
-    { 0x1, "Currently applicable" },
-    { 0, NULL },
-
-};
-
-
 static int
 dissect_dvb_data_mpe(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, void* data _U_)
 {
 
-    guint       offset = 0, tot_len = 0;
-    guint32     reserved, address_scrambling, payload_scrambling, llc_snap_flag;
+    unsigned    offset = 0, tot_len = 0;
+    uint32_t    reserved, address_scrambling, payload_scrambling, llc_snap_flag;
     int         i;
 
     proto_item *ti;
     proto_tree *dvb_data_mpe_tree;
-    guchar     *dst = (guchar*)wmem_alloc(pinfo->pool, 6);
+    unsigned char     *dst = (unsigned char*)wmem_alloc(pinfo->pool, 6);
     address     dst_addr;
     tvbuff_t   *data_tvb;
 
@@ -95,9 +89,9 @@ dissect_dvb_data_mpe(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, void* 
 
     /* Parse the DMC-CC private section header */
 
-    dst[5] = tvb_get_guint8(tvb, offset);
+    dst[5] = tvb_get_uint8(tvb, offset);
     offset += 1;
-    dst[4] = tvb_get_guint8(tvb, offset);
+    dst[4] = tvb_get_uint8(tvb, offset);
     offset += 1;
 
     ti = proto_tree_add_item_ret_uint(dvb_data_mpe_tree, hf_dvb_data_mpe_reserved,     tvb, offset, 1, ENC_BIG_ENDIAN, &reserved);
@@ -120,7 +114,7 @@ dissect_dvb_data_mpe(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, void* 
     offset += 1;
 
     for (i = 3; i >= 0; i--) {
-        dst[i] = tvb_get_guint8(tvb, offset);
+        dst[i] = tvb_get_uint8(tvb, offset);
         offset += 1;
     }
 
@@ -180,7 +174,7 @@ proto_register_dvb_data_mpe(void)
 
         { &hf_dvb_data_mpe_current_next_indicator, {
             "Current/Next Indicator", "mpeg_sect.cur_next_ind",
-            FT_UINT8, BASE_HEX, VALS(dvb_rcs_cur_next_vals), DVB_DATA_MPE_CURRENT_NEXT_INDICATOR_MASK, NULL, HFILL
+            FT_BOOLEAN, 8, TFS(&tfs_current_not_yet), DVB_DATA_MPE_CURRENT_NEXT_INDICATOR_MASK, NULL, HFILL
         } },
 
         { &hf_dvb_data_mpe_section_number, {
@@ -206,7 +200,7 @@ proto_register_dvb_data_mpe(void)
 
     };
 
-    static gint *ett[] = {
+    static int *ett[] = {
         &ett_dvb_data_mpe,
     };
 
@@ -230,16 +224,13 @@ proto_register_dvb_data_mpe(void)
 
     proto_register_subtree_array(ett, array_length(ett));
 
+    dvb_data_mpe_handle = register_dissector("dvb_data_mpe", dissect_dvb_data_mpe, proto_dvb_data_mpe);
 }
 
 
 void
 proto_reg_handoff_dvb_data_mpe(void)
 {
-
-    dissector_handle_t dvb_data_mpe_handle;
-
-    dvb_data_mpe_handle = create_dissector_handle(dissect_dvb_data_mpe, proto_dvb_data_mpe);
     dissector_add_uint("mpeg_sect.tid", DVB_DATA_MPE_TID, dvb_data_mpe_handle);
 
     ip_handle  = find_dissector_add_dependency("ip", proto_dvb_data_mpe);

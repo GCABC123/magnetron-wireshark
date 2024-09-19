@@ -59,12 +59,16 @@
       </match>
     </magic>
     <glob pattern="*.pcapng"/>
+    <glob pattern="*.scap"/>
     <glob pattern="*.ntar"/>
     <glob pattern="*.pcapng.gz"/>
+    <glob pattern="*.scap.gz"/>
     <glob pattern="*.ntar.gz"/>
     <glob pattern="*.pcapng.zst"/>
+    <glob pattern="*.scap.zst"/>
     <glob pattern="*.ntar.zst"/>
     <glob pattern="*.pcapng.lz4"/>
+    <glob pattern="*.scap.lz4"/>
     <glob pattern="*.ntar.lz4"/>
   </mime-type>
 
@@ -241,5 +245,23 @@
     <glob pattern="*.vwr.gz"/>
     <glob pattern="*.vwr.zst"/>
     <glob pattern="*.vwr.lz4"/>
+  </mime-type>
+
+  <mime-type type="application/x-rtpdump">
+    <comment>RTP packet stream (RTPDump)</comment>
+    <generic-icon name="org.wireshark.Wireshark-mimetype"/>
+    <magic>
+        <match type="string" offset="0" value="#!rtpplay1.0 "/>
+    </magic>
+    <glob pattern="*.rtp"/>
+    <glob pattern="*.rtp.gz"/>
+    <glob pattern="*.rtp.zst"/>
+    <glob pattern="*.rtp.lz4"/>
+  </mime-type>
+
+  <mime-type type="application/x-ems">
+    <comment>EGNOS Message Server (EMS) file</comment>
+    <generic-icon name="org.wireshark.Wireshark-mimetype"/>
+    <glob pattern="*.ems"/>
   </mime-type>
 </mime-info>

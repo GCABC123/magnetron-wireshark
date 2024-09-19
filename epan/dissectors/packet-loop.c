@@ -28,14 +28,16 @@
 void proto_register_loop(void);
 void proto_reg_handoff_loop(void);
 
-static int proto_loop = -1;
-static int hf_loop_skipcount = -1;
-static int hf_loop_function = -1;
-static int hf_loop_relevant_function = -1;
-static int hf_loop_receipt_number = -1;
-static int hf_loop_forwarding_address = -1;
+static dissector_handle_t loop_handle;
 
-static gint ett_loop = -1;
+static int proto_loop;
+static int hf_loop_skipcount;
+static int hf_loop_function;
+static int hf_loop_relevant_function;
+static int hf_loop_receipt_number;
+static int hf_loop_forwarding_address;
+
+static int ett_loop;
 
 #define FUNC_REPLY              1
 #define FUNC_FORWARD_DATA       2
@@ -51,11 +53,11 @@ dissect_loop(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, void* data _U_
 {
   proto_tree  *loop_tree = NULL;
   proto_item  *ti;
-  guint16     function;
+  uint16_t    function;
   int         offset = 0;
   int         skip_offset;
-  gboolean    set_info = TRUE;
-  gboolean    more_function;
+  bool        set_info = true;
+  bool        more_function;
   tvbuff_t    *next_tvb;
 
   col_set_str(pinfo->cinfo, COL_PROTOCOL, "LOOP");
@@ -77,7 +79,7 @@ dissect_loop(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, void* data _U_
                     val_to_str(function, function_vals, "Unknown function (%u)"));
 
       proto_tree_add_uint(loop_tree, hf_loop_relevant_function, tvb, offset, 2, function);
-      set_info = FALSE;
+      set_info = false;
     }
     proto_tree_add_uint(loop_tree, hf_loop_function, tvb, offset, 2, function);
     offset += 2;
@@ -87,18 +89,18 @@ dissect_loop(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, void* data _U_
       proto_tree_add_item(loop_tree, hf_loop_receipt_number, tvb, offset, 2,
                             ENC_LITTLE_ENDIAN);
       offset += 2;
-      more_function = FALSE;
+      more_function = false;
       break;
 
     case FUNC_FORWARD_DATA:
       proto_tree_add_item(loop_tree, hf_loop_forwarding_address, tvb, offset,
                             6, ENC_NA);
       offset += 6;
-      more_function = TRUE;
+      more_function = true;
       break;
 
     default:
-      more_function = FALSE;
+      more_function = false;
       break;
     }
   } while (more_function);
@@ -144,7 +146,7 @@ proto_register_loop(void)
     FT_ETHER,   BASE_NONE,      NULL,   0x0,
       NULL, HFILL }},
   };
-  static gint *ett[] = {
+  static int *ett[] = {
     &ett_loop,
   };
 
@@ -152,15 +154,13 @@ proto_register_loop(void)
                                        "LOOP", "loop");
   proto_register_field_array(proto_loop, hf, array_length(hf));
   proto_register_subtree_array(ett, array_length(ett));
+
+  loop_handle = register_dissector("loop", dissect_loop, proto_loop);
 }
 
 void
 proto_reg_handoff_loop(void)
 {
-  dissector_handle_t loop_handle;
-
-  loop_handle = create_dissector_handle(dissect_loop, proto_loop);
-
   dissector_add_uint("ethertype", ETHERTYPE_LOOP, loop_handle);
 }
 

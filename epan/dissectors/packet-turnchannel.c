@@ -1,5 +1,5 @@
 /* packet-turnchannel.c
- * Routines for TURN channel dissection (TURN negociation is handled
+ * Routines for TURN channel dissection (TURN negotiation is handled
  * in the STUN2 dissector
  * Copyright 2008, 8x8 Inc. <petithug@8x8.com>
  *
@@ -39,17 +39,17 @@ void proto_reg_handoff_turnchannel(void);
 static heur_dissector_list_t heur_subdissector_list;
 
 /* Initialize the protocol and registered fields */
-static int proto_turnchannel = -1;
+static int proto_turnchannel;
 
-static int hf_turnchannel_id = -1;
-static int hf_turnchannel_len = -1;
+static int hf_turnchannel_id;
+static int hf_turnchannel_len;
 
-#define TURNCHANNEL_HDR_LEN	((guint)4)
+#define TURNCHANNEL_HDR_LEN	((unsigned)4)
 
 #define MS_MULTIPLEX_TURN 0xFF10
 
 /* Initialize the subtree pointers */
-static gint ett_turnchannel = -1;
+static int ett_turnchannel;
 
 static dissector_handle_t turnchannel_tcp_handle;
 static dissector_handle_t turnchannel_udp_handle;
@@ -67,22 +67,22 @@ static dissector_handle_t turnchannel_udp_handle;
  * any value outside that range, and the 0x5000-0x7FFF range is reserved
  * in the multiplexing scheme.
  */
-static gboolean
-test_turnchannel_id(guint16 channel_id)
+static bool
+test_turnchannel_id(uint16_t channel_id)
 {
 	if ((channel_id & 0x4000) == 0x4000 || channel_id == MS_MULTIPLEX_TURN)
-		return TRUE;
+		return true;
 
-	return FALSE;
+	return false;
 }
 
 static int
 dissect_turnchannel_message(tvbuff_t *tvb, packet_info *pinfo,
 			    proto_tree *tree, void *data _U_)
 {
-	guint   len;
-	guint16 channel_id;
-	guint16 data_len;
+	unsigned   len;
+	uint16_t channel_id;
+	uint16_t data_len;
 	proto_item *ti;
 	proto_tree *turnchannel_tree;
 	heur_dtbl_entry_t *hdtbl_entry;
@@ -118,7 +118,7 @@ dissect_turnchannel_message(tvbuff_t *tvb, packet_info *pinfo,
 
 	if (len > TURNCHANNEL_HDR_LEN) {
 	  tvbuff_t *next_tvb;
-	  guint reported_len, new_len;
+	  unsigned reported_len, new_len;
 
 	  new_len = tvb_captured_length_remaining(tvb, TURNCHANNEL_HDR_LEN);
 	  reported_len = tvb_reported_length_remaining(tvb,
@@ -139,11 +139,11 @@ dissect_turnchannel_message(tvbuff_t *tvb, packet_info *pinfo,
 	return tvb_captured_length(tvb);
 }
 
-static guint
+static unsigned
 get_turnchannel_message_len(packet_info *pinfo _U_, tvbuff_t *tvb,
                             int offset, void *data _U_)
 {
-	guint16 channel_id;
+	uint16_t channel_id;
 	channel_id = tvb_get_ntohs(tvb, 0);
 	/* If the channel number is outside the range, either we missed
          * a TCP segment or this is STUN, DTLS, RTP, etc. multiplexed on
@@ -155,43 +155,15 @@ get_turnchannel_message_len(packet_info *pinfo _U_, tvbuff_t *tvb,
 	if (!test_turnchannel_id(channel_id)) {
 		return tvb_reported_length(tvb);
 	}
-	return (guint)tvb_get_ntohs(tvb, offset+2) + TURNCHANNEL_HDR_LEN;
+	return (unsigned)tvb_get_ntohs(tvb, offset+2) + TURNCHANNEL_HDR_LEN;
 }
 
 static int
 dissect_turnchannel_tcp(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, void* data)
 {
-	tcp_dissect_pdus(tvb, pinfo, tree, TRUE, TURNCHANNEL_HDR_LEN,
+	tcp_dissect_pdus(tvb, pinfo, tree, true, TURNCHANNEL_HDR_LEN,
 			get_turnchannel_message_len, dissect_turnchannel_message, data);
 	return tvb_captured_length(tvb);
-}
-
-
-static gboolean
-dissect_turnchannel_heur(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, void *data _U_)
-{
-	guint   len;
-	guint16 channel_id;
-	guint16 data_len;
-
-	len = tvb_captured_length(tvb);
-	/* First, make sure we have enough data to do the check. */
-	if (len < TURNCHANNEL_HDR_LEN) {
-		  return FALSE;
-	}
-
-	channel_id = tvb_get_ntohs(tvb, 0);
-	data_len = tvb_get_ntohs(tvb, 2);
-
-	if (!test_turnchannel_id(channel_id)) {
-	  return FALSE;
-	}
-
-	if (len != TURNCHANNEL_HDR_LEN + data_len) {
-	  return FALSE;
-	}
-
-	return dissect_turnchannel_message(tvb, pinfo, tree, NULL);
 }
 
 void
@@ -209,13 +181,12 @@ proto_register_turnchannel(void)
 	};
 
 /* Setup protocol subtree array */
-	static gint *ett[] = {
+	static int *ett[] = {
 		&ett_turnchannel,
 	};
 
 /* Register the protocol name and description */
-	proto_turnchannel = proto_register_protocol("TURN Channel",
-	    "TURNCHANNEL", "turnchannel");
+	proto_turnchannel = proto_register_protocol("TURN Channel", "TURNCHANNEL", "turnchannel");
 
 	turnchannel_tcp_handle = register_dissector("turnchannel-tcp", dissect_turnchannel_tcp, proto_turnchannel);
 	turnchannel_udp_handle = register_dissector("turnchannel", dissect_turnchannel_message, proto_turnchannel);
@@ -226,7 +197,7 @@ proto_register_turnchannel(void)
          * doesn't actually call this dissector but uses its own implementation
          * of TURN Channel messages.
          */
-	heur_subdissector_list = register_heur_dissector_list("turnchannel", proto_turnchannel);
+	heur_subdissector_list = register_heur_dissector_list_with_description("turnchannel", "TURN Channel message", proto_turnchannel);
 
 /* Required function calls to register the header fields and subtrees used */
 	proto_register_field_array(proto_turnchannel, hf, array_length(hf));
@@ -248,10 +219,6 @@ proto_reg_handoff_turnchannel(void)
 	 */
 	dissector_add_string("tls.alpn", "stun.turn", turnchannel_tcp_handle);
 	dissector_add_string("dtls.alpn", "stun.turn", turnchannel_udp_handle);
-
-	/* TURN negotiation is handled through STUN2 dissector (packet-stun.c),
-	   so only it should be able to determine if a packet is a TURN packet */
-	heur_dissector_add("stun", dissect_turnchannel_heur, "TURN Channel over STUN", "turnchannel_stun", proto_turnchannel, HEURISTIC_ENABLE);
 }
 
 /*

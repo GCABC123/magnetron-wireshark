@@ -21,51 +21,55 @@
 #include "wimax_tlv.h"
 #include "wimax_mac.h"
 #include "wimax_utils.h"
-
-extern	gboolean include_cor2_changes;
+#include "wimax_prefs.h"
 
 void proto_register_mac_mgmt_msg_dreg_req(void);
 void proto_register_mac_mgmt_msg_dreg_cmd(void);
 void proto_reg_handoff_mac_mgmt_msg_dreg(void);
 
+static dissector_handle_t dreg_req_handle;
+static dissector_handle_t dreg_cmd_handle;
+
 /* Forward reference */
-static void dissect_dreg_tlv(proto_tree *dreg_tree, gint tlv_type, tvbuff_t *tvb, guint tlv_offset, guint tlv_len);
+static void dissect_dreg_tlv(proto_tree *dreg_tree, int tlv_type, tvbuff_t *tvb, unsigned tlv_offset, unsigned tlv_len);
+static int dissect_mac_mgmt_msg_dreg_req_decoder(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, void* data);
+static int dissect_mac_mgmt_msg_dreg_cmd_decoder(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, void* data);
 
-static gint proto_mac_mgmt_msg_dreg_req_decoder = -1;
-static gint proto_mac_mgmt_msg_dreg_cmd_decoder = -1;
+static int proto_mac_mgmt_msg_dreg_req_decoder;
+static int proto_mac_mgmt_msg_dreg_cmd_decoder;
 
-static gint ett_mac_mgmt_msg_dreg_decoder = -1;
+static int ett_mac_mgmt_msg_dreg_decoder;
 
 /* Setup protocol subtree array */
-static gint *ett[] =
+static int *ett[] =
 {
 	&ett_mac_mgmt_msg_dreg_decoder,
 };
 
 /* DREG fields */
-/* static gint hf_ack_type_reserved = -1; */
-static gint hf_dreg_cmd_action = -1;
-static gint hf_dreg_cmd_action_cor2 = -1;
-static gint hf_dreg_cmd_reserved = -1;
-static gint hf_dreg_paging_cycle = -1;
-static gint hf_dreg_paging_offset = -1;
-static gint hf_dreg_paging_group_id = -1;
-static gint hf_dreg_req_duration = -1;
-static gint hf_paging_controller_id = -1;
-static gint hf_mac_hash_skip_threshold = -1;
-static gint hf_dreg_paging_cycle_request = -1;
-static gint hf_dreg_retain_ms_service_sbc = -1;
-static gint hf_dreg_retain_ms_service_pkm = -1;
-static gint hf_dreg_retain_ms_service_reg = -1;
-static gint hf_dreg_retain_ms_service_network_address = -1;
-static gint hf_dreg_retain_ms_service_tod = -1;
-static gint hf_dreg_retain_ms_service_tftp = -1;
-static gint hf_dreg_retain_ms_service_full_service = -1;
-static gint hf_dreg_consider_paging_pref = -1;
-static gint hf_tlv_value = -1;
-static gint hf_dreg_req_action = -1;
-static gint hf_dreg_req_reserved = -1;
-static gint hf_dreg_invalid_tlv = -1;
+/* static int hf_ack_type_reserved; */
+static int hf_dreg_cmd_action;
+static int hf_dreg_cmd_action_cor2;
+static int hf_dreg_cmd_reserved;
+static int hf_dreg_paging_cycle;
+static int hf_dreg_paging_offset;
+static int hf_dreg_paging_group_id;
+static int hf_dreg_req_duration;
+static int hf_paging_controller_id;
+static int hf_mac_hash_skip_threshold;
+static int hf_dreg_paging_cycle_request;
+static int hf_dreg_retain_ms_service_sbc;
+static int hf_dreg_retain_ms_service_pkm;
+static int hf_dreg_retain_ms_service_reg;
+static int hf_dreg_retain_ms_service_network_address;
+static int hf_dreg_retain_ms_service_tod;
+static int hf_dreg_retain_ms_service_tftp;
+static int hf_dreg_retain_ms_service_full_service;
+static int hf_dreg_consider_paging_pref;
+static int hf_tlv_value;
+static int hf_dreg_req_action;
+static int hf_dreg_req_reserved;
+static int hf_dreg_invalid_tlv;
 
 /* STRING RESOURCES */
 static const value_string vals_dreg_req_code[] = {
@@ -126,7 +130,7 @@ Action Code 03 cancels this restriction"},
 };
 
 /* Decode sub-TLV's of either DREG-REQ or DREG-CMD. */
-static void dissect_dreg_tlv(proto_tree *dreg_tree, gint tlv_type, tvbuff_t *tvb, guint tlv_offset, guint tlv_len)
+static void dissect_dreg_tlv(proto_tree *dreg_tree, int tlv_type, tvbuff_t *tvb, unsigned tlv_offset, unsigned tlv_len)
 {
 	switch (tlv_type) {
 		case DREG_PAGING_INFO:
@@ -341,6 +345,7 @@ void proto_register_mac_mgmt_msg_dreg_req(void)
 
 	proto_register_field_array(proto_mac_mgmt_msg_dreg_req_decoder, hf, array_length(hf));
 	proto_register_subtree_array(ett, array_length(ett));
+	dreg_req_handle = register_dissector("mac_mgmt_msg_dreg_req_handler", dissect_mac_mgmt_msg_dreg_req_decoder, proto_mac_mgmt_msg_dreg_req_decoder);
 }
 
 /* Register Wimax Mac Payload Protocol and Dissector */
@@ -351,21 +356,22 @@ void proto_register_mac_mgmt_msg_dreg_cmd(void)
 		"WiMax DREG-CMD", /* short name */
 		"wmx.dreg_cmd" /* abbrev */
 		);
+	dreg_cmd_handle = register_dissector("mac_mgmt_msg_dreg_cmd_handler", dissect_mac_mgmt_msg_dreg_cmd_decoder, proto_mac_mgmt_msg_dreg_cmd_decoder);
 }
 
 /* Decode DREG-REQ messages. */
 static int dissect_mac_mgmt_msg_dreg_req_decoder(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, void* data _U_)
 {
-	guint offset = 0;
-	guint tlv_offset;
-	guint tvb_len;
+	unsigned offset = 0;
+	unsigned tlv_offset;
+	unsigned tvb_len;
 	proto_item *dreg_req_item;
 	proto_tree *dreg_req_tree;
 	proto_tree *tlv_tree = NULL;
 	tlv_info_t tlv_info;
-	gint tlv_type;
-	gint tlv_len;
-	gboolean hmac_found = FALSE;
+	int tlv_type;
+	int tlv_len;
+	bool hmac_found = false;
 
 	{	/* we are being asked for details */
 
@@ -403,7 +409,7 @@ static int dissect_mac_mgmt_msg_dreg_req_decoder(tvbuff_t *tvb, packet_info *pin
 					/* decode and display the HMAC Tuple */
 					tlv_tree = add_protocol_subtree(&tlv_info, ett_mac_mgmt_msg_dreg_decoder, dreg_req_tree, proto_mac_mgmt_msg_dreg_req_decoder, tvb, offset, tlv_len, "HMAC Tuple");
 					wimax_hmac_tuple_decoder(tlv_tree, tvb, tlv_offset, tlv_len);
-					hmac_found = TRUE;
+					hmac_found = true;
 					break;
 				case CMAC_TUPLE:	/* Table 348b */
 					/* decode and display the CMAC Tuple */
@@ -429,16 +435,16 @@ static int dissect_mac_mgmt_msg_dreg_req_decoder(tvbuff_t *tvb, packet_info *pin
 /* Decode DREG-CMD messages. */
 static int dissect_mac_mgmt_msg_dreg_cmd_decoder(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, void* data _U_)
 {
-	guint offset = 0;
-	guint tlv_offset;
-	guint tvb_len;
+	unsigned offset = 0;
+	unsigned tlv_offset;
+	unsigned tvb_len;
 	proto_item *dreg_cmd_item;
 	proto_tree *dreg_cmd_tree;
 	proto_tree *tlv_tree = NULL;
 	tlv_info_t tlv_info;
-	gint tlv_type;
-	gint tlv_len;
-	gboolean hmac_found = FALSE;
+	int tlv_type;
+	int tlv_len;
+	bool hmac_found = false;
 
 	{	/* we are being asked for details */
 
@@ -479,7 +485,7 @@ static int dissect_mac_mgmt_msg_dreg_cmd_decoder(tvbuff_t *tvb, packet_info *pin
 					/* decode and display the HMAC Tuple */
 					tlv_tree = add_protocol_subtree(&tlv_info, ett_mac_mgmt_msg_dreg_decoder, dreg_cmd_tree, proto_mac_mgmt_msg_dreg_cmd_decoder, tvb, offset, tlv_len, "HMAC Tuple");
 					wimax_hmac_tuple_decoder(tlv_tree, tvb, tlv_offset, tlv_len);
-					hmac_found = TRUE;
+					hmac_found = true;
 					break;
 				case CMAC_TUPLE:	/* Table 348b */
 					/* decode and display the CMAC Tuple */
@@ -504,13 +510,8 @@ static int dissect_mac_mgmt_msg_dreg_cmd_decoder(tvbuff_t *tvb, packet_info *pin
 void
 proto_reg_handoff_mac_mgmt_msg_dreg(void)
 {
-	dissector_handle_t dreg_handle;
-
-	dreg_handle = create_dissector_handle(dissect_mac_mgmt_msg_dreg_req_decoder, proto_mac_mgmt_msg_dreg_req_decoder);
-	dissector_add_uint("wmx.mgmtmsg", MAC_MGMT_MSG_DREG_REQ, dreg_handle);
-
-	dreg_handle = create_dissector_handle(dissect_mac_mgmt_msg_dreg_cmd_decoder, proto_mac_mgmt_msg_dreg_cmd_decoder);
-	dissector_add_uint("wmx.mgmtmsg", MAC_MGMT_MSG_DREG_CMD, dreg_handle);
+	dissector_add_uint("wmx.mgmtmsg", MAC_MGMT_MSG_DREG_REQ, dreg_req_handle);
+	dissector_add_uint("wmx.mgmtmsg", MAC_MGMT_MSG_DREG_CMD, dreg_cmd_handle);
 }
 
 /*

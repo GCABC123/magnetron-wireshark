@@ -41,11 +41,14 @@ public slots:
     void selectedFieldChanged(FieldInformation *);
     /* Highlights field */
     void highlightedFieldChanged(FieldInformation *);
+    void captureFileClosing(void);
 
 signals:
     void fieldSelected(FieldInformation *);
     void fieldHighlight(FieldInformation *);
     void byteViewSettingsChanged(void);
+    void byteViewUnmarkField(void);
+    void detachData(void);
 
 private:
     capture_file *cap_file_;

@@ -15,50 +15,54 @@
 #include "config.h"
 
 #include <epan/packet.h>
+#include <epan/tfs.h>
+#include <epan/unit_strings.h>
 #include <wsutil/strtoi.h>
 
 void proto_register_lithionics(void);
 void proto_reg_handoff_lithionics(void);
 
-static int proto_lithionics = -1;
+static dissector_handle_t lithionics_handle;
 
-static int hf_lithionics_battery_address = -1;
-static int hf_lithionics_amp_hours_remain = -1;
-static int hf_lithionics_volts = -1;
-static int hf_lithionics_bat_gauge = -1;
-static int hf_lithionics_soc = -1;
-static int hf_lithionics_direction = -1;
-static int hf_lithionics_amps = -1;
-static int hf_lithionics_watts = -1;
-static int hf_lithionics_temperature = -1;
-static int hf_lithionics_system_status = -1;
-static int hf_lithionics_system_status_high_voltage_state = -1;
-static int hf_lithionics_system_status_charge_source_detected = -1;
-static int hf_lithionics_system_status_neverdie_reserve_state = -1;
-static int hf_lithionics_system_status_optoloop_cell_open = -1;
-static int hf_lithionics_system_status_reserve_voltage_range = -1;
-static int hf_lithionics_system_status_low_voltage_state = -1;
-static int hf_lithionics_system_status_battery_protection_state = -1;
-static int hf_lithionics_system_status_power_off_state = -1;
-static int hf_lithionics_system_status_aux_contacts_state = -1;
-static int hf_lithionics_system_status_aux_contacts_error = -1;
-static int hf_lithionics_system_status_precharge_error = -1;
-static int hf_lithionics_system_status_contactor_flutter = -1;
-static int hf_lithionics_system_status_ac_power_present = -1;
-static int hf_lithionics_system_status_tsm_charger_present = -1;
-static int hf_lithionics_system_status_tsm_charger_error = -1;
-static int hf_lithionics_system_status_external_temp_sensor_error = -1;
-static int hf_lithionics_system_status_agsr_state = -1;
-static int hf_lithionics_system_status_high_temperature_state = -1;
-static int hf_lithionics_system_status_low_temperature_state = -1;
-static int hf_lithionics_system_status_aux_input1_state = -1;
-static int hf_lithionics_system_status_charge_disable_state = -1;
-static int hf_lithionics_system_status_overcurrent_state = -1;
-static int hf_lithionics_system_status_reserved = -1;
-static int hf_lithionics_temination = -1;
+static int proto_lithionics;
 
-static gint ett_lithionics = -1;
-static gint ett_lithionics_system_status = -1;
+static int hf_lithionics_battery_address;
+static int hf_lithionics_amp_hours_remain;
+static int hf_lithionics_volts;
+static int hf_lithionics_bat_gauge;
+static int hf_lithionics_soc;
+static int hf_lithionics_direction;
+static int hf_lithionics_amps;
+static int hf_lithionics_watts;
+static int hf_lithionics_temperature;
+static int hf_lithionics_system_status;
+static int hf_lithionics_system_status_high_voltage_state;
+static int hf_lithionics_system_status_charge_source_detected;
+static int hf_lithionics_system_status_neverdie_reserve_state;
+static int hf_lithionics_system_status_optoloop_cell_open;
+static int hf_lithionics_system_status_reserve_voltage_range;
+static int hf_lithionics_system_status_low_voltage_state;
+static int hf_lithionics_system_status_battery_protection_state;
+static int hf_lithionics_system_status_power_off_state;
+static int hf_lithionics_system_status_aux_contacts_state;
+static int hf_lithionics_system_status_aux_contacts_error;
+static int hf_lithionics_system_status_precharge_error;
+static int hf_lithionics_system_status_contactor_flutter;
+static int hf_lithionics_system_status_ac_power_present;
+static int hf_lithionics_system_status_tsm_charger_present;
+static int hf_lithionics_system_status_tsm_charger_error;
+static int hf_lithionics_system_status_external_temp_sensor_error;
+static int hf_lithionics_system_status_agsr_state;
+static int hf_lithionics_system_status_high_temperature_state;
+static int hf_lithionics_system_status_low_temperature_state;
+static int hf_lithionics_system_status_aux_input1_state;
+static int hf_lithionics_system_status_charge_disable_state;
+static int hf_lithionics_system_status_overcurrent_state;
+static int hf_lithionics_system_status_reserved;
+static int hf_lithionics_temination;
+
+static int ett_lithionics;
+static int ett_lithionics_system_status;
 
 static int* const system_status_flags[] = {
 	&hf_lithionics_system_status_high_voltage_state,
@@ -109,7 +113,7 @@ dissect_lithionics(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, void* da
 	int				offset = 0;
 	char*			str;
 	float			f;
-	guint32			value;
+	uint32_t			value;
 
 	col_set_str(pinfo->cinfo, COL_PROTOCOL, "Lithionics");
 	col_clear(pinfo->cinfo, COL_INFO);
@@ -118,7 +122,7 @@ dissect_lithionics(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, void* da
 	lithionics_tree = proto_item_add_subtree(ti, ett_lithionics);
 
 	//just put the whole packet string (minus newlines) in the Info column
-	col_set_str(pinfo->cinfo, COL_INFO, (const gchar*)tvb_get_string_enc(pinfo->pool, tvb, offset, tvb_reported_length_remaining(tvb, offset)-2, ENC_ASCII));
+	col_set_str(pinfo->cinfo, COL_INFO, (const char*)tvb_get_string_enc(pinfo->pool, tvb, offset, tvb_reported_length_remaining(tvb, offset)-2, ENC_ASCII));
 
 	str = (char*)tvb_get_string_enc(pinfo->pool, tvb, offset + 1, 1, ENC_ASCII);
 	if (!ws_strtou32(str, NULL, &value))
@@ -212,23 +216,23 @@ proto_register_lithionics(void)
 
 	static hf_register_info hf[] = {
 		{ &hf_lithionics_battery_address,
-			{ "Battery address", "lithionics_bms.battery_address", FT_UINT8, BASE_DEC, NULL, 0x0, NULL, HFILL } },
+			{ "Battery address", "lithionics_bms.battery_address", FT_UINT16, BASE_DEC, NULL, 0x0, NULL, HFILL } },
 		{ &hf_lithionics_amp_hours_remain,
 			{ "Amp Hours Remaining", "lithionics_bms.amp_hours_remain", FT_FLOAT, BASE_NONE, NULL, 0x0, NULL, HFILL } },
 		{ &hf_lithionics_volts,
 			{ "Volts", "lithionics_bms.volts", FT_FLOAT, BASE_NONE, NULL, 0x0, NULL, HFILL } },
 		{ &hf_lithionics_bat_gauge,
-			{ "Bat gauge", "lithionics_bms.bat_gauge", FT_UINT16, BASE_DEC|BASE_UNIT_STRING, &units_percent, 0x0, NULL, HFILL } },
+			{ "Bat gauge", "lithionics_bms.bat_gauge", FT_UINT32, BASE_DEC|BASE_UNIT_STRING, UNS(&units_percent), 0x0, NULL, HFILL } },
 		{ &hf_lithionics_soc,
-			{ "SoC", "lithionics_bms.soc", FT_UINT16, BASE_DEC|BASE_UNIT_STRING, &units_percent, 0x0, NULL, HFILL } },
+			{ "SoC", "lithionics_bms.soc", FT_UINT32, BASE_DEC|BASE_UNIT_STRING, UNS(&units_percent), 0x0, NULL, HFILL } },
 		{ &hf_lithionics_direction,
-			{ "Direction", "lithionics_bms.direction", FT_UINT8, BASE_DEC, VALS(lithionics_direction_vals), 0x0, NULL, HFILL } },
+			{ "Direction", "lithionics_bms.direction", FT_UINT16, BASE_DEC, VALS(lithionics_direction_vals), 0x0, NULL, HFILL } },
 		{ &hf_lithionics_amps,
 			{ "Amps", "lithionics_bms.amps", FT_FLOAT, BASE_NONE, NULL, 0x0, NULL, HFILL } },
 		{ &hf_lithionics_watts,
-			{ "Watts", "lithionics_bms.watts", FT_UINT32, BASE_DEC|BASE_UNIT_STRING, &units_watt, 0x0, NULL, HFILL } },
+			{ "Watts", "lithionics_bms.watts", FT_UINT32, BASE_DEC|BASE_UNIT_STRING, UNS(&units_watt), 0x0, NULL, HFILL } },
 		{ &hf_lithionics_temperature,
-			{ "Temperature", "lithionics_bms.temperature", FT_UINT16, BASE_DEC|BASE_UNIT_STRING, &units_degree_degrees, 0x0, NULL, HFILL } },
+			{ "Temperature", "lithionics_bms.temperature", FT_UINT32, BASE_DEC|BASE_UNIT_STRING, UNS(&units_degree_degrees), 0x0, NULL, HFILL } },
 		{ &hf_lithionics_temination,
 			{ "Newline Termination", "lithionics_bms.termination", FT_BYTES, BASE_NONE, NULL, 0x0, NULL, HFILL } },
 		{ &hf_lithionics_system_status,
@@ -282,7 +286,7 @@ proto_register_lithionics(void)
 
 	};
 
-	static gint *ett[] = {
+	static int *ett[] = {
 		&ett_lithionics,
 		&ett_lithionics_system_status,
 	};
@@ -290,14 +294,13 @@ proto_register_lithionics(void)
 	proto_lithionics = proto_register_protocol("Lithionics Battery Management System", "Lithionics BMS", "lithionics_bms");
 	proto_register_field_array(proto_lithionics, hf, array_length(hf));
 	proto_register_subtree_array(ett, array_length(ett));
+
+	lithionics_handle = register_dissector("lithionics_bms", dissect_lithionics, proto_lithionics);
 }
 
 void
 proto_reg_handoff_lithionics(void)
 {
-	dissector_handle_t lithionics_handle;
-
-	lithionics_handle = create_dissector_handle(dissect_lithionics, proto_lithionics);
 	dissector_add_for_decode_as("udp.port", lithionics_handle);
 }
 

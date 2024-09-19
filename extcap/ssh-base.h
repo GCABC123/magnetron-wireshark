@@ -38,23 +38,25 @@
 	{ "remote-count", ws_required_argument, NULL, OPT_REMOTE_COUNT}, \
 	{ "sshkey", ws_required_argument, NULL, OPT_SSHKEY}, \
 	{ "sshkey-passphrase", ws_required_argument, NULL, OPT_SSHKEY_PASSPHRASE}, \
-	{ "proxycommand", ws_required_argument, NULL, OPT_PROXYCOMMAND}
+	{ "proxycommand", ws_required_argument, NULL, OPT_PROXYCOMMAND}, \
+	{ "ssh-sha1", ws_no_argument, NULL, OPT_SSH_SHA1}
 
 typedef struct _ssh_params {
-	gchar* host;
-	guint16 port;
-	gchar* username;
-	gchar* password;
-	gchar* sshkey_path;
-	gchar* sshkey_passphrase;
-	gchar* proxycommand;
-	gboolean debug;
+	char* host;
+	uint16_t port;
+	char* username;
+	char* password;
+	char* sshkey_path;
+	char* sshkey_passphrase;
+	char* proxycommand;
+	bool ssh_sha1;
+	int debug;
 } ssh_params_t;
 
 /* Add libssh version information to an extcap_parameters structure */
 void add_libssh_info(extcap_parameters * extcap_conf);
 
-/* Create a ssh connection using all the possible authentication menthods */
+/* Create a ssh connection using all the possible authentication methods */
 ssh_session create_ssh_connection(const ssh_params_t* ssh_params, char** err_info);
 
 /* Write a formatted message in the channel */
@@ -68,6 +70,9 @@ ssh_params_t* ssh_params_new(void);
 
 /* Clean the ssh params */
 void ssh_params_free(ssh_params_t* ssh_params);
+
+/* Sets the libssh log level to match the ws log level */
+void ssh_params_set_log_level(ssh_params_t* ssh_params, enum ws_log_level level);
 
 #endif
 

@@ -17,19 +17,21 @@
 #include <epan/ptvcursor.h>
 
 /* registration object IDs */
-static int proto_vicp = -1;
-static int hf_vicp_operation = -1;
-static int hf_vicp_version = -1;
-static int hf_vicp_sequence = -1;
-static int hf_vicp_unused = -1;
-static int hf_vicp_length = -1;
-static int hf_vicp_data = -1;
-static gint ett_vicp = -1;
+static int proto_vicp;
+static int hf_vicp_operation;
+static int hf_vicp_version;
+static int hf_vicp_sequence;
+static int hf_vicp_unused;
+static int hf_vicp_length;
+static int hf_vicp_data;
+static int ett_vicp;
 
 #define VICP_PORT 1861
 
 void proto_register_vicp(void);
 void proto_reg_handoff_vicp(void);
+
+static dissector_handle_t vicp_handle;
 
 static int dissect_vicp(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, void* data _U_)
 {
@@ -37,7 +39,7 @@ static int dissect_vicp(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, voi
    proto_tree *vicp_tree;
    ptvcursor_t* cursor;
 
-   guint len;
+   unsigned len;
 
    if (tvb_reported_length_remaining(tvb, 0) < 8)
    {
@@ -91,19 +93,18 @@ void proto_register_vicp(void)
       }
    };
 
-   static gint *ett[] =
+   static int *ett[] =
    {  &ett_vicp
    };
 
    proto_vicp = proto_register_protocol("LeCroy VICP", "VICP", "vicp");
    proto_register_field_array(proto_vicp, hf, array_length(hf));
    proto_register_subtree_array(ett, array_length(ett));
+   vicp_handle = register_dissector("vicp", dissect_vicp, proto_vicp);
 }
 
 void proto_reg_handoff_vicp(void)
-{  dissector_handle_t vicp_handle;
-
-   vicp_handle = create_dissector_handle(dissect_vicp, proto_vicp);
+{
    dissector_add_uint_with_preference("tcp.port", VICP_PORT, vicp_handle);
 }
 

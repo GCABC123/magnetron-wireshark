@@ -19,6 +19,8 @@
 void proto_register_brcm_tag(void);
 void proto_reg_handoff_brcm_tag(void);
 
+static dissector_handle_t brcm_tag_handle;
+
 #define BRCM_TAG_LEN                    4
 #define BRCM_TAG_OPCODE_MASK            0x7
 #define BRCM_TAG_DEV_ID_MASK            0x3
@@ -34,25 +36,25 @@ void proto_reg_handoff_brcm_tag(void);
 #define BRCM_TAG_MR_SHIFT               4
 #define BRCM_TAG_MO_SHIFT               3
 
-static int proto_brcm_tag               = -1;
+static int proto_brcm_tag;
 
-static int hf_brcm_tag_opcode           = -1;
-static int hf_brcm_tag_frame_octet_cnt  = -1;
-static int hf_brcm_tag_mr               = -1;
-static int hf_brcm_tag_mo               = -1;
-static int hf_brcm_tag_reserved         = -1;
-static int hf_brcm_tag_dest_dev_id      = -1;
-static int hf_brcm_tag_dest_port_id     = -1;
-static int hf_brcm_tag_src_dev_id       = -1;
-static int hf_brcm_tag_src_port_id      = -1;
+static int hf_brcm_tag_opcode;
+static int hf_brcm_tag_frame_octet_cnt;
+static int hf_brcm_tag_mr;
+static int hf_brcm_tag_mo;
+static int hf_brcm_tag_reserved;
+static int hf_brcm_tag_dest_dev_id;
+static int hf_brcm_tag_dest_port_id;
+static int hf_brcm_tag_src_dev_id;
+static int hf_brcm_tag_src_port_id;
 
-static gint ett_brcm_tag                = -1;
+static int ett_brcm_tag;
 
 #define TVB_LEN_GREATEST  1
 #define TVB_LEN_UNDEF     0
 #define TVB_LEN_SHORTEST -1
 
-static int check_tvb_length(ptvcursor_t *cursor, const gint length)
+static int check_tvb_length(ptvcursor_t *cursor, const int length)
 {
    if (!cursor)
       return TVB_LEN_UNDEF;
@@ -78,8 +80,8 @@ dissect_brcm_tag(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, void* data
    proto_item  *ti;
    proto_tree  *brcm_tag_tree;
    ptvcursor_t *cursor;
-   guint8 opcode_mr_mo;
-   guint8 opcode;
+   uint8_t opcode_mr_mo;
+   uint8_t opcode;
 
    col_set_str(pinfo->cinfo, COL_PROTOCOL, "Broadcom tag");
    col_set_str(pinfo->cinfo, COL_INFO, "MAC Management");
@@ -91,7 +93,7 @@ dissect_brcm_tag(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, void* data
 
    /* Check if we have enough data to process the header */
    if (check_tvb_length(cursor, BRCM_TAG_LEN) != TVB_LEN_SHORTEST) {
-      opcode_mr_mo = tvb_get_guint8(ptvcursor_tvbuff(cursor), ptvcursor_current_offset(cursor));
+      opcode_mr_mo = tvb_get_uint8(ptvcursor_tvbuff(cursor), ptvcursor_current_offset(cursor));
       opcode = (opcode_mr_mo >> BRCM_TAG_OPCODE_SHIFT) & BRCM_TAG_OPCODE_MASK;
 
       ptvcursor_add_no_advance(cursor, hf_brcm_tag_opcode, 1, ENC_NA);
@@ -157,7 +159,7 @@ proto_register_brcm_tag(void)
       },
    };
 
-   static gint *ett[] = {
+   static int *ett[] = {
       &ett_brcm_tag,
    };
    proto_brcm_tag = proto_register_protocol("Broadcom tag protocol", "Broadcom tag", "brcm-tag");
@@ -165,14 +167,13 @@ proto_register_brcm_tag(void)
    proto_register_field_array(proto_brcm_tag, hf, array_length(hf));
 
    proto_register_subtree_array(ett, array_length(ett));
+
+   brcm_tag_handle = register_dissector("brcm-tag", dissect_brcm_tag, proto_brcm_tag);
 }
 
 void
 proto_reg_handoff_brcm_tag(void)
 {
-   dissector_handle_t brcm_tag_handle;
-
-   brcm_tag_handle = create_dissector_handle(dissect_brcm_tag, proto_brcm_tag);
    dissector_add_uint("ethertype", ETHERTYPE_BRCM_TYPE, brcm_tag_handle);
 }
 

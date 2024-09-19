@@ -18,6 +18,7 @@
 
 #include "packet-zbee.h"
 #include "packet-zbee-zdp.h"
+#include "packet-zbee-tlv.h"
 
 /**************************************
  * HELPER FUNCTIONS
@@ -30,12 +31,12 @@
  *@param tree pointer to data tree Wireshark uses to display packet.
 */
 static void
-zdp_parse_nwk_desc(proto_tree *tree, tvbuff_t *tvb, guint *offset, guint8 version)
+zdp_parse_nwk_desc(proto_tree *tree, tvbuff_t *tvb, unsigned *offset, uint8_t version)
 {
     proto_tree      *network_tree;
     proto_item      *ti;
 
-    guint8      beacon;
+    uint8_t     beacon;
 
     if (version >= ZBEE_VERSION_2007) {
         network_tree = proto_tree_add_subtree(tree, tvb, *offset, 12, ett_zbee_zdp_nwk_desc, NULL, "Network descriptor");
@@ -59,7 +60,7 @@ zdp_parse_nwk_desc(proto_tree *tree, tvbuff_t *tvb, guint *offset, guint8 versio
 
     ti = proto_tree_add_item(network_tree, hf_zbee_zdp_beacon, tvb, *offset, 1, ENC_LITTLE_ENDIAN);
     proto_tree_add_item(network_tree, hf_zbee_zdp_superframe, tvb, *offset, 1, ENC_LITTLE_ENDIAN);
-    beacon      = tvb_get_guint8(tvb, *offset) & 0x0f;
+    beacon      = tvb_get_uint8(tvb, *offset) & 0x0f;
     if (beacon == 0xf) {
         proto_item_append_text(ti, " (Beacons Disabled)");
     }
@@ -77,11 +78,11 @@ zdp_parse_nwk_desc(proto_tree *tree, tvbuff_t *tvb, guint *offset, guint8 versio
  *@param tree pointer to data tree Wireshark uses to display packet.
 */
 static void
-zdp_parse_neighbor_table_entry(proto_tree *tree, tvbuff_t *tvb, guint *offset, guint8 version)
+zdp_parse_neighbor_table_entry(proto_tree *tree, tvbuff_t *tvb, unsigned *offset, uint8_t version)
 {
     proto_tree      *table_tree;
     proto_item      *ti = NULL;
-    guint           len = 0;
+    unsigned        len = 0;
 
     if (version >= ZBEE_VERSION_2007) {
         table_tree = proto_tree_add_subtree(tree, tvb, *offset, 8, ett_zbee_zdp_table_entry, &ti, "Table Entry");
@@ -143,14 +144,14 @@ zdp_parse_neighbor_table_entry(proto_tree *tree, tvbuff_t *tvb, guint *offset, g
  *@param tree pointer to data tree Wireshark uses to display packet.
 */
 static void
-zdp_parse_routing_table_entry(proto_tree *tree, tvbuff_t *tvb, guint *offset)
+zdp_parse_routing_table_entry(proto_tree *tree, tvbuff_t *tvb, unsigned *offset)
 {
-    guint       len = 0;
+    unsigned    len = 0;
     proto_item  *ti;
     proto_tree  *field_tree;
-    guint16     dest;
-    guint8      status;
-    guint16     next;
+    uint16_t    dest;
+    uint8_t     status;
+    uint16_t    next;
 
     ti = proto_tree_add_item(tree, hf_zbee_zdp_rtg_entry, tvb, *offset + len, 2 + 1 + 2, ENC_NA);
     field_tree = proto_item_add_subtree(ti, ett_zbee_zdp_rtg);
@@ -160,7 +161,7 @@ zdp_parse_routing_table_entry(proto_tree *tree, tvbuff_t *tvb, guint *offset)
     len += 2;
 
     proto_tree_add_item(field_tree, hf_zbee_zdp_rtg_status, tvb, *offset + len , 1, ENC_LITTLE_ENDIAN);
-    status = tvb_get_guint8(tvb, *offset + len);
+    status = tvb_get_uint8(tvb, *offset + len);
     len += 1;
 
     proto_tree_add_item(field_tree, hf_zbee_zdp_rtg_next_hop, tvb, *offset + len , 2, ENC_LITTLE_ENDIAN);
@@ -188,15 +189,15 @@ void
 dissect_zbee_zdp_req_mgmt_nwk_disc(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, int hf_channel)
 {
     proto_item  *ti;
-    guint       i;
+    unsigned    i;
 
-    guint   offset = 0;
-    guint32 channels;
+    unsigned   offset = 0;
+    uint32_t channels;
 
     /* Get the channel bitmap. */
     channels = tvb_get_letohl(tvb, offset);
     if (tree) {
-        gboolean    first = 1;
+        bool        first = 1;
         ti = proto_tree_add_uint_format(tree, hf_channel, tvb, offset, 4, channels, "Scan Channels: ");
 
         for (i=0; i<27; i++) {
@@ -233,7 +234,7 @@ dissect_zbee_zdp_req_mgmt_nwk_disc(tvbuff_t *tvb, packet_info *pinfo, proto_tree
 void
 dissect_zbee_zdp_req_mgmt_lqi(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree)
 {
-    guint   offset = 0;
+    unsigned   offset = 0;
 
     proto_tree_add_item(tree, hf_zbee_zdp_index, tvb, offset, 1, ENC_LITTLE_ENDIAN);
     offset += 1;
@@ -252,7 +253,7 @@ dissect_zbee_zdp_req_mgmt_lqi(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tre
 void
 dissect_zbee_zdp_req_mgmt_rtg(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree)
 {
-    guint   offset = 0;
+    unsigned   offset = 0;
 
     proto_tree_add_item(tree, hf_zbee_zdp_index, tvb, offset, 1, ENC_LITTLE_ENDIAN);
     offset += 1;
@@ -271,7 +272,7 @@ dissect_zbee_zdp_req_mgmt_rtg(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tre
 void
 dissect_zbee_zdp_req_mgmt_bind(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree)
 {
-    guint   offset = 0;
+    unsigned   offset = 0;
 
     proto_tree_add_item(tree, hf_zbee_zdp_index, tvb, offset, 1, ENC_LITTLE_ENDIAN);
     offset += 1;
@@ -288,10 +289,10 @@ dissect_zbee_zdp_req_mgmt_bind(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tr
  *@param tree pointer to data tree Wireshark uses to display packet.
 */
 void
-dissect_zbee_zdp_req_mgmt_leave(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, guint8 version)
+dissect_zbee_zdp_req_mgmt_leave(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, uint8_t version)
 {
-    guint   offset = 0;
-    guint64 ext_addr;
+    unsigned   offset = 0;
+    uint64_t ext_addr;
     static int * const flags[] = {
         &hf_zbee_zdp_leave_children,
         &hf_zbee_zdp_leave_rejoin,
@@ -321,9 +322,9 @@ dissect_zbee_zdp_req_mgmt_leave(tvbuff_t *tvb, packet_info *pinfo, proto_tree *t
 void
 dissect_zbee_zdp_req_mgmt_direct_join(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree)
 {
-    guint   offset = 0;
-    guint64 ext_addr;
-    /*guint8  cinfo;*/
+    unsigned   offset = 0;
+    uint64_t ext_addr;
+    /*uint8_t cinfo;*/
 
     ext_addr = zbee_parse_eui64(tree, hf_zbee_zdp_ext_addr, tvb, &offset, 8, NULL);
     /*cinfo    =*/ zdp_parse_cinfo(tree, ett_zbee_zdp_cinfo, tvb, &offset);
@@ -344,15 +345,21 @@ dissect_zbee_zdp_req_mgmt_direct_join(tvbuff_t *tvb, packet_info *pinfo, proto_t
 void
 dissect_zbee_zdp_req_mgmt_permit_join(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree)
 {
-    guint   offset = 0;
+    unsigned   offset = 0;
 
     proto_tree_add_item(tree, hf_zbee_zdp_duration, tvb, offset, 1, ENC_LITTLE_ENDIAN);
     offset += 1;
+
     proto_tree_add_item(tree, hf_zbee_zdp_significance, tvb, offset, 1, ENC_LITTLE_ENDIAN);
     offset += 1;
 
-    /* Dump any leftover bytes. */
-    zdp_dump_excess(tvb, offset, pinfo, tree);
+    if (tvb_captured_length_remaining(tvb, offset))
+    {
+      offset = dissect_zbee_tlvs(tvb, pinfo, tree, offset, NULL, ZBEE_TLV_SRC_TYPE_ZBEE_ZDP, ZBEE_ZDP_REQ_MGMT_PERMIT_JOIN);
+
+      /* Dump any leftover bytes. */
+      zdp_dump_excess(tvb, offset, pinfo, tree);
+    }
 } /* dissect_zbee_zdp_req_mgmt_permit_join */
 
 /**
@@ -365,7 +372,7 @@ dissect_zbee_zdp_req_mgmt_permit_join(tvbuff_t *tvb, packet_info *pinfo, proto_t
 void
 dissect_zbee_zdp_req_mgmt_cache(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree)
 {
-    guint   offset = 0;
+    unsigned   offset = 0;
 
     proto_tree_add_item(tree, hf_zbee_zdp_index, tvb, offset, 1, ENC_LITTLE_ENDIAN);
     offset += 1;
@@ -384,8 +391,8 @@ dissect_zbee_zdp_req_mgmt_cache(tvbuff_t *tvb, packet_info *pinfo, proto_tree *t
 void
 dissect_zbee_zdp_req_mgmt_nwkupdate(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree)
 {
-    guint   offset = 0;
-    guint32  duration;
+    unsigned   offset = 0;
+    uint32_t duration;
 
     zdp_parse_chanmask(tree, tvb, &offset, hf_zbee_zdp_channel_page, hf_zbee_zdp_channel_mask);
     proto_tree_add_item_ret_uint(tree, hf_zbee_zdp_duration, tvb, offset, 1, ENC_LITTLE_ENDIAN, &duration);
@@ -420,8 +427,8 @@ dissect_zbee_zdp_req_mgmt_nwkupdate(tvbuff_t *tvb, packet_info *pinfo, proto_tre
 void
 dissect_zbee_zdp_req_mgmt_nwkupdate_enh(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree)
 {
-    guint   offset = 0;
-    guint32 i, duration, count;
+    unsigned   offset = 0;
+    uint32_t i, duration, count;
 
     proto_tree_add_item_ret_uint(tree, hf_zbee_zdp_channel_page_count, tvb, offset, 1, ENC_LITTLE_ENDIAN, &count);
     offset += 1;
@@ -462,7 +469,7 @@ dissect_zbee_zdp_req_mgmt_nwkupdate_enh(tvbuff_t *tvb, packet_info *pinfo, proto
 void
 dissect_zbee_zdp_req_mgmt_ieee_join_list(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree)
 {
-    guint offset = 0;
+    unsigned offset = 0;
 
     proto_tree_add_item(tree, hf_zbee_zdp_ieee_join_start_index, tvb, offset, 1, ENC_LITTLE_ENDIAN);
     offset += 1;
@@ -471,6 +478,202 @@ dissect_zbee_zdp_req_mgmt_ieee_join_list(tvbuff_t *tvb, packet_info *pinfo, prot
     zdp_dump_excess(tvb, offset, pinfo, tree);
 } /* dissect_zbee_zdp_req_mgmt_ieee_join_list */
 
+/**
+ *ZigBee Device Profile dissector for the NWK Beacon Survey Request.
+ *
+ *@param tvb pointer to buffer containing raw packet.
+ *@param pinfo pointer to packet information fields
+ *@param tree pointer to data tree Wireshark uses to display packet.
+*/
+void
+dissect_zbee_zdp_req_mgmt_nwk_beacon_survey(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree)
+{
+    unsigned offset = 0;
+
+    offset = dissect_zbee_tlvs(tvb, pinfo, tree, offset, NULL, ZBEE_TLV_SRC_TYPE_ZBEE_ZDP, ZBEE_ZDP_REQ_MGMT_NWK_BEACON_SURVEY);
+
+    /* Dump any leftover bytes. */
+    zdp_dump_excess(tvb, offset, pinfo, tree);
+} /* dissect_zbee_zdp_req_mgmt_nwk_beacon_survey */
+
+/**
+ *ZigBee Device Profile dissector for the NWK Beacon Survey Response.
+ *
+ *@param tvb pointer to buffer containing raw packet.
+ *@param pinfo pointer to packet information fields
+ *@param tree pointer to data tree Wireshark uses to display packet.
+*/
+void
+dissect_zbee_zdp_rsp_mgmt_nwk_beacon_survey(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree)
+{
+    unsigned offset = 0;
+
+    zdp_parse_status(tree, tvb, &offset);
+
+    offset = dissect_zbee_tlvs(tvb, pinfo, tree, offset, NULL, ZBEE_TLV_SRC_TYPE_ZBEE_ZDP, ZBEE_ZDP_RSP_MGMT_NWK_BEACON_SURVEY);
+
+    /* Dump any leftover bytes. */
+    zdp_dump_excess(tvb, offset, pinfo, tree);
+} /* dissect_zbee_zdp_rsp_mgmt_nwk_beacon_survey */
+
+/**
+ *ZigBee Device Profile dissector for the Security Start Key Negotiation Request.
+ *
+ *@param tvb pointer to buffer containing raw packet.
+ *@param pinfo pointer to packet information fields
+ *@param tree pointer to data tree Wireshark uses to display packet.
+ */
+void
+dissect_zbee_zdp_req_security_start_key_negotiation(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree)
+{
+    unsigned offset = 0;
+
+    offset = dissect_zbee_tlvs(tvb, pinfo, tree, offset, NULL, ZBEE_TLV_SRC_TYPE_ZBEE_ZDP, ZBEE_ZDP_REQ_SECURITY_START_KEY_NEGOTIATION);
+
+    /* Dump any leftover bytes. */
+    zdp_dump_excess(tvb, offset, pinfo, tree);
+} /* dissect_zbee_zdp_req_security_start_key_negotiation */
+
+/**
+ *ZigBee Device Profile dissector for the Security Get Authentication Token Request.
+ *
+ *@param tvb pointer to buffer containing raw packet.
+ *@param pinfo pointer to packet information fields
+ *@param tree pointer to data tree Wireshark uses to display packet.
+ */
+void
+dissect_zbee_zdp_req_security_get_auth_token(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree)
+{
+    unsigned offset = 0;
+
+    offset = dissect_zbee_tlvs(tvb, pinfo, tree, offset, NULL, ZBEE_TLV_SRC_TYPE_ZBEE_ZDP, ZBEE_ZDP_REQ_SECURITY_GET_AUTH_TOKEN);
+
+    /* Dump any leftover bytes. */
+    zdp_dump_excess(tvb, offset, pinfo, tree);
+} /* dissect_zbee_zdp_req_security_get_auth_token */
+
+/**
+ *ZigBee Device Profile dissector for the Security Get Authentication Level Request.
+ *
+ *@param tvb pointer to buffer containing raw packet.
+ *@param pinfo pointer to packet information fields
+ *@param tree pointer to data tree Wireshark uses to display packet.
+ */
+void
+dissect_zbee_zdp_req_security_get_auth_level(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree)
+{
+    unsigned offset = 0;
+
+    offset = dissect_zbee_tlvs(tvb, pinfo, tree, offset, NULL, ZBEE_TLV_SRC_TYPE_ZBEE_ZDP, ZBEE_ZDP_REQ_SECURITY_GET_AUTH_LEVEL);
+
+    /* Dump any leftover bytes. */
+    zdp_dump_excess(tvb, offset, pinfo, tree);
+} /* dissect_zbee_zdp_req_security_get_auth_level */
+
+/**
+ *ZigBee Device Profile dissector for the Security Set Configuration Request.
+ *
+ *@param tvb pointer to buffer containing raw packet.
+ *@param pinfo pointer to packet information fields
+ *@param tree pointer to data tree Wireshark uses to display packet.
+ */
+void
+dissect_zbee_zdp_req_security_set_configuration(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree)
+{
+    unsigned offset = 0;
+
+    offset = dissect_zbee_tlvs(tvb, pinfo, tree, offset, NULL, ZBEE_TLV_SRC_TYPE_ZBEE_ZDP, ZBEE_ZDP_REQ_SECURITY_SET_CONFIGURATION);
+
+    /* Dump any leftover bytes. */
+    zdp_dump_excess(tvb, offset, pinfo, tree);
+} /* dissect_zbee_zdp_req_security_set_configuration */
+
+/**
+ *ZigBee Device Profile dissector for the Security Get Configuration Request.
+ *
+ *@param tvb pointer to buffer containing raw packet.
+ *@param pinfo pointer to packet information fields
+ *@param tree pointer to data tree Wireshark uses to display packet.
+ */
+void
+dissect_zbee_zdp_req_security_get_configuration(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree)
+{
+    unsigned   offset = 0;
+    uint8_t count;
+    uint8_t i;
+    unsigned   remaining_length;
+
+    remaining_length = tvb_captured_length_remaining(tvb, offset);
+    if (remaining_length > 0U)
+    {
+        count = tvb_get_uint8(tvb, offset);
+        proto_tree_add_item(tree, hf_zbee_zdp_tlv_count, tvb, offset, 1, ENC_NA);
+        offset += 1;
+
+        for (i = 0; i < count; i++)
+        {
+            proto_tree_add_item(tree, hf_zbee_zdp_tlv_id, tvb, offset, 1, ENC_NA);
+            offset += 1;
+        }
+    }
+
+    /* Dump any leftover bytes. */
+    zdp_dump_excess(tvb, offset, pinfo, tree);
+} /* dissect_zbee_zdp_req_security_get_configuration */
+
+/**
+ *ZigBee Device Profile dissector for the Security Start Key Update Request.
+ *
+ *@param tvb pointer to buffer containing raw packet.
+ *@param pinfo pointer to packet information fields
+ *@param tree pointer to data tree Wireshark uses to display packet.
+ */
+void
+dissect_zbee_zdp_req_security_start_key_update(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree)
+{
+    unsigned offset = 0;
+
+    offset = dissect_zbee_tlvs(tvb, pinfo, tree, offset, NULL, ZBEE_TLV_SRC_TYPE_ZBEE_ZDP, ZBEE_ZDP_REQ_SECURITY_START_KEY_UPDATE);
+
+    /* Dump any leftover bytes. */
+    zdp_dump_excess(tvb, offset, pinfo, tree);
+} /* dissect_zbee_zdp_req_security_start_key_update */
+
+/**
+ *ZigBee Device Profile dissector for the Security Decommission Request.
+ *
+ *@param tvb pointer to buffer containing raw packet.
+ *@param pinfo pointer to packet information fields
+ *@param tree pointer to data tree Wireshark uses to display packet.
+ */
+void
+dissect_zbee_zdp_req_security_decommission(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree)
+{
+    unsigned offset = 0;
+
+    offset = dissect_zbee_tlvs(tvb, pinfo, tree, offset, NULL, ZBEE_TLV_SRC_TYPE_ZBEE_ZDP, ZBEE_ZDP_REQ_SECURITY_DECOMMISSION);
+
+    /* Dump any leftover bytes. */
+    zdp_dump_excess(tvb, offset, pinfo, tree);
+} /* dissect_zbee_zdp_req_security_decommission */
+
+/**
+ *ZigBee Device Profile dissector for the Security Challenge Request.
+ *
+ *@param tvb pointer to buffer containing raw packet.
+ *@param pinfo pointer to packet information fields
+ *@param tree pointer to data tree Wireshark uses to display packet.
+ */
+void
+dissect_zbee_zdp_req_security_challenge(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree)
+{
+    unsigned offset = 0;
+
+    offset = dissect_zbee_tlvs(tvb, pinfo, tree, offset, NULL, ZBEE_TLV_SRC_TYPE_ZBEE_ZDP, ZBEE_ZDP_REQ_SECURITY_CHALLENGE);
+
+    /* Dump any leftover bytes. */
+    zdp_dump_excess(tvb, offset, pinfo, tree);
+}
 /**************************************
  * MANAGEMENT RESPONSES
  **************************************
@@ -483,13 +686,13 @@ dissect_zbee_zdp_req_mgmt_ieee_join_list(tvbuff_t *tvb, packet_info *pinfo, prot
  *@param tree pointer to data tree Wireshark uses to display packet.
 */
 void
-dissect_zbee_zdp_rsp_mgmt_nwk_disc(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, guint8 version)
+dissect_zbee_zdp_rsp_mgmt_nwk_disc(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, uint8_t version)
 {
     proto_tree  *field_tree = NULL;
-    guint       offset = 0;
+    unsigned    offset = 0;
 
-    guint8  status;
-    guint32  i, table_count;
+    uint8_t status;
+    uint32_t i, table_count;
 
     status      = zdp_parse_status(tree, tvb, &offset);
     proto_tree_add_item(tree, hf_zbee_zdp_table_size, tvb, offset, 1, ENC_LITTLE_ENDIAN);
@@ -520,13 +723,13 @@ dissect_zbee_zdp_rsp_mgmt_nwk_disc(tvbuff_t *tvb, packet_info *pinfo, proto_tree
  *@param tree pointer to data tree Wireshark uses to display packet.
 */
 void
-dissect_zbee_zdp_rsp_mgmt_lqi(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, guint8 version)
+dissect_zbee_zdp_rsp_mgmt_lqi(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, uint8_t version)
 {
     proto_tree  *field_tree = NULL;
-    guint       offset = 0;
+    unsigned    offset = 0;
 
-    guint8  status;
-    guint32  i, table_count;
+    uint8_t status;
+    uint32_t i, table_count;
 
     status      = zdp_parse_status(tree, tvb, &offset);
     proto_tree_add_item(tree, hf_zbee_zdp_table_size, tvb, offset, 1, ENC_LITTLE_ENDIAN);
@@ -561,10 +764,10 @@ dissect_zbee_zdp_rsp_mgmt_rtg(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tre
 {
     proto_item  *ti;
     proto_tree  *field_tree = NULL;
-    guint       offset = 0;
+    unsigned    offset = 0;
 
-    guint8  status;
-    guint32  i, table_count;
+    uint8_t status;
+    uint32_t i, table_count;
 
     status      = zdp_parse_status(tree, tvb, &offset);
     proto_tree_add_item(tree, hf_zbee_zdp_table_size, tvb, offset, 1, ENC_LITTLE_ENDIAN);
@@ -596,13 +799,13 @@ dissect_zbee_zdp_rsp_mgmt_rtg(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tre
  *@param tree pointer to data tree Wireshark uses to display packet.
 */
 void
-dissect_zbee_zdp_rsp_mgmt_bind(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, guint8 version)
+dissect_zbee_zdp_rsp_mgmt_bind(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, uint8_t version)
 {
     proto_tree  *field_tree = NULL;
-    guint       offset = 0;
+    unsigned    offset = 0;
 
-    guint8  status;
-    guint32  i, table_count;
+    uint8_t status;
+    uint32_t i, table_count;
 
     status      = zdp_parse_status(tree, tvb, &offset);
     proto_tree_add_item(tree, hf_zbee_zdp_table_size, tvb, offset, 1, ENC_LITTLE_ENDIAN);
@@ -636,8 +839,8 @@ dissect_zbee_zdp_rsp_mgmt_bind(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tr
 void
 dissect_zbee_zdp_rsp_mgmt_leave(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree)
 {
-    guint   offset = 0;
-    guint8  status;
+    unsigned   offset = 0;
+    uint8_t status;
 
     status = zdp_parse_status(tree, tvb, &offset);
 
@@ -657,8 +860,8 @@ dissect_zbee_zdp_rsp_mgmt_leave(tvbuff_t *tvb, packet_info *pinfo, proto_tree *t
 void
 dissect_zbee_zdp_rsp_mgmt_direct_join(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree)
 {
-    guint   offset = 0;
-    guint8  status;
+    unsigned   offset = 0;
+    uint8_t status;
 
     status = zdp_parse_status(tree, tvb, &offset);
 
@@ -678,8 +881,8 @@ dissect_zbee_zdp_rsp_mgmt_direct_join(tvbuff_t *tvb, packet_info *pinfo, proto_t
 void
 dissect_zbee_zdp_rsp_mgmt_permit_join(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree)
 {
-    guint   offset = 0;
-    guint8  status;
+    unsigned   offset = 0;
+    uint8_t status;
 
     status = zdp_parse_status(tree, tvb, &offset);
 
@@ -701,10 +904,10 @@ dissect_zbee_zdp_rsp_mgmt_cache(tvbuff_t *tvb, packet_info *pinfo, proto_tree *t
 {
     proto_tree  *field_tree = NULL;
     proto_tree  *ti;
-    guint       offset = 0;
+    unsigned    offset = 0;
 
-    guint8  status;
-    guint32  i, table_count;
+    uint8_t status;
+    uint32_t i, table_count;
 
     status      = zdp_parse_status(tree, tvb, &offset);
     proto_tree_add_item(tree, hf_zbee_zdp_table_size, tvb, offset, 1, ENC_LITTLE_ENDIAN);
@@ -719,7 +922,7 @@ dissect_zbee_zdp_rsp_mgmt_cache(tvbuff_t *tvb, packet_info *pinfo, proto_tree *t
                                 ett_zbee_zdp_cache, NULL, "Discovery Cache");
 
         for (i=0; i<table_count; i++) {
-            guint16 addr16 = tvb_get_letohs(tvb, offset+8);
+            uint16_t addr16 = tvb_get_letohs(tvb, offset+8);
 
             ti = proto_tree_add_item(field_tree, hf_zbee_zdp_cache_address, tvb, offset, 8, ENC_LITTLE_ENDIAN);
             /* XXX - make 16-bit address filterable? */
@@ -746,11 +949,11 @@ dissect_zbee_zdp_rsp_mgmt_cache(tvbuff_t *tvb, packet_info *pinfo, proto_tree *t
 void
 dissect_zbee_zdp_not_mgmt_nwkupdate(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree)
 {
-    guint       offset = 0;
-    guint       i, j;
+    unsigned    offset = 0;
+    unsigned    i, j;
 
-    /*guint8      status;*/
-    guint32     channels, channel_count;
+    /*uint8_t     status;*/
+    uint32_t    channels, channel_count;
 
     /*status      =*/ zdp_parse_status(tree, tvb, &offset);
     channels    = zdp_parse_chanmask(tree, tvb, &offset, hf_zbee_zdp_channel_page, hf_zbee_zdp_channel_mask);
@@ -763,7 +966,7 @@ dissect_zbee_zdp_not_mgmt_nwkupdate(tvbuff_t *tvb, packet_info *pinfo, proto_tre
 
     /* Display the channel list. */
     for (i=0, j=0; i<(8*4); i++) {
-        guint8  energy;
+        uint8_t energy;
 
         if ( ! ((1<<i) & channels) ) {
             /* Channel not scanned. */
@@ -774,7 +977,7 @@ dissect_zbee_zdp_not_mgmt_nwkupdate(tvbuff_t *tvb, packet_info *pinfo, proto_tre
             break;
         }
         /* Get and display the channel energy. */
-        energy = tvb_get_guint8(tvb, offset);
+        energy = tvb_get_uint8(tvb, offset);
         proto_tree_add_uint_format(tree, hf_zbee_zdp_channel_energy, tvb, offset, 1, energy, "Channel %d Energy: 0x%02x", i, energy);
         offset += 1;
         /* Increment the number of channels we found energy values for. */
@@ -795,8 +998,8 @@ dissect_zbee_zdp_not_mgmt_nwkupdate(tvbuff_t *tvb, packet_info *pinfo, proto_tre
 void
 dissect_zbee_zdp_rsp_mgmt_ieee_join_list(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree)
 {
-    guint32     i, status, list_total, list_count;
-    guint       offset = 0;
+    uint32_t    i, status, list_total, list_count;
+    unsigned    offset = 0;
 
     status = zdp_parse_status(tree, tvb, &offset);
     if (status == 0x00) {
@@ -832,7 +1035,7 @@ dissect_zbee_zdp_rsp_mgmt_ieee_join_list(tvbuff_t *tvb, packet_info *pinfo, prot
 void
 dissect_zbee_zdp_not_mgmt_unsolicited_nwkupdate(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree)
 {
-    guint   offset = 0;
+    unsigned   offset = 0;
 
     zdp_parse_status(tree, tvb, &offset);
     zdp_parse_chanmask(tree, tvb, &offset, hf_zbee_zdp_channel_page, hf_zbee_zdp_channel_mask);
@@ -848,6 +1051,158 @@ dissect_zbee_zdp_not_mgmt_unsolicited_nwkupdate(tvbuff_t *tvb, packet_info *pinf
     /* Dump any leftover bytes. */
     zdp_dump_excess(tvb, offset, pinfo, tree);
 } /* dissect_zbee_zdp_not_mgmt_unsolicited_nwkupdate */
+
+/**
+ *ZigBee Device Profile dissector for the security start key negotiation response.
+ *
+ *@param tvb pointer to buffer containing raw packet.
+ *@param pinfo pointer to packet information fields
+ *@param tree pointer to data tree Wireshark uses to display packet.
+*/
+void
+dissect_zbee_zdp_rsp_security_start_key_negotiation(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree)
+{
+    unsigned   offset = 0;
+
+    zdp_parse_status(tree, tvb, &offset);
+    offset = dissect_zbee_tlvs(tvb, pinfo, tree, offset, NULL, ZBEE_TLV_SRC_TYPE_ZBEE_ZDP, ZBEE_ZDP_RSP_SECURITY_START_KEY_NEGOTIATION);
+
+    /* Dump any leftover bytes. */
+    zdp_dump_excess(tvb, offset, pinfo, tree);
+} /* dissect_zbee_zdp_rsp_security_start_key_negotiation */
+
+/**
+ *ZigBee Device Profile dissector for the security get authentication token response.
+ *
+ *@param tvb pointer to buffer containing raw packet.
+ *@param pinfo pointer to packet information fields
+ *@param tree pointer to data tree Wireshark uses to display packet.
+*/
+void
+dissect_zbee_zdp_rsp_security_get_auth_token(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree)
+{
+    unsigned   offset = 0;
+
+    zdp_parse_status(tree, tvb, &offset);
+    offset = dissect_zbee_tlvs(tvb, pinfo, tree, offset, NULL, ZBEE_TLV_SRC_TYPE_ZBEE_ZDP, ZBEE_ZDP_RSP_SECURITY_GET_AUTH_TOKEN);
+
+    /* Dump any leftover bytes. */
+    zdp_dump_excess(tvb, offset, pinfo, tree);
+} /* dissect_zbee_zdp_rsp_security_get_auth_token */
+
+/**
+ *ZigBee Device Profile dissector for the security get authentication level response.
+ *
+ *@param tvb pointer to buffer containing raw packet.
+ *@param pinfo pointer to packet information fields
+ *@param tree pointer to data tree Wireshark uses to display packet.
+*/
+void
+dissect_zbee_zdp_rsp_security_get_auth_level(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree)
+{
+    unsigned   offset = 0;
+
+    zdp_parse_status(tree, tvb, &offset);
+    offset = dissect_zbee_tlvs(tvb, pinfo, tree, offset, NULL, ZBEE_TLV_SRC_TYPE_ZBEE_ZDP, ZBEE_ZDP_RSP_SECURITY_GET_AUTH_LEVEL);
+
+    /* Dump any leftover bytes. */
+    zdp_dump_excess(tvb, offset, pinfo, tree);
+} /* dissect_zbee_zdp_rsp_security_get_auth_level */
+
+/**
+ *ZigBee Device Profile dissector for the security set configuration response.
+ *
+ *@param tvb pointer to buffer containing raw packet.
+ *@param pinfo pointer to packet information fields
+ *@param tree pointer to data tree Wireshark uses to display packet.
+*/
+void
+dissect_zbee_zdp_rsp_security_set_configuration(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree)
+{
+    unsigned   offset = 0;
+
+    zdp_parse_status(tree, tvb, &offset);
+    offset = dissect_zbee_tlvs(tvb, pinfo, tree, offset, NULL, ZBEE_TLV_SRC_TYPE_ZBEE_ZDP, ZBEE_ZDP_RSP_SECURITY_SET_CONFIGURATION);
+
+    /* Dump any leftover bytes. */
+    zdp_dump_excess(tvb, offset, pinfo, tree);
+} /* dissect_zbee_zdp_rsp_security_set_configuration */
+
+/**
+ *ZigBee Device Profile dissector for the security get configuration response.
+ *
+ *@param tvb pointer to buffer containing raw packet.
+ *@param pinfo pointer to packet information fields
+ *@param tree pointer to data tree Wireshark uses to display packet.
+*/
+void
+dissect_zbee_zdp_rsp_security_get_configuration(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree)
+{
+    unsigned   offset = 0;
+
+    zdp_parse_status(tree, tvb, &offset);
+    offset = dissect_zbee_tlvs(tvb, pinfo, tree, offset, NULL, ZBEE_TLV_SRC_TYPE_ZBEE_ZDP, ZBEE_ZDP_RSP_SECURITY_GET_CONFIGURATION);
+
+    /* Dump any leftover bytes. */
+    zdp_dump_excess(tvb, offset, pinfo, tree);
+} /* dissect_zbee_zdp_rsp_security_get_configuration */
+
+/**
+ *ZigBee Device Profile dissector for the security start key update response.
+ *
+ *@param tvb pointer to buffer containing raw packet.
+ *@param pinfo pointer to packet information fields
+ *@param tree pointer to data tree Wireshark uses to display packet.
+*/
+void
+dissect_zbee_zdp_rsp_security_start_key_update(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree)
+{
+    unsigned   offset = 0;
+
+    zdp_parse_status(tree, tvb, &offset);
+    offset = dissect_zbee_tlvs(tvb, pinfo, tree, offset, NULL, ZBEE_TLV_SRC_TYPE_ZBEE_ZDP, ZBEE_ZDP_RSP_SECURITY_START_KEY_UPDATE);
+
+    /* Dump any leftover bytes. */
+    zdp_dump_excess(tvb, offset, pinfo, tree);
+} /* dissect_zbee_zdp_rsp_security_start_key_update */
+
+/**
+ *ZigBee Device Profile dissector for the security start key update response.
+ *
+ *@param tvb pointer to buffer containing raw packet.
+ *@param pinfo pointer to packet information fields
+ *@param tree pointer to data tree Wireshark uses to display packet.
+*/
+void
+dissect_zbee_zdp_rsp_security_decommission(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree)
+{
+    unsigned   offset = 0;
+
+    zdp_parse_status(tree, tvb, &offset);
+    offset = dissect_zbee_tlvs(tvb, pinfo, tree, offset, NULL, ZBEE_TLV_SRC_TYPE_ZBEE_ZDP, ZBEE_ZDP_RSP_SECURITY_DECOMMISSION);
+
+    /* Dump any leftover bytes. */
+    zdp_dump_excess(tvb, offset, pinfo, tree);
+} /* dissect_zbee_zdp_rsp_security_decommission */
+
+/**
+ *ZigBee Device Profile dissector for the Security Challenge Response.
+ *
+ *@param tvb pointer to buffer containing raw packet.
+ *@param pinfo pointer to packet information fields
+ *@param tree pointer to data tree Wireshark uses to display packet.
+ */
+void
+dissect_zbee_zdp_rsp_security_challenge(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree)
+{
+    unsigned offset = 0;
+
+    zdp_parse_status(tree, tvb, &offset);
+    offset = dissect_zbee_tlvs(tvb, pinfo, tree, offset, NULL, ZBEE_TLV_SRC_TYPE_ZBEE_ZDP, ZBEE_ZDP_RSP_SECURITY_CHALLENGE);
+
+    /* Dump any leftover bytes. */
+    zdp_dump_excess(tvb, offset, pinfo, tree);
+}
 
 /*
  * Editor modelines  -  https://www.wireshark.org/tools/modelines.html

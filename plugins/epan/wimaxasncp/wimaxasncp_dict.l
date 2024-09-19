@@ -107,8 +107,8 @@
 DIAG_OFF_FLEX()
 
 typedef struct entity_t {
-	gchar *name;
-	gchar *file;
+	char *name;
+	char *file;
 	struct entity_t *next;
 } entity_t;
 
@@ -132,14 +132,14 @@ typedef struct entity_t {
 typedef struct {
 	GString *dict_error;
 
-	const gchar *sys_dir;
+	const char *sys_dir;
 
-	gchar *strbuf;
-	guint size_strbuf;
-	guint len_strbuf;
+	char *strbuf;
+	unsigned size_strbuf;
+	unsigned len_strbuf;
 
-	gchar *write_ptr;
-	gchar *read_ptr;
+	char *write_ptr;
+	char *read_ptr;
 
 	wimaxasncp_dict_t *dict;
 	wimaxasncp_dict_tlv_t *tlv;
@@ -154,20 +154,20 @@ typedef struct {
 
 	YY_BUFFER_STATE include_stack[MAX_INCLUDE_DEPTH];
 	int include_stack_ptr;
-	size_t (*current_yyinput)(gchar*,size_t,yyscan_t);
+	size_t (*current_yyinput)(char*,size_t,yyscan_t);
 
-	gchar **attr_str;
-	guint *attr_uint;
-	gint16 *attr_uint16;
+	char **attr_str;
+	unsigned *attr_uint;
+	int16_t *attr_uint16;
 
 	int start_state;
 } WimaxasncpDict_scanner_state_t;
 
-static guint wimaxasncp_bits(guint bits, char *n);
-static gint wimaxasncp_decode_type(const gchar *name);
-static void wimaxasncp_dict_debug(const gchar *fmt, ...) G_GNUC_PRINTF(1, 2);
-static void append_to_buffer(const gchar *txt, int len, WimaxasncpDict_scanner_state_t *state);
-static FILE *wimaxasncp_dict_open(const gchar*, const gchar*);
+static unsigned wimaxasncp_bits(unsigned bits, char *n);
+static int wimaxasncp_decode_type(const char *name);
+static void wimaxasncp_dict_debug(const char *fmt, ...) G_GNUC_PRINTF(1, 2);
+static void append_to_buffer(const char *txt, int len, WimaxasncpDict_scanner_state_t *state);
+static FILE *wimaxasncp_dict_open(const char*, const char*);
 
 /*
  * Sleazy hack to suppress compiler warnings in yy_fatal_error().
@@ -314,7 +314,7 @@ since_attr since=\042
 <LOADING>{any} APPEND(yytext,yyleng);
 
 <LOADING,IN_DICT>{entity} {
-	gchar *p = ++yytext, *temp_str;
+	char *p = ++yytext, *temp_str;
 	entity_t* e;
 
 	while(*p != ';') p++;
@@ -381,14 +381,14 @@ since_attr since=\042
 }
 
 <GET_UINT_ATTR>{number} {
-	*yyextra->attr_uint = (guint)strtoul(yytext,NULL,0);
+	*yyextra->attr_uint = (unsigned)strtoul(yytext,NULL,0);
 	D(("%s\n",yytext););
 	yyextra->attr_uint = NULL;
 	BEGIN END_ATTR;
 }
 
 <GET_UINT16_ATTR>{number} {
-	*yyextra->attr_uint16 = (gint16) strtol(yytext,NULL,0);
+	*yyextra->attr_uint16 = (int16_t) strtol(yytext,NULL,0);
 	D(("%s\n",yytext););
 	yyextra->attr_uint16 = NULL;
 	BEGIN END_ATTR;
@@ -449,18 +449,6 @@ since_attr since=\042
 	D(("tlv_start\n"));
 
 	yyextra->tlv = wmem_new0(wmem_epan_scope(), wimaxasncp_dict_tlv_t);
-	yyextra->tlv->hf_root = -1;
-	yyextra->tlv->hf_value = -1;
-	yyextra->tlv->hf_ipv4 = -1;
-	yyextra->tlv->hf_ipv6 = -1;
-	yyextra->tlv->hf_bsid = -1;
-	yyextra->tlv->hf_protocol = -1;
-	yyextra->tlv->hf_port_low = -1;
-	yyextra->tlv->hf_port_high = -1;
-	yyextra->tlv->hf_ipv4_mask = -1;
-	yyextra->tlv->hf_ipv6_mask = -1;
-	yyextra->tlv->hf_vendor_id = -1;
-	yyextra->tlv->hf_vendor_rest_of_info = -1;
 
 	if (! yyextra->dict->tlvs )
 		yyextra->last_tlv = yyextra->dict->tlvs = yyextra->tlv;
@@ -521,7 +509,7 @@ DIAG_ON_FLEX()
 
 static int debugging  = 0;
 
-static void wimaxasncp_dict_debug(const gchar *fmt, ...) {
+static void wimaxasncp_dict_debug(const char *fmt, ...) {
 	va_list ap;
 
 	va_start(ap, fmt);
@@ -531,7 +519,7 @@ static void wimaxasncp_dict_debug(const gchar *fmt, ...) {
 	fflush(stderr);
 }
 
-static guint wimaxasncp_bits(guint bits, char *n)
+static unsigned wimaxasncp_bits(unsigned bits, char *n)
 {
 	return 1u << ((bits - 1) - (strtoul(n, NULL, 10)));
 }
@@ -567,9 +555,9 @@ static const value_string wimaxasncp_decode_type_vals[] =
   { 0, NULL}
 };
 
-static gint wimaxasncp_decode_type(const gchar *name)
+static int wimaxasncp_decode_type(const char *name)
 {
-	gsize i;
+	size_t i;
 	for (i = 0; i < array_length(wimaxasncp_decode_type_vals) - 1; ++i)
 	{
 		if (strcmp(name, wimaxasncp_decode_type_vals[i].strptr) == 0)
@@ -588,14 +576,14 @@ void wimaxasncp_dict_unused(yyscan_t yyscanner) {
 	yy_top_state(yyscanner);
 }
 
-static void append_to_buffer(const gchar *txt, int len, WimaxasncpDict_scanner_state_t *state) {
+static void append_to_buffer(const char *txt, int len, WimaxasncpDict_scanner_state_t *state) {
 
 	if (state->strbuf == NULL) {
-		state->read_ptr = state->write_ptr = state->strbuf = (gchar *)g_malloc(state->size_strbuf);
+		state->read_ptr = state->write_ptr = state->strbuf = (char *)g_malloc(state->size_strbuf);
 	}
 
 	if (state->len_strbuf + len >= state->size_strbuf) {
-		state->read_ptr = state->strbuf = (gchar *)g_realloc(state->strbuf,state->size_strbuf *= 2);
+		state->read_ptr = state->strbuf = (char *)g_realloc(state->strbuf,state->size_strbuf *= 2);
 	}
 
 	state->write_ptr = state->strbuf + state->len_strbuf;
@@ -603,7 +591,7 @@ static void append_to_buffer(const gchar *txt, int len, WimaxasncpDict_scanner_s
 	state->len_strbuf += len;
 }
 
-static size_t file_input(gchar *buf, size_t max, yyscan_t scanner) {
+static size_t file_input(char *buf, size_t max, yyscan_t scanner) {
 	FILE *in = yyget_in(scanner);
 	size_t read_cnt;
 
@@ -619,7 +607,7 @@ static size_t file_input(gchar *buf, size_t max, yyscan_t scanner) {
 }
 
 
-static size_t string_input(gchar *buf, size_t max, yyscan_t scanner) {
+static size_t string_input(char *buf, size_t max, yyscan_t scanner) {
 	WimaxasncpDict_scanner_state_t *statep = yyget_extra(scanner);
 
 	if (statep->read_ptr >= statep->write_ptr ) {
@@ -635,11 +623,11 @@ static size_t string_input(gchar *buf, size_t max, yyscan_t scanner) {
 }
 
 static FILE *wimaxasncp_dict_open(
-	const gchar *system_directory,
-	const gchar *filename)
+	const char *system_directory,
+	const char *filename)
 {
 	FILE *fh;
-	gchar *fname;
+	char *fname;
 	if (system_directory)
 	{
 		fname = ws_strdup_printf("%s%s%s",
@@ -661,8 +649,8 @@ static FILE *wimaxasncp_dict_open(
 }
 
 wimaxasncp_dict_t *wimaxasncp_dict_scan(
-	const gchar *system_directory, const gchar *filename, int dbg,
-	gchar **error) {
+	const char *system_directory, const char *filename, int dbg,
+	char **error) {
 
 	WimaxasncpDict_scanner_state_t state;
 	FILE *in;
@@ -837,8 +825,8 @@ void wimaxasncp_dict_print(FILE *fh, wimaxasncp_dict_t *d) {
 #ifdef TEST_WIMAXASNCP_DICT_STANDALONE
 int main(int argc, char **argv) {
 	wimaxasncp_dict_t *d;
-	gchar *dname = NULL;
-	gchar *fname;
+	char *dname = NULL;
+	char *fname;
 	int i = 1;
 
 	switch (argc) {

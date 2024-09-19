@@ -17,6 +17,8 @@
 
 #include <epan/packet.h>
 #include <epan/expert.h>
+#include <epan/tfs.h>
+#include <wsutil/array.h>
 
 #define UDP_PORT_SAP   9875
 
@@ -27,6 +29,8 @@
 
 void proto_register_sap(void);
 void proto_reg_handoff_sap(void);
+
+static dissector_handle_t sap_handle;
 
 static const value_string mcast_sap_ver[] = {
     { MCAST_SAP_VER0,     "SAPv0"},
@@ -67,39 +71,39 @@ static const value_string mcast_sap_auth_type[] = {
 #define MCAST_SAP_AUTH_BIT_P 0x10 /* Padding required for the authentication header */
 
 
-static int proto_sap = -1;
-static int hf_sap_flags = -1;
-static int hf_sap_flags_v = -1;
-static int hf_sap_flags_a = -1;
-static int hf_sap_flags_r = -1;
-static int hf_sap_flags_t = -1;
-static int hf_sap_flags_e = -1;
-static int hf_sap_flags_c = -1;
-static int hf_auth_data = -1;
-static int hf_auth_flags = -1;
-static int hf_auth_flags_v = -1;
-static int hf_auth_flags_p = -1;
-static int hf_auth_flags_t = -1;
+static int proto_sap;
+static int hf_sap_flags;
+static int hf_sap_flags_v;
+static int hf_sap_flags_a;
+static int hf_sap_flags_r;
+static int hf_sap_flags_t;
+static int hf_sap_flags_e;
+static int hf_sap_flags_c;
+static int hf_auth_data;
+static int hf_auth_flags;
+static int hf_auth_flags_v;
+static int hf_auth_flags_p;
+static int hf_auth_flags_t;
 /* Generated from convert_proto_tree_add_text.pl */
-static int hf_sap_auth_len = -1;
-static int hf_sap_originating_source_ipv4 = -1;
-static int hf_sap_auth_data_padding = -1;
-static int hf_sap_auth_subheader = -1;
-static int hf_sap_originating_source_ipv6 = -1;
-static int hf_sap_message_identifier_hash = -1;
-static int hf_sap_auth_data_padding_len = -1;
-static int hf_sap_payload_type = -1;
+static int hf_sap_auth_len;
+static int hf_sap_originating_source_ipv4;
+static int hf_sap_auth_data_padding;
+static int hf_sap_auth_subheader;
+static int hf_sap_originating_source_ipv6;
+static int hf_sap_message_identifier_hash;
+static int hf_sap_auth_data_padding_len;
+static int hf_sap_payload_type;
 
-static gint ett_sap = -1;
-static gint ett_sap_flags = -1;
-static gint ett_sap_auth = -1;
-static gint ett_sap_authf = -1;
+static int ett_sap;
+static int ett_sap_flags;
+static int ett_sap_auth;
+static int ett_sap_authf;
 
-static expert_field ei_sap_compressed_and_encrypted = EI_INIT;
-static expert_field ei_sap_encrypted = EI_INIT;
-static expert_field ei_sap_compressed = EI_INIT;
+static expert_field ei_sap_compressed_and_encrypted;
+static expert_field ei_sap_encrypted;
+static expert_field ei_sap_compressed;
 /* Generated from convert_proto_tree_add_text.pl */
-static expert_field ei_sap_bogus_authentication_or_pad_length = EI_INIT;
+static expert_field ei_sap_bogus_authentication_or_pad_length;
 
 static dissector_handle_t sdp_handle;
 
@@ -108,9 +112,9 @@ dissect_sap(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, void* data _U_)
 {
     int offset = 0;
     int sap_version, is_ipv6, is_del, is_enc, is_comp, addr_len;
-    guint8 vers_flags;
-    guint8 auth_len;
-    guint8 auth_flags;
+    uint8_t vers_flags;
+    uint8_t auth_len;
+    uint8_t auth_flags;
     tvbuff_t *next_tvb;
 
     proto_item *si, *sif;
@@ -119,7 +123,7 @@ dissect_sap(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, void* data _U_)
     col_set_str(pinfo->cinfo, COL_PROTOCOL, "SAP");
     col_clear(pinfo->cinfo, COL_INFO);
 
-    vers_flags = tvb_get_guint8(tvb, offset);
+    vers_flags = tvb_get_uint8(tvb, offset);
     is_ipv6 = vers_flags&MCAST_SAP_BIT_A;
     is_del = vers_flags&MCAST_SAP_BIT_T;
     is_enc = vers_flags&MCAST_SAP_BIT_E;
@@ -147,7 +151,7 @@ dissect_sap(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, void* data _U_)
 
     offset++;
 
-    auth_len = tvb_get_guint8(tvb, offset);
+    auth_len = tvb_get_uint8(tvb, offset);
     proto_tree_add_item(sap_tree, hf_sap_auth_len, tvb, offset, 1, ENC_BIG_ENDIAN);
     offset++;
 
@@ -162,18 +166,18 @@ dissect_sap(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, void* data _U_)
 
     /* Authentication data lives in its own subtree */
     if (auth_len > 0) {
-        guint32 auth_data_len;
+        uint32_t auth_data_len;
         proto_item *sdi, *sai;
         proto_tree *sa_tree, *saf_tree;
         int has_pad;
-        guint8 pad_len = 0;
+        uint8_t pad_len = 0;
 
-        auth_data_len = (guint32)(auth_len * sizeof(guint32));
+        auth_data_len = (uint32_t)(auth_len * sizeof(uint32_t));
 
         sdi = proto_tree_add_item(sap_tree, hf_auth_data, tvb, offset, auth_data_len, ENC_NA);
         sa_tree = proto_item_add_subtree(sdi, ett_sap_auth);
 
-        auth_flags = tvb_get_guint8(tvb, offset);
+        auth_flags = tvb_get_uint8(tvb, offset);
         sai = proto_tree_add_item(sa_tree, hf_auth_flags, tvb, offset, 1, ENC_BIG_ENDIAN);
         saf_tree = proto_item_add_subtree(sai, ett_sap_authf);
         proto_tree_add_item(saf_tree, hf_auth_flags_v, tvb, offset, 1, ENC_BIG_ENDIAN);
@@ -182,7 +186,7 @@ dissect_sap(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, void* data _U_)
 
         has_pad = auth_flags&MCAST_SAP_AUTH_BIT_P;
         if (has_pad) {
-            pad_len = tvb_get_guint8(tvb, offset+auth_data_len-1);
+            pad_len = tvb_get_uint8(tvb, offset+auth_data_len-1);
         }
 
         if ((int) auth_data_len - pad_len - 1 < 0) {
@@ -217,10 +221,10 @@ dissect_sap(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, void* data _U_)
     if (tree) {
         /* Do we have the optional payload type aka. MIME content specifier */
         if (tvb_strneql(tvb, offset, "v=", strlen("v="))) {
-            gint remaining_len;
-            guint32 pt_len;
+            int remaining_len;
+            uint32_t pt_len;
             int pt_string_len;
-            guint8* pt_str;
+            uint8_t* pt_str;
 
             remaining_len = tvb_captured_length_remaining(tvb, offset);
             if (remaining_len == 0) {
@@ -339,7 +343,7 @@ void proto_register_sap(void)
         { &hf_sap_payload_type, { "Payload type", "sap.payload_type", FT_STRING, BASE_NONE, NULL, 0x0, NULL, HFILL }},
 
     };
-    static gint *ett[] = {
+    static int *ett[] = {
         &ett_sap,
         &ett_sap_flags,
         &ett_sap_auth,
@@ -363,14 +367,13 @@ void proto_register_sap(void)
     proto_register_subtree_array(ett, array_length(ett));
     expert_sap = expert_register_protocol(proto_sap);
     expert_register_field_array(expert_sap, ei, array_length(ei));
+
+    sap_handle = register_dissector("sap", dissect_sap, proto_sap);
 }
 
 void
 proto_reg_handoff_sap(void)
 {
-    dissector_handle_t sap_handle;
-
-    sap_handle = create_dissector_handle(dissect_sap, proto_sap);
     dissector_add_uint_with_preference("udp.port", UDP_PORT_SAP, sap_handle);
 
     /*

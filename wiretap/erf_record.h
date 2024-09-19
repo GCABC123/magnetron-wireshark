@@ -87,21 +87,39 @@
 #define ERF_EXT_HDR_TYPE_ANCHOR_ID      18
 #define ERF_EXT_HDR_TYPE_ENTROPY        19
 
-/* Host ID and Anchor ID*/
-#define ERF_EHDR_HOST_ID_MASK G_GUINT64_CONSTANT(0xffffffffffff)
-#define ERF_EHDR_ANCHOR_ID_MASK G_GUINT64_CONSTANT(0xffffffffffff)
-#define ERF_EHDR_MORE_EXTHDR_MASK G_GUINT64_CONSTANT(0x8000000000000000)
-#define ERF_EHDR_ANCHOR_ID_DEFINITION_MASK G_GUINT64_CONSTANT(0x80000000000000)
+/* ERF Header */
+#define ERF_HDR_TYPE_MASK   0x7f
+#define ERF_HDR_EHDR_MASK   0x80
+#define ERF_HDR_FLAGS_MASK  0xff
+#define ERF_HDR_CAP_MASK    0x43
+#define ERF_HDR_CAP_LO_MASK 0x03
+#define ERF_HDR_CAP_HI_MASK 0x40
+#define ERF_HDR_VLEN_MASK   0x04
+#define ERF_HDR_TRUNC_MASK  0x08
+#define ERF_HDR_RXE_MASK    0x10
+#define ERF_HDR_DSE_MASK    0x20
+#define ERF_HDR_RES_MASK    0x80
 
-#define ERF_EHDR_FLOW_ID_STACK_TYPE_MASK G_GUINT64_CONSTANT(0xff00000000)
-#define ERF_EHDR_FLOW_ID_SOURCE_ID_MASK  G_GUINT64_CONSTANT(0xff000000000000)
+/*
+ * Calculate 3-bit ERF InterfaceID value from ERF Header flags byte
+ */
+#define erf_interface_id_from_flags(flags) ((((uint8_t)flags) & ERF_HDR_CAP_HI_MASK >> 4 ) | (((uint8_t)flags) & ERF_HDR_CAP_LO_MASK))
+
+/* Host ID and Anchor ID*/
+#define ERF_EHDR_HOST_ID_MASK UINT64_C(0xffffffffffff)
+#define ERF_EHDR_ANCHOR_ID_MASK UINT64_C(0xffffffffffff)
+#define ERF_EHDR_MORE_EXTHDR_MASK UINT64_C(0x8000000000000000)
+#define ERF_EHDR_ANCHOR_ID_DEFINITION_MASK UINT64_C(0x80000000000000)
+
+#define ERF_EHDR_FLOW_ID_STACK_TYPE_MASK UINT64_C(0xff00000000)
+#define ERF_EHDR_FLOW_ID_SOURCE_ID_MASK  UINT64_C(0xff000000000000)
 
 /* ERF Provenance metadata */
 #define ERF_META_SECTION_MASK 0xFF00
 #define ERF_META_IS_SECTION(type) (type > 0 && (type & ERF_META_SECTION_MASK) == ERF_META_SECTION_MASK)
-#define ERF_META_HOST_ID_IMPLICIT G_MAXUINT64
-#define ERF_ANCHOR_ID_IS_DEFINITION(anchor_id) ((guint64)anchor_id & ERF_EHDR_ANCHOR_ID_DEFINITION_MASK)
-#define ERF_EHDR_SET_MORE_EXTHDR(ext_hdr) ((guint64)ext_hdr | ERF_EHDR_MORE_EXTHDR_MASK)
+#define ERF_META_HOST_ID_IMPLICIT UINT64_MAX
+#define ERF_ANCHOR_ID_IS_DEFINITION(anchor_id) ((uint64_t)anchor_id & ERF_EHDR_ANCHOR_ID_DEFINITION_MASK)
+#define ERF_EHDR_SET_MORE_EXTHDR(ext_hdr) ((uint64_t)ext_hdr | ERF_EHDR_MORE_EXTHDR_MASK)
 
 #define ERF_META_SECTION_CAPTURE     0xFF00
 #define ERF_META_SECTION_HOST        0xFF01
@@ -115,6 +133,10 @@
 #define ERF_META_SECTION_TRANSFORM   0xFF09
 #define ERF_META_SECTION_DNS         0xFF0A
 #define ERF_META_SECTION_SOURCE      0xFF0B
+#define ERF_META_SECTION_NETWORK     0xFF0C
+#define ERF_META_SECTION_ENDPOINT    0xFF0D
+#define ERF_META_SECTION_INPUT       0xFF0E
+#define ERF_META_SECTION_OUTPUT      0xFF0F
 
 #define ERF_META_TAG_padding           0
 #define ERF_META_TAG_comment           1
@@ -179,6 +201,8 @@
 #define ERF_META_TAG_relative_snaplen  59
 #define ERF_META_TAG_temperature       60
 #define ERF_META_TAG_power             61
+#define ERF_META_TAG_vendor            62
+#define ERF_META_TAG_cpu_threads       63
 
 #define ERF_META_TAG_if_num            64
 #define ERF_META_TAG_if_vc             65
@@ -244,6 +268,30 @@
 #define ERF_META_TAG_dpi_state         163
 #define ERF_META_TAG_dpi_protocol_stack 164
 #define ERF_META_TAG_flow_state        165
+#define ERF_META_TAG_vlan_id           166
+#define ERF_META_TAG_mpls_label        167
+#define ERF_META_TAG_vlan_pcp          168
+#define ERF_META_TAG_mpls_tc           169
+#define ERF_META_TAG_dscp              170
+#define ERF_META_TAG_initiator_mpls_label 171
+#define ERF_META_TAG_responder_mpls_label 172
+#define ERF_META_TAG_initiator_mpls_tc 173
+#define ERF_META_TAG_responder_mpls_tc 174
+#define ERF_META_TAG_initiator_ipv4    175
+#define ERF_META_TAG_responder_ipv4    176
+#define ERF_META_TAG_initiator_ipv6    177
+#define ERF_META_TAG_responder_ipv6    178
+#define ERF_META_TAG_initiator_mac     179
+#define ERF_META_TAG_responder_mac     180
+#define ERF_META_TAG_initiator_port    181
+#define ERF_META_TAG_responder_port    182
+#define ERF_META_TAG_initiator_retx    183
+#define ERF_META_TAG_responder_retx    184
+#define ERF_META_TAG_initiator_zwin    185
+#define ERF_META_TAG_responder_zwin    186
+#define ERF_META_TAG_initiator_tcp_flags 187
+#define ERF_META_TAG_responder_tcp_flags 188
+#define ERF_META_TAG_tcp_irtt          189
 
 #define ERF_META_TAG_start_time        193
 #define ERF_META_TAG_end_time          194
@@ -270,6 +318,27 @@
 #define ERF_META_TAG_stat_buf_drop     215
 #define ERF_META_TAG_stream_drop       216
 #define ERF_META_TAG_stream_buf_drop   217
+#define ERF_META_TAG_pkt_drop          218
+#define ERF_META_TAG_record_drop       219
+#define ERF_META_TAG_bandwidth         220
+#define ERF_META_TAG_duration          221
+#define ERF_META_TAG_top_index         222
+#define ERF_META_TAG_concurrent_flows  223
+#define ERF_META_TAG_active_flows      224
+#define ERF_META_TAG_created_flows     225
+#define ERF_META_TAG_deleted_flows     226
+#define ERF_META_TAG_active_endpoints  227
+#define ERF_META_TAG_tx_pkts           228
+#define ERF_META_TAG_tx_bytes          229
+#define ERF_META_TAG_rx_bandwidth      230
+#define ERF_META_TAG_tx_bandwidth      231
+#define ERF_META_TAG_records           232
+#define ERF_META_TAG_record_bytes      233
+#define ERF_META_TAG_pkt_drop_bytes    234
+#define ERF_META_TAG_record_drop_bytes 235
+#define ERF_META_TAG_drop_bandwidth    236
+#define ERF_META_TAG_retx_pkts         237
+#define ERF_META_TAG_zwin_pkts         238
 
 #define ERF_META_TAG_ns_host_ipv4      256
 #define ERF_META_TAG_ns_host_ipv6      257
@@ -285,6 +354,7 @@
 #define ERF_META_TAG_exthdr            321
 #define ERF_META_TAG_pcap_ng_block     322
 #define ERF_META_TAG_asn1              323
+#define ERF_META_TAG_section_ref       324
 
 #define ERF_META_TAG_clk_source             384
 #define ERF_META_TAG_clk_state              385
@@ -317,33 +387,42 @@
 #define ERF_META_TAG_ptp_port_state         412
 #define ERF_META_TAG_ptp_delay_mechanism    413
 #define ERF_META_TAG_clk_port_proto         414
+#define ERF_META_TAG_ntp_status             415
+#define ERF_META_TAG_ntp_stratum            416
+#define ERF_META_TAG_ntp_rootdelay          417
+#define ERF_META_TAG_ntp_rootdisp           418
+#define ERF_META_TAG_ntp_offset             419
+#define ERF_META_TAG_ntp_frequency          420
+#define ERF_META_TAG_ntp_sys_jitter         421
+#define ERF_META_TAG_ntp_peer_remote        422
+#define ERF_META_TAG_ntp_peer_refid         423
 
  /*
   * The timestamp is 64bit unsigned fixed point little-endian value with
   * 32 bits for second and 32 bits for fraction.
   */
-typedef guint64 erf_timestamp_t;
+typedef uint64_t erf_timestamp_t;
 
 typedef struct erf_record {
 	erf_timestamp_t	ts;
-	guint8		type;
-	guint8		flags;
-	guint16		rlen;
-	guint16		lctr;
-	guint16		wlen;
+	uint8_t		type;
+	uint8_t		flags;
+	uint16_t	rlen;
+	uint16_t	lctr;
+	uint16_t	wlen;
 } erf_header_t;
 
 typedef struct erf_mc_hdr {
-	guint32	mc;
+	uint32_t	mc;
 } erf_mc_header_t;
 
 typedef struct erf_aal2_hdr {
-	guint32	aal2;
+	uint32_t	aal2;
 } erf_aal2_header_t;
 
 typedef struct erf_eth_hdr {
-	guint8 offset;
-	guint8 pad;
+	uint8_t offset;
+	uint8_t pad;
 } erf_eth_header_t;
 
 union erf_subhdr {
